@@ -3,7 +3,17 @@ import { useState } from 'react';
 import { Button } from './Button';
 
 /** Two-step destructive action, inline rather than a blocking dialog. */
-export function ConfirmButton({ label = 'Delete', confirmLabel = 'Delete permanently', onConfirm, size = 'sm' }: { label?: string; confirmLabel?: string; onConfirm(): void; size?: 'sm' | 'md' }) {
+export function ConfirmButton({
+  label = 'Delete',
+  confirmLabel = 'Delete permanently',
+  onConfirm,
+  size = 'sm',
+}: {
+  label?: string;
+  confirmLabel?: string;
+  onConfirm(): void;
+  size?: 'sm' | 'md';
+}) {
   const [armed, setArmed] = useState(false);
   if (!armed)
     return (

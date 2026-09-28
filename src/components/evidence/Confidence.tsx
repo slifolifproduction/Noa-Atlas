@@ -6,7 +6,17 @@ import { cn } from '../../lib/cn';
  * the 50% prior, so it reads as "how far the evidence has moved" rather than
  * as a grade.
  */
-export function ConfidenceMeter({ value, size = 'md', className, showBand = true }: { value: number; size?: 'sm' | 'md' | 'lg'; className?: string; showBand?: boolean }) {
+export function ConfidenceMeter({
+  value,
+  size = 'md',
+  className,
+  showBand = true,
+}: {
+  value: number;
+  size?: 'sm' | 'md' | 'lg';
+  className?: string;
+  showBand?: boolean;
+}) {
   const pct = Math.round(value * 100);
   const band = CONFIDENCE_BAND_LABEL[confidenceBand(value)];
   return (
@@ -26,7 +36,10 @@ export function ConfidenceMeter({ value, size = 'md', className, showBand = true
 /** Model estimate for an interpretation: visually quieter than evidence-derived confidence. */
 export function EstimateTag({ value }: { value: number }) {
   return (
-    <span className="num inline-flex items-center rounded-[4px] border border-dashed border-line-strong px-1.5 text-[11px] text-ink-2" title="Model estimate for this interpretation. Not derived from evidence counts.">
+    <span
+      className="num inline-flex items-center rounded-[4px] border border-dashed border-line-strong px-1.5 text-[11px] text-ink-2"
+      title="Model estimate for this interpretation. Not derived from evidence counts."
+    >
       est. {Math.round(value * 100)}%
     </span>
   );

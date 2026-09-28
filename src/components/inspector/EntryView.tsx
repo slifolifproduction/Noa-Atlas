@@ -155,7 +155,11 @@ export function EntryView({ id }: { id: ID }) {
           <ul className="space-y-1.5">
             {usages.map(({ pattern, evidence }) => (
               <li key={pattern.id}>
-                <button type="button" onClick={() => open({ kind: 'pattern', id: pattern.id })} className="flex w-full items-start gap-2 rounded-[5px] px-1 py-1 text-left hover:bg-white/[0.035]">
+                <button
+                  type="button"
+                  onClick={() => open({ kind: 'pattern', id: pattern.id })}
+                  className="flex w-full items-start gap-2 rounded-[5px] px-1 py-1 text-left hover:bg-white/[0.035]"
+                >
                   <StanceMark stance={evidence.stance} />
                   <span className="min-w-0">
                     <span className="label block">
@@ -231,7 +235,8 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
     const p = data.patterns[s.patternId];
     title = (
       <>
-        {s.stance === 'supports' ? 'May support' : 'May counter'} <span className="text-ink">{p ? `${patternCode(p.code)}: ${p.chain.join(' → ')}` : 'a pattern'}</span>
+        {s.stance === 'supports' ? 'May support' : 'May counter'}{' '}
+        <span className="text-ink">{p ? `${patternCode(p.code)}: ${p.chain.join(' → ')}` : 'a pattern'}</span>
       </>
     );
   } else if (s.type === 'link_node') {

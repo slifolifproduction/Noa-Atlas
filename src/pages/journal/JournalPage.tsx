@@ -60,7 +60,13 @@ export function JournalPage() {
       <div className="mt-6 flex flex-wrap items-center gap-2">
         <div className="flex h-8 min-w-[200px] flex-1 items-center gap-2 rounded-[7px] border border-line bg-surface px-2.5 focus-within:border-accent/50 sm:max-w-[280px]">
           <Search size={13} className="text-ink-3" aria-hidden />
-          <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search entries and tags" aria-label="Search entries" className="w-full bg-transparent text-[12.5px] placeholder:text-ink-3 focus:outline-none" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search entries and tags"
+            aria-label="Search entries"
+            className="w-full bg-transparent text-[12.5px] placeholder:text-ink-3 focus:outline-none"
+          />
           {query && (
             <button type="button" onClick={() => setQuery('')} aria-label="Clear search" className="text-ink-3 hover:text-ink">
               <X size={12} aria-hidden />
@@ -87,7 +93,10 @@ export function JournalPage() {
           type="button"
           aria-pressed={review}
           onClick={() => setReview(!review)}
-          className={cn('h-8 rounded-[7px] border px-2.5 text-[12.5px]', review ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-2 hover:border-line-strong')}
+          className={cn(
+            'h-8 rounded-[7px] border px-2.5 text-[12.5px]',
+            review ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-2 hover:border-line-strong',
+          )}
         >
           Needs review <span className="num ml-1 text-ink-3">{reviewCount}</span>
         </button>
@@ -107,7 +116,8 @@ export function JournalPage() {
             </Button>
           }
         >
-          Start with something that happened this week and how you responded. Plain facts are more useful than conclusions; the analysis layer looks for recurring shapes across entries.
+          Start with something that happened this week and how you responded. Plain facts are more useful than conclusions; the analysis layer looks for
+          recurring shapes across entries.
         </EmptyState>
       ) : entries.length === 0 ? (
         <p className="mt-10 text-center text-[13px] text-ink-3">{filtered ? 'No entries match these filters.' : 'Nothing here.'}</p>
@@ -129,7 +139,10 @@ export function JournalPage() {
                       <button
                         type="button"
                         onClick={() => openEntity({ kind: 'entry', id: e.id })}
-                        className={cn('grid w-full grid-cols-[52px_minmax(0,1fr)] gap-3 px-2 py-3 text-left transition-colors sm:grid-cols-[64px_minmax(0,1fr)_auto]', active ? 'bg-raised' : 'hover:bg-surface')}
+                        className={cn(
+                          'grid w-full grid-cols-[52px_minmax(0,1fr)] gap-3 px-2 py-3 text-left transition-colors sm:grid-cols-[64px_minmax(0,1fr)_auto]',
+                          active ? 'bg-raised' : 'hover:bg-surface',
+                        )}
                       >
                         <div className="pt-0.5">
                           <div className="num text-[12px] text-ink-2">{formatDate(e.date)}</div>
@@ -160,7 +173,10 @@ export function JournalPage() {
                             <span
                               key={pattern.id}
                               className="num rounded-[4px] border px-1.5 py-px text-[10.5px]"
-                              style={{ borderColor: evidence.stance === 'supports' ? 'rgb(116 198 154 / 0.35)' : 'rgb(232 162 92 / 0.4)', color: evidence.stance === 'supports' ? 'var(--color-support)' : 'var(--color-counter)' }}
+                              style={{
+                                borderColor: evidence.stance === 'supports' ? 'rgb(116 198 154 / 0.35)' : 'rgb(232 162 92 / 0.4)',
+                                color: evidence.stance === 'supports' ? 'var(--color-support)' : 'var(--color-counter)',
+                              }}
                               title={`${evidence.stance === 'supports' ? 'Supports' : 'Counters'} ${patternCode(pattern.code)}`}
                             >
                               {evidence.stance === 'supports' ? '+' : '−'} P{String(pattern.code).padStart(2, '0')}

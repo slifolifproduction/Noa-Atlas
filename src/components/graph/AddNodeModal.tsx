@@ -8,7 +8,17 @@ import { Modal } from '../ui/Modal';
 import { FieldLabel } from '../ui/primitives';
 
 /** Add a satellite to an Orbit domain, or a node to the Mind graph. */
-export function AddNodeModal({ layer, onClose, defaultDomain, defaultCategory }: { layer: 'orbit' | 'mind'; onClose(): void; defaultDomain?: DomainKey; defaultCategory?: MindCategory }) {
+export function AddNodeModal({
+  layer,
+  onClose,
+  defaultDomain,
+  defaultCategory,
+}: {
+  layer: 'orbit' | 'mind';
+  onClose(): void;
+  defaultDomain?: DomainKey;
+  defaultCategory?: MindCategory;
+}) {
   const addNode = useAtlas((s) => s.addNode);
   const openEntity = useUI((s) => s.openEntity);
   const requestFocus = useUI((s) => s.requestFocus);
@@ -30,7 +40,11 @@ export function AddNodeModal({ layer, onClose, defaultDomain, defaultCategory }:
       open
       onClose={onClose}
       title={layer === 'orbit' ? 'Add to Orbit' : 'Add to Mind'}
-      description={layer === 'orbit' ? 'A goal, project, skill, person or condition within a life domain.' : 'A belief, assumption, motivation, fear, value, model, decision, question or experience.'}
+      description={
+        layer === 'orbit'
+          ? 'A goal, project, skill, person or condition within a life domain.'
+          : 'A belief, assumption, motivation, fear, value, model, decision, question or experience.'
+      }
       width="max-w-[480px]"
       footer={
         <>
@@ -75,7 +89,14 @@ export function AddNodeModal({ layer, onClose, defaultDomain, defaultCategory }:
         )}
         <div>
           <FieldLabel htmlFor="add-label">{layer === 'mind' && category === 'question' ? 'Question' : 'Label'}</FieldLabel>
-          <input id="add-label" className="field" value={label} onChange={(e) => setLabel(e.target.value)} placeholder={layer === 'orbit' ? 'e.g. Ship Night Ferry' : 'State it in your own words'} autoFocus />
+          <input
+            id="add-label"
+            className="field"
+            value={label}
+            onChange={(e) => setLabel(e.target.value)}
+            placeholder={layer === 'orbit' ? 'e.g. Ship Night Ferry' : 'State it in your own words'}
+            autoFocus
+          />
         </div>
         <div>
           <FieldLabel htmlFor="add-summary" hint="optional">

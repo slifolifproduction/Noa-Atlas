@@ -1,7 +1,8 @@
 import { ArrowRight, CornerDownLeft, FlaskConical, Keyboard, Plus, ScanSearch, Search, Split, type LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { navigate, type RouteKey } from '../../app/router';
+import { navigate } from '../../app/router';
+import { openOn, showOnMap } from '../../app/showOnMap';
 import { CATEGORY_META, DOMAIN_META, DOMAINS, hubId, SECTIONS } from '../../domain/constants';
 import { decisionCode, entryCode, experimentCode, pathCode, patternCode } from '../../domain/selectors';
 import type { AtlasData } from '../../domain/types';
@@ -21,13 +22,6 @@ interface Item {
   color?: string;
   run(): void;
 }
-
-const open = (route: RouteKey, ref?: Parameters<ReturnType<typeof useUI.getState>['openEntity']>[0], focus?: { layer: 'orbit' | 'mind'; id: string }) => {
-  navigate(route);
-  const ui = useUI.getState();
-  if (ref) ui.openEntity(ref);
-  if (focus) setTimeout(() => useUI.getState().requestFocus(focus.layer, focus.id), 300);
-};
 
 function buildIndex(data: AtlasData): Item[] {
   const ui = useUI.getState();
@@ -53,7 +47,15 @@ function buildIndex(data: AtlasData): Item[] {
     { id: 'act:keys', group: 'Actions', label: 'Keyboard shortcuts', icon: Keyboard, run: () => ui.setShortcutsOpen(true) },
   ];
   for (const d of DOMAINS) {
-    items.push({ id: `dom:${d.key}`, group: 'Domains', label: d.label, detail: data.domains[d.key]?.statement, icon: DOMAIN_ICONS[d.key], color: d.color, run: () => open('orbit', { kind: 'domain', id: d.key }, { layer: 'orbit', id: hubId(d.key) }) });
+    items.push({
+      id: `dom:${d.key}`,
+      group: 'Domains',
+      label: d.label,
+      detail: data.domains[d.key]?.statement,
+      icon: DOMAIN_ICONS[d.key],
+      color: d.color,
+      run: () => showOnMap('orbit', hubId(d.key), { kind: 'domain', id: d.key }),
+    });
   }
   for (const n of Object.values(data.nodes)) {
     const inOrbit = Boolean(n.domain);
@@ -64,23 +66,58 @@ function buildIndex(data: AtlasData): Item[] {
       detail: n.category ? CATEGORY_META[n.category].label : n.domain ? DOMAIN_META[n.domain].label : undefined,
       icon: n.category ? CATEGORY_ICONS[n.category] : DOMAIN_ICONS[n.domain ?? 'identity'],
       color: n.category ? CATEGORY_META[n.category].color : n.domain ? DOMAIN_META[n.domain].color : undefined,
-      run: () => open(inOrbit ? 'orbit' : 'mind', { kind: 'node', id: n.id }, { layer: inOrbit ? 'orbit' : 'mind', id: n.id }),
+      run: () => showOnMap(inOrbit ? 'orbit' : 'mind', n.id, { kind: 'node', id: n.id }),
     });
   }
   for (const p of Object.values(data.patterns)) {
-    items.push({ id: `pat:${p.id}`, group: 'Patterns', label: p.chain.join(' → '), detail: patternCode(p.code), icon: PatternIcon, run: () => navigate('patterns', p.id) });
+    items.push({
+      id: `pat:${p.id}`,
+      group: 'Patterns',
+      label: p.chain.join(' → '),
+      detail: patternCode(p.code),
+      icon: PatternIcon,
+      run: () => navigate('patterns', p.id),
+    });
   }
   for (const p of Object.values(data.paths)) {
-    items.push({ id: `path:${p.id}`, group: 'Paths', label: p.title, detail: pathCode(p.code), icon: ArrowRight, run: () => open('paths', { kind: 'path', id: p.id }) });
+    items.push({
+      id: `path:${p.id}`,
+      group: 'Paths',
+      label: p.title,
+      detail: pathCode(p.code),
+      icon: ArrowRight,
+      run: () => openOn('paths', { kind: 'path', id: p.id }),
+    });
   }
   for (const x of Object.values(data.experiments)) {
-    items.push({ id: `exp:${x.id}`, group: 'Experiments', label: x.title, detail: `${experimentCode(x.code)} · ${x.hypothesis}`, icon: FlaskConical, run: () => open('navigation', { kind: 'experiment', id: x.id }) });
+    items.push({
+      id: `exp:${x.id}`,
+      group: 'Experiments',
+      label: x.title,
+      detail: `${experimentCode(x.code)} · ${x.hypothesis}`,
+      icon: FlaskConical,
+      run: () => openOn('navigation', { kind: 'experiment', id: x.id }),
+    });
   }
   for (const d of Object.values(data.decisions)) {
-    items.push({ id: `dec:${d.id}`, group: 'Decisions', label: d.title, detail: decisionCode(d.seq), icon: Split, run: () => open('decisions', { kind: 'decision', id: d.id }) });
+    items.push({
+      id: `dec:${d.id}`,
+      group: 'Decisions',
+      label: d.title,
+      detail: decisionCode(d.seq),
+      icon: Split,
+      run: () => openOn('decisions', { kind: 'decision', id: d.id }),
+    });
   }
   for (const e of Object.values(data.entries).sort((a, b) => b.date.localeCompare(a.date))) {
-    items.push({ id: `ent:${e.id}`, group: 'Entries', label: e.title, detail: `${entryCode(e.seq)} · ${e.content}`, icon: CAPTURE_ICONS[e.kind], run: () => open('journal', { kind: 'entry', id: e.id }) });
+    items.push({
+      id: `ent:${e.id}`,
+      group: 'Entries',
+      label: e.title,
+      detail: `${entryCode(e.seq)} · ${e.content}`,
+      icon: CAPTURE_ICONS[e.kind],
+      run: () => openOn('journal', { kind: 'entry', id: e.id }),
+    });
   }
   return items;
 }
@@ -142,7 +179,12 @@ function Palette({ onClose }: { onClose(): void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-[12vh]" role="presentation">
       <div className="absolute inset-0 animate-fade-in bg-black/55 backdrop-blur-[2px]" onClick={onClose} aria-hidden />
-      <div role="dialog" aria-modal="true" aria-label="Search and commands" className="relative w-full max-w-[600px] animate-rise overflow-hidden rounded-[10px] border border-line-strong bg-surface shadow-2xl">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search and commands"
+        className="relative w-full max-w-[600px] animate-rise overflow-hidden rounded-[10px] border border-line-strong bg-surface shadow-2xl"
+      >
         <div className="flex items-center gap-2.5 border-b border-line px-4">
           <Search size={15} className="text-ink-3" aria-hidden />
           <input

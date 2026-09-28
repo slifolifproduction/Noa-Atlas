@@ -19,7 +19,8 @@ import type { GraphLayer, ID } from '../../domain/types';
 import type { BuiltGraph } from '../../graph/build';
 import type { AtlasFlowNode, SemanticEdge } from '../../graph/types';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
-import { useUI } from '../../state/uiStore';
+import { isTyping } from '../../lib/dom';
+import { FOCUS_REQUEST_TTL, useUI } from '../../state/uiStore';
 import { EdgePopover } from './EdgePopover';
 import { HubNodeView } from './nodes/HubNode';
 import { ItemNodeView } from './nodes/ItemNode';
@@ -53,6 +54,8 @@ export interface GraphCanvasProps {
   /** Lower bound for the automatic fit, so text stays readable on small screens. */
   fitMinZoom?: number;
   draggable?: boolean;
+  /** Restore and save the viewport. Off on phones, where desktop viewports do not fit. */
+  persistViewport?: boolean;
   children?: ReactNode;
 }
 
@@ -64,17 +67,27 @@ export function GraphCanvas(props: GraphCanvasProps) {
   );
 }
 
-const isTyping = (el: EventTarget | null) =>
-  el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
-
-function Canvas({ layer, built, selectedId, onSelect, onNodeDoubleClick, occludedRight = 0, minimap, fitPadding = 0.12, fitMinZoom, draggable = true, children }: GraphCanvasProps) {
+function Canvas({
+  layer,
+  built,
+  selectedId,
+  onSelect,
+  onNodeDoubleClick,
+  occludedRight = 0,
+  minimap,
+  fitPadding = 0.12,
+  fitMinZoom,
+  draggable = true,
+  persistViewport = true,
+  children,
+}: GraphCanvasProps) {
   const rf = useReactFlow<AtlasFlowNode, SemanticEdge>();
   const wrapper = useRef<HTMLDivElement>(null);
   const pointer = useRef({ x: 0, y: 0 });
   const setPositions = useUI((s) => s.setPositions);
   const setViewport = useUI((s) => s.setViewport);
   const focusRequest = useUI((s) => s.focusRequest);
-  const [initialViewport] = useState<Viewport | undefined>(() => useUI.getState().layouts[layer].viewport);
+  const [initialViewport] = useState<Viewport | undefined>(() => (persistViewport ? useUI.getState().layouts[layer].viewport : undefined));
   const isDesktop = useMediaQuery('(min-width: 1024px)');
 
   const [nodes, setNodes] = useState<AtlasFlowNode[]>(built.nodes);
@@ -115,11 +128,15 @@ function Canvas({ layer, built, selectedId, onSelect, onNodeDoubleClick, occlude
 
   // One-shot "focus this node" requests from the inspector, search or palette.
   useEffect(() => {
-    if (!focusRequest || focusRequest.layer !== layer) return;
+    if (!focusRequest || focusRequest.layer !== layer || Date.now() - focusRequest.at > FOCUS_REQUEST_TTL) return;
     const n = nodes.find((x) => x.id === focusRequest.id);
     if (!n) return;
-    const zoom = Math.max(rf.getZoom(), 0.9);
-    rf.setCenter(n.position.x + occludedRight / 2 / zoom, n.position.y, { zoom, duration: 500 });
+    // Wait a frame so an initial fit (on a freshly mounted canvas) does not override the focus.
+    const raf = requestAnimationFrame(() => {
+      const zoom = Math.max(rf.getZoom(), 0.9);
+      rf.setCenter(n.position.x + occludedRight / 2 / zoom, n.position.y, { zoom, duration: 500 });
+    });
+    return () => cancelAnimationFrame(raf);
     // Only react to new requests, not to node changes.
   }, [focusRequest]);
 
@@ -191,7 +208,7 @@ function Canvas({ layer, built, selectedId, onSelect, onNodeDoubleClick, occlude
         onConnect={onConnect}
         isValidConnection={isValidConnection}
         connectionMode={ConnectionMode.Loose}
-        onMoveEnd={(_, vp) => setViewport(layer, vp)}
+        onMoveEnd={(_, vp) => persistViewport && setViewport(layer, vp)}
         defaultViewport={initialViewport}
         fitView={!initialViewport}
         fitViewOptions={fitOptions}

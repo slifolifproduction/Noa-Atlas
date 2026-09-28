@@ -55,7 +55,8 @@ export function PathsPage() {
         <div className="mt-6 grid gap-6 md:grid-cols-[280px_1fr]">
           <CurrentStateCell onEdit={() => setEditingState(true)} />
           <EmptyState icon={Compass} title="No paths yet">
-            Describe two or three genuinely different directions. The same questions are asked of each (requirements, capital, time, risks, unknowns) so they can be compared without a verdict.
+            Describe two or three genuinely different directions. The same questions are asked of each (requirements, capital, time, risks, unknowns) so they
+            can be compared without a verdict.
           </EmptyState>
         </div>
       ) : (
@@ -150,7 +151,14 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
       <div ref={grid} className="relative grid min-w-max gap-x-5 lg:min-w-0" style={{ gridTemplateColumns: cols }}>
         <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden>
           {curves.map((c, i) => (
-            <path key={i} d={c.d} fill="none" stroke={c.active ? 'var(--color-accent)' : 'rgb(255 255 255 / 0.2)'} strokeWidth={c.active ? 1.5 : 1.2} strokeDasharray={c.active ? undefined : '4 5'} />
+            <path
+              key={i}
+              d={c.d}
+              fill="none"
+              stroke={c.active ? 'var(--color-accent)' : 'rgb(255 255 255 / 0.2)'}
+              strokeWidth={c.active ? 1.5 : 1.2}
+              strokeDasharray={c.active ? undefined : '4 5'}
+            />
           ))}
         </svg>
 
@@ -169,11 +177,18 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
         {paths.map((p, i) => {
           const isDirection = nav?.pathId === p.id;
           return (
-            <div key={p.id} ref={(el) => void (heads.current[i] = el)} className={cn('relative z-[1] self-start rounded-[10px] border bg-surface p-4', isDirection ? 'border-accent/40' : 'border-line')}>
+            <div
+              key={p.id}
+              ref={(el) => void (heads.current[i] = el)}
+              className={cn('relative z-[1] self-start rounded-[10px] border bg-surface p-4', isDirection ? 'border-accent/40' : 'border-line')}
+            >
               <div className="flex items-center gap-2">
                 <span className="label text-ink-2!">{pathCode(p.code)}</span>
                 {isDirection && (
-                  <span className="rounded-[4px] border border-accent/40 px-1.5 text-[10.5px] text-accent" title="You chose this direction; it is not a ranking">
+                  <span
+                    className="rounded-[4px] border border-accent/40 px-1.5 text-[10.5px] text-accent"
+                    title="You chose this direction; it is not a ranking"
+                  >
                     Your current direction · since {formatDate(nav!.committedAt)}
                   </span>
                 )}
@@ -191,7 +206,11 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
                   </Button>
                 ) : confirm === p.id ? (
                   <div className="space-y-2">
-                    <p className="text-[12px] text-ink-2">{nav ? 'This replaces your current navigation plan with a draft for this path.' : 'A draft navigation plan will be created for you to edit.'}</p>
+                    <p className="text-[12px] text-ink-2">
+                      {nav
+                        ? 'This replaces your current navigation plan with a draft for this path.'
+                        : 'A draft navigation plan will be created for you to edit.'}
+                    </p>
                     <div className="flex gap-1.5">
                       <Button
                         size="sm"
@@ -226,7 +245,12 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
           <Row key={row.key} label={row.label} hint={row.hint}>
             {paths.map((p) => (
               <div key={p.id} className="border-t border-line py-3 text-[13px] leading-snug text-ink-2">
-                <Cell path={p} row={row.key} onOpenExperiment={(id) => open({ kind: 'experiment', id })} onOpenPattern={(id) => open({ kind: 'pattern', id })} />
+                <Cell
+                  path={p}
+                  row={row.key}
+                  onOpenExperiment={(id) => open({ kind: 'experiment', id })}
+                  onOpenPattern={(id) => open({ kind: 'pattern', id })}
+                />
               </div>
             ))}
           </Row>
@@ -251,7 +275,7 @@ function Row({ label, hint, children }: { label: string; hint: string; children:
 function List({ items, empty = '—', mark }: { items: string[]; empty?: string; mark?: ReactNode }) {
   if (!items.length) return <span className="text-ink-3">{empty}</span>;
   return (
-    <ul className="space-y-1">
+    <ul className="space-y-1 text-[13px] leading-snug text-ink-2">
       {items.map((i) => (
         <li key={i} className="flex gap-2">
           <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-ink-3" aria-hidden />
@@ -263,7 +287,17 @@ function List({ items, empty = '—', mark }: { items: string[]; empty?: string;
   );
 }
 
-function Cell({ path: p, row, onOpenExperiment, onOpenPattern }: { path: StrategicPath; row: (typeof ROWS)[number]['key']; onOpenExperiment(id: string): void; onOpenPattern(id: string): void }) {
+function Cell({
+  path: p,
+  row,
+  onOpenExperiment,
+  onOpenPattern,
+}: {
+  path: StrategicPath;
+  row: (typeof ROWS)[number]['key'];
+  onOpenExperiment(id: string): void;
+  onOpenPattern(id: string): void;
+}) {
   const data = useAtlas((s) => s.data);
   switch (row) {
     case 'skills':
@@ -340,7 +374,16 @@ function Cell({ path: p, row, onOpenExperiment, onOpenPattern }: { path: Strateg
                 type="button"
                 className="shrink-0 text-[11.5px] text-accent hover:underline"
                 onClick={() => {
-                  const id = adoptExperimentDraft({ title: idea, hypothesis: `Trying “${idea.toLowerCase()}” will reduce an unknown in ${pathCode(p.code)}.`, design: idea, durationDays: 30, measures: [] }, { pathId: p.id });
+                  const id = adoptExperimentDraft(
+                    {
+                      title: idea,
+                      hypothesis: `Trying “${idea.toLowerCase()}” will reduce an unknown in ${pathCode(p.code)}.`,
+                      design: idea,
+                      durationDays: 30,
+                      measures: [],
+                    },
+                    { pathId: p.id },
+                  );
                   useAtlas.getState().updatePath(p.id, { proposedExperiments: p.proposedExperiments.filter((x) => x !== idea) });
                   onOpenExperiment(id);
                 }}

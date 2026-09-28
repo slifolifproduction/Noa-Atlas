@@ -75,14 +75,28 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
 
     async analyzeEntry(entry, data): Promise<EntryAnalysis> {
       const out = await call('entry_analysis', {
-        entry: { id: entry.id, code: entryCode(entry.seq), date: entry.date, kind: entry.kind, title: entry.title, content: entry.content, context: entry.context ?? null },
+        entry: {
+          id: entry.id,
+          code: entryCode(entry.seq),
+          date: entry.date,
+          kind: entry.kind,
+          title: entry.title,
+          content: entry.content,
+          context: entry.context ?? null,
+        },
         nodes: nodeCatalogue(data),
         patterns: patternCatalogue(data),
       });
       const suggestions: AnalysisSuggestion[] = [];
       for (const l of out.node_links) {
         if (!data.nodes[l.node_id]) continue;
-        suggestions.push({ id: createId('sug'), type: 'link_node', nodeId: l.node_id, reason: l.reason, state: entry.nodeIds.includes(l.node_id) ? 'accepted' : 'pending' });
+        suggestions.push({
+          id: createId('sug'),
+          type: 'link_node',
+          nodeId: l.node_id,
+          reason: l.reason,
+          state: entry.nodeIds.includes(l.node_id) ? 'accepted' : 'pending',
+        });
       }
       for (const p of out.pattern_evidence) {
         const pattern = data.patterns[p.pattern_id];
@@ -101,7 +115,13 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
         });
       }
       for (const d of out.domains) {
-        suggestions.push({ id: createId('sug'), type: 'domain', domain: d.domain, reason: d.reason, state: entry.domains.includes(d.domain) ? 'accepted' : 'pending' });
+        suggestions.push({
+          id: createId('sug'),
+          type: 'domain',
+          domain: d.domain,
+          reason: d.reason,
+          state: entry.domains.includes(d.domain) ? 'accepted' : 'pending',
+        });
       }
       return {
         generatedAt: new Date().toISOString(),
@@ -112,7 +132,9 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
     },
 
     async detectDecisionPatterns(data): Promise<PatternCandidate[]> {
-      const existing = Object.values(data.patterns).filter((p) => p.signature).map((p) => ({ signature: p.signature, id: p.id }));
+      const existing = Object.values(data.patterns)
+        .filter((p) => p.signature)
+        .map((p) => ({ signature: p.signature, id: p.id }));
       const out = await call('decision_patterns', { decisions: Object.values(data.decisions).map(decisionRecord), existing });
       const bySig = new Map(existing.map((e) => [e.signature!, e.id]));
       return out.candidates
@@ -143,7 +165,13 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
 
     async proposeExperiments(pattern, data) {
       const out = await call('experiment_proposals', {
-        pattern: { ...patternCatalogue(data).find((p) => p.id === pattern.id), triggers: pattern.triggers, behaviors: pattern.behaviors, consequences: pattern.consequences, confidence: computeConfidence(pattern.evidence) },
+        pattern: {
+          ...patternCatalogue(data).find((p) => p.id === pattern.id),
+          triggers: pattern.triggers,
+          behaviors: pattern.behaviors,
+          consequences: pattern.consequences,
+          confidence: computeConfidence(pattern.evidence),
+        },
       });
       return out.experiments.map((x) => ({
         title: x.title,
@@ -165,7 +193,9 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
       return {
         ...proposal,
         learningNote: out.learning_note || proposal.learningNote,
-        interpretationNotes: out.interpretation_notes.filter((n) => data.patterns[n.pattern_id]).map((n) => ({ patternId: n.pattern_id, statement: n.statement })),
+        interpretationNotes: out.interpretation_notes
+          .filter((n) => data.patterns[n.pattern_id])
+          .map((n) => ({ patternId: n.pattern_id, statement: n.statement })),
       };
     },
 

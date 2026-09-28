@@ -75,11 +75,19 @@ export function DecisionsPage() {
                   const h = decisionHorizon(d);
                   const active = top?.kind === 'decision' && top.id === d.id;
                   return (
-                    <tr key={d.id} onClick={() => openEntity({ kind: 'decision', id: d.id })} className={cn('cursor-pointer align-top transition-colors', active ? 'bg-raised' : 'hover:bg-surface')}>
+                    <tr
+                      key={d.id}
+                      onClick={() => openEntity({ kind: 'decision', id: d.id })}
+                      className={cn('cursor-pointer align-top transition-colors', active ? 'bg-raised' : 'hover:bg-surface')}
+                    >
                       <td className="num px-3 py-2.5 text-[12px] text-ink-3">{String(d.seq).padStart(2, '0')}</td>
                       <td className="num px-3 py-2.5 text-[12px] whitespace-nowrap text-ink-2">{formatDate(d.date)}</td>
                       <td className="px-3 py-2.5">
-                        <button type="button" className="text-left text-ink hover:underline" onClick={(e) => (e.stopPropagation(), openEntity({ kind: 'decision', id: d.id }))}>
+                        <button
+                          type="button"
+                          className="text-left text-ink hover:underline"
+                          onClick={(e) => (e.stopPropagation(), openEntity({ kind: 'decision', id: d.id }))}
+                        >
                           {d.title}
                         </button>
                         <div className="mt-0.5 line-clamp-1 text-[12px] text-ink-3">Chose: {d.chosenAction || '—'}</div>
@@ -89,7 +97,11 @@ export function DecisionsPage() {
                         {d.optimizingFor.length > 0 && <div className="mt-0.5 text-[11px] text-ink-3">{HORIZON[h]}</div>}
                       </td>
                       <td className="px-3 py-2.5 text-[12px]">
-                        {d.actualOutcome ? <span className="text-ink-2">{d.outcomeRating ? OUTCOME_RATING_LABEL[d.outcomeRating] : 'Reviewed'}</span> : <span className="text-counter">Awaiting outcome</span>}
+                        {d.actualOutcome ? (
+                          <span className="text-ink-2">{d.outcomeRating ? OUTCOME_RATING_LABEL[d.outcomeRating] : 'Reviewed'}</span>
+                        ) : (
+                          <span className="text-counter">Awaiting outcome</span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -127,7 +139,9 @@ function DecisionPatterns({ count }: { count: number }) {
           <h2 id="dp-title" className="label text-ink-2!">
             Decision patterns
           </h2>
-          <p className="mt-0.5 text-[12px] text-ink-3">Proposed from the drivers and outcomes you recorded. Adding one to the model makes it part of the Mind graph.</p>
+          <p className="mt-0.5 text-[12px] text-ink-3">
+            Proposed from the drivers and outcomes you recorded. Adding one to the model makes it part of the Mind graph.
+          </p>
         </div>
         <Button size="sm" variant="ghost" icon={RefreshCw} loading={busy} onClick={run} disabled={count < MIN_DECISIONS}>
           Re-analyse
@@ -135,7 +149,8 @@ function DecisionPatterns({ count }: { count: number }) {
       </header>
       {count < MIN_DECISIONS ? (
         <p className="px-4 py-4 text-[13px] text-ink-3">
-          Decision patterns need at least {MIN_DECISIONS} logged decisions; there {count === 1 ? 'is' : 'are'} {count}. Record the drivers for each so there is something to compare.
+          Decision patterns need at least {MIN_DECISIONS} logged decisions; there {count === 1 ? 'is' : 'are'} {count}. Record the drivers for each so there is
+          something to compare.
         </p>
       ) : candidates === null ? (
         <p className="px-4 py-4 text-[13px] text-ink-3">Analysing decisions…</p>
@@ -144,7 +159,10 @@ function DecisionPatterns({ count }: { count: number }) {
       ) : (
         <ul className="divide-y divide-line">
           {visible.map((c) => {
-            const confidence = computeConfidence([...c.supporting.map(() => ({ stance: 'supports' as const, weight: 1 })), ...c.counter.map(() => ({ stance: 'counters' as const, weight: 1 }))]);
+            const confidence = computeConfidence([
+              ...c.supporting.map(() => ({ stance: 'supports' as const, weight: 1 })),
+              ...c.counter.map(() => ({ stance: 'counters' as const, weight: 1 })),
+            ]);
             const existing = c.existingPatternId ? data.patterns[c.existingPatternId] : undefined;
             return (
               <li key={c.signature} className="px-4 py-4">
@@ -231,4 +249,3 @@ function RefList({ title, stance, items }: { title: string; stance: 'supports' |
     </div>
   );
 }
-

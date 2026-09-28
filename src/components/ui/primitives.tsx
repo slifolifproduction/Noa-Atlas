@@ -35,7 +35,12 @@ export function Section({
 
 export function Kbd({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <kbd className={cn('num inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] border border-line-strong bg-raised px-1 text-[10.5px] text-ink-2', className)}>
+    <kbd
+      className={cn(
+        'num inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] border border-line-strong bg-raised px-1 text-[10.5px] text-ink-2',
+        className,
+      )}
+    >
       {children}
     </kbd>
   );
@@ -163,8 +168,45 @@ export function FieldLabel({ children, htmlFor, hint }: { children: ReactNode; h
 export function Progress({ value, className, color = 'var(--color-ink-2)' }: { value: number; className?: string; color?: string }) {
   const pct = Math.max(0, Math.min(1, value)) * 100;
   return (
-    <div className={cn('h-[3px] w-full overflow-hidden rounded-full bg-white/[0.07]', className)} role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}>
+    <div
+      className={cn('h-[3px] w-full overflow-hidden rounded-full bg-white/[0.07]', className)}
+      role="progressbar"
+      aria-valuenow={Math.round(pct)}
+      aria-valuemin={0}
+      aria-valuemax={100}
+    >
       <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: color }} />
     </div>
+  );
+}
+
+/** A pressable chip for multi-select filters and tags. */
+export function ToggleChip({
+  on,
+  onClick,
+  children,
+  className,
+  title,
+}: {
+  on: boolean;
+  onClick(): void;
+  children: ReactNode;
+  className?: string;
+  title?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      title={title}
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-[5px] border px-2 py-0.5 text-[12px] transition-colors',
+        on ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-3 hover:border-line-strong hover:text-ink-2',
+        className,
+      )}
+    >
+      {children}
+    </button>
   );
 }

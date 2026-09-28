@@ -24,14 +24,18 @@ const IDENTITY_ITEM_RADIUS = 132;
 export function itemPosition(key: DomainKey, index: number, count: number, g: OrbitGeometry = ORBIT_DESKTOP): XY {
   const k = Math.max(0.8, g.scale);
   if (key === 'identity') {
-    const step = 42;
-    const angle = 90 + (index - (count - 1) / 2) * step;
+    // Self-descriptions sit either side of the centre, leaving above and below for labels.
+    const side = index % 2 === 0 ? 180 : 0;
+    const row = Math.floor(index / 2);
+    const rows = Math.ceil(count / 2);
+    const angle = side + (row - (rows - 1) / 2) * 34 * (side === 0 ? -1 : 1);
     const p = polar(IDENTITY_ITEM_RADIUS * k, angle);
-    return { x: p.x * 1.25, y: p.y };
+    return { x: p.x * 1.2, y: p.y };
   }
   const hub = hubPosition(key, g);
   const base = DOMAIN_META[key].angle;
-  const step = count > 4 ? Math.min(32, 150 / (count - 1)) : 38;
+  // Keep the fan within ~100° so satellites do not drift into a neighbour's label.
+  const step = count > 1 ? Math.min(34, 100 / (count - 1)) : 0;
   const angle = base + (index - (count - 1) / 2) * step;
   const p = polar(ITEM_RADIUS * k, angle);
   return { x: hub.x + p.x, y: hub.y + p.y };
@@ -64,7 +68,7 @@ interface SimNode extends SimulationNodeDatum {
 /** Small deterministic PRNG so layouts are identical on every load. */
 function lcg(seed = 7) {
   let s = seed;
-  return () => ((s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296);
+  return () => (s = (s * 1664525 + 1013904223) % 4294967296) / 4294967296;
 }
 
 /** Approximate rendered size of a pill so the layout can avoid overlaps. */
@@ -157,7 +161,13 @@ export function mindLayout(data: AtlasData, input: MindLayoutInput, fixed: Recor
 
   const sim = forceSimulation(nodes)
     .randomSource(lcg(11))
-    .force('link', forceLink<SimNode, { source: ID; target: ID }>(links).id((d) => d.id).distance(120).strength(0.06))
+    .force(
+      'link',
+      forceLink<SimNode, { source: ID; target: ID }>(links)
+        .id((d) => d.id)
+        .distance(120)
+        .strength(0.06),
+    )
     .force('charge', forceManyBody<SimNode>().strength(-140).distanceMax(420))
     .force('x', forceX<SimNode>((d) => d.ax).strength(0.2))
     .force('y', forceY<SimNode>((d) => d.ay).strength(0.2))

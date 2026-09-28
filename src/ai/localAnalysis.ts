@@ -87,8 +87,24 @@ function phraseRule(statement: string, phrases: string[]): ObservationRule {
 const OBSERVATION_RULES: ObservationRule[] = [
   phraseRule('Describes accepting a new commitment.', ['said yes', 'agreed to', 'took on', 'signed on', 'committing to']),
   phraseRule('Describes declining, pausing or limiting a commitment.', ['declined', 'said no', 'turned down', 'paused', 'commitment cap', 'down to three']),
-  phraseRule('Describes work compressed against a deadline.', ['last four days', 'last minute', 'all-nighters', 'all-nighter', 'minutes before', 'deadline', 'deadlines']),
-  phraseRule('Describes a protected or single-focus work period.', ['deep work', 'protected', 'only project', 'mornings only', 'phone in another room', 'one project per block', 'thursday blocks']),
+  phraseRule('Describes work compressed against a deadline.', [
+    'last four days',
+    'last minute',
+    'all-nighters',
+    'all-nighter',
+    'minutes before',
+    'deadline',
+    'deadlines',
+  ]),
+  phraseRule('Describes a protected or single-focus work period.', [
+    'deep work',
+    'protected',
+    'only project',
+    'mornings only',
+    'phone in another room',
+    'one project per block',
+    'thursday blocks',
+  ]),
   phraseRule('Reports something finished.', ['finished', 'shipped', 'locked', 'submitted', 'wrapped']),
   phraseRule('Reports work slipping or stalling.', ['slipping', 'slipped', 'jumps ahead', 'stalled', "haven't opened", 'lost six weeks', 'eating']),
   phraseRule('Describes fragmented or interrupted time.', ['calls', 'interrupted', 'fragmented', 'inbox', 'meetings']),
@@ -241,7 +257,11 @@ const codes = (ds: Decision[]) => ds.map((d) => decisionCode(d.seq)).join(', ');
 
 export function detectDecisionPatternsLocally(data: AtlasData): PatternCandidate[] {
   const decisions = sortedDecisions(data).reverse();
-  const bySignature = new Map(Object.values(data.patterns).filter((p) => p.signature).map((p) => [p.signature!, p.id]));
+  const bySignature = new Map(
+    Object.values(data.patterns)
+      .filter((p) => p.signature)
+      .map((p) => [p.signature!, p.id]),
+  );
   const out: PatternCandidate[] = [];
 
   const immediate = decisions.filter((d) => decisionHorizon(d) === 'immediate');
@@ -374,8 +394,7 @@ export function evaluateExperimentLocally(experiment: Experiment, result: Experi
 export function draftNavigationPlanLocally(path: StrategicPath, data: AtlasData, today = todayISO()): NavigationPlan {
   const experiments = path.experimentIds.map((id) => data.experiments[id]).filter(Boolean);
   const strategic =
-    experiments.find((x) => x.status === 'running' && x.durationDays >= 60) ??
-    experiments.find((x) => x.status !== 'completed' && x.status !== 'abandoned');
+    experiments.find((x) => x.status === 'running' && x.durationDays >= 60) ?? experiments.find((x) => x.status !== 'completed' && x.status !== 'abandoned');
   const targets = path.requirements.slice(0, 3).map((title, i) => ({ id: createId('tgt'), title, due: addDays(today, 30), done: false, _i: i }));
   const week = weekStart(today);
   const actions = targets.map((t) => ({

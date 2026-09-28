@@ -129,14 +129,24 @@ export function ExperimentView({ id }: { id: ID }) {
           <div className="flex flex-wrap gap-1.5">
             {x.patternLinks.map((l) =>
               data.patterns[l.patternId] ? (
-                <button key={l.patternId} type="button" onClick={() => open({ kind: 'pattern', id: l.patternId })} className="rounded-[5px] border border-line px-1.5 py-[3px] text-[12.5px] text-ink-2 hover:text-ink">
+                <button
+                  key={l.patternId}
+                  type="button"
+                  onClick={() => open({ kind: 'pattern', id: l.patternId })}
+                  className="rounded-[5px] border border-line px-1.5 py-[3px] text-[12.5px] text-ink-2 hover:text-ink"
+                >
                   {patternCode(data.patterns[l.patternId].code)}
                 </button>
               ) : null,
             )}
             {x.pathIds.map((p) =>
               data.paths[p] ? (
-                <button key={p} type="button" onClick={() => open({ kind: 'path', id: p })} className="rounded-[5px] border border-line px-1.5 py-[3px] text-[12.5px] text-ink-2 hover:text-ink">
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => open({ kind: 'path', id: p })}
+                  className="rounded-[5px] border border-line px-1.5 py-[3px] text-[12.5px] text-ink-2 hover:text-ink"
+                >
                   {pathCode(data.paths[p].code)} · {data.paths[p].title}
                 </button>
               ) : null,

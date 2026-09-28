@@ -74,13 +74,25 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
         </div>
         <div>
           <FieldLabel htmlFor="x-design">Experiment</FieldLabel>
-          <textarea id="x-design" className="field min-h-[64px]" value={design} onChange={(e) => setDesign(e.target.value)} placeholder="What you will do differently, and for how long" />
+          <textarea
+            id="x-design"
+            className="field min-h-[64px]"
+            value={design}
+            onChange={(e) => setDesign(e.target.value)}
+            placeholder="What you will do differently, and for how long"
+          />
         </div>
         <div>
           <FieldLabel htmlFor="x-measures" hint="one per line">
             Measures
           </FieldLabel>
-          <textarea id="x-measures" className="field min-h-[72px]" value={measures} onChange={(e) => setMeasures(e.target.value)} placeholder={'Completion rate\nFocus hours per week\nStress (1–5)'} />
+          <textarea
+            id="x-measures"
+            className="field min-h-[72px]"
+            value={measures}
+            onChange={(e) => setMeasures(e.target.value)}
+            placeholder={'Completion rate\nFocus hours per week\nStress (1–5)'}
+          />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
@@ -98,7 +110,12 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
                 ))}
             </select>
             {patternId && (
-              <select className="field mt-1.5" value={ifSupported} onChange={(e) => setIfSupported(e.target.value as Stance)} aria-label="If the hypothesis holds">
+              <select
+                className="field mt-1.5"
+                value={ifSupported}
+                onChange={(e) => setIfSupported(e.target.value as Stance)}
+                aria-label="If the hypothesis holds"
+              >
                 <option value="supports">A supported hypothesis supports the pattern</option>
                 <option value="counters">A supported hypothesis counters the pattern</option>
               </select>

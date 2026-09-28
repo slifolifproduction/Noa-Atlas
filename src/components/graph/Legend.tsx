@@ -8,14 +8,42 @@ export function RelationSwatch({ relation, width = 28 }: { relation: RelationTyp
   const m = RELATION_META[relation];
   return (
     <svg width={width} height="10" className="shrink-0 overflow-visible" aria-hidden>
-      <line x1="1" y1="5" x2={width - (m.arrow ? 4 : 1)} y2="5" stroke={m.color} strokeWidth={m.width + 0.2} strokeDasharray={m.dash} strokeLinecap={relation === 'derived_from' ? 'round' : undefined} />
-      {m.arrow && <path d={`M ${width - 7} 1.5 L ${width - 1} 5 L ${width - 7} 8.5`} fill="none" stroke={m.color} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />}
+      <line
+        x1="1"
+        y1="5"
+        x2={width - (m.arrow ? 4 : 1)}
+        y2="5"
+        stroke={m.color}
+        strokeWidth={m.width + 0.2}
+        strokeDasharray={m.dash}
+        strokeLinecap={relation === 'derived_from' ? 'round' : undefined}
+      />
+      {m.arrow && (
+        <path
+          d={`M ${width - 7} 1.5 L ${width - 1} 5 L ${width - 7} 8.5`}
+          fill="none"
+          stroke={m.color}
+          strokeWidth="1.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      )}
     </svg>
   );
 }
 
 /** Collapsible key for line styles and any other encodings on the canvas. */
-export function Legend({ relations, extra, className, defaultOpen = false }: { relations: RelationType[]; extra?: ReactNode; className?: string; defaultOpen?: boolean }) {
+export function Legend({
+  relations,
+  extra,
+  className,
+  defaultOpen = false,
+}: {
+  relations: RelationType[];
+  extra?: ReactNode;
+  className?: string;
+  defaultOpen?: boolean;
+}) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div className={cn('pointer-events-auto rounded-[8px] border border-line bg-surface/92 backdrop-blur-sm', open ? 'w-[212px]' : 'w-auto', className)}>

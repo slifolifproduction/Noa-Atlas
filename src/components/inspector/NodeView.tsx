@@ -1,16 +1,20 @@
 import { Check, Crosshair, Link2, Pencil, Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { navigate, useRoute } from '../../app/router';
-import { CATEGORIES, CATEGORY_META, DOMAIN_META, DOMAINS, hubId, hubKey, isHubId, QUESTION_STATUS_LABEL, RELATION_META, SEMANTIC_RELATIONS } from '../../domain/constants';
+import { useRoute } from '../../app/router';
+import { showOnMap } from '../../app/showOnMap';
 import {
-  displayNode,
-  evidenceForNode,
-  neighborhood,
-  neighbors,
-  patternsForNode,
-  resolveSource,
-  type Neighbor,
-} from '../../domain/selectors';
+  CATEGORIES,
+  CATEGORY_META,
+  DOMAIN_META,
+  DOMAINS,
+  hubId,
+  hubKey,
+  isHubId,
+  QUESTION_STATUS_LABEL,
+  RELATION_META,
+  SEMANTIC_RELATIONS,
+} from '../../domain/constants';
+import { displayNode, evidenceForNode, neighborhood, neighbors, patternsForNode, resolveSource, type Neighbor } from '../../domain/selectors';
 import type { ID, QuestionStatus, RelationType } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
@@ -28,7 +32,6 @@ export function NodeView({ id }: { id: ID }) {
   const updateNode = useAtlas((s) => s.updateNode);
   const updateDomain = useAtlas((s) => s.updateDomain);
   const deleteNode = useAtlas((s) => s.deleteNode);
-  const requestFocus = useUI((s) => s.requestFocus);
   const closeInspector = useUI((s) => s.closeInspector);
   const route = useRoute();
   const [editing, setEditing] = useState(false);
@@ -58,15 +61,18 @@ export function NodeView({ id }: { id: ID }) {
 
   const goals = [...near2].filter((x) => x !== id && data.nodes[x]?.domain === 'goals');
   const questions = [...neighborhood(data, id, 1)].filter((x) => x !== id && data.nodes[x]?.category === 'question');
-  const decisions = hub ? evidence.decisions : evidence.decisions.length ? evidence.decisions : Object.values(data.decisions).filter((d) => node?.domain && d.domains.includes(node.domain)).sort((a, b) => b.date.localeCompare(a.date));
+  const decisions = hub
+    ? evidence.decisions
+    : evidence.decisions.length
+      ? evidence.decisions
+      : Object.values(data.decisions)
+          .filter((d) => node?.domain && d.domains.includes(node.domain))
+          .sort((a, b) => b.date.localeCompare(a.date));
   const experiences = evidence.entries.filter((e) => e.kind === 'experience');
   const records = evidence.entries.filter((e) => e.kind !== 'experience');
   const layer = node?.category && !node.domain ? 'mind' : route.key === 'mind' && node?.category ? 'mind' : 'orbit';
 
-  const focus = () => {
-    if (layer !== route.key) navigate(layer);
-    setTimeout(() => requestFocus(layer, id), layer !== route.key ? 250 : 0);
-  };
+  const focus = () => showOnMap(layer, id);
 
   return (
     <div>
@@ -77,7 +83,10 @@ export function NodeView({ id }: { id: ID }) {
           </span>
           <KindEyebrow id={id} />
           {node?.origin === 'inferred' && (
-            <span className="num ml-auto rounded-[4px] border border-dashed border-line-strong px-1.5 text-[10.5px] text-ink-2" title="Proposed by the analysis layer from your entries">
+            <span
+              className="num ml-auto rounded-[4px] border border-dashed border-line-strong px-1.5 text-[10.5px] text-ink-2"
+              title="Proposed by the analysis layer from your entries"
+            >
               inferred{node.confidence !== undefined ? ` · ${Math.round(node.confidence * 100)}%` : ''}
             </span>
           )}
@@ -98,7 +107,9 @@ export function NodeView({ id }: { id: ID }) {
             <h2 className="mt-2.5 text-[18px] leading-snug font-medium tracking-[-0.01em] text-ink">{hub ? DOMAIN_META[key!].label : display.label}</h2>
             {hub ? (
               <>
-                <p className="mt-1 text-[14px] text-ink">{data.domains[key!].statement ? `“${data.domains[key!].statement}”` : <span className="text-ink-3">No current-state statement yet.</span>}</p>
+                <p className="mt-1 text-[14px] text-ink">
+                  {data.domains[key!].statement ? `“${data.domains[key!].statement}”` : <span className="text-ink-3">No current-state statement yet.</span>}
+                </p>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-ink-2">{data.domains[key!].summary || DOMAIN_META[key!].description}</p>
               </>
             ) : (
@@ -110,7 +121,11 @@ export function NodeView({ id }: { id: ID }) {
         {node?.source && (
           <p className="mt-2 text-[12px] text-ink-3">
             Mirrors{' '}
-            <button type="button" className="num text-accent underline decoration-accent/30 underline-offset-2" onClick={() => useUI.getState().openEntity({ kind: node.source!.kind, id: node.source!.id })}>
+            <button
+              type="button"
+              className="num text-accent underline decoration-accent/30 underline-offset-2"
+              onClick={() => useUI.getState().openEntity({ kind: node.source!.kind, id: node.source!.id })}
+            >
               {resolveSource(data, node.source).code}
             </button>{' '}
             in your records.
@@ -182,14 +197,21 @@ export function NodeView({ id }: { id: ID }) {
               ))}
             </div>
           ) : (
-            <Muted>Nothing here yet. Capture a {key === 'goals' ? 'goal' : key === 'projects' ? 'project' : key === 'habits' ? 'habit' : 'note'} or add an item from the Orbit toolbar.</Muted>
+            <Muted>
+              Nothing here yet. Capture a {key === 'goals' ? 'goal' : key === 'projects' ? 'project' : key === 'habits' ? 'habit' : 'note'} or add an item from
+              the Orbit toolbar.
+            </Muted>
           )}
         </PanelSection>
       )}
 
       <PanelSection title="Evidence" count={records.length + experiences.length + evidence.decisions.length}>
         {records.length === 0 ? (
-          <Muted>{hub ? 'No entries touch this domain yet.' : 'No entries are linked to this node yet. Link one from an entry’s panel, or accept an analysis suggestion.'}</Muted>
+          <Muted>
+            {hub
+              ? 'No entries touch this domain yet.'
+              : 'No entries are linked to this node yet. Link one from an entry’s panel, or accept an analysis suggestion.'}
+          </Muted>
         ) : (
           <ul className="-mx-1.5">
             {records.slice(0, 6).map((e) => (

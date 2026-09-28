@@ -101,12 +101,7 @@ export function patternStats(data: AtlasData, pattern: Pattern): PatternStats {
     .sort();
   const first = dates[0];
   const last = dates[dates.length - 1];
-  const frequency =
-    dates.length === 0
-      ? 'Not yet observed'
-      : dates.length === 1
-        ? 'Observed once'
-        : `${dates.length}× in ${formatSpan(first, last)}`;
+  const frequency = dates.length === 0 ? 'Not yet observed' : dates.length === 1 ? 'Observed once' : `${dates.length}× in ${formatSpan(first, last)}`;
   return {
     confidence: computeConfidence(pattern.evidence),
     supportCount: supporting.length,
@@ -241,9 +236,7 @@ export function evidenceForNode(data: AtlasData, id: ID): { entries: Entry[]; de
   } else {
     const node = data.nodes[id];
     entries = Object.values(data.entries).filter((e) => e.nodeIds.includes(id) || (node?.source?.kind === 'entry' && node.source.id === e.id));
-    decisions = Object.values(data.decisions).filter(
-      (d) => d.nodeIds.includes(id) || (node?.source?.kind === 'decision' && node.source.id === d.id),
-    );
+    decisions = Object.values(data.decisions).filter((d) => d.nodeIds.includes(id) || (node?.source?.kind === 'decision' && node.source.id === d.id));
   }
   return {
     entries: entries.sort((a, b) => b.date.localeCompare(a.date)),
@@ -257,12 +250,7 @@ export function patternsForNode(data: AtlasData, id: ID): Pattern[] {
   const refs = new Set([...entries.map((e) => `entry:${e.id}`), ...decisions.map((d) => `decision:${d.id}`)]);
   return Object.values(data.patterns)
     .filter((p) => p.status !== 'dismissed')
-    .filter(
-      (p) =>
-        p.nodeIds.includes(id) ||
-        (hub && p.domains.includes(hub)) ||
-        (!hub && p.evidence.some((e) => refs.has(`${e.source.kind}:${e.source.id}`))),
-    )
+    .filter((p) => p.nodeIds.includes(id) || (hub && p.domains.includes(hub)) || (!hub && p.evidence.some((e) => refs.has(`${e.source.kind}:${e.source.id}`))))
     .sort((a, b) => a.code - b.code);
 }
 

@@ -48,12 +48,15 @@ export interface CaptureRequest {
   edit?: { kind: 'entry' | 'decision'; id: ID };
 }
 
-/** A one-shot request for a graph to centre on a node. */
+/** A one-shot request for a graph to centre on a node. `at` lets a graph ignore stale requests. */
 export interface FocusRequest {
   layer: GraphLayer;
   id: ID;
-  nonce: number;
+  at: number;
 }
+
+/** Requests older than this are ignored, so revisiting a graph never jumps to an old target. */
+export const FOCUS_REQUEST_TTL = 2500;
 
 interface UIState {
   inspector: EntityRef[];
@@ -130,7 +133,7 @@ export const useUI = create<UIState>()(
       resetLayout: (layer) => set((s) => ({ layouts: { ...s.layouts, [layer]: { positions: {} } } })),
       setOrbitView: (patch) => set((s) => ({ orbitView: { ...s.orbitView, ...patch } })),
       setMindView: (patch) => set((s) => ({ mindView: { ...s.mindView, ...patch } })),
-      requestFocus: (layer, id) => set({ focusRequest: { layer, id, nonce: Date.now() } }),
+      requestFocus: (layer, id) => set({ focusRequest: { layer, id, at: Date.now() } }),
 
       toast: (message, opts) => {
         const id = createId('toast');

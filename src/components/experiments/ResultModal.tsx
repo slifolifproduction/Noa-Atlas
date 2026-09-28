@@ -92,7 +92,12 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
                       {m.baseline ? `${m.baseline} → ` : ''}
                       {m.target ?? ''}
                     </span>
-                    <input className="field py-1" value={measures[m.id]} onChange={(e) => setMeasures({ ...measures, [m.id]: e.target.value })} placeholder="Result" />
+                    <input
+                      className="field py-1"
+                      value={measures[m.id]}
+                      onChange={(e) => setMeasures({ ...measures, [m.id]: e.target.value })}
+                      placeholder="Result"
+                    />
                   </label>
                 ))}
               </div>
@@ -100,11 +105,23 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
           )}
           <div>
             <FieldLabel htmlFor="res-summary">What happened</FieldLabel>
-            <textarea id="res-summary" className="field min-h-[72px]" value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="The facts, briefly. This text becomes the evidence excerpt." />
+            <textarea
+              id="res-summary"
+              className="field min-h-[72px]"
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              placeholder="The facts, briefly. This text becomes the evidence excerpt."
+            />
           </div>
           <div>
             <FieldLabel htmlFor="res-learning">What you learned</FieldLabel>
-            <textarea id="res-learning" className="field min-h-[56px]" value={learning} onChange={(e) => setLearning(e.target.value)} placeholder="What would you do differently, or keep doing?" />
+            <textarea
+              id="res-learning"
+              className="field min-h-[56px]"
+              value={learning}
+              onChange={(e) => setLearning(e.target.value)}
+              placeholder="What would you do differently, or keep doing?"
+            />
           </div>
         </div>
       ) : (

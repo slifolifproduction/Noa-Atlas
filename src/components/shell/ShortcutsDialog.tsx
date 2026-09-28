@@ -13,7 +13,15 @@ export function ShortcutsDialog() {
           <li key={s.label} className="flex items-center justify-between gap-4 py-2">
             <span className="text-[13px] text-ink-2">{s.label}</span>
             <span className="flex shrink-0 items-center gap-1">
-              {s.keys.map((k) => (k === '–' ? <span key={k} className="text-ink-3">–</span> : <Kbd key={k}>{k}</Kbd>))}
+              {s.keys.map((k) =>
+                k === '–' ? (
+                  <span key={k} className="text-ink-3">
+                    –
+                  </span>
+                ) : (
+                  <Kbd key={k}>{k}</Kbd>
+                ),
+              )}
             </span>
           </li>
         ))}

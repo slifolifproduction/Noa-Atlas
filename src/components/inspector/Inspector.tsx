@@ -1,7 +1,7 @@
 import { ArrowLeft, X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
 import { entityExists, entityLabel } from '../../domain/entityLabel';
-import { useIsDesktop } from '../../hooks/useMediaQuery';
+import { useInspectorWidth } from '../../hooks/useMediaQuery';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { IconButton } from '../ui/Button';
@@ -12,8 +12,6 @@ import { ExperimentView } from './ExperimentView';
 import { NodeView } from './NodeView';
 import { PathView, PatternView } from './SummaryViews';
 
-export const INSPECTOR_WIDTH = 400;
-
 /**
  * The contextual panel. It keeps a trail of what was opened, so drilling from
  * a node into its evidence and back never loses the user's place.
@@ -23,7 +21,7 @@ export function Inspector() {
   const back = useUI((s) => s.back);
   const close = useUI((s) => s.closeInspector);
   const data = useAtlas((s) => s.data);
-  const isDesktop = useIsDesktop();
+  const panelWidth = useInspectorWidth();
   const body = useRef<HTMLDivElement>(null);
   const top = stack[stack.length - 1];
   const prev = stack[stack.length - 2];
@@ -38,7 +36,12 @@ export function Inspector() {
   const header = (
     <div className="flex h-11 shrink-0 items-center gap-1 border-b border-line pr-2 pl-2">
       {prev ? (
-        <button type="button" onClick={back} className="flex min-w-0 items-center gap-1.5 rounded-[6px] px-2 py-1 text-[12px] text-ink-2 hover:bg-white/[0.05] hover:text-ink" title="Back (Alt + ←)">
+        <button
+          type="button"
+          onClick={back}
+          className="flex min-w-0 items-center gap-1.5 rounded-[6px] px-2 py-1 text-[12px] text-ink-2 hover:bg-white/[0.05] hover:text-ink"
+          title="Back (Alt + ←)"
+        >
           <ArrowLeft size={13} className="shrink-0" aria-hidden />
           <span className="truncate">{entityLabel(data, prev)}</span>
         </button>
@@ -68,12 +71,12 @@ export function Inspector() {
     <PathView id={top.id} />
   );
 
-  if (isDesktop) {
+  if (panelWidth) {
     return (
       <aside
         aria-label="Inspector"
         className="absolute top-0 right-0 bottom-0 z-20 flex animate-slide-in-right flex-col border-l border-line bg-surface/[0.97] shadow-[-24px_0_48px_-24px_rgb(0_0_0/0.6)] backdrop-blur-md"
-        style={{ width: INSPECTOR_WIDTH }}
+        style={{ width: panelWidth }}
       >
         {header}
         <div ref={body} className="min-h-0 flex-1 overflow-y-auto" key={`${top.kind}:${top.id}`}>
@@ -83,7 +86,10 @@ export function Inspector() {
     );
   }
   return (
-    <aside aria-label="Inspector" className="fixed inset-x-0 bottom-0 z-40 flex max-h-[80dvh] animate-slide-in-up flex-col rounded-t-[14px] border-t border-line-strong bg-surface shadow-[0_-24px_48px_-12px_rgb(0_0_0/0.7)]">
+    <aside
+      aria-label="Inspector"
+      className="fixed inset-x-0 bottom-0 z-40 flex max-h-[80dvh] animate-slide-in-up flex-col rounded-t-[14px] border-t border-line-strong bg-surface shadow-[0_-24px_48px_-12px_rgb(0_0_0/0.7)]"
+    >
       <div className="flex justify-center pt-2" aria-hidden>
         <span className="h-1 w-9 rounded-full bg-white/15" />
       </div>

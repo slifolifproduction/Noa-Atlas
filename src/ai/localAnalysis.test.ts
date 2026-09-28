@@ -2,12 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { createSeedData } from '../data/seed';
 import { computeConfidence } from '../domain/confidence';
 import { patternStats, pendingSuggestions } from '../domain/selectors';
-import {
-  analyzeEntryLocally,
-  detectDecisionPatternsLocally,
-  draftNavigationPlanLocally,
-  evaluateExperimentLocally,
-} from './localAnalysis';
+import { analyzeEntryLocally, detectDecisionPatternsLocally, draftNavigationPlanLocally, evaluateExperimentLocally } from './localAnalysis';
 
 const data = createSeedData('2026-09-28');
 

@@ -8,7 +8,7 @@ import { ShortcutsDialog } from './components/shell/ShortcutsDialog';
 import { MobileTabBar, TopBar } from './components/shell/TopBar';
 import { Toasts } from './components/ui/Toasts';
 import { SECTIONS } from './domain/constants';
-import { useIsDesktop } from './hooks/useMediaQuery';
+import { useInspectorWidth } from './hooks/useMediaQuery';
 import { cn } from './lib/cn';
 import { OrbitPage } from './pages/orbit/OrbitPage';
 import { useUI } from './state/uiStore';
@@ -57,7 +57,7 @@ function Page({ route }: { route: ReturnType<typeof useRoute> }): ReactNode {
 export function App() {
   const route = useRoute();
   const inspectorOpen = useUI((s) => s.inspector.length > 0);
-  const isDesktop = useIsDesktop();
+  const panelWidth = useInspectorWidth();
   useGlobalShortcuts();
 
   useEffect(() => {
@@ -67,12 +67,18 @@ export function App() {
   const isGraph = GRAPH_ROUTES.has(route.key);
   return (
     <div className="flex h-dvh flex-col bg-canvas">
-      <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-overlay focus:px-3 focus:py-2">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-overlay focus:px-3 focus:py-2"
+      >
         Skip to content
       </a>
       <TopBar active={route.key} />
       <main id="main" className="relative min-h-0 flex-1">
-        <div className={cn('h-full', isGraph ? 'overflow-hidden' : 'overflow-y-auto', !isGraph && inspectorOpen && isDesktop && 'pr-[400px]')}>
+        <div
+          className={cn('h-full transition-[padding] duration-200', isGraph ? 'overflow-hidden' : 'overflow-y-auto')}
+          style={{ paddingRight: !isGraph && inspectorOpen ? panelWidth : 0 }}
+        >
           <Suspense fallback={<div className="p-6 text-[13px] text-ink-3">Loading…</div>}>
             <Page route={route} />
           </Suspense>

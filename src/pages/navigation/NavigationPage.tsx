@@ -3,7 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { hrefFor } from '../../app/router';
 import { ResultModal } from '../../components/experiments/ResultModal';
 import { PageHeader } from '../../components/shell/PageHeader';
-import { Button, IconButton } from '../../components/ui/Button';
+import { Button, buttonClass, IconButton } from '../../components/ui/Button';
 import { EmptyState, Progress } from '../../components/ui/primitives';
 import { EXPERIMENT_STATUS_LABEL } from '../../domain/constants';
 import { currentAction, experimentCode, experimentProgress, navigationProgress, pathCode, patternCode } from '../../domain/selectors';
@@ -36,14 +36,14 @@ export function NavigationPage() {
             icon={Compass}
             title="No direction chosen"
             action={
-              <a href={hrefFor('paths')}>
-                <Button variant="primary" icon={ArrowRight}>
-                  Compare paths
-                </Button>
+              <a href={hrefFor('paths')} className={buttonClass('primary', 'md', 'gap-2')}>
+                <ArrowRight size={14} aria-hidden />
+                Compare paths
               </a>
             }
           >
-            Navigation starts from a path you choose. Choosing one drafts a 12-month objective, a strategic experiment, 30-day targets and this week’s actions, all of which you can edit.
+            Navigation starts from a path you choose. Choosing one drafts a 12-month objective, a strategic experiment, 30-day targets and this week’s actions,
+            all of which you can edit.
           </EmptyState>
         )}
         <aside aria-label="Experiments">
@@ -110,7 +110,12 @@ function Route() {
   return (
     <ol aria-label="Route" className="min-w-0">
       <Waypoint label="Current position" progress={1}>
-        <EditableLine value={nav.position} onSave={(position) => update({ position })} className="text-[15px] text-ink" placeholder="Where are you on this route?" />
+        <EditableLine
+          value={nav.position}
+          onSave={(position) => update({ position })}
+          className="text-[15px] text-ink"
+          placeholder="Where are you on this route?"
+        />
         {path && (
           <p className="mt-1 text-[12px] text-ink-3">
             Direction: {pathCode(path.code)} · {path.title} · chosen {formatDate(nav.committedAt, { year: true })}
@@ -119,8 +124,17 @@ function Route() {
       </Waypoint>
 
       <Waypoint label="12-month objective" progress={progress.objectiveRatio}>
-        <EditableLine value={nav.objective.title} onSave={(title) => update({ objective: { ...nav.objective, title } })} className="text-[16px] font-medium text-ink" />
-        <EditableLine value={nav.objective.description} onSave={(description) => update({ objective: { ...nav.objective, description } })} className="mt-1 text-[13px] text-ink-2" multiline />
+        <EditableLine
+          value={nav.objective.title}
+          onSave={(title) => update({ objective: { ...nav.objective, title } })}
+          className="text-[16px] font-medium text-ink"
+        />
+        <EditableLine
+          value={nav.objective.description}
+          onSave={(description) => update({ objective: { ...nav.objective, description } })}
+          className="mt-1 text-[13px] text-ink-2"
+          multiline
+        />
         <div className="mt-2 flex max-w-[420px] items-center gap-3">
           <Progress value={progress.objectiveRatio} />
           <span className="num shrink-0 text-[11.5px] text-ink-3">
@@ -131,7 +145,11 @@ function Route() {
 
       <Waypoint label="90-day strategic experiment" progress={expProgress?.ratio}>
         {exp && expProgress ? (
-          <button type="button" onClick={() => open({ kind: 'experiment', id: exp.id })} className="block w-full rounded-[8px] border border-line bg-surface px-3.5 py-3 text-left hover:border-line-strong">
+          <button
+            type="button"
+            onClick={() => open({ kind: 'experiment', id: exp.id })}
+            className="block w-full rounded-[8px] border border-line bg-surface px-3.5 py-3 text-left hover:border-line-strong"
+          >
             <div className="flex items-center gap-2">
               <span className="num text-[11.5px] text-accent/90">{experimentCode(exp.code)}</span>
               <span className="text-[13px] font-medium text-ink">{exp.title}</span>
@@ -159,7 +177,10 @@ function Route() {
         </p>
       </Waypoint>
 
-      <Waypoint label={`30-day targets · ${progress.targetsDone} of ${progress.targetsTotal}`} progress={progress.targetsTotal ? progress.targetsDone / progress.targetsTotal : 0}>
+      <Waypoint
+        label={`30-day targets · ${progress.targetsDone} of ${progress.targetsTotal}`}
+        progress={progress.targetsTotal ? progress.targetsDone / progress.targetsTotal : 0}
+      >
         <ul className="space-y-1">
           {nav.targets.map((t) => (
             <li key={t.id} className="group flex items-center gap-2.5">
@@ -168,14 +189,22 @@ function Route() {
                 role="checkbox"
                 aria-checked={t.done}
                 onClick={() => toggleTarget(t.id)}
-                className={cn('flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border', t.done ? 'border-ink-2 bg-ink-2 text-canvas' : 'border-line-strong hover:border-ink-3')}
+                className={cn(
+                  'flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border',
+                  t.done ? 'border-ink-2 bg-ink-2 text-canvas' : 'border-line-strong hover:border-ink-3',
+                )}
                 aria-label={t.title}
               >
                 {t.done && <Check size={11} strokeWidth={3} aria-hidden />}
               </button>
               <span className={cn('min-w-0 flex-1 text-[13.5px]', t.done ? 'text-ink-3 line-through decoration-ink-3/50' : 'text-ink')}>{t.title}</span>
               <span className="num shrink-0 text-[11.5px] text-ink-3">{formatDate(t.due)}</span>
-              <button type="button" className="shrink-0 rounded p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100" aria-label={`Remove ${t.title}`} onClick={() => deleteTarget(t.id)}>
+              <button
+                type="button"
+                className="shrink-0 rounded p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+                aria-label={`Remove ${t.title}`}
+                onClick={() => deleteTarget(t.id)}
+              >
                 <X size={12} aria-hidden />
               </button>
             </li>
@@ -190,12 +219,21 @@ function Route() {
             setNewTarget('');
           }}
         >
-          <input className="field py-1 text-[12.5px]" value={newTarget} onChange={(e) => setNewTarget(e.target.value)} placeholder="Add a 30-day target" aria-label="New target" />
+          <input
+            className="field py-1 text-[12.5px]"
+            value={newTarget}
+            onChange={(e) => setNewTarget(e.target.value)}
+            placeholder="Add a 30-day target"
+            aria-label="New target"
+          />
           <IconButton icon={Plus} label="Add target" type="submit" />
         </form>
       </Waypoint>
 
-      <Waypoint label={`This week · ${progress.weekDone} of ${progress.weekActions.length} done`} progress={progress.weekActions.length ? progress.weekDone / progress.weekActions.length : 0}>
+      <Waypoint
+        label={`This week · ${progress.weekDone} of ${progress.weekActions.length} done`}
+        progress={progress.weekActions.length ? progress.weekDone / progress.weekActions.length : 0}
+      >
         <WeeklyActions week={progress.week} actions={progress.weekActions} />
       </Waypoint>
 
@@ -246,17 +284,36 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
               role="checkbox"
               aria-checked={a.status === 'done'}
               onClick={() => setStatus(a.id, next[a.status])}
-              className={cn('flex h-4 w-4 shrink-0 items-center justify-center rounded-full border', a.status === 'done' ? 'border-ink-2 bg-ink-2 text-canvas' : a.status === 'skipped' ? 'border-dashed border-ink-3' : 'border-line-strong hover:border-ink-3')}
+              className={cn(
+                'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                a.status === 'done'
+                  ? 'border-ink-2 bg-ink-2 text-canvas'
+                  : a.status === 'skipped'
+                    ? 'border-dashed border-ink-3'
+                    : 'border-line-strong hover:border-ink-3',
+              )}
               aria-label={a.title}
             >
               {a.status === 'done' && <Check size={10} strokeWidth={3} aria-hidden />}
             </button>
-            <span className={cn('min-w-0 flex-1 text-[13.5px]', a.status === 'done' && 'text-ink-3 line-through decoration-ink-3/50', a.status === 'skipped' && 'text-ink-3', a.status === 'todo' && 'text-ink')}>
+            <span
+              className={cn(
+                'min-w-0 flex-1 text-[13.5px]',
+                a.status === 'done' && 'text-ink-3 line-through decoration-ink-3/50',
+                a.status === 'skipped' && 'text-ink-3',
+                a.status === 'todo' && 'text-ink',
+              )}
+            >
               {a.title}
               {a.status === 'skipped' && <span className="ml-1.5 text-[11px]">skipped</span>}
             </span>
             {current?.id === a.id && <span className="shrink-0 rounded-[4px] border border-accent/40 px-1 text-[10.5px] text-accent">next</span>}
-            <button type="button" className="shrink-0 rounded p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100" aria-label="More" onClick={() => setMenu(menu === a.id ? null : a.id)}>
+            <button
+              type="button"
+              className="shrink-0 rounded p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+              aria-label="More"
+              onClick={() => setMenu(menu === a.id ? null : a.id)}
+            >
               <Ellipsis size={14} aria-hidden />
             </button>
             {menu === a.id && (
@@ -288,7 +345,13 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
           setTitle('');
         }}
       >
-        <input className="field py-1 text-[12.5px]" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add an action for this week" aria-label="New action" />
+        <input
+          className="field py-1 text-[12.5px]"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Add an action for this week"
+          aria-label="New action"
+        />
         <IconButton icon={Plus} label="Add action" type="submit" />
       </form>
     </div>
@@ -297,19 +360,40 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
 
 function MenuItem({ icon: Icon, children, onClick }: { icon: typeof Play; children: ReactNode; onClick(): void }) {
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-2 rounded-[6px] px-2 py-1.5 text-left text-[12.5px] text-ink-2 hover:bg-white/[0.05] hover:text-ink">
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-2 rounded-[6px] px-2 py-1.5 text-left text-[12.5px] text-ink-2 hover:bg-white/[0.05] hover:text-ink"
+    >
       <Icon size={13} aria-hidden />
       {children}
     </button>
   );
 }
 
-function EditableLine({ value, onSave, className, multiline, placeholder }: { value: string; onSave(v: string): void; className?: string; multiline?: boolean; placeholder?: string }) {
+function EditableLine({
+  value,
+  onSave,
+  className,
+  multiline,
+  placeholder,
+}: {
+  value: string;
+  onSave(v: string): void;
+  className?: string;
+  multiline?: boolean;
+  placeholder?: string;
+}) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   if (!editing)
     return (
-      <button type="button" className={cn('block w-full rounded-[4px] text-left hover:bg-white/[0.03]', className)} onClick={() => (setDraft(value), setEditing(true))} title="Click to edit">
+      <button
+        type="button"
+        className={cn('block w-full rounded-[4px] text-left hover:bg-white/[0.03]', className)}
+        onClick={() => (setDraft(value), setEditing(true))}
+        title="Click to edit"
+      >
         {value || <span className="text-ink-3">{placeholder ?? 'Add…'}</span>}
       </button>
     );
@@ -318,7 +402,14 @@ function EditableLine({ value, onSave, className, multiline, placeholder }: { va
     setEditing(false);
   };
   return multiline ? (
-    <textarea className="field mt-1 min-h-[56px]" value={draft} autoFocus onChange={(e) => setDraft(e.target.value)} onBlur={commit} onKeyDown={(e) => e.key === 'Escape' && setEditing(false)} />
+    <textarea
+      className="field mt-1 min-h-[56px]"
+      value={draft}
+      autoFocus
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
+    />
   ) : (
     <input
       className="field"
@@ -435,19 +526,26 @@ function ExperimentCard({ experiment: x }: { experiment: Experiment }) {
       </button>
       {x.patternLinks.length > 0 && (
         <p className="mt-1.5 text-[11.5px] text-ink-3">
-          Tests {x.patternLinks.map((l) => (data.patterns[l.patternId] ? patternCode(data.patterns[l.patternId].code) : null)).filter(Boolean).join(', ')}
+          Tests{' '}
+          {x.patternLinks
+            .map((l) => (data.patterns[l.patternId] ? patternCode(data.patterns[l.patternId].code) : null))
+            .filter(Boolean)
+            .join(', ')}
         </p>
       )}
       {x.status === 'running' && (
         <div className="mt-2.5 flex items-center gap-2.5">
           <Progress value={prog.ratio} color="var(--color-accent)" />
-          <span className={cn('num shrink-0 text-[11px]', prog.overdue ? 'text-counter' : 'text-ink-3')}>{prog.overdue ? 'result due' : `day ${prog.day}/${prog.total}`}</span>
+          <span className={cn('num shrink-0 text-[11px]', prog.overdue ? 'text-counter' : 'text-ink-3')}>
+            {prog.overdue ? 'result due' : `day ${prog.day}/${prog.total}`}
+          </span>
         </div>
       )}
       {x.status === 'completed' && x.result && (
         <p className="mt-1.5 text-[12px] text-ink-2">
           <span className="text-ink-3">Result: </span>
-          {x.result.outcome === 'supports' ? 'supported' : x.result.outcome === 'contradicts' ? 'contradicted' : 'inconclusive'} · {x.result.learning || x.result.summary}
+          {x.result.outcome === 'supports' ? 'supported' : x.result.outcome === 'contradicts' ? 'contradicted' : 'inconclusive'} ·{' '}
+          {x.result.learning || x.result.summary}
         </p>
       )}
       {(x.status === 'running' || x.status === 'proposed') && (

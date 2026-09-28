@@ -1,10 +1,8 @@
 import { useEffect } from 'react';
 import { SECTIONS } from '../domain/constants';
+import { isTyping } from '../lib/dom';
 import { useUI } from '../state/uiStore';
 import { navigate } from './router';
-
-const isTyping = (el: EventTarget | null) =>
-  el instanceof HTMLElement && (el.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName));
 
 /**
  * Desktop-style shortcuts. Single keys only fire when nothing is being typed
@@ -25,9 +23,9 @@ export function useGlobalShortcuts() {
         if (ui.inspector.length) ui.closeInspector();
         return;
       }
-      if (dialogOpen || e.altKey && e.key !== 'ArrowLeft') return;
-      if (e.altKey && e.key === 'ArrowLeft') {
-        ui.back();
+      if (dialogOpen) return;
+      if (e.altKey) {
+        if (e.key === 'ArrowLeft') ui.back();
         return;
       }
       const section = SECTIONS.find((s) => s.num.endsWith(e.key));

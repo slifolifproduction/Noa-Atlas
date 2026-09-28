@@ -51,16 +51,23 @@ export const ORBIT_PORTRAIT: OrbitGeometry = { x: 0.75, y: 1.5, scale: 0.585 };
 export const RING_STRETCH = ORBIT_DESKTOP;
 
 export const DOMAINS: DomainMeta[] = [
-  { key: 'identity', label: 'Identity', color: '#e6e0d0', ring: 0, angle: 0, description: 'Who you take yourself to be, and which of those self-descriptions the evidence supports.' },
+  {
+    key: 'identity',
+    label: 'Identity',
+    color: '#e6e0d0',
+    ring: 0,
+    angle: 0,
+    description: 'Who you take yourself to be, and which of those self-descriptions the evidence supports.',
+  },
   { key: 'values', label: 'Values', color: '#d6a531', ring: 1, angle: -55, description: 'What you protect when things compete.' },
-  { key: 'goals', label: 'Goals', color: '#2fb383', ring: 1, angle: -115, description: 'Outcomes you are deliberately working toward.' },
+  { key: 'goals', label: 'Goals', color: '#2fb383', ring: 1, angle: -112, description: 'Outcomes you are deliberately working toward.' },
   { key: 'career', label: 'Career', color: '#5b9ae8', ring: 2, angle: -10, description: 'How you earn, and the trajectory of your work.' },
-  { key: 'projects', label: 'Projects', color: '#e0773f', ring: 2, angle: -150, description: 'Active commitments with a defined output.' },
-  { key: 'skills', label: 'Skills', color: '#9a90ee', ring: 2, angle: 170, description: 'Capabilities you have, are building, or lack.' },
+  { key: 'projects', label: 'Projects', color: '#e0773f', ring: 2, angle: -165, description: 'Active commitments with a defined output.' },
+  { key: 'skills', label: 'Skills', color: '#9a90ee', ring: 2, angle: 152, description: 'Capabilities you have, are building, or lack.' },
   { key: 'finance', label: 'Finance', color: '#6aa84f', ring: 3, angle: 30, description: 'Runway, income structure, and financial constraints.' },
   { key: 'relationships', label: 'Relationships', color: '#de6f98', ring: 3, angle: 70, description: 'The people who shape and are shaped by your choices.' },
   { key: 'environment', label: 'Environment', color: '#4fb8cf', ring: 3, angle: 110, description: 'Where and when work happens; the conditions around it.' },
-  { key: 'habits', label: 'Habits', color: '#ea7373', ring: 3, angle: 145, description: 'Recurring behaviours that compound, for better or worse.' },
+  { key: 'habits', label: 'Habits', color: '#ea7373', ring: 3, angle: 136, description: 'Recurring behaviours that compound, for better or worse.' },
 ];
 
 export const DOMAIN_META = Object.fromEntries(DOMAINS.map((d) => [d.key, d])) as Record<DomainKey, DomainMeta>;
@@ -84,7 +91,14 @@ export interface CategoryMeta {
 export const CATEGORIES: CategoryMeta[] = [
   { key: 'value', label: 'Value', plural: 'Values', color: '#d6a531', angle: -90, description: 'What you protect when things compete.' },
   { key: 'question', label: 'Question', plural: 'Questions', color: '#de6f98', angle: -50, description: 'Open questions you are actively examining.' },
-  { key: 'assumption', label: 'Assumption', plural: 'Assumptions', color: '#4fb8cf', angle: -10, description: 'Things taken as true that have not been tested.' },
+  {
+    key: 'assumption',
+    label: 'Assumption',
+    plural: 'Assumptions',
+    color: '#4fb8cf',
+    angle: -10,
+    description: 'Things taken as true that have not been tested.',
+  },
   { key: 'fear', label: 'Fear', plural: 'Fears', color: '#ea7373', angle: 30, description: 'Outcomes you try to avoid, stated plainly.' },
   { key: 'belief', label: 'Belief', plural: 'Beliefs', color: '#5b9ae8', angle: 70, description: 'Working convictions about how things are.' },
   { key: 'motivation', label: 'Motivation', plural: 'Motivations', color: '#6aa84f', angle: 110, description: 'What pulls you toward action.' },
@@ -114,14 +128,66 @@ export interface RelationMeta {
 
 export const RELATIONS: RelationMeta[] = [
   { key: 'causes', verb: 'causes', label: 'Causes', color: '#cfd5dc', width: 1.6, arrow: true, description: 'A directly produces B.' },
-  { key: 'influences', verb: 'influences', label: 'Influences', color: '#8b96a2', width: 1.25, arrow: true, description: 'A shapes B without fully determining it.' },
+  {
+    key: 'influences',
+    verb: 'influences',
+    label: 'Influences',
+    color: '#8b96a2',
+    width: 1.25,
+    arrow: true,
+    description: 'A shapes B without fully determining it.',
+  },
   { key: 'supports', verb: 'supports', label: 'Supports', color: '#7fbf8f', width: 1.4, arrow: true, description: 'A reinforces or enables B.' },
-  { key: 'conflicts', verb: 'conflicts with', label: 'Conflicts with', color: '#e39a52', dash: '6 4', width: 1.4, arrow: false, description: 'A and B pull in opposite directions.' },
-  { key: 'contradicts', verb: 'contradicts', label: 'Contradicts', color: '#ec7d74', dash: '2 3', width: 1.5, arrow: true, description: 'A is evidence against B.' },
-  { key: 'derived_from', verb: 'is derived from', label: 'Derived from', color: '#8fb0e0', dash: '0.5 4', width: 1.8, arrow: true, description: 'A originates in B.' },
+  {
+    key: 'conflicts',
+    verb: 'conflicts with',
+    label: 'Conflicts with',
+    color: '#e39a52',
+    dash: '6 4',
+    width: 1.4,
+    arrow: false,
+    description: 'A and B pull in opposite directions.',
+  },
+  {
+    key: 'contradicts',
+    verb: 'contradicts',
+    label: 'Contradicts',
+    color: '#ec7d74',
+    dash: '2 3',
+    width: 1.5,
+    arrow: true,
+    description: 'A is evidence against B.',
+  },
+  {
+    key: 'derived_from',
+    verb: 'is derived from',
+    label: 'Derived from',
+    color: '#8fb0e0',
+    dash: '0.5 4',
+    width: 1.8,
+    arrow: true,
+    description: 'A originates in B.',
+  },
   { key: 'depends_on', verb: 'depends on', label: 'Depends on', color: '#9aa6b4', dash: '10 4', width: 1.25, arrow: true, description: 'A requires B.' },
-  { key: 'examines', verb: 'examines', label: 'Examines', color: '#d894bd', dash: '1 3', width: 1.25, arrow: true, description: 'A question that interrogates B.' },
-  { key: 'part_of', verb: 'is part of', label: 'Part of', color: 'rgba(200, 210, 222, 0.16)', width: 1, arrow: false, description: 'Structural membership in a domain.' },
+  {
+    key: 'examines',
+    verb: 'examines',
+    label: 'Examines',
+    color: '#d894bd',
+    dash: '1 3',
+    width: 1.25,
+    arrow: true,
+    description: 'A question that interrogates B.',
+  },
+  {
+    key: 'part_of',
+    verb: 'is part of',
+    label: 'Part of',
+    color: 'rgba(200, 210, 222, 0.16)',
+    width: 1,
+    arrow: false,
+    description: 'Structural membership in a domain.',
+  },
 ];
 
 export const RELATION_META = Object.fromEntries(RELATIONS.map((r) => [r.key, r])) as Record<RelationType, RelationMeta>;

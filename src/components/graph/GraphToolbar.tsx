@@ -5,7 +5,19 @@ import { cn } from '../../lib/cn';
 import { IconButton } from '../ui/Button';
 
 /** Search within the current graph. Enter cycles through matches. */
-export function GraphSearch({ query, onQuery, matches, onPick, placeholder = 'Find a node' }: { query: string; onQuery(q: string): void; matches: string[]; onPick(id: string): void; placeholder?: string }) {
+export function GraphSearch({
+  query,
+  onQuery,
+  matches,
+  onPick,
+  placeholder = 'Find a node',
+}: {
+  query: string;
+  onQuery(q: string): void;
+  matches: string[];
+  onPick(id: string): void;
+  placeholder?: string;
+}) {
   const [index, setIndex] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   return (

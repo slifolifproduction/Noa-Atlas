@@ -44,11 +44,7 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
         <>
           <label className="mt-3 block">
             <span className="label">Relationship</span>
-            <select
-              className="field mt-1"
-              value={e.data.relation}
-              onChange={(ev) => updateEdge(edgeId, { relation: ev.target.value as RelationType })}
-            >
+            <select className="field mt-1" value={e.data.relation} onChange={(ev) => updateEdge(edgeId, { relation: ev.target.value as RelationType })}>
               {SEMANTIC_RELATIONS.map((r) => (
                 <option key={r.key} value={r.key}>
                   {r.label}
@@ -67,7 +63,9 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
         </>
       ) : (
         <p className="mt-2 text-[12px] text-ink-3">
-          {e.data.relation === 'part_of' ? 'Structural link: this node belongs to the domain.' : 'Derived link: the pattern rests on this node. Edit it from the pattern.'}
+          {e.data.relation === 'part_of'
+            ? 'Structural link: this node belongs to the domain.'
+            : 'Derived link: the pattern rests on this node. Edit it from the pattern.'}
         </p>
       )}
     </div>

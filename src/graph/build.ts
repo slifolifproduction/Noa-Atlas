@@ -86,15 +86,14 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
   const activity = Object.fromEntries(DOMAINS.map((d) => [d.key, domainActivity(data, d.key, 60, opts.today)])) as Record<DomainKey, number>;
   const maxActivity = Math.max(1, ...Object.values(activity));
 
-  const selectedDomain = opts.selectedId
-    ? isHubId(opts.selectedId)
-      ? hubKey(opts.selectedId)
-      : data.nodes[opts.selectedId]?.domain
-    : undefined;
+  const selectedDomain = opts.selectedId ? (isHubId(opts.selectedId) ? hubKey(opts.selectedId) : data.nodes[opts.selectedId]?.domain) : undefined;
 
   const items = Object.values(data.nodes).filter((n) => n.domain);
   const near = new Set(opts.selectedId ? [opts.selectedId, ...neighbors(data, opts.selectedId).map((x) => x.otherId)] : []);
-  let visible = new Set<ID>([...DOMAINS.map((d) => hubId(d.key)), ...items.filter((n) => !opts.collapsed.has(n.domain!) || n.domain === selectedDomain).map((n) => n.id)]);
+  let visible = new Set<ID>([
+    ...DOMAINS.map((d) => hubId(d.key)),
+    ...items.filter((n) => !opts.collapsed.has(n.domain!) || n.domain === selectedDomain).map((n) => n.id),
+  ]);
 
   if (opts.focus && opts.selectedId && visible.has(opts.selectedId)) {
     const near = neighborhood(data, opts.selectedId, 1, visible);
@@ -130,6 +129,8 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     nodes.push({
       id,
       type: 'hub',
+      // Hubs (and their labels) render above satellites and edges.
+      zIndex: 2,
       position: positions[id],
       data: {
         key: d.key,
@@ -143,7 +144,7 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
         collapsed: opts.collapsed.has(d.key) && selectedDomain !== d.key,
         center: d.ring === 0,
         matched,
-        labelSide: d.ring === 0 || positions[id].y > 40 ? 'top' : 'bottom',
+        labelSide: d.ring > 1 && positions[id].y > 40 ? 'top' : 'bottom',
         compact: g !== ORBIT_DESKTOP,
       },
     });
@@ -206,7 +207,11 @@ export function mindMembers(data: AtlasData, view: Pick<MindView, 'hiddenCategor
   const nodeIds = Object.values(data.nodes)
     .filter((n) => n.category && !hidden.has(n.category) && (view.showInferred || n.origin !== 'inferred'))
     .map((n) => n.id);
-  const patternIds = view.showPatterns ? Object.values(data.patterns).filter((p) => p.status !== 'dismissed').map((p) => p.id) : [];
+  const patternIds = view.showPatterns
+    ? Object.values(data.patterns)
+        .filter((p) => p.status !== 'dismissed')
+        .map((p) => p.id)
+    : [];
   return { nodeIds, patternIds };
 }
 

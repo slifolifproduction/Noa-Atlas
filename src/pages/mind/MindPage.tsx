@@ -6,7 +6,6 @@ import { GraphCanvas } from '../../components/graph/GraphCanvas';
 import { GraphSearch, ToolGroup, ZoomControls } from '../../components/graph/GraphToolbar';
 import { RelationSwatch } from '../../components/graph/Legend';
 import { CATEGORY_ICONS, PatternIcon } from '../../components/icons';
-import { INSPECTOR_WIDTH } from '../../components/inspector/Inspector';
 import { refForNode } from '../../components/inspector/parts';
 import { Button, IconButton } from '../../components/ui/Button';
 import { EmptyState, Segmented } from '../../components/ui/primitives';
@@ -15,7 +14,7 @@ import type { ID, MindCategory, RelationType } from '../../domain/types';
 import { buildMind, mindLinks, mindMembers } from '../../graph/build';
 import { mindLayout } from '../../graph/layout';
 import { selectionFor } from '../../graph/selection';
-import { useIsDesktop, useIsMobile } from '../../hooks/useMediaQuery';
+import { useInspectorWidth, useIsDesktop, useIsMobile } from '../../hooks/useMediaQuery';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI, type MindView } from '../../state/uiStore';
@@ -36,6 +35,7 @@ export function MindPage() {
   const closeInspector = useUI((s) => s.closeInspector);
   const requestFocus = useUI((s) => s.requestFocus);
   const isDesktop = useIsDesktop();
+  const panelWidth = useInspectorWidth();
   const isMobile = useIsMobile();
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
@@ -62,10 +62,11 @@ export function MindPage() {
   }, [data.nodes]);
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
 
-  const occluded = isDesktop && inspector.length ? INSPECTOR_WIDTH : 0;
+  const occluded = inspector.length ? panelWidth : 0;
   const railVisible = isDesktop;
   const padding = useMemo(
-    (): FitViewOptions['padding'] => (isMobile ? 0.08 : { top: '64px', bottom: '32px', left: `${(railVisible ? RAIL_WIDTH + 24 : 12) + 16}px`, right: `${occluded + 24}px` }),
+    (): FitViewOptions['padding'] =>
+      isMobile ? 0.08 : { top: '64px', bottom: '32px', left: `${(railVisible ? RAIL_WIDTH + 24 : 12) + 16}px`, right: `${occluded + 24}px` },
     [isMobile, railVisible, occluded],
   );
 
@@ -73,9 +74,22 @@ export function MindPage() {
 
   return (
     <div className="relative h-full overflow-hidden">
-      <GraphCanvas layer="mind" built={built} selectedId={selectedId} onSelect={onSelect} occludedRight={occluded} fitPadding={padding} fitMinZoom={isMobile ? 0.6 : undefined} minimap>
+      <GraphCanvas
+        layer="mind"
+        built={built}
+        selectedId={selectedId}
+        onSelect={onSelect}
+        occludedRight={occluded}
+        persistViewport={!isMobile}
+        fitPadding={padding}
+        fitMinZoom={isMobile ? 0.6 : undefined}
+        minimap
+      >
         {railVisible && (
-          <div className="absolute top-3 bottom-3 left-3 z-10 flex flex-col overflow-hidden rounded-[10px] border border-line bg-surface/[0.96] backdrop-blur-md" style={{ width: RAIL_WIDTH }}>
+          <div
+            className="absolute top-3 bottom-3 left-3 z-10 flex flex-col overflow-hidden rounded-[10px] border border-line bg-surface/[0.96] backdrop-blur-md"
+            style={{ width: RAIL_WIDTH }}
+          >
             <div className="border-b border-line px-4 pt-3 pb-3">
               <div className="label">02 · Mind</div>
               <div className="mt-0.5 text-[15px] font-medium tracking-[-0.01em] text-ink">How am I thinking?</div>
@@ -177,7 +191,10 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
                 type="button"
                 aria-pressed={on}
                 onClick={() => setView({ hiddenCategories: on ? [...hidden, c.key] : [...hidden].filter((k) => k !== c.key) })}
-                className={cn('flex min-w-0 flex-1 items-center gap-2.5 rounded-[6px] px-2 py-[5px] text-left transition-colors hover:bg-white/[0.04]', !on && 'opacity-45')}
+                className={cn(
+                  'flex min-w-0 flex-1 items-center gap-2.5 rounded-[6px] px-2 py-[5px] text-left transition-colors hover:bg-white/[0.04]',
+                  !on && 'opacity-45',
+                )}
                 title={c.description}
               >
                 <Icon size={13} color={c.color} strokeWidth={1.9} aria-hidden />
@@ -187,7 +204,10 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
               <button
                 type="button"
                 onClick={() => setView({ hiddenCategories: only ? [] : CATEGORIES.filter((x) => x.key !== c.key).map((x) => x.key) })}
-                className={cn('ml-0.5 rounded px-1.5 py-0.5 text-[10.5px] text-ink-3 hover:bg-white/[0.05] hover:text-ink', only ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100')}
+                className={cn(
+                  'ml-0.5 rounded px-1.5 py-0.5 text-[10.5px] text-ink-3 hover:bg-white/[0.05] hover:text-ink',
+                  only ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+                )}
                 aria-label={only ? 'Show all categories' : `Show only ${c.plural}`}
               >
                 {only ? 'all' : 'only'}
@@ -224,10 +244,18 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
         <span className="label">Show</span>
       </div>
       <div className="px-2">
-        <ToggleRow on={view.showPatterns} onClick={() => setView({ showPatterns: !view.showPatterns })} icon={<PatternIcon size={13} className="text-ink-2" aria-hidden />}>
+        <ToggleRow
+          on={view.showPatterns}
+          onClick={() => setView({ showPatterns: !view.showPatterns })}
+          icon={<PatternIcon size={13} className="text-ink-2" aria-hidden />}
+        >
           Detected patterns
         </ToggleRow>
-        <ToggleRow on={view.showInferred} onClick={() => setView({ showInferred: !view.showInferred })} icon={view.showInferred ? <Eye size={13} className="text-ink-2" aria-hidden /> : <EyeOff size={13} className="text-ink-3" aria-hidden />}>
+        <ToggleRow
+          on={view.showInferred}
+          onClick={() => setView({ showInferred: !view.showInferred })}
+          icon={view.showInferred ? <Eye size={13} className="text-ink-2" aria-hidden /> : <EyeOff size={13} className="text-ink-3" aria-hidden />}
+        >
           Inferred nodes
         </ToggleRow>
       </div>
@@ -237,7 +265,12 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
 
 function ToggleRow({ on, onClick, icon, children }: { on: boolean; onClick(): void; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <button type="button" aria-pressed={on} onClick={onClick} className={cn('flex w-full items-center gap-2.5 rounded-[6px] px-2 py-[5px] text-left hover:bg-white/[0.04]', !on && 'opacity-45')}>
+    <button
+      type="button"
+      aria-pressed={on}
+      onClick={onClick}
+      className={cn('flex w-full items-center gap-2.5 rounded-[6px] px-2 py-[5px] text-left hover:bg-white/[0.04]', !on && 'opacity-45')}
+    >
       {icon}
       <span className="flex-1 text-[12.5px] text-ink-2">{children}</span>
       <span className={cn('h-3.5 w-6 rounded-full p-[2px] transition-colors', on ? 'bg-accent/60' : 'bg-white/10')} aria-hidden>

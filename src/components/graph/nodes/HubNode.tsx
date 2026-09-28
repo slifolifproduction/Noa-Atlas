@@ -17,7 +17,9 @@ export const HubNodeView = memo(function HubNodeView({ data, selected }: NodePro
   return (
     <div className="group relative" style={{ width: size, height: size }}>
       <svg className="absolute inset-0 overflow-visible" viewBox="0 0 100 100" aria-hidden>
-        {selected && <circle cx="50" cy="50" r="56" fill="none" stroke="var(--color-accent)" strokeOpacity="0.5" strokeWidth="1" vectorEffect="non-scaling-stroke" />}
+        {selected && (
+          <circle cx="50" cy="50" r="56" fill="none" stroke="var(--color-accent)" strokeOpacity="0.5" strokeWidth="1" vectorEffect="non-scaling-stroke" />
+        )}
         <circle
           cx="50"
           cy="50"
@@ -57,7 +59,7 @@ export const HubNodeView = memo(function HubNodeView({ data, selected }: NodePro
         </span>
       )}
       <div
-        className="pointer-events-none absolute left-1/2 w-[190px] -translate-x-1/2 text-center"
+        className="pointer-events-none absolute left-1/2 w-max max-w-[160px] -translate-x-1/2 rounded-[5px] bg-canvas/75 px-1.5 py-0.5 text-center"
         style={
           data.labelSide === 'bottom'
             ? { top: size + 8, transform: `scale(${scale})`, transformOrigin: 'top center' }
@@ -68,7 +70,9 @@ export const HubNodeView = memo(function HubNodeView({ data, selected }: NodePro
           {data.label}
           {data.collapsed && data.itemCount > 0 && <span className="text-ink-3"> · +{data.itemCount}</span>}
         </div>
-        {data.statement && (!data.compact || selected) && <div className={cn('mt-0.5 line-clamp-2 text-[12px] leading-[1.35] text-ink-2', data.center && 'text-[13px] text-ink')}>{data.statement}</div>}
+        {data.statement && (!data.compact || selected) && (
+          <div className={cn('mt-0.5 line-clamp-2 text-[12px] leading-[1.35] text-ink-2', data.center && 'text-[13px] text-ink')}>{data.statement}</div>
+        )}
       </div>
       <NodeHandles />
     </div>

@@ -47,10 +47,7 @@ export function pct(value: number): string {
 }
 
 /** Confidence after each piece of evidence, in date order. */
-export function confidenceHistory(
-  evidence: Evidence[],
-  dateOf: (e: Evidence) => ISODate | undefined,
-): { date: ISODate; value: number; evidenceId: string }[] {
+export function confidenceHistory(evidence: Evidence[], dateOf: (e: Evidence) => ISODate | undefined): { date: ISODate; value: number; evidenceId: string }[] {
   const dated = evidence
     .map((e) => ({ e, date: dateOf(e) }))
     .filter((x): x is { e: Evidence; date: ISODate } => Boolean(x.date))

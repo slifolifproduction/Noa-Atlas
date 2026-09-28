@@ -1,6 +1,6 @@
 import { CircleQuestionMark, Crosshair, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { navigate } from '../../app/router';
+import { showOnMap } from '../../app/showOnMap';
 import { AddNodeModal } from '../../components/graph/AddNodeModal';
 import { NodeChip } from '../../components/inspector/parts';
 import { PageHeader } from '../../components/shell/PageHeader';
@@ -38,7 +38,8 @@ export function QuestionsPage() {
       />
       {questions.length === 0 ? (
         <EmptyState icon={CircleQuestionMark} title="No open questions" className="mt-6">
-          Good questions to start with: what you are actually optimising for, which opportunities to stop accepting, and which assumptions about your work have never been tested.
+          Good questions to start with: what you are actually optimising for, which opportunities to stop accepting, and which assumptions about your work have
+          never been tested.
         </EmptyState>
       ) : (
         groups.map((g) => {
@@ -67,7 +68,6 @@ function QuestionCard({ question: q }: { question: AtlasNode }) {
   const data = useAtlas((s) => s.data);
   const update = useAtlas((s) => s.updateNode);
   const open = useUI((s) => s.openEntity);
-  const requestFocus = useUI((s) => s.requestFocus);
   const linked = neighbors(data, q.id);
   const experiments = Object.values(data.experiments).filter((x) => x.questionIds.includes(q.id));
   return (
@@ -107,11 +107,7 @@ function QuestionCard({ question: q }: { question: AtlasNode }) {
         <button
           type="button"
           className="ml-auto inline-flex items-center gap-1 text-ink-2 hover:text-ink"
-          onClick={() => {
-            navigate('mind');
-            open({ kind: 'node', id: q.id });
-            setTimeout(() => requestFocus('mind', q.id), 300);
-          }}
+          onClick={() => showOnMap('mind', q.id, { kind: 'node', id: q.id })}
         >
           <Crosshair size={12} aria-hidden /> Show in Mind
         </button>

@@ -10,9 +10,12 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "proxy": "node --experimental-strip-types server/claude-proxy.ts"
+    "proxy": "node --experimental-strip-types server/claude-proxy.ts",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\""
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.128.0",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/jetbrains-mono": "^5.3.0",
     "@xyflow/react": "^12.12.0",
@@ -22,8 +25,7 @@
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "zod": "^4.6.5",
-    "zustand": "^5.0.15",
-    "@anthropic-ai/sdk": "^0.128.0"
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -32,6 +34,7 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "prettier": "^3.9.9",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",
     "vite": "^8.3.1",

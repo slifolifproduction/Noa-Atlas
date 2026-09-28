@@ -77,7 +77,11 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-[920px] px-4 py-5 md:px-6 md:py-6">
-      <PageHeader eyebrow="Settings" title="Settings" description="Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude." />
+      <PageHeader
+        eyebrow="Settings"
+        title="Settings"
+        description="Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude."
+      />
 
       <div className="mt-6">
         <Block title="Profile">
@@ -92,12 +96,32 @@ export function SettingsPage() {
           <div role="radiogroup" aria-label="Analysis provider" className="space-y-2">
             {(
               [
-                { id: 'local', title: 'Local heuristics', body: 'Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.' },
-                { id: 'claude', title: 'Claude, via your proxy', body: 'Sends the entry being analysed plus node and pattern names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.' },
+                {
+                  id: 'local',
+                  title: 'Local heuristics',
+                  body: 'Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.',
+                },
+                {
+                  id: 'claude',
+                  title: 'Claude, via your proxy',
+                  body: 'Sends the entry being analysed plus node and pattern names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.',
+                },
               ] as const
             ).map((o) => (
-              <label key={o.id} className={cn('flex cursor-pointer gap-3 rounded-[8px] border px-3.5 py-3', settings.provider === o.id ? 'border-accent/45 bg-accent-dim/40' : 'border-line hover:border-line-strong')}>
-                <input type="radio" name="provider" className="mt-1 accent-[var(--color-accent)]" checked={settings.provider === o.id} onChange={() => setSettings({ provider: o.id })} />
+              <label
+                key={o.id}
+                className={cn(
+                  'flex cursor-pointer gap-3 rounded-[8px] border px-3.5 py-3',
+                  settings.provider === o.id ? 'border-accent/45 bg-accent-dim/40' : 'border-line hover:border-line-strong',
+                )}
+              >
+                <input
+                  type="radio"
+                  name="provider"
+                  className="mt-1 accent-[var(--color-accent)]"
+                  checked={settings.provider === o.id}
+                  onChange={() => setSettings({ provider: o.id })}
+                />
                 <span>
                   <span className="block text-[13.5px] text-ink">{o.title}</span>
                   <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-2">{o.body}</span>
@@ -111,7 +135,12 @@ export function SettingsPage() {
                 Proxy endpoint
               </FieldLabel>
               <div className="flex flex-wrap gap-2">
-                <input id="s-endpoint" className="field num max-w-[360px]" value={settings.endpoint} onChange={(e) => setSettings({ endpoint: e.target.value })} />
+                <input
+                  id="s-endpoint"
+                  className="field num max-w-[360px]"
+                  value={settings.endpoint}
+                  onChange={(e) => setSettings({ endpoint: e.target.value })}
+                />
                 <Button
                   loading={checking}
                   onClick={async () => {
@@ -125,13 +154,17 @@ export function SettingsPage() {
               </div>
               {health && <p className={cn('text-[12.5px]', health.ok ? 'text-support' : 'text-counter')}>{health.message}</p>}
               <p className="text-[12px] text-ink-3">
-                Start it with <code className="rounded bg-white/[0.06] px-1 font-mono text-[11.5px]">ANTHROPIC_API_KEY=… npm run proxy</code>. The key stays on the server.
+                Start it with <code className="rounded bg-white/[0.06] px-1 font-mono text-[11.5px]">ANTHROPIC_API_KEY=… npm run proxy</code>. The key stays on
+                the server.
               </p>
             </div>
           )}
         </Block>
 
-        <Block title="Your data" description={`Stored locally (${(bytes / 1024).toFixed(1)} KB). ${counts.records} records, ${counts.nodes} nodes, ${counts.patterns} patterns.`}>
+        <Block
+          title="Your data"
+          description={`Stored locally (${(bytes / 1024).toFixed(1)} KB). ${counts.records} records, ${counts.nodes} nodes, ${counts.patterns} patterns.`}
+        >
           <div className="flex flex-wrap gap-2">
             <Button icon={Download} onClick={exportData}>
               Export JSON

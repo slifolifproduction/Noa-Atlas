@@ -39,7 +39,13 @@ export function CurrentStateEditor({ onClose }: { onClose(): void }) {
       <div className="space-y-3.5">
         <div>
           <FieldLabel htmlFor="cs-pos">Position, in one line</FieldLabel>
-          <input id="cs-pos" className="field" value={position} onChange={(e) => setPosition(e.target.value)} placeholder="e.g. Freelance producer, three months into a hybrid test" />
+          <input
+            id="cs-pos"
+            className="field"
+            value={position}
+            onChange={(e) => setPosition(e.target.value)}
+            placeholder="e.g. Freelance producer, three months into a hybrid test"
+          />
         </div>
         <div>
           <FieldLabel htmlFor="cs-sum" hint="optional">

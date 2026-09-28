@@ -54,7 +54,9 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
   const exp = currentExperiment(data);
   const expProgress = exp ? experimentProgress(exp) : null;
   const patterns = sortedPatterns(data).slice(0, 3);
-  const questions = questionNodes(data).filter((q) => q.status !== 'resolved').slice(0, 3);
+  const questions = questionNodes(data)
+    .filter((q) => q.status !== 'resolved')
+    .slice(0, 3);
   const decisions = sortedDecisions(data).slice(0, 3);
   const counts = modelCounts(data);
   const empty = counts.records === 0;
@@ -88,7 +90,10 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
               </p>
               <Progress value={progress.objectiveRatio} className="mt-2" />
               {action && (
-                <a href={hrefFor('navigation')} className="mt-2.5 flex items-start gap-2 rounded-[6px] border border-accent/25 bg-accent-dim/50 px-2.5 py-2 hover:border-accent/45">
+                <a
+                  href={hrefFor('navigation')}
+                  className="mt-2.5 flex items-start gap-2 rounded-[6px] border border-accent/25 bg-accent-dim/50 px-2.5 py-2 hover:border-accent/45"
+                >
                   <span className="label mt-px shrink-0 text-accent!">Next</span>
                   <span className="text-[12.5px] leading-snug text-ink">{action.title}</span>
                 </a>
@@ -163,7 +168,9 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
                   <button type="button" className={rowBtn} onClick={() => open({ kind: 'decision', id: d.id })}>
                     <span className="num w-[22px] shrink-0 text-[11px] text-ink-3">{decisionCode(d.seq).slice(-2)}</span>
                     <span className="min-w-0 flex-1 truncate text-[12.5px] text-ink-2 group-hover:text-ink">{d.title}</span>
-                    <span className={cn('shrink-0 text-[11px]', d.actualOutcome ? 'text-ink-3' : 'text-counter/90')}>{d.actualOutcome ? formatDate(d.date) : 'awaiting outcome'}</span>
+                    <span className={cn('shrink-0 text-[11px]', d.actualOutcome ? 'text-ink-3' : 'text-counter/90')}>
+                      {d.actualOutcome ? formatDate(d.date) : 'awaiting outcome'}
+                    </span>
                   </button>
                 </li>
               ))}
@@ -194,17 +201,19 @@ function ModelChain() {
   return (
     <section className="border-t border-line px-4 pt-3 pb-4">
       <h2 className="label mb-2">Model</h2>
-      <ol className="grid grid-cols-6 gap-px overflow-hidden rounded-[6px] border border-line bg-line">
+      <ol className="grid grid-cols-3 gap-px overflow-hidden rounded-[6px] border border-line bg-line">
         {steps.map((s) => (
           <li key={s.label} className="bg-surface">
             <a href={s.href} className="flex flex-col items-center py-1.5 hover:bg-raised" title={`${s.value} ${s.label.toLowerCase()}`}>
               <span className="num text-[13px] text-ink">{s.value}</span>
-              <span className="text-[9.5px] tracking-wide text-ink-3 uppercase">{s.label}</span>
+              <span className="text-[10.5px] text-ink-3">{s.label}</span>
             </a>
           </li>
         ))}
       </ol>
-      <p className="mt-2 text-[11px] leading-snug text-ink-3">Records become evidence, evidence forms patterns, patterns inform paths, experiments test them and update the model.</p>
+      <p className="mt-2 text-[11px] leading-snug text-ink-3">
+        Records become evidence, evidence forms patterns, patterns inform paths, experiments test them and update the model.
+      </p>
     </section>
   );
 }

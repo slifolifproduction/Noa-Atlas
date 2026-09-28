@@ -34,7 +34,8 @@ export function Modal({
     if (!open) return;
     restore.current = document.activeElement as HTMLElement | null;
     const el = panel.current;
-    const target = (initialFocus && el?.querySelector<HTMLElement>(initialFocus)) || el?.querySelector<HTMLElement>('input, textarea, select, button:not([data-close])');
+    const target =
+      (initialFocus && el?.querySelector<HTMLElement>(initialFocus)) || el?.querySelector<HTMLElement>('input, textarea, select, button:not([data-close])');
     requestAnimationFrame(() => target?.focus());
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -42,7 +43,9 @@ export function Modal({
         onClose();
       }
       if (e.key === 'Tab' && el) {
-        const focusables = [...el.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])')].filter((x) => x.offsetParent !== null);
+        const focusables = [
+          ...el.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])'),
+        ].filter((x) => x.offsetParent !== null);
         if (!focusables.length) return;
         const first = focusables[0];
         const last = focusables[focusables.length - 1];

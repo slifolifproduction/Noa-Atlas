@@ -60,8 +60,12 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
       <svg width={width} height={height} role="img" aria-label={`Evidence timeline for ${pattern.title}: ${points.length} pieces of evidence`}>
         {/* confidence band */}
         <line x1={padL} x2={width - padR} y1={yConf(0.5)} y2={yConf(0.5)} stroke="rgb(255 255 255 / 0.12)" strokeDasharray="3 4" />
-        <text x={padL - 6} y={yConf(0.5) + 3} textAnchor="end" className="fill-ink-3 font-mono text-[9.5px]">50%</text>
-        <text x={padL - 6} y={yConf(1) + 7} textAnchor="end" className="fill-ink-3 font-mono text-[9.5px]">100%</text>
+        <text x={padL - 6} y={yConf(0.5) + 3} textAnchor="end" className="fill-ink-3 font-mono text-[9.5px]">
+          50%
+        </text>
+        <text x={padL - 6} y={yConf(1) + 7} textAnchor="end" className="fill-ink-3 font-mono text-[9.5px]">
+          100%
+        </text>
         {history.length > 0 && (
           <>
             <path d={`${line} L ${x(end)} ${yConf(last.value)}`} fill="none" stroke="var(--color-ink-2)" strokeWidth="2" strokeLinejoin="round" />
@@ -70,8 +74,12 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
         )}
 
         {/* lanes */}
-        <text x={0} y={laneSup + 3.5} className="fill-ink-3 font-mono text-[10px] tracking-wider">FOR</text>
-        <text x={0} y={laneCnt + 3.5} className="fill-ink-3 font-mono text-[10px] tracking-wider">AGAINST</text>
+        <text x={0} y={laneSup + 3.5} className="fill-ink-3 font-mono text-[10px] tracking-wider">
+          FOR
+        </text>
+        <text x={0} y={laneCnt + 3.5} className="fill-ink-3 font-mono text-[10px] tracking-wider">
+          AGAINST
+        </text>
         <line x1={padL} x2={width - padR} y1={laneSup} y2={laneSup} stroke="rgb(255 255 255 / 0.06)" />
         <line x1={padL} x2={width - padR} y1={laneCnt} y2={laneCnt} stroke="rgb(255 255 255 / 0.06)" />
         {points.map(({ e, src }) => {
@@ -79,7 +87,13 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
           const cy = e.stance === 'supports' ? laneSup : laneCnt;
           const r = e.weight > 1 ? 6 : 4.5;
           return (
-            <g key={e.id} onMouseEnter={() => setHover(e.id)} onMouseLeave={() => setHover(null)} onClick={() => open({ kind: e.source.kind, id: e.source.id })} className="cursor-pointer">
+            <g
+              key={e.id}
+              onMouseEnter={() => setHover(e.id)}
+              onMouseLeave={() => setHover(null)}
+              onClick={() => open({ kind: e.source.kind, id: e.source.id })}
+              className="cursor-pointer"
+            >
               <circle cx={cx} cy={cy} r={12} fill="transparent" />
               <circle
                 cx={cx}

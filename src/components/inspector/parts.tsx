@@ -58,7 +58,11 @@ export function RecordRow({ kind, id, meta }: { kind: 'entry' | 'decision'; id: 
   const code = kind === 'entry' ? entryCode(rec.seq) : decisionCode(rec.seq);
   return (
     <li>
-      <button type="button" onClick={() => open({ kind, id })} className="group flex w-full items-baseline gap-2 rounded-[5px] px-1.5 py-1 text-left hover:bg-white/[0.035]">
+      <button
+        type="button"
+        onClick={() => open({ kind, id })}
+        className="group flex w-full items-baseline gap-2 rounded-[5px] px-1.5 py-1 text-left hover:bg-white/[0.035]"
+      >
         <span className="num w-[84px] shrink-0 text-[11.5px] text-accent/90">{code}</span>
         <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2 group-hover:text-ink">{rec.title}</span>
         {meta}
@@ -75,7 +79,11 @@ export function PatternRow({ id }: { id: ID }) {
   if (!p) return null;
   return (
     <li>
-      <button type="button" onClick={() => open({ kind: 'pattern', id })} className="group flex w-full items-start gap-2 rounded-[5px] px-1.5 py-1.5 text-left hover:bg-white/[0.035]">
+      <button
+        type="button"
+        onClick={() => open({ kind: 'pattern', id })}
+        className="group flex w-full items-start gap-2 rounded-[5px] px-1.5 py-1.5 text-left hover:bg-white/[0.035]"
+      >
         <PatternIcon size={13} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
           <span className="label block">{patternCode(p.code)}</span>

@@ -19,7 +19,7 @@ export const ItemNodeView = memo(function ItemNodeView({ data, selected }: NodeP
   const zoom = useZoomLevel();
   const scale = useLabelScale(0.85, 1.35);
   // Semantic zoom: satellite labels appear once there is room for them.
-  const quiet = zoom < 0.62 && !selected && !data.matched && !data.near;
+  const quiet = zoom < 0.72 && !selected && !data.matched && !data.near;
   const fill = data.mark === 'gap' ? 'transparent' : data.mark === 'developing' ? `linear-gradient(90deg, ${data.color} 50%, transparent 50%)` : data.color;
   return (
     <div className="group relative h-[24px] w-[24px]">
@@ -30,7 +30,10 @@ export const ItemNodeView = memo(function ItemNodeView({ data, selected }: NodeP
           boxShadow: selected ? '0 0 0 3px var(--color-canvas), 0 0 0 4.5px var(--color-accent)' : data.matched ? `0 0 0 3px ${data.color}40` : undefined,
         }}
       />
-      <div className="absolute inset-[6px] rounded-full" style={{ background: fill, border: data.mark === 'gap' ? `1px solid ${data.color}` : undefined, opacity: 0.9 }} />
+      <div
+        className="absolute inset-[6px] rounded-full"
+        style={{ background: fill, border: data.mark === 'gap' ? `1px solid ${data.color}` : undefined, opacity: 0.9 }}
+      />
       <div
         className={cn(
           'pointer-events-none absolute w-max max-w-[150px] text-[12px] leading-[1.3] transition-opacity',

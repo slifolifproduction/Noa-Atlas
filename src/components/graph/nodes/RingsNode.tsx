@@ -14,7 +14,16 @@ export const RingsNodeView = memo(function RingsNodeView({ data }: NodeProps<Rin
     <svg width={w} height={h} className="pointer-events-none overflow-visible" aria-hidden>
       {data.radii.map((r, i) => (
         <g key={r}>
-          <ellipse cx={cx} cy={cy} rx={r * data.stretch.x} ry={r * data.stretch.y} fill="none" stroke="rgb(255 255 255 / 0.06)" strokeWidth="1" strokeDasharray="2 7" />
+          <ellipse
+            cx={cx}
+            cy={cy}
+            rx={r * data.stretch.x}
+            ry={r * data.stretch.y}
+            fill="none"
+            stroke="rgb(255 255 255 / 0.06)"
+            strokeWidth="1"
+            strokeDasharray="2 7"
+          />
           <text
             x={cx + r * data.stretch.x * Math.cos(a) + 10}
             y={cy + r * data.stretch.y * Math.sin(a) - 8}

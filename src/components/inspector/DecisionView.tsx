@@ -94,7 +94,11 @@ export function DecisionView({ id }: { id: ID }) {
           <ul className="space-y-1">
             {usages.map(({ pattern, evidence }) => (
               <li key={pattern.id}>
-                <button type="button" onClick={() => open({ kind: 'pattern', id: pattern.id })} className="flex w-full items-start gap-2 rounded-[5px] px-1 py-1 text-left hover:bg-white/[0.035]">
+                <button
+                  type="button"
+                  onClick={() => open({ kind: 'pattern', id: pattern.id })}
+                  className="flex w-full items-start gap-2 rounded-[5px] px-1 py-1 text-left hover:bg-white/[0.035]"
+                >
                   <StanceMark stance={evidence.stance} />
                   <span className="min-w-0">
                     <span className="label block">{patternCode(pattern.code)}</span>
@@ -141,7 +145,14 @@ function OutcomeSection({ id }: { id: ID }) {
             setEditing(false);
           }}
         >
-          <textarea className="field min-h-[64px]" placeholder="What actually happened?" value={actual} onChange={(e) => setActual(e.target.value)} required autoFocus />
+          <textarea
+            className="field min-h-[64px]"
+            placeholder="What actually happened?"
+            value={actual}
+            onChange={(e) => setActual(e.target.value)}
+            required
+            autoFocus
+          />
           <div>
             <div className="label mb-1">Compared with what you expected</div>
             <Segmented<OutcomeRating>
@@ -149,7 +160,10 @@ function OutcomeSection({ id }: { id: ID }) {
               size="sm"
               value={rating}
               onChange={setRating}
-              options={(['better', 'as_expected', 'mixed', 'worse'] as const).map((r) => ({ value: r, label: OUTCOME_RATING_LABEL[r].replace(' than expected', '') }))}
+              options={(['better', 'as_expected', 'mixed', 'worse'] as const).map((r) => ({
+                value: r,
+                label: OUTCOME_RATING_LABEL[r].replace(' than expected', ''),
+              }))}
             />
           </div>
           <textarea className="field min-h-[56px]" placeholder="What did you learn?" value={learned} onChange={(e) => setLearned(e.target.value)} />
@@ -167,7 +181,14 @@ function OutcomeSection({ id }: { id: ID }) {
   }
   return (
     <>
-      <PanelSection title="Actual outcome" aside={<Button size="sm" variant="ghost" onClick={() => setEditing(true)}>Revise</Button>}>
+      <PanelSection
+        title="Actual outcome"
+        aside={
+          <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
+            Revise
+          </Button>
+        }
+      >
         <p className="text-[13px] text-ink-2">{d.actualOutcome}</p>
         {d.outcomeRating && <p className="mt-1.5 text-[12px] text-ink-3">{OUTCOME_RATING_LABEL[d.outcomeRating]}</p>}
       </PanelSection>

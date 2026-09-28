@@ -26,24 +26,27 @@ const SIZES: Record<Size, string> = {
   md: 'h-8 px-3 text-[13px] gap-2',
 };
 
+/** Button styling for links, so navigation stays an <a> without nesting a <button> inside it. */
+export function buttonClass(variant: Variant = 'secondary', size: Size = 'md', className?: string) {
+  return cn(
+    'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-[6px] border font-medium transition-colors',
+    VARIANTS[variant],
+    SIZES[size],
+    className,
+  );
+}
+
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
   { variant = 'secondary', size = 'md', icon: Icon, loading, kbd, className, children, disabled, ...rest },
   ref,
 ) {
   return (
-    <button
-      ref={ref}
-      type="button"
-      disabled={disabled || loading}
-      className={cn(
-        'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-[6px] border font-medium transition-colors disabled:opacity-45',
-        VARIANTS[variant],
-        SIZES[size],
-        className,
+    <button ref={ref} type="button" disabled={disabled || loading} className={buttonClass(variant, size, cn('disabled:opacity-45', className))} {...rest}>
+      {loading ? (
+        <LoaderCircle size={size === 'sm' ? 13 : 14} className="animate-spin" aria-hidden />
+      ) : (
+        Icon && <Icon size={size === 'sm' ? 13 : 14} strokeWidth={1.8} aria-hidden />
       )}
-      {...rest}
-    >
-      {loading ? <LoaderCircle size={size === 'sm' ? 13 : 14} className="animate-spin" aria-hidden /> : Icon && <Icon size={size === 'sm' ? 13 : 14} strokeWidth={1.8} aria-hidden />}
       {children}
       {kbd && <kbd className="num ml-0.5 text-[10.5px] font-normal opacity-60">{kbd}</kbd>}
     </button>

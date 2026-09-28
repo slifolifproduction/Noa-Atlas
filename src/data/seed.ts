@@ -65,8 +65,12 @@ export function createSeedData(today: string = todayISO()): AtlasData {
   };
 
   // Identity
-  node('n_producer', 'Creative Producer', 'Turns loose creative ideas into finished, delivered work. The self-description most confirmed by evidence.', { domain: 'identity' });
-  node('n_director', 'Emerging Director', 'Wants authorship of original work, not only delivery. Supported by intent more than by shipped work so far.', { domain: 'identity' });
+  node('n_producer', 'Creative Producer', 'Turns loose creative ideas into finished, delivered work. The self-description most confirmed by evidence.', {
+    domain: 'identity',
+  });
+  node('n_director', 'Emerging Director', 'Wants authorship of original work, not only delivery. Supported by intent more than by shipped work so far.', {
+    domain: 'identity',
+  });
   node('n_operator', 'Independent Operator', 'Runs a one-person practice: clients, money, schedule, and all the decisions in between.', { domain: 'identity' });
 
   // Values (also in the Mind graph)
@@ -117,13 +121,25 @@ export function createSeedData(today: string = todayISO()): AtlasData {
   node('n_running', 'Running 3× a week', 'The most reliable habit I have.', { domain: 'habits' });
 
   // Mind: beliefs
-  node('n_b_doors', 'Saying no closes doors', 'If I decline an opportunity, it will not come back.', { category: 'belief', origin: 'inferred', confidence: 0.66, at: '2026-05-21' });
+  node('n_b_doors', 'Saying no closes doors', 'If I decline an opportunity, it will not come back.', {
+    category: 'belief',
+    origin: 'inferred',
+    confidence: 0.66,
+    at: '2026-05-21',
+  });
   node('n_b_noticed', 'Good work gets noticed', 'Quality eventually finds its audience without much promotion.', { category: 'belief' });
-  node('n_b_prove', 'I need to prove I can run a studio', 'A studio is the credential that would make the director identity real.', { category: 'belief', origin: 'inferred', confidence: 0.52, at: '2026-07-10' });
+  node('n_b_prove', 'I need to prove I can run a studio', 'A studio is the credential that would make the director identity real.', {
+    category: 'belief',
+    origin: 'inferred',
+    confidence: 0.52,
+    at: '2026-07-10',
+  });
 
   // Mind: assumptions
   node('n_a_investment', 'A studio needs outside investment', 'Starting a studio is impossible without a co-producer or investor.', { category: 'assumption' });
-  node('n_a_referrals', 'Clients will keep coming via referrals', 'The current pipeline will continue without active business development.', { category: 'assumption' });
+  node('n_a_referrals', 'Clients will keep coming via referrals', 'The current pipeline will continue without active business development.', {
+    category: 'assumption',
+  });
   node('n_a_pressure', 'I work better under pressure', 'Deadlines bring out the best work.', { category: 'assumption' });
 
   // Mind: motivations
@@ -134,30 +150,78 @@ export function createSeedData(today: string = todayISO()): AtlasData {
   // Mind: fears
   node('n_f_missing', 'Missing the one opportunity that matters', 'That the decisive chance arrives and I turn it down.', { category: 'fear' });
   node('n_f_money', 'Financial instability', 'Runway running out with nothing lined up.', { category: 'fear' });
-  node('n_f_service', 'Being seen only as a service provider', 'That the market only sees me as someone who executes other people’s ideas.', { category: 'fear' });
+  node('n_f_service', 'Being seen only as a service provider', 'That the market only sees me as someone who executes other people’s ideas.', {
+    category: 'fear',
+  });
 
   // Mind: mental models
   node('n_mm_optionality', 'Optionality', 'Keep as many doors open as possible; decide later.', { category: 'mental_model' });
   node('n_mm_compounding', 'Compounding depth', 'Sustained focus on one body of work compounds; scattered effort does not.', { category: 'mental_model' });
-  node('n_mm_barbell', 'Barbell strategy', 'Stable base income on one side, a few high-upside bets on the other, little in between.', { category: 'mental_model' });
+  node('n_mm_barbell', 'Barbell strategy', 'Stable base income on one side, a few high-upside bets on the other, little in between.', {
+    category: 'mental_model',
+  });
 
   // Mind: decisions (mirror the decision log)
-  node('n_d_brightline', 'Accepted Brightline retainer', 'Mirrors Decision #01.', { category: 'decision', source: { kind: 'decision', id: 'dec_01' }, at: '2026-02-10' });
-  node('n_d_lowlight', 'Paused Night Ferry for Lowlight', 'Mirrors Decision #03.', { category: 'decision', source: { kind: 'decision', id: 'dec_03' }, at: '2026-03-23' });
-  node('n_d_northlight', 'Declined Northlight role', 'Mirrors Decision #04.', { category: 'decision', source: { kind: 'decision', id: 'dec_04' }, at: '2026-04-18' });
-  node('n_d_hybrid', 'Committed to Hybrid Quarter', 'Mirrors Decision #08.', { category: 'decision', source: { kind: 'decision', id: 'dec_08' }, at: '2026-09-01' });
+  node('n_d_brightline', 'Accepted Brightline retainer', 'Mirrors Decision #01.', {
+    category: 'decision',
+    source: { kind: 'decision', id: 'dec_01' },
+    at: '2026-02-10',
+  });
+  node('n_d_lowlight', 'Paused Night Ferry for Lowlight', 'Mirrors Decision #03.', {
+    category: 'decision',
+    source: { kind: 'decision', id: 'dec_03' },
+    at: '2026-03-23',
+  });
+  node('n_d_northlight', 'Declined Northlight role', 'Mirrors Decision #04.', {
+    category: 'decision',
+    source: { kind: 'decision', id: 'dec_04' },
+    at: '2026-04-18',
+  });
+  node('n_d_hybrid', 'Committed to Hybrid Quarter', 'Mirrors Decision #08.', {
+    category: 'decision',
+    source: { kind: 'decision', id: 'dec_08' },
+    at: '2026-09-01',
+  });
 
   // Mind: experiences (mirror entries)
   node('n_e_burnout', 'Burnout week (April)', 'Mirrors Entry #05.', { category: 'experience', source: { kind: 'entry', id: 'ent_05' }, at: '2026-04-02' });
-  node('n_e_lowlight', 'Lowlight: three focused weeks', 'Mirrors Entry #06.', { category: 'experience', source: { kind: 'entry', id: 'ent_06' }, at: '2026-04-15' });
-  node('n_e_rejection', 'Tidewater festival rejection', 'Mirrors Entry #16.', { category: 'experience', source: { kind: 'entry', id: 'ent_16' }, at: '2026-07-03' });
+  node('n_e_lowlight', 'Lowlight: three focused weeks', 'Mirrors Entry #06.', {
+    category: 'experience',
+    source: { kind: 'entry', id: 'ent_06' },
+    at: '2026-04-15',
+  });
+  node('n_e_rejection', 'Tidewater festival rejection', 'Mirrors Entry #16.', {
+    category: 'experience',
+    source: { kind: 'entry', id: 'ent_16' },
+    at: '2026-07-03',
+  });
 
   // Mind: questions
-  node('n_q_optimize', 'What kind of work do I actually want to optimize for?', 'Authorship, craft, income and recognition point in different directions.', { category: 'question', status: 'exploring', at: '2026-05-27' });
-  node('n_q_stop', 'Which opportunities should I stop accepting?', 'Ruth asked what I would cut if I had to drop half. I could not answer quickly.', { category: 'question', status: 'open', at: '2026-07-15' });
-  node('n_q_untested', 'What assumptions about my career have not been tested?', 'Several plans rest on things I have never checked.', { category: 'question', status: 'open', at: '2026-08-27' });
-  node('n_q_inherited', 'Which goals are genuinely mine versus externally inherited?', 'The studio goal might partly be other people’s idea of success.', { category: 'question', status: 'open', at: '2026-07-10' });
-  node('n_q_recognition', 'Would I still want a studio without the recognition?', 'Separates the work itself from how it would be seen.', { category: 'question', status: 'open', at: '2026-07-10' });
+  node('n_q_optimize', 'What kind of work do I actually want to optimize for?', 'Authorship, craft, income and recognition point in different directions.', {
+    category: 'question',
+    status: 'exploring',
+    at: '2026-05-27',
+  });
+  node('n_q_stop', 'Which opportunities should I stop accepting?', 'Ruth asked what I would cut if I had to drop half. I could not answer quickly.', {
+    category: 'question',
+    status: 'open',
+    at: '2026-07-15',
+  });
+  node('n_q_untested', 'What assumptions about my career have not been tested?', 'Several plans rest on things I have never checked.', {
+    category: 'question',
+    status: 'open',
+    at: '2026-08-27',
+  });
+  node('n_q_inherited', 'Which goals are genuinely mine versus externally inherited?', 'The studio goal might partly be other people’s idea of success.', {
+    category: 'question',
+    status: 'open',
+    at: '2026-07-10',
+  });
+  node('n_q_recognition', 'Would I still want a studio without the recognition?', 'Separates the work itself from how it would be seen.', {
+    category: 'question',
+    status: 'open',
+    at: '2026-07-10',
+  });
 
   /* ------------------------------------------------------------ edges */
 
@@ -251,99 +315,349 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     context?: Entry['context'],
   ) => {
     const id = `ent_${String(seq).padStart(2, '0')}`;
-    entries[id] = { id, seq, kind, title, content, date: D(date), domains, tags, nodeIds, context, createdAt: T(date, '20:00:00'), updatedAt: T(date, '20:00:00') };
+    entries[id] = {
+      id,
+      seq,
+      kind,
+      title,
+      content,
+      date: D(date),
+      domains,
+      tags,
+      nodeIds,
+      context,
+      createdAt: T(date, '20:00:00'),
+      updatedAt: T(date, '20:00:00'),
+    };
   };
 
-  entry(1, '2026-03-02', 'journal', 'Said yes to the podcast',
+  entry(
+    1,
+    '2026-03-02',
+    'journal',
+    'Said yes to the podcast',
     'Marta asked me to co-produce "Working Titles". I said yes on the call, before checking my calendar. Night Ferry storyboards are half done and Brightline kicks off next week. It felt good to be asked.',
-    ['projects', 'relationships'], ['opportunity', 'podcast'], ['n_podcast', 'n_marta', 'n_b_doors'], { energy: 4, mood: 1, emotions: ['excited'] });
-  entry(2, '2026-03-09', 'reflection', 'Where the week went',
+    ['projects', 'relationships'],
+    ['opportunity', 'podcast'],
+    ['n_podcast', 'n_marta', 'n_b_doors'],
+    { energy: 4, mood: 1, emotions: ['excited'] },
+  );
+  entry(
+    2,
+    '2026-03-09',
+    'reflection',
+    'Where the week went',
     'Counted it: 11 hours on Brightline, 6 on podcast prep, 2 on Night Ferry. Night Ferry is the thing I say matters most, and it got the least.',
-    ['projects', 'goals'], ['time-audit', 'focus'], ['n_nightferry', 'n_brightline', 'n_podcast'], { energy: 2, mood: -1, emotions: ['scattered'] });
-  entry(3, '2026-03-18', 'problem', 'Three deadlines in the same week',
+    ['projects', 'goals'],
+    ['time-audit', 'focus'],
+    ['n_nightferry', 'n_brightline', 'n_podcast'],
+    { energy: 2, mood: -1, emotions: ['scattered'] },
+  );
+  entry(
+    3,
+    '2026-03-18',
+    'problem',
+    'Three deadlines in the same week',
     'Brightline v2, the podcast episode 1 edit and the grant application all land on Friday. I left the grant to the last four days again.',
-    ['projects'], ['deadline', 'grant'], ['n_brightline', 'n_podcast'], { energy: 2, mood: -1, emotions: ['anxious'] });
-  entry(4, '2026-03-23', 'journal', 'Juna’s music video',
+    ['projects'],
+    ['deadline', 'grant'],
+    ['n_brightline', 'n_podcast'],
+    { energy: 2, mood: -1, emotions: ['anxious'] },
+  );
+  entry(
+    4,
+    '2026-03-23',
+    'journal',
+    'Juna’s music video',
     'Juna offered the "Lowlight" video: tight budget, great song, three weeks. I’m pausing Night Ferry for it. Told myself it’s a portfolio piece.',
-    ['projects', 'relationships', 'career'], ['opportunity', 'music-video'], ['n_juna', 'n_nightferry'], { energy: 4, mood: 1, emotions: ['excited'] });
-  entry(5, '2026-04-02', 'experience', 'Burnout week',
+    ['projects', 'relationships', 'career'],
+    ['opportunity', 'music-video'],
+    ['n_juna', 'n_nightferry'],
+    { energy: 4, mood: 1, emotions: ['excited'] },
+  );
+  entry(
+    5,
+    '2026-04-02',
+    'experience',
+    'Burnout week',
     'Couldn’t start anything on Monday. Slept ten hours, cancelled two calls. The March sprint on the grant and Brightline caught up with me.',
-    ['habits', 'environment'], ['recovery', 'energy'], [], { energy: 1, mood: -2, emotions: ['tired'] });
-  entry(6, '2026-04-15', 'experience', 'Lowlight shipped in three focused weeks',
+    ['habits', 'environment'],
+    ['recovery', 'energy'],
+    [],
+    { energy: 1, mood: -2, emotions: ['tired'] },
+  );
+  entry(
+    6,
+    '2026-04-15',
+    'experience',
+    'Lowlight shipped in three focused weeks',
     'Finished the Lowlight video on time. It was the only project I touched for those three weeks: mornings only, phone in another room. Best thing I’ve made in a year.',
-    ['projects', 'habits'], ['focus', 'finished', 'deep-work'], ['n_deepwork', 'n_juna', 'n_sk_direction'], { energy: 4, mood: 2, emotions: ['proud'] });
-  entry(7, '2026-04-19', 'reflection', 'Declining Northlight',
+    ['projects', 'habits'],
+    ['focus', 'finished', 'deep-work'],
+    ['n_deepwork', 'n_juna', 'n_sk_direction'],
+    { energy: 4, mood: 2, emotions: ['proud'] },
+  );
+  entry(
+    7,
+    '2026-04-19',
+    'reflection',
+    'Declining Northlight',
     'Turned down the in-house creative lead role. The salary was 40% above my average month. What decided it: I would stop producing my own work for at least two years.',
-    ['career', 'values', 'finance'], ['autonomy', 'decline'], ['n_autonomy', 'n_freelance'], { energy: 3, mood: 0, emotions: ['uncertain', 'relieved'] });
-  entry(8, '2026-04-28', 'observation', 'Afternoons are gone',
+    ['career', 'values', 'finance'],
+    ['autonomy', 'decline'],
+    ['n_autonomy', 'n_freelance'],
+    { energy: 3, mood: 0, emotions: ['uncertain', 'relieved'] },
+  );
+  entry(
+    8,
+    '2026-04-28',
+    'observation',
+    'Afternoons are gone',
     'Every afternoon this month had at least two calls. Nothing creative has happened after 2pm since March.',
-    ['environment', 'habits'], ['calls', 'schedule'], ['n_afternoons']);
-  entry(9, '2026-05-06', 'journal', 'Rate conversation with Brightline',
+    ['environment', 'habits'],
+    ['calls', 'schedule'],
+    ['n_afternoons'],
+  );
+  entry(
+    9,
+    '2026-05-06',
+    'journal',
+    'Rate conversation with Brightline',
     'Asked Brightline for a scope change fee after the third round of revisions. They agreed without pushback. I had been dreading it for two weeks for nothing.',
-    ['finance', 'career'], ['pricing', 'clients'], ['n_brightline'], { energy: 3, mood: 1, emotions: ['relieved'] });
-  entry(10, '2026-05-12', 'journal', 'Fieldwork edit',
+    ['finance', 'career'],
+    ['pricing', 'clients'],
+    ['n_brightline'],
+    { energy: 3, mood: 1, emotions: ['relieved'] },
+  );
+  entry(
+    10,
+    '2026-05-12',
+    'journal',
+    'Fieldwork edit',
     'Said yes to a four-week documentary edit for Fieldwork. Short-term money, and they’re well connected. That’s five active things now.',
-    ['projects', 'finance'], ['opportunity', 'income'], ['n_freelance', 'n_runway'], { energy: 3, mood: 0 });
-  entry(11, '2026-05-20', 'problem', 'Night Ferry keeps slipping',
+    ['projects', 'finance'],
+    ['opportunity', 'income'],
+    ['n_freelance', 'n_runway'],
+    { energy: 3, mood: 0 },
+  );
+  entry(
+    11,
+    '2026-05-20',
+    'problem',
+    'Night Ferry keeps slipping',
     'The animatic was supposed to be locked in April. It’s late May and I’ve done maybe 30% of it. Every week something paid jumps ahead.',
-    ['projects', 'goals'], ['night-ferry', 'slipping'], ['n_nightferry', 'n_goal_ship'], { energy: 2, mood: -1, emotions: ['frustrated'] });
-  entry(12, '2026-05-27', 'reflection', 'Why I add scope',
+    ['projects', 'goals'],
+    ['night-ferry', 'slipping'],
+    ['n_nightferry', 'n_goal_ship'],
+    { energy: 2, mood: -1, emotions: ['frustrated'] },
+  );
+  entry(
+    12,
+    '2026-05-27',
+    'reflection',
+    'Why I add scope',
     'Rewrote the Night Ferry treatment again and added a second storyline. Honest reason: I’m scared the simple version isn’t impressive enough for festivals.',
-    ['projects', 'identity'], ['scope', 'festival'], ['n_nightferry', 'n_m_recognition'], { energy: 3, mood: -1, emotions: ['uncertain'] });
-  entry(13, '2026-06-02', 'observation', 'Deep-work experiment: day 1',
+    ['projects', 'identity'],
+    ['scope', 'festival'],
+    ['n_nightferry', 'n_m_recognition'],
+    { energy: 3, mood: -1, emotions: ['uncertain'] },
+  );
+  entry(
+    13,
+    '2026-06-02',
+    'observation',
+    'Deep-work experiment: day 1',
     'Starting two weeks of protected 8–11am blocks. No calls, no email. One project per block.',
-    ['habits'], ['deep-work', 'experiment'], ['n_deepwork']);
-  entry(14, '2026-06-16', 'reflection', 'Deep-work experiment: results',
+    ['habits'],
+    ['deep-work', 'experiment'],
+    ['n_deepwork'],
+  );
+  entry(
+    14,
+    '2026-06-16',
+    'reflection',
+    'Deep-work experiment: results',
     'Kept 10 of 10 mornings. Finished animatic act one and the Fieldwork rough cut. Stress lower. Afternoons still chaotic.',
-    ['habits', 'projects'], ['deep-work', 'finished'], ['n_deepwork', 'n_nightferry', 'n_afternoons'], { energy: 4, mood: 1, emotions: ['focused'] });
-  entry(15, '2026-06-24', 'journal', 'Podcast stalled',
+    ['habits', 'projects'],
+    ['deep-work', 'finished'],
+    ['n_deepwork', 'n_nightferry', 'n_afternoons'],
+    { energy: 4, mood: 1, emotions: ['focused'] },
+  );
+  entry(
+    15,
+    '2026-06-24',
+    'journal',
+    'Podcast stalled',
     'Two episodes recorded in four months. Marta wants to keep going; I haven’t opened the project in three weeks and I don’t know how to say I’m out.',
-    ['projects', 'relationships'], ['podcast', 'avoidance'], ['n_podcast', 'n_marta'], { energy: 2, mood: -1, emotions: ['anxious'] });
-  entry(16, '2026-07-03', 'experience', 'Festival rejection: Tidewater',
+    ['projects', 'relationships'],
+    ['podcast', 'avoidance'],
+    ['n_podcast', 'n_marta'],
+    { energy: 2, mood: -1, emotions: ['anxious'] },
+  );
+  entry(
+    16,
+    '2026-07-03',
+    'experience',
+    'Festival rejection: Tidewater',
     'My old short "Tidewater" was rejected again. Feedback: "strong craft, unclear intention". It stung more than I expected.',
-    ['career', 'identity'], ['festival', 'feedback'], ['n_m_recognition'], { energy: 2, mood: -2, emotions: ['frustrated'] });
-  entry(17, '2026-07-08', 'journal', 'Panel and workshop: yes',
+    ['career', 'identity'],
+    ['festival', 'feedback'],
+    ['n_m_recognition'],
+    { energy: 2, mood: -2, emotions: ['frustrated'] },
+  );
+  entry(
+    17,
+    '2026-07-08',
+    'journal',
+    'Panel and workshop: yes',
     'Agreed to speak on a festival panel and run a two-day workshop in late September. Visibility, and Ruth thinks it would be good for me. It’s unpaid.',
-    ['career', 'relationships', 'projects'], ['opportunity', 'visibility'], ['n_workshop', 'n_ruth'], { energy: 3, mood: 1 });
-  entry(18, '2026-07-15', 'reflection', 'Mentor call with Ruth',
+    ['career', 'relationships', 'projects'],
+    ['opportunity', 'visibility'],
+    ['n_workshop', 'n_ruth'],
+    { energy: 3, mood: 1 },
+  );
+  entry(
+    18,
+    '2026-07-15',
+    'reflection',
+    'Mentor call with Ruth',
     'Ruth asked what I would stop doing if I had to cut half my projects. I couldn’t answer quickly. She said that was the answer.',
-    ['relationships', 'goals'], ['mentor', 'focus'], ['n_ruth', 'n_q_stop'], { energy: 3, mood: 0, emotions: ['uncertain'] });
-  entry(19, '2026-07-22', 'habit', 'Weekly review lapsed',
+    ['relationships', 'goals'],
+    ['mentor', 'focus'],
+    ['n_ruth', 'n_q_stop'],
+    { energy: 3, mood: 0, emotions: ['uncertain'] },
+  );
+  entry(
+    19,
+    '2026-07-22',
+    'habit',
+    'Weekly review lapsed',
     'No Sunday review since early July. Without it I say yes to things without seeing the whole week.',
-    ['habits'], ['weekly-review'], ['n_review'], { energy: 2, mood: -1 });
-  entry(20, '2026-07-29', 'problem', 'Runway check',
+    ['habits'],
+    ['weekly-review'],
+    ['n_review'],
+    { energy: 2, mood: -1 },
+  );
+  entry(
+    20,
+    '2026-07-29',
+    'problem',
+    'Runway check',
     'Ran the numbers: 3.5 months of runway. 72% of income comes from Brightline and Fieldwork. If one leaves, I’m at six weeks.',
-    ['finance'], ['runway', 'concentration'], ['n_runway', 'n_concentration', 'n_f_money', 'n_a_referrals'], { energy: 2, mood: -1, emotions: ['anxious'] });
-  entry(21, '2026-08-05', 'journal', 'Grant deadline sprint, again',
+    ['finance'],
+    ['runway', 'concentration'],
+    ['n_runway', 'n_concentration', 'n_f_money', 'n_a_referrals'],
+    { energy: 2, mood: -1, emotions: ['anxious'] },
+  );
+  entry(
+    21,
+    '2026-08-05',
+    'journal',
+    'Grant deadline sprint, again',
     'Two all-nighters for the development grant. Submitted 40 minutes before it closed. Same shape as March.',
-    ['projects'], ['grant', 'deadline'], ['n_a_pressure'], { energy: 2, mood: -1, emotions: ['tired'] });
-  entry(22, '2026-08-09', 'experience', 'Crash after the grant',
+    ['projects'],
+    ['grant', 'deadline'],
+    ['n_a_pressure'],
+    { energy: 2, mood: -1, emotions: ['tired'] },
+  );
+  entry(
+    22,
+    '2026-08-09',
+    'experience',
+    'Crash after the grant',
     'Three flat days after the grant. Admin only. Cancelled the Thursday Night Ferry session.',
-    ['habits'], ['recovery'], [], { energy: 1, mood: -1, emotions: ['tired'] });
-  entry(23, '2026-08-14', 'observation', 'Exploration is not the same as overcommitment',
+    ['habits'],
+    ['recovery'],
+    [],
+    { energy: 1, mood: -1, emotions: ['tired'] },
+  );
+  entry(
+    23,
+    '2026-08-14',
+    'observation',
+    'Exploration is not the same as overcommitment',
     'Looking back, the podcast and the panel were deliberately exploratory: I wanted to find out whether I like being on the talking side of the work. That is different from overcommitting by accident.',
-    ['projects', 'identity'], ['exploration'], ['n_podcast', 'n_workshop']);
-  entry(24, '2026-08-19', 'journal', 'New day rate',
+    ['projects', 'identity'],
+    ['exploration'],
+    ['n_podcast', 'n_workshop'],
+  );
+  entry(
+    24,
+    '2026-08-19',
+    'journal',
+    'New day rate',
     'Raised my day rate by 15% for new clients. Two enquiries since; one accepted without question.',
-    ['finance'], ['pricing'], ['n_runway'], { energy: 3, mood: 1 });
-  entry(25, '2026-08-27', 'reflection', 'What Hybrid would actually look like',
+    ['finance'],
+    ['pricing'],
+    ['n_runway'],
+    { energy: 3, mood: 1 },
+  );
+  entry(
+    25,
+    '2026-08-27',
+    'reflection',
+    'What Hybrid would actually look like',
     'Two anchor clients, three days a week. Night Ferry gets Tuesday and Thursday, protected. Everything else waits for the quarterly review. Sam would get predictable weekends.',
-    ['goals', 'career', 'projects'], ['strategy', 'hybrid'], ['n_goal_practice', 'n_mm_barbell', 'n_sam'], { energy: 4, mood: 1, emotions: ['calm'] });
-  entry(26, '2026-09-01', 'goal', 'Hybrid Quarter',
+    ['goals', 'career', 'projects'],
+    ['strategy', 'hybrid'],
+    ['n_goal_practice', 'n_mm_barbell', 'n_sam'],
+    { energy: 4, mood: 1, emotions: ['calm'] },
+  );
+  entry(
+    26,
+    '2026-09-01',
+    'goal',
+    'Hybrid Quarter',
     'Committing to a 90-day test of the hybrid structure. Success means: animatic locked, runway at four months or more, and no new commitments without the Sunday review.',
-    ['goals'], ['hybrid', 'experiment'], ['n_goal_practice', 'n_d_hybrid'], { energy: 4, mood: 1, emotions: ['focused'] });
-  entry(27, '2026-09-08', 'project', 'Night Ferry animatic: scenes 1–3',
+    ['goals'],
+    ['hybrid', 'experiment'],
+    ['n_goal_practice', 'n_d_hybrid'],
+    { energy: 4, mood: 1, emotions: ['focused'] },
+  );
+  entry(
+    27,
+    '2026-09-08',
+    'project',
+    'Night Ferry animatic: scenes 1–3',
     'Scenes 1–3 locked using the Tuesday and Thursday blocks, steady rather than rushed. Scene 4 needs a new layout pass.',
-    ['projects'], ['night-ferry'], ['n_nightferry', 'n_deepwork'], { energy: 4, mood: 1, emotions: ['focused'] });
-  entry(28, '2026-09-12', 'journal', 'Declined a pitch video',
+    ['projects'],
+    ['night-ferry'],
+    ['n_nightferry', 'n_deepwork'],
+    { energy: 4, mood: 1, emotions: ['focused'] },
+  );
+  entry(
+    28,
+    '2026-09-12',
+    'journal',
+    'Declined a pitch video',
     'A friend’s startup wanted a pitch video in two weeks. First time this year I said no without agonising: the commitment cap made it easy.',
-    ['projects', 'values'], ['decline', 'commitment-cap'], [], { energy: 3, mood: 1, emotions: ['calm'] });
-  entry(29, '2026-09-18', 'journal', 'Commitment cap: first week',
+    ['projects', 'values'],
+    ['decline', 'commitment-cap'],
+    [],
+    { energy: 3, mood: 1, emotions: ['calm'] },
+  );
+  entry(
+    29,
+    '2026-09-18',
+    'journal',
+    'Commitment cap: first week',
     'Down to three active things: Brightline, Night Ferry and workshop prep. Fieldwork wrapped; the podcast is paused and Marta took it well. Focus hours are up, though I keep reaching for my inbox.',
-    ['projects', 'habits'], ['commitment-cap'], ['n_podcast', 'n_marta'], { energy: 4, mood: 1, emotions: ['relieved'] });
-  entry(30, '2026-09-24', 'reflection', 'Workshop prep is eating the blocks',
+    ['projects', 'habits'],
+    ['commitment-cap'],
+    ['n_podcast', 'n_marta'],
+    { energy: 4, mood: 1, emotions: ['relieved'] },
+  );
+  entry(
+    30,
+    '2026-09-24',
+    'reflection',
+    'Workshop prep is eating the blocks',
     'Workshop prep took both Night Ferry days this week. The yes from July is collecting its bill.',
-    ['projects'], ['workshop'], ['n_workshop', 'n_nightferry'], { energy: 2, mood: -1, emotions: ['frustrated'] });
+    ['projects'],
+    ['workshop'],
+    ['n_workshop', 'n_nightferry'],
+    { energy: 2, mood: -1, emotions: ['frustrated'] },
+  );
 
   /* ------------------------------------------------------------ decisions */
 
@@ -626,7 +940,11 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     chain: ['Opportunity Accumulation', 'Overcommitment', 'Fragmentation'],
     status: 'active',
     observation: 'I repeatedly accept new projects while existing projects remain unfinished.',
-    triggers: ['New opportunities, especially when asked directly', 'External expectations from mentors and collaborators', 'Fear of missing the opportunity that matters'],
+    triggers: [
+      'New opportunities, especially when asked directly',
+      'External expectations from mentors and collaborators',
+      'Fear of missing the opportunity that matters',
+    ],
     behaviors: ['Accepts parallel commitments before checking capacity', 'Says yes on the call and evaluates later'],
     consequences: ['Attention fragmented across four to six commitments', 'Original work slips first', 'Dormant commitments that are hard to exit'],
     evidence: [
@@ -643,8 +961,18 @@ export function createSeedData(today: string = todayISO()): AtlasData {
       ev('ev_0711', E(23), 'counters', 'The podcast and the panel were deliberately exploratory.', '2026-08-14', 1, 'user'),
     ],
     interpretations: [
-      { id: 'int_0701', statement: 'May prioritise acquiring opportunities over completing them.', confidence: 0.72, rationale: 'Most accepted commitments were chosen for visibility or income while an unfinished original project was active.' },
-      { id: 'int_0702', statement: 'May be a reasonable response to income concentration: saying yes spreads financial risk.', confidence: 0.41, rationale: 'Two acceptances coincided with runway concerns (Entry #10, Entry #20).' },
+      {
+        id: 'int_0701',
+        statement: 'May prioritise acquiring opportunities over completing them.',
+        confidence: 0.72,
+        rationale: 'Most accepted commitments were chosen for visibility or income while an unfinished original project was active.',
+      },
+      {
+        id: 'int_0702',
+        statement: 'May be a reasonable response to income concentration: saying yes spreads financial risk.',
+        confidence: 0.41,
+        rationale: 'Two acceptances coincided with runway concerns (Entry #10, Entry #20).',
+      },
     ],
     counterEvidence: [
       { id: 'ce_0701', statement: 'Several projects were intentionally exploratory, chosen to learn rather than accumulated by default.', sources: [E(23)] },
@@ -657,7 +985,18 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     domains: ['projects', 'career', 'habits'],
     nodeIds: ['n_b_doors', 'n_f_missing', 'n_mm_optionality', 'n_d_brightline', 'n_d_lowlight'],
     cues: {
-      supports: ['said yes', 'agreed to', 'took on', 'another project', 'five active', 'jumps ahead', 'before checking', 'on top of', 'collecting its bill', 'eating the'],
+      supports: [
+        'said yes',
+        'agreed to',
+        'took on',
+        'another project',
+        'five active',
+        'jumps ahead',
+        'before checking',
+        'on top of',
+        'collecting its bill',
+        'eating the',
+      ],
       counters: ['declined', 'said no', 'turned down', 'commitment cap', 'deliberately exploratory', 'only project'],
     },
     origin: 'inferred',
@@ -684,7 +1023,12 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     ],
     interpretations: [
       { id: 'int_0301', statement: 'Compressed timelines may be how urgency gets created when many commitments compete for the same days.', confidence: 0.58 },
-      { id: 'int_0302', statement: 'May reflect an untested assumption that pressure improves the work.', confidence: 0.46, rationale: 'Linked to the assumption "I work better under pressure", which two experiences contradict.' },
+      {
+        id: 'int_0302',
+        statement: 'May reflect an untested assumption that pressure improves the work.',
+        confidence: 0.46,
+        rationale: 'Linked to the assumption "I work better under pressure", which two experiences contradict.',
+      },
     ],
     counterEvidence: [{ id: 'ce_0301', statement: 'Deadline work spread across protected blocks moved steadily without a sprint.', sources: [E(27)] }],
     implications: [{ id: 'im_0301', statement: 'Recovery dips may cost about as many days as the sprint appears to save.', pathIds: ['path_a'] }],
@@ -716,7 +1060,9 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     ],
     interpretations: [{ id: 'int_0501', statement: 'Added scope may work as insurance against judgement of the simpler version.', confidence: 0.55 }],
     counterEvidence: [{ id: 'ce_0501', statement: 'Work with a fixed brief (Lowlight) shipped simple and on time.', sources: [E(6)] }],
-    implications: [{ id: 'im_0501', statement: 'Night Ferry’s timeline may depend more on scope decisions than on available hours.', pathIds: ['path_a', 'path_c'] }],
+    implications: [
+      { id: 'im_0501', statement: 'Night Ferry’s timeline may depend more on scope decisions than on available hours.', pathIds: ['path_a', 'path_c'] },
+    ],
     domains: ['projects', 'identity'],
     nodeIds: ['n_m_recognition', 'n_f_service', 'n_b_prove'],
     cues: {
@@ -741,7 +1087,15 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     evidence: [
       ev('ev_0901', E(6), 'supports', 'It was the only project I touched for those three weeks.', '2026-06-03'),
       ev('ev_0902', E(14), 'supports', 'Kept 10 of 10 mornings. Finished animatic act one and the Fieldwork rough cut.', '2026-06-16'),
-      ev('ev_0903', { kind: 'experiment', id: 'exp_01' }, 'supports', 'EXP-01 supported the hypothesis: 10 of 10 mornings, two deliverables finished.', '2026-06-16', 2, 'user'),
+      ev(
+        'ev_0903',
+        { kind: 'experiment', id: 'exp_01' },
+        'supports',
+        'EXP-01 supported the hypothesis: 10 of 10 mornings, two deliverables finished.',
+        '2026-06-16',
+        2,
+        'user',
+      ),
       ev('ev_0904', E(27), 'supports', 'Scenes 1–3 locked using the Tuesday and Thursday blocks.', '2026-09-08'),
     ],
     interpretations: [{ id: 'int_0901', statement: 'Output may depend more on uninterrupted attention than on total hours worked.', confidence: 0.7 }],
@@ -814,7 +1168,11 @@ export function createSeedData(today: string = todayISO()): AtlasData {
       risks: ['Runway runs out before funding arrives', 'Dependence on one film’s reception', 'Drift away from the client network'],
       tradeoffs: ['Most authorship and autonomy', 'Least income stability while building'],
       opportunityCosts: ['Around 70% of current client income', 'The senior in-house career track'],
-      unknowns: ['Does a studio actually need outside investment? (untested)', 'Would I enjoy running people as much as making things?', 'Market appetite for Night Ferry'],
+      unknowns: [
+        'Does a studio actually need outside investment? (untested)',
+        'Would I enjoy running people as much as making things?',
+        'Market appetite for Night Ferry',
+      ],
       proposedExperiments: ['Run a two-person studio sprint for two weeks'],
       experimentIds: ['exp_04'],
       patternIds: ['pat_05', 'pat_03'],
@@ -908,14 +1266,73 @@ export function createSeedData(today: string = todayISO()): AtlasData {
 
   const conf = (ids: string[], p: Pattern) => computeConfidence(p.evidence.filter((e) => ids.includes(e.id)));
   const log: ModelUpdate[] = [
-    { id: 'log_01', at: T('2026-04-03'), kind: 'pattern_created', summary: 'Pattern 03 proposed from Entry #03 and Entry #05.', patternId: 'pat_03', after: conf(['ev_0301', 'ev_0302'], patterns.pat_03) },
-    { id: 'log_02', at: T('2026-04-20'), kind: 'pattern_created', summary: 'Pattern 02 proposed from Decision #01.', patternId: 'pat_02', after: conf(['ev_0201'], patterns.pat_02) },
-    { id: 'log_03', at: T('2026-05-07'), kind: 'evidence_added', summary: 'Entry #09 added as counter-evidence to Pattern 02.', patternId: 'pat_02', before: conf(['ev_0201'], patterns.pat_02), after: conf(['ev_0201', 'ev_0202'], patterns.pat_02), source: E(9) },
-    { id: 'log_04', at: T('2026-05-08'), kind: 'pattern_assessed', summary: 'You marked Pattern 02 as not accurate. It was dismissed and no longer informs paths.', patternId: 'pat_02' },
-    { id: 'log_05', at: T('2026-05-21'), kind: 'pattern_created', summary: 'Pattern 07 proposed from five entries and Decision #03, with Decision #04 as counter-evidence.', patternId: 'pat_07', after: conf(['ev_0701', 'ev_0702', 'ev_0703', 'ev_0704', 'ev_0705', 'ev_0710'], patterns.pat_07) },
-    { id: 'log_06', at: T('2026-06-16'), kind: 'experiment_result', summary: 'EXP-01 result applied: supports Pattern 09 (weight 2).', patternId: 'pat_09', before: conf(['ev_0901', 'ev_0902'], patterns.pat_09), after: conf(['ev_0901', 'ev_0902', 'ev_0903'], patterns.pat_09), source: { kind: 'experiment', id: 'exp_01' } },
-    { id: 'log_07', at: T('2026-07-10'), kind: 'pattern_created', summary: 'Pattern 05 proposed as emerging, from Entry #12 and Entry #16.', patternId: 'pat_05', after: conf(['ev_0501', 'ev_0502'], patterns.pat_05) },
-    { id: 'log_08', at: T('2026-08-14'), kind: 'evidence_added', summary: 'You added Entry #23 as counter-evidence to Pattern 07.', patternId: 'pat_07', source: E(23) },
+    {
+      id: 'log_01',
+      at: T('2026-04-03'),
+      kind: 'pattern_created',
+      summary: 'Pattern 03 proposed from Entry #03 and Entry #05.',
+      patternId: 'pat_03',
+      after: conf(['ev_0301', 'ev_0302'], patterns.pat_03),
+    },
+    {
+      id: 'log_02',
+      at: T('2026-04-20'),
+      kind: 'pattern_created',
+      summary: 'Pattern 02 proposed from Decision #01.',
+      patternId: 'pat_02',
+      after: conf(['ev_0201'], patterns.pat_02),
+    },
+    {
+      id: 'log_03',
+      at: T('2026-05-07'),
+      kind: 'evidence_added',
+      summary: 'Entry #09 added as counter-evidence to Pattern 02.',
+      patternId: 'pat_02',
+      before: conf(['ev_0201'], patterns.pat_02),
+      after: conf(['ev_0201', 'ev_0202'], patterns.pat_02),
+      source: E(9),
+    },
+    {
+      id: 'log_04',
+      at: T('2026-05-08'),
+      kind: 'pattern_assessed',
+      summary: 'You marked Pattern 02 as not accurate. It was dismissed and no longer informs paths.',
+      patternId: 'pat_02',
+    },
+    {
+      id: 'log_05',
+      at: T('2026-05-21'),
+      kind: 'pattern_created',
+      summary: 'Pattern 07 proposed from five entries and Decision #03, with Decision #04 as counter-evidence.',
+      patternId: 'pat_07',
+      after: conf(['ev_0701', 'ev_0702', 'ev_0703', 'ev_0704', 'ev_0705', 'ev_0710'], patterns.pat_07),
+    },
+    {
+      id: 'log_06',
+      at: T('2026-06-16'),
+      kind: 'experiment_result',
+      summary: 'EXP-01 result applied: supports Pattern 09 (weight 2).',
+      patternId: 'pat_09',
+      before: conf(['ev_0901', 'ev_0902'], patterns.pat_09),
+      after: conf(['ev_0901', 'ev_0902', 'ev_0903'], patterns.pat_09),
+      source: { kind: 'experiment', id: 'exp_01' },
+    },
+    {
+      id: 'log_07',
+      at: T('2026-07-10'),
+      kind: 'pattern_created',
+      summary: 'Pattern 05 proposed as emerging, from Entry #12 and Entry #16.',
+      patternId: 'pat_05',
+      after: conf(['ev_0501', 'ev_0502'], patterns.pat_05),
+    },
+    {
+      id: 'log_08',
+      at: T('2026-08-14'),
+      kind: 'evidence_added',
+      summary: 'You added Entry #23 as counter-evidence to Pattern 07.',
+      patternId: 'pat_07',
+      source: E(23),
+    },
     { id: 'log_09', at: T('2026-09-01'), kind: 'direction_set', summary: 'You chose Path C (Hybrid Strategy) as a 90-day test.' },
   ];
 
@@ -930,7 +1347,11 @@ export function createSeedData(today: string = todayISO()): AtlasData {
       values: domain('values', 'Autonomy · Craft · Depth', 'Autonomy decided the Northlight choice. Depth is stated often and tested rarely.'),
       goals: domain('goals', 'Ship Night Ferry; six months of runway', 'Two concrete goals and one structural goal from the Hybrid Quarter.'),
       career: domain('career', 'Freelance producer, three recurring clients', 'Brand content, music videos and documentary, almost all by referral.'),
-      skills: domain('skills', 'Strong production; business development gap', 'Production and motion design are well evidenced. Direction and 3D are developing.'),
+      skills: domain(
+        'skills',
+        'Strong production; business development gap',
+        'Production and motion design are well evidenced. Direction and 3D are developing.',
+      ),
       projects: domain('projects', 'Three active (down from six)', 'Night Ferry, Brightline and workshop prep. Podcast paused, Fieldwork wrapped.'),
       finance: domain('finance', '3.5 months runway · 72% concentration', 'Two clients provide most income. Rate raised 15% for new clients.'),
       relationships: domain('relationships', 'A small, close network', 'Collaborators, a mentor, and a partner who wants predictability.'),
@@ -948,7 +1369,12 @@ export function createSeedData(today: string = todayISO()): AtlasData {
       position: 'Freelance creative producer, four weeks into a 90-day hybrid test.',
       summary: 'Two anchor clients fund two protected production days a week for Night Ferry. Commitments are down from six to three.',
       constraints: ['3.5 months of runway', '72% of income from two clients', 'Partner wants predictable weekends', 'Afternoons fragmented by calls'],
-      assets: ['Strong production track record', 'Collaborators: Juna (music), Teo (3D)', 'A mentor with a festival network', 'Night Ferry animatic: scenes 1–3 locked'],
+      assets: [
+        'Strong production track record',
+        'Collaborators: Juna (music), Teo (3D)',
+        'A mentor with a festival network',
+        'Night Ferry animatic: scenes 1–3 locked',
+      ],
       updatedAt: now,
     },
     navigation,

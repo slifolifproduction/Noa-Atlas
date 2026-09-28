@@ -6,7 +6,11 @@ export function Toasts() {
   const toasts = useUI((s) => s.toasts);
   const dismiss = useUI((s) => s.dismissToast);
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-[60] flex flex-col items-center gap-2 px-4 md:bottom-5" role="status" aria-live="polite">
+    <div
+      className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-[60] flex flex-col items-center gap-2 px-4 md:bottom-5"
+      role="status"
+      aria-live="polite"
+    >
       {toasts.map((t) => (
         <div
           key={t.id}

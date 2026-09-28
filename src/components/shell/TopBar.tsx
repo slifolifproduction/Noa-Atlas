@@ -88,7 +88,10 @@ export function TopBar({ active }: { active: RouteKey }) {
           aria-current={active === 'settings' ? 'page' : undefined}
           title="Settings"
           aria-label="Settings"
-          className={cn('hidden h-8 w-8 items-center justify-center rounded-[6px] lg:flex', active === 'settings' ? 'bg-white/[0.06] text-ink' : 'text-ink-3 hover:text-ink-2')}
+          className={cn(
+            'hidden h-8 w-8 items-center justify-center rounded-[6px] lg:flex',
+            active === 'settings' ? 'bg-white/[0.06] text-ink' : 'text-ink-3 hover:text-ink-2',
+          )}
         >
           <Settings size={15} strokeWidth={1.7} aria-hidden />
         </a>
@@ -103,7 +106,10 @@ export function TopBar({ active }: { active: RouteKey }) {
                     key={u.key}
                     href={hrefFor(u.key)}
                     onClick={() => setMenuOpen(false)}
-                    className={cn('flex items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-[13px]', active === u.key ? 'bg-white/[0.06] text-ink' : 'text-ink-2 hover:bg-white/[0.04]')}
+                    className={cn(
+                      'flex items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-[13px]',
+                      active === u.key ? 'bg-white/[0.06] text-ink' : 'text-ink-2 hover:bg-white/[0.04]',
+                    )}
                   >
                     <u.icon size={14} aria-hidden />
                     {u.label}

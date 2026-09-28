@@ -23,39 +23,11 @@ export type ISODateTime = string;
 /* Graph                                                               */
 /* ------------------------------------------------------------------ */
 
-export type DomainKey =
-  | 'identity'
-  | 'values'
-  | 'goals'
-  | 'career'
-  | 'skills'
-  | 'projects'
-  | 'finance'
-  | 'relationships'
-  | 'environment'
-  | 'habits';
+export type DomainKey = 'identity' | 'values' | 'goals' | 'career' | 'skills' | 'projects' | 'finance' | 'relationships' | 'environment' | 'habits';
 
-export type MindCategory =
-  | 'belief'
-  | 'assumption'
-  | 'motivation'
-  | 'fear'
-  | 'value'
-  | 'mental_model'
-  | 'decision'
-  | 'question'
-  | 'experience';
+export type MindCategory = 'belief' | 'assumption' | 'motivation' | 'fear' | 'value' | 'mental_model' | 'decision' | 'question' | 'experience';
 
-export type RelationType =
-  | 'part_of'
-  | 'influences'
-  | 'causes'
-  | 'supports'
-  | 'conflicts'
-  | 'contradicts'
-  | 'derived_from'
-  | 'depends_on'
-  | 'examines';
+export type RelationType = 'part_of' | 'influences' | 'causes' | 'supports' | 'conflicts' | 'contradicts' | 'derived_from' | 'depends_on' | 'examines';
 
 export type GraphLayer = 'orbit' | 'mind';
 
@@ -122,15 +94,7 @@ export interface AtlasEdge {
 /* Raw user data                                                       */
 /* ------------------------------------------------------------------ */
 
-export type EntryKind =
-  | 'journal'
-  | 'goal'
-  | 'experience'
-  | 'problem'
-  | 'reflection'
-  | 'project'
-  | 'habit'
-  | 'observation';
+export type EntryKind = 'journal' | 'goal' | 'experience' | 'problem' | 'reflection' | 'project' | 'habit' | 'observation';
 
 /** What the quick-capture surface can create. Decisions get their own record. */
 export type CaptureKind = EntryKind | 'decision';
@@ -438,13 +402,7 @@ export interface EntryAnalysis {
 }
 
 export type ModelUpdateKind =
-  | 'evidence_added'
-  | 'evidence_removed'
-  | 'pattern_created'
-  | 'pattern_assessed'
-  | 'pattern_status'
-  | 'experiment_result'
-  | 'direction_set';
+  'evidence_added' | 'evidence_removed' | 'pattern_created' | 'pattern_assessed' | 'pattern_status' | 'experiment_result' | 'direction_set';
 
 /** An append-only log of how the model changed and why. */
 export interface ModelUpdate {
