@@ -127,6 +127,7 @@
     *::before,
     *::after {
       animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
       transition-duration: 1ms !important;
     }
   }
@@ -248,4 +249,160 @@
 }
 .react-flow__pane.dragging {
   cursor: grabbing;
+}
+
+/* ---- Living Orbit ------------------------------------------------------
+ * Motion is slow, low-contrast and meaningful: breathing marks a live
+ * domain, pulses show direction of influence, drift keeps satellites from
+ * feeling frozen. Only opacity and transform animate. */
+
+@keyframes atlas-breathe {
+  0%,
+  100% {
+    opacity: 0.06;
+  }
+  50% {
+    opacity: 0.26;
+  }
+}
+@keyframes atlas-ripple {
+  0% {
+    opacity: var(--ripple, 0.5);
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+@keyframes atlas-drift {
+  0% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(1.4px, -0.8px);
+  }
+  50% {
+    transform: translate(0.3px, -1.6px);
+  }
+  75% {
+    transform: translate(-1.1px, -0.7px);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes atlas-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes atlas-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.atlas-stars {
+  animation: atlas-fade-in 900ms var(--ease-out-quint) both;
+}
+
+.hub-breath {
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 2px solid var(--hub-color);
+  pointer-events: none;
+  will-change: opacity;
+  opacity: 0.06;
+  animation: atlas-breathe 7s ease-in-out infinite;
+  animation-delay: var(--phase, 0s);
+}
+.is-center .hub-breath {
+  animation-duration: 11s;
+}
+.hub-ripple {
+  transform-origin: 50px 50px;
+  transform-box: view-box;
+  opacity: 0;
+  animation: atlas-ripple 1.8s var(--ease-out-quint) forwards;
+}
+.sat-drift {
+  animation: atlas-drift var(--drift-dur, 20s) ease-in-out infinite var(--drift-dir, normal);
+  animation-delay: var(--phase, 0s);
+}
+/* On very large maps satellite drift is imperceptible anyway; skip it. */
+.atlas-dense .sat-drift {
+  animation: none;
+}
+/* Flow pulses: positioned along the edge path by offset-path (set in script). */
+.atlas-dot {
+  position: absolute;
+  left: 0;
+  top: 0;
+  border-radius: 9999px;
+  pointer-events: none;
+  opacity: 0;
+  will-change: transform, opacity;
+}
+
+/* Hover: a precise local lift, never a jump in size or position. */
+.atlas-living .hub-ring {
+  transition: stroke-opacity 220ms ease;
+}
+.atlas-living .react-flow__node-hub:hover .hub-ring {
+  stroke-opacity: 0.8;
+}
+.atlas-living .react-flow__node-hub:hover .hub-breath {
+  opacity: 0.32;
+  animation-play-state: paused;
+}
+.atlas-living .react-flow__node-hub:hover .node-label {
+  background: rgb(10 12 15 / 0.92);
+}
+.atlas-living .react-flow__node-item:hover .sat-core {
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 0.06);
+}
+.react-flow__edge.is-hover {
+  opacity: 1 !important;
+}
+
+/* Selection: the selected node is more active, its neighbourhood is lit, the rest recedes. */
+.atlas-living .react-flow__node.selected .hub-breath {
+  animation-duration: 3.8s;
+}
+.atlas-living .react-flow__node.is-near .hub-ring {
+  stroke-opacity: 0.7;
+}
+.atlas-living .react-flow__node.is-near .hub-breath {
+  animation-duration: 5s;
+}
+.atlas-living .react-flow__node.is-dim {
+  opacity: 0.3;
+}
+.atlas-living .react-flow__edge.is-dim {
+  opacity: 0.12;
+}
+
+/* Staged reveal: background → identity → domains → connections → satellites → labels. */
+.atlas-reveal .node-body {
+  animation: atlas-in 520ms var(--ease-out-quint) both;
+  animation-delay: var(--reveal, 0ms);
+}
+.atlas-reveal .react-flow__edge {
+  animation: atlas-fade-in 700ms ease-out both;
+  animation-delay: 560ms;
+}
+.atlas-reveal .node-label {
+  animation: atlas-fade-in 500ms ease-out both;
+  /* Labels come last, after the structure they describe. */
+  animation-delay: max(900ms, calc(var(--reveal, 0ms) + 360ms));
+}
+.atlas-reveal .react-flow__node-rings {
+  animation: atlas-fade-in 900ms ease-out both;
 }

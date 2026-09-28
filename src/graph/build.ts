@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 /**
  * Map atlas data to React Flow nodes and edges. Pure functions: given the same
  * data, positions and view state they return the same graph.
@@ -42,10 +43,13 @@ function labelSide(from: XY, to: XY): LabelSide {
 function applyEmphasis(nodes: AtlasFlowNode[], edges: SemanticEdge[], data: AtlasData, selectedId: ID | undefined, query: string, matches: Set<ID>) {
   if (selectedId && nodes.some((n) => n.id === selectedId)) {
     const near = new Set([selectedId, ...neighbors(data, selectedId).map((n) => n.otherId)]);
-    for (const n of nodes) if (n.type !== 'rings' && !near.has(n.id)) n.className = 'is-dim';
+    for (const n of nodes) {
+      if (n.type === 'rings' || n.id === selectedId) continue;
+      n.className = near.has(n.id) ? 'is-near' : 'is-dim';
+    }
     for (const e of edges) {
       const active = e.source === selectedId || e.target === selectedId;
-      e.data = { ...e.data!, active };
+      e.data = { ...e.data!, active, dim: !active };
       if (!active) e.className = 'is-dim';
       else e.zIndex = 1;
     }
@@ -120,6 +124,7 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     },
   ];
 
+  let hubIndex = 0;
   for (const d of DOMAINS) {
     const id = hubId(d.key);
     if (!visible.has(id)) continue;
@@ -131,6 +136,8 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
       type: 'hub',
       // Hubs (and their labels) render above satellites and edges.
       zIndex: 2,
+      // Staged reveal: identity first, then each ring outward.
+      style: { '--reveal': `${d.ring === 0 ? 80 : 200 + d.ring * 90 + hubIndex++ * 25}ms` } as CSSProperties,
       position: positions[id],
       data: {
         key: d.key,
@@ -150,6 +157,7 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     });
   }
 
+  let itemIndex = 0;
   for (const n of items) {
     if (!visible.has(n.id)) continue;
     const key = n.domain!;
@@ -160,6 +168,7 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     nodes.push({
       id: n.id,
       type: 'item',
+      style: { '--reveal': `${680 + Math.round(itemIndex++ * 9)}ms` } as CSSProperties,
       position: pos,
       data: {
         label: n.label,
@@ -187,6 +196,7 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     ed.data!.secondary = !isHubId(e.source) && !isHubId(e.target) && da !== db;
     edges.push(ed);
   }
+  for (const e of edges) e.data!.flow = true;
 
   const matchSet = new Set(matches);
   applyEmphasis(nodes, edges, data, opts.selectedId, q, matchSet);

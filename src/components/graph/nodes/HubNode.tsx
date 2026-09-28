@@ -1,5 +1,6 @@
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
+import { hash01, useMotion, useWave } from '../../../graph/motion';
 import type { HubNode } from '../../../graph/types';
 import { useLabelScale } from '../../../hooks/useZoom';
 import { cn } from '../../../lib/cn';
@@ -7,7 +8,11 @@ import { DOMAIN_ICONS } from '../../icons';
 import { NodeHandles } from './Handles';
 
 /** A life-domain hub. The outer arc shows how much recent writing touched it. */
-export const HubNodeView = memo(function HubNodeView({ data, selected }: NodeProps<HubNode>) {
+export const HubNodeView = memo(function HubNodeView({ id, data, selected }: NodeProps<HubNode>) {
+  const motion = useMotion();
+  const living = motion.living && !motion.reduced;
+  const wave = useWave(living, (w) => w.origin === id || w.reached.includes(id));
+  const strength = wave ? (wave.origin === id ? 1 : wave.strength) : 0;
   const Icon = DOMAIN_ICONS[data.key];
   const size = data.center ? 108 : 78;
   const r = 46;
@@ -15,12 +20,36 @@ export const HubNodeView = memo(function HubNodeView({ data, selected }: NodePro
   const arc = Math.max(0.04, data.activity) * circ;
   const scale = useLabelScale(0.95, 2.2);
   return (
-    <div className="group relative" style={{ width: size, height: size }}>
+    <div
+      className={cn('node-body hub-body group relative', data.center && 'is-center')}
+      style={{ width: size, height: size, ['--phase' as string]: `${-(hash01(id) * 9).toFixed(2)}s`, ['--hub-color' as string]: data.color }}
+    >
+      {/* Breathing halo: a slow, composited opacity cycle on a soft outer ring. */}
+      {living && <div className="hub-breath" aria-hidden />}
       <svg className="absolute inset-0 overflow-visible" viewBox="0 0 100 100" aria-hidden>
+        {living && (
+          <>
+            {wave && (
+              <circle
+                key={wave.at}
+                className="hub-ripple"
+                cx="50"
+                cy="50"
+                r="50"
+                fill="none"
+                stroke={data.color}
+                strokeWidth="1.25"
+                vectorEffect="non-scaling-stroke"
+                style={{ ['--ripple' as string]: String(0.55 * strength), animationDelay: wave.origin === id ? '0ms' : '1500ms' }}
+              />
+            )}
+          </>
+        )}
         {selected && (
           <circle cx="50" cy="50" r="56" fill="none" stroke="var(--color-accent)" strokeOpacity="0.5" strokeWidth="1" vectorEffect="non-scaling-stroke" />
         )}
         <circle
+          className="hub-ring"
           cx="50"
           cy="50"
           r="49"
@@ -59,7 +88,7 @@ export const HubNodeView = memo(function HubNodeView({ data, selected }: NodePro
         </span>
       )}
       <div
-        className="pointer-events-none absolute left-1/2 w-max max-w-[160px] -translate-x-1/2 rounded-[5px] bg-canvas/75 px-1.5 py-0.5 text-center"
+        className="node-label pointer-events-none absolute left-1/2 w-max max-w-[160px] -translate-x-1/2 rounded-[5px] bg-canvas/75 px-1.5 py-0.5 text-center"
         style={
           data.labelSide === 'bottom'
             ? { top: size + 8, transform: `scale(${scale})`, transformOrigin: 'top center' }

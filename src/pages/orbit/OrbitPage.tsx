@@ -102,9 +102,11 @@ export function OrbitPage() {
         persistViewport={!isMobile}
         fitPadding={padding}
         draggable={!isMobile}
+        occludedLeft={hudVisible ? leftInset : 0}
+        living
       >
         {/* Title */}
-        <div className="pointer-events-none absolute top-3 z-10 hidden lg:block" style={{ left: leftInset + 4 }}>
+        <div className="pointer-events-none absolute top-2 z-10 hidden rounded-[6px] bg-canvas/80 px-2 py-1 lg:block" style={{ left: leftInset + 4 }}>
           <div className="label">01 · Orbit</div>
           <div className="mt-0.5 text-[15px] font-medium tracking-[-0.01em] text-ink">Where am I?</div>
         </div>

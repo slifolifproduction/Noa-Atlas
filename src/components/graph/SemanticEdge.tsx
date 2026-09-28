@@ -1,7 +1,9 @@
 import { BaseEdge, EdgeLabelRenderer, useInternalNode, type EdgeProps, type InternalNode } from '@xyflow/react';
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
 import { RELATION_META } from '../../domain/constants';
-import { CIRCLE_NODE_TYPES, type SemanticEdge } from '../../graph/types';
+import type { RelationType } from '../../domain/types';
+import { hash01, pulseTravel, useMotion, useWave } from '../../graph/motion';
+import { CIRCLE_NODE_TYPES, type SemanticEdge, type SemanticEdgeData } from '../../graph/types';
 
 interface Box {
   cx: number;
@@ -56,9 +58,10 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
   const ly = (start.y + 2 * cy + end.y) / 4;
 
   const meta = RELATION_META[data.relation];
-  const emphasised = data.active || selected;
+  const emphasised = data.active || data.hover || selected;
   return (
     <>
+      <EdgeFlow id={id} curve={{ x0: start.x, y0: start.y, cx, cy, x1: end.x, y1: end.y }} length={len} data={data} source={source} target={target} />
       <BaseEdge
         id={id}
         path={path}
@@ -85,6 +88,159 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
     </>
   );
 });
+
+/* ------------------------------------------------------------ flow */
+
+/**
+ * How influence travels along each relationship. Forward = source → target.
+ * Dependencies and derivations flow from what is relied on / originated.
+ * Conflicts send a pulse in from both ends that fades where they meet.
+ */
+const FLOW: Partial<Record<RelationType, 'forward' | 'reverse' | 'meet'>> = {
+  causes: 'forward',
+  influences: 'forward',
+  supports: 'forward',
+  contradicts: 'forward',
+  derived_from: 'reverse',
+  depends_on: 'reverse',
+  conflicts: 'meet',
+  part_of: 'forward',
+};
+
+const PULSE_COLOR = '#e4ebf2';
+
+interface Curve {
+  x0: number;
+  y0: number;
+  cx: number;
+  cy: number;
+  x1: number;
+  y1: number;
+}
+
+/** Point on the edge's quadratic curve at parameter t. */
+function at(c: Curve, t: number) {
+  const u = 1 - t;
+  return { x: u * u * c.x0 + 2 * u * t * c.cx + t * t * c.x1, y: u * u * c.y0 + 2 * u * t * c.cy + t * t * c.y1 };
+}
+
+interface DotProps {
+  curve: Curve;
+  cycle: number;
+  seconds: number;
+  delay: number;
+  reverse?: boolean;
+  half?: boolean;
+  color: string;
+  r: number;
+  peak: number;
+  once?: boolean;
+}
+
+const STEPS = 14;
+
+/**
+ * One light pulse following the edge's actual curve. It lives in React Flow's
+ * HTML overlay rather than the shared edges <svg> (which would repaint every
+ * edge each frame), and moves by transform/opacity keyframes sampled from the
+ * curve, so the browser's compositor animates it with no React renders and no
+ * repaints.
+ */
+function Dot({ curve, cycle, seconds, delay, reverse, half, color, r, peak, once }: DotProps) {
+  const ref = useRef<HTMLDivElement>(null);
+  const { x0, y0, cx, cy, x1, y1 } = curve;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof el.animate !== 'function') return;
+    const c = { x0, y0, cx, cy, x1, y1 };
+    const travel = Math.min(1, (half ? seconds * 0.5 : seconds) / cycle);
+    const [from, to] = half ? (reverse ? [1, 0.5] : [0, 0.5]) : reverse ? [1, 0] : [0, 1];
+    const frames: Keyframe[] = [];
+    for (let i = 0; i <= STEPS; i++) {
+      const k = i / STEPS;
+      const p = at(c, from + (to - from) * k);
+      const fade = k < 0.2 ? k / 0.2 : k > 0.75 ? Math.max(0, (1 - k) / 0.25) : 1;
+      frames.push({ transform: `translate(${(p.x - r).toFixed(1)}px, ${(p.y - r).toFixed(1)}px)`, opacity: peak * fade, offset: travel * k });
+    }
+    if (travel < 1) frames.push({ ...frames[frames.length - 1], opacity: 0, offset: 1 });
+    const anim = el.animate(frames, { duration: cycle * 1000, iterations: once ? 1 : Infinity, delay: once ? 0 : -delay * 1000, fill: 'both' });
+    return () => anim.cancel();
+  }, [x0, y0, cx, cy, x1, y1, cycle, seconds, delay, reverse, half, peak, once, r]);
+  return (
+    <div
+      ref={ref}
+      className="atlas-dot"
+      style={{ width: r * 2, height: r * 2, background: color, boxShadow: `0 0 ${r * 3}px ${r * 0.6}px ${color}33` }}
+      aria-hidden
+    />
+  );
+}
+
+function EdgeFlow({
+  id,
+  curve,
+  length,
+  data,
+  source,
+  target,
+}: {
+  id: string;
+  curve: Curve;
+  length: number;
+  data: SemanticEdgeData;
+  source: string;
+  target: string;
+}) {
+  const motion = useMotion();
+  const living = motion.living && !motion.reduced && data.flow === true;
+  const wave = useWave(living, (w) => w.origin === source || w.origin === target);
+  if (!living) return null;
+  const mode = FLOW[data.relation];
+  if (!mode) return null;
+
+  // Around a busy node, only a sample of connected edges pulses; hover always shows its own links.
+  const engaged = data.hover || (data.active && hash01(`${id}:active`) < motion.activeShare);
+  const phase = hash01(id);
+  // Idle: only primary relationships carry a slow, occasional pulse. Structure and
+  // cross-domain links stay quiet until the user engages with an endpoint.
+  const idle = !engaged && !data.dim && !data.secondary && data.relation !== 'part_of' && hash01(`${id}:idle`) < motion.idleShare;
+  const seconds = pulseTravel(length);
+  const cycle = seconds + (engaged ? 1.2 + phase * 0.8 : 7 + phase * 6);
+  const delay = phase * cycle;
+  const color = engaged ? PULSE_COLOR : RELATION_META[data.relation].color;
+  const peak = engaged ? 0.95 : 0.6;
+  const r = data.relation === 'part_of' ? 1.3 : 1.7;
+  const showWave = wave && !data.dim;
+  if (!engaged && !idle && !showWave) return null;
+
+  return (
+    <EdgeLabelRenderer>
+      {(engaged || idle) &&
+        (mode === 'meet' ? (
+          <>
+            <Dot key={`a${engaged}`} curve={curve} cycle={cycle} seconds={seconds} delay={delay} half color={color} r={r} peak={peak} />
+            <Dot key={`b${engaged}`} curve={curve} cycle={cycle} seconds={seconds} delay={delay} half reverse color={color} r={r} peak={peak} />
+          </>
+        ) : (
+          <Dot key={`p${engaged}`} curve={curve} cycle={cycle} seconds={seconds} delay={delay} reverse={mode === 'reverse'} color={color} r={r} peak={peak} />
+        ))}
+      {showWave && (
+        <Dot
+          key={wave.at}
+          once
+          curve={curve}
+          cycle={Math.min(seconds, 1.6)}
+          seconds={Math.min(seconds, 1.6)}
+          delay={0}
+          reverse={wave.origin === target}
+          color={PULSE_COLOR}
+          r={1.9}
+          peak={0.55 * wave.strength}
+        />
+      )}
+    </EdgeLabelRenderer>
+  );
+}
 
 /** Arrowheads, one per relation colour. Rendered once per canvas. */
 export function EdgeMarkers() {

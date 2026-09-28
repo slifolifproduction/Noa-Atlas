@@ -66,6 +66,12 @@ export type SemanticEdgeData = {
   stored: boolean;
   /** Secondary links (item to item across domains) stay faint until selected. */
   secondary?: boolean;
+  /** Carries animated flow pulses (the living Orbit). */
+  flow?: boolean;
+  /** Dimmed because something else is selected: no pulses. */
+  dim?: boolean;
+  /** Under the pointer's hovered node. */
+  hover?: boolean;
 };
 
 export type HubNode = Node<HubNodeData, 'hub'>;
