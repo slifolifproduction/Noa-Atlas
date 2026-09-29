@@ -53,6 +53,10 @@ interface EdgeStyle {
  * label, and every status its own dash.
  */
 function edgeStyle(data: SemanticEdgeData): EdgeStyle {
+  if (data.family === 'member' && data.reach) {
+    // Toward another area's marker: it stands for what is folded there.
+    return { color: '#d9d2c3', width: 0.9, dash: '2 5', opacity: 0.5, straight: false };
+  }
   if (data.family === 'member') {
     return { color: 'rgb(200 210 222 / 0.5)', width: 0.8, dash: '1 5', opacity: 0.35, straight: true };
   }
@@ -116,7 +120,7 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
   const ly = (start.y + 2 * cy + end.y) / 4;
 
   const emphasised = data.active || data.hover || selected || data.loop;
-  const label = emphasised && !st.straight;
+  const label = emphasised && !st.straight && Boolean(data.label);
   return (
     <>
       <g ref={space.svg}>

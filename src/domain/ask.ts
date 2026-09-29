@@ -31,7 +31,7 @@ export function focusFromGraphId(id: ID): EntityRef {
 }
 
 export function focusLabel(data: AtlasData, ref: EntityRef): string {
-  if (ref.kind === 'area') return ref.id === 'self' ? data.profile.name || t('You') : (AREA_META[ref.id as AreaKey]?.label ?? '');
+  if (ref.kind === 'area') return AREA_META[ref.id as AreaKey]?.label ?? '';
   return data.nodes[ref.id]?.label ?? '';
 }
 

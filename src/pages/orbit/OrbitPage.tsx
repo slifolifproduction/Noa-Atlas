@@ -67,6 +67,7 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
         lens,
         causes,
         salient,
+        essentials: lens === 'map' && !view.showAll,
         // Phones get a compact portrait layout and no dragging, so desktop arrangements stay intact.
         stored: isMobile ? {} : stored,
         geometry: isMobile ? ORBIT_PORTRAIT : ORBIT_DESKTOP,
@@ -78,7 +79,7 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
         query,
         today,
       }),
-    [data, lens, causes, salient, stored, isMobile, collapsed, hiddenLayers, view.showClaims, selectedId, view.focus, query, today],
+    [data, lens, causes, salient, stored, isMobile, collapsed, hiddenLayers, view.showAll, view.showClaims, selectedId, view.focus, query, today],
   );
 
   const links = useMemo(() => {
@@ -120,7 +121,8 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
     (): FitViewOptions['padding'] =>
       isMobile
         ? { top: startCard ? '300px' : '112px', bottom: '24px', left: '64px', right: '64px' }
-        : { top: startCard ? '230px' : '80px', bottom: '32px', left: `${leftInset + 56}px`, right: `${occluded + 96}px` },
+        : // The bottom leaves room for the name under the lowest area's marker.
+          { top: startCard ? '230px' : '80px', bottom: '64px', left: `${leftInset + 56}px`, right: `${occluded + 96}px` },
     [isMobile, leftInset, occluded, startCard],
   );
   const selectedArea = selectedId && isAreaHubId(selectedId) ? areaHubKey(selectedId) : selectedId ? data.nodes[selectedId]?.area : undefined;
@@ -183,6 +185,13 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
           <ViewMenu padding={padding}>
             {lens === 'map' ? (
               <>
+                <MenuItem
+                  checked={Boolean(view.showAll)}
+                  hint={t('Without this, each area shows only its key elements; choose an area to open the rest.')}
+                  onSelect={() => setOrbitView({ showAll: !view.showAll })}
+                >
+                  {t('Show every element')}
+                </MenuItem>
                 <MenuItem
                   checked={view.showClaims}
                   hint={t('Without this, only the possible reasons around what you are looking at show.')}
@@ -317,6 +326,11 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
                     </p>
                     <p className="text-[11.5px] leading-snug text-ink-3">
                       {t('Arcs between areas: how many possible reasons and links run from one area to another. Tap one to see them.')}
+                    </p>
+                    <p className="text-[11.5px] leading-snug text-ink-3">
+                      {t(
+                        'Each area shows its key elements; +n beside its name is what is folded inside. A dashed line to another area’s marker ties an element to what is folded there.',
+                      )}
                     </p>
                     <p className="text-[11.5px] leading-snug text-ink-3">{t('Second ring around a mark: something you want explained or changed.')}</p>
                   </>

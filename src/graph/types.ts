@@ -14,6 +14,8 @@ export type HubNodeData = {
   activityCount: number;
   patternCount: number;
   itemCount: number;
+  /** Elements folded into the marker while the map shows each area's essentials. */
+  hiddenCount: number;
   collapsed: boolean;
   matched: boolean;
   /** Terra incognita: elements on the map but nothing written about them lately. */
@@ -70,7 +72,9 @@ export type SemanticEdgeData = {
    * running between two areas of life. `member` ties an element to its area.
    */
   family: 'claim' | 'link' | 'area' | 'member';
-  /** Area lines: what they sum up. */
+  /** A member line that reaches a folded part of another area, rather than the element's own. */
+  reach?: boolean;
+  /** Area and reach lines: what they sum up. */
   claimIds?: string[];
   linkIds?: string[];
   effect?: Effect;

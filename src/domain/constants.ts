@@ -43,7 +43,7 @@ export const AREAS: AreaMeta[] = [
   {
     key: 'self',
     get label() {
-      return t('Self');
+      return t('Identity');
     },
     color: '#ece8df',
     angle: 0,
@@ -76,7 +76,7 @@ export const AREAS: AreaMeta[] = [
   {
     key: 'money',
     get label() {
-      return t('Money');
+      return t('Finance');
     },
     color: '#9fc27a',
     angle: 12.9,

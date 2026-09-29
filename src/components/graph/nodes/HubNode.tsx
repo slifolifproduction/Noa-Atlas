@@ -7,7 +7,7 @@ import { useLabelScale } from '../../../hooks/useZoom';
 import { cn } from '../../../lib/cn';
 import { AreaGlyph } from '../AreaGlyph';
 import { NodeHandles } from './Handles';
-import { t, tn } from '../../../i18n';
+import { tn } from '../../../i18n';
 
 /** Dial spacing in the hub's 0–100 viewBox: a mark every 10°, and the four cardinal marks. */
 const DIAL_STEP = (2 * Math.PI * 55.5) / 36;
@@ -127,12 +127,15 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
         {/* The name only: what an area holds is one click away, so the map stays quiet. */}
         <div className="label text-ink!" style={{ letterSpacing: data.compact ? '0.08em' : '0.16em' }}>
           {data.label}
+          {data.hiddenCount > 0 && (
+            <span
+              className="num ml-1.5 tracking-normal text-ink-3"
+              title={tn(data.hiddenCount, '{n} more inside: choose the area to open it', '{n} more inside: choose the area to open it')}
+            >
+              +{data.hiddenCount}
+            </span>
+          )}
         </div>
-        {data.quiet && (
-          <div className="mt-0.5 font-mono text-[10.5px] tracking-[0.1em] text-ink-3 uppercase">
-            {data.itemCount === 0 ? t('Uncharted') : t('Quiet lately')}
-          </div>
-        )}
       </div>
       <NodeHandles />
     </div>

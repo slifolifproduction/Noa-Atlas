@@ -29,6 +29,8 @@ export interface OrbitView {
   focus: boolean;
   /** Show claims as lines on the map (declared links always show). */
   showClaims: boolean;
+  /** Show every element; otherwise each area shows its essentials until it is chosen. */
+  showAll?: boolean;
 }
 
 export interface NetworkView {

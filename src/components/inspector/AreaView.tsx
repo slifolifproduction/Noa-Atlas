@@ -109,7 +109,7 @@ export function AreaView({ area }: { area: AreaKey }) {
           </form>
         ) : (
           <>
-            <h2 className="mt-2.5 display text-[21px] leading-[1.2] text-ink">{center ? data.profile.name || t('You') : meta.label}</h2>
+            <h2 className="mt-2.5 display text-[21px] leading-[1.2] text-ink">{meta.label}</h2>
             <p className="mt-1 text-[14px] text-ink">
               {record?.statement ? `“${record.statement}”` : <span className="text-ink-3">{t('No one-line statement yet.')}</span>}
             </p>

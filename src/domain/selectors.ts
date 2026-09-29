@@ -171,7 +171,7 @@ export function displayNode(data: AtlasData, id: ID): DisplayNode | undefined {
   if (id === YOU_ID) {
     return {
       id,
-      label: data.profile.name || t('You'),
+      label: AREA_META.self.label,
       summary: data.areas.self?.statement || AREA_META.self.description,
       color: AREA_META.self.color,
       kindLabel: t('You'),

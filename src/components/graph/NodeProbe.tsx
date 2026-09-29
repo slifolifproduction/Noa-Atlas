@@ -37,7 +37,7 @@ function describe(data: AtlasData, id: ID): ProbeInfo | null {
     return {
       kind: key === 'self' ? t('You · the centre') : t('Area of life'),
       color: meta.color,
-      title: key === 'self' ? data.profile.name || t('You') : meta.label,
+      title: meta.label,
       body: data.areas[key]?.statement || meta.description,
       facts: [tn(elements, '{n} element', '{n} elements'), recordCount(id), inPatterns(patternsForNode(data, id).length)],
       links: [],

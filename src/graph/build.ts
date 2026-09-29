@@ -97,6 +97,49 @@ function claimEdges(claim: Claim, status: ClaimStatus, visible: Set<ID>): Semant
 }
 
 const areaOf = (data: AtlasData, id: ID): AreaKey | undefined => (id === YOU_ID ? 'self' : isAreaHubId(id) ? areaHubKey(id) : data.nodes[id]?.area);
+const hubOf = (k: AreaKey) => (k === 'self' ? YOU_ID : areaHubId(k));
+
+/** How many elements each area shows on the map at rest; the rest open with the area. */
+export const ESSENTIALS = { sector: 2, centre: 3 };
+
+/** Every adopted claim and declared link, as the elements it joins. */
+function connections(data: AtlasData): { ends: ID[]; claimId?: ID; linkId?: ID }[] {
+  const out: { ends: ID[]; claimId?: ID; linkId?: ID }[] = [];
+  for (const c of Object.values(data.claims)) {
+    if (c.state !== 'adopted' || claimStatus(data, c) === 'retired') continue;
+    out.push({ ends: [c.from, ...c.with, c.to], claimId: c.id });
+  }
+  for (const e of Object.values(data.edges)) if (e.type !== 'part_of') out.push({ ends: [e.source, e.target], linkId: e.id });
+  return out;
+}
+
+/**
+ * The few elements each area shows before it is opened: what you care about,
+ * what moved lately, and what ties this area to the others. Everything else
+ * stays folded into the area's marker, and its connections still count in the
+ * lines between areas.
+ */
+export function essentialElements(data: AtlasData, salient: Set<ID> = new Set()): Set<ID> {
+  const across = new Map<ID, number>();
+  const degree = new Map<ID, number>();
+  for (const { ends } of connections(data)) {
+    const areas = new Set(ends.map((id) => data.nodes[id]?.area));
+    for (const id of ends) {
+      degree.set(id, (degree.get(id) ?? 0) + 1);
+      if (areas.size > 1) across.set(id, (across.get(id) ?? 0) + 1);
+    }
+  }
+  const score = (id: ID) => (data.nodes[id]?.concern ? 100 : 0) + (salient.has(id) ? 40 : 0) + (across.get(id) ?? 0) * 4 + (degree.get(id) ?? 0);
+  const keep = new Set<ID>();
+  const byArea = new Map<AreaKey, ID[]>();
+  for (const n of mapElements(data)) byArea.set(n.area, [...(byArea.get(n.area) ?? []), n.id]);
+  for (const [area, ids] of byArea) {
+    const limit = area === 'self' ? ESSENTIALS.centre : ESSENTIALS.sector;
+    ids.sort((a, b) => score(b) - score(a) || a.localeCompare(b));
+    for (const id of ids.slice(0, limit)) keep.add(id);
+  }
+  return keep;
+}
 
 /* ------------------------------------------------------------ orbit */
 
@@ -109,6 +152,8 @@ export interface OrbitOptions {
   causes?: Pick<NetworkView, 'hiddenStatuses' | 'hiddenAreas' | 'showSuggested' | 'focusDepth' | 'loopId'>;
   /** Elements named on the map without being hovered. */
   salient?: Set<ID>;
+  /** Map lens at rest: show only each area's essentials (see `essentialElements`). */
+  essentials?: boolean;
   stored: Record<ID, XY>;
   collapsed: Set<AreaKey>;
   hiddenLayers: Set<LayerKey>;
@@ -134,10 +179,17 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
 
   const selectedArea = opts.selectedId ? areaOf(data, opts.selectedId) : undefined;
   const elements = mapElements(data);
+  // At rest the map keeps each area to its essentials. Choosing an area opens it; choosing an
+  // element brings what it connects to; a search finds anything.
+  const keep = opts.essentials ? essentialElements(data, opts.salient) : undefined;
+  const opened = opts.selectedId && (opts.selectedId === YOU_ID || isAreaHubId(opts.selectedId)) ? selectedArea : undefined;
+  const reached = new Set(opts.selectedId && data.nodes[opts.selectedId] ? neighbors(data, opts.selectedId).map((x) => x.otherId) : []);
+  const essential = (n: (typeof elements)[number]) => !keep || keep.has(n.id) || n.area === opened || reached.has(n.id) || matchesQuery(q, n.label, n.summary);
   const shown = (id: ID) => {
     const n = data.nodes[id]!;
     if (id === opts.selectedId) return true;
     if (opts.collapsed.has(n.area) && n.area !== selectedArea) return false;
+    if (!essential(n)) return false;
     return n.area === 'self' || !opts.hiddenLayers.has(layerOf(n.kind));
   };
   let visible = new Set<ID>([YOU_ID, ...SECTOR_KEYS.map(areaHubId), ...elements.filter((n) => shown(n.id)).map((n) => n.id)]);
@@ -174,11 +226,12 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
   const pushHub = (id: ID, key: AreaKey, reveal: number) => {
     const meta = AREA_META[key];
     const center = key === 'self';
-    const label = center ? data.profile.name || t('You') : meta.label;
+    const label = meta.label;
     const statement = data.areas[key]?.statement ?? '';
     const matched = matchesQuery(q, label, statement);
     if (matched) matches.push(id);
     const count = itemCount(key);
+    const hidden = elements.filter((n) => n.area === key && !visible.has(n.id)).length;
     nodes.push({
       id,
       type: 'hub',
@@ -196,6 +249,7 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
         activityCount: activity[key],
         patternCount: patternsForNode(data, id).length,
         itemCount: count,
+        hiddenCount: hidden,
         collapsed: opts.collapsed.has(key) && selectedArea !== key,
         matched,
         quiet: !center && (count === 0 || thin.quietAreas.includes(key)),
@@ -240,7 +294,8 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
         labelSide: placed.inward.has(n.id) ? FLIP[side] : side,
         matched,
         near: false,
-        salient: Boolean(opts.salient?.has(n.id)),
+        // With the map kept to its essentials, each one is named.
+        salient: Boolean(opts.salient?.has(n.id) || keep?.has(n.id)),
       },
     });
   }
@@ -281,11 +336,33 @@ function mapEdges(data: AtlasData, visible: Set<ID>, opts: OrbitOptions): Semant
     }
   }
   // Each element belongs to its area: a faint line back to the area's marker (or to you).
-  const hubOf = (k: AreaKey) => (k === 'self' ? YOU_ID : areaHubId(k));
   for (const n of elements) {
     const hub = hubOf(n.area);
     if (!visible.has(n.id) || !visible.has(hub)) continue;
     edges.push(makeEdge(`member:${n.id}`, n.id, hub, { family: 'member', label: '', stored: false }));
+  }
+
+  // What a shown element connects to in another area, when that part of the area is folded:
+  // one line to that area's marker, so every element on the map stays tied to the others.
+  const reach = new Map<string, { from: ID; to: ID; claimIds: ID[]; linkIds: ID[] }>();
+  for (const { ends, claimId, linkId } of connections(data)) {
+    for (const a of ends) {
+      if (!visible.has(a)) continue;
+      for (const b of ends) {
+        if (b === a || visible.has(b)) continue;
+        const ka = data.nodes[a]?.area;
+        const kb = data.nodes[b]?.area;
+        if (!ka || !kb || ka === kb || !visible.has(hubOf(kb))) continue;
+        const k = `${a}>${kb}`;
+        if (!reach.has(k)) reach.set(k, { from: a, to: hubOf(kb), claimIds: [], linkIds: [] });
+        const r = reach.get(k)!;
+        if (claimId && !r.claimIds.includes(claimId)) r.claimIds.push(claimId);
+        if (linkId && !r.linkIds.includes(linkId)) r.linkIds.push(linkId);
+      }
+    }
+  }
+  for (const [k, r] of reach) {
+    edges.push(makeEdge(`reach:${k}`, r.from, r.to, { family: 'member', reach: true, claimIds: r.claimIds, linkIds: r.linkIds, label: '', stored: false }));
   }
 
   // How the areas connect: every adopted claim and declared link that crosses from one area
@@ -320,8 +397,8 @@ function mapEdges(data: AtlasData, visible: Set<ID>, opts: OrbitOptions): Semant
     const z = hubOf(b.to);
     if (!visible.has(a) || !visible.has(z)) continue;
     const parts = [
-      b.claimIds.length ? tn(b.claimIds.length, '{n} claim', '{n} claims') : '',
-      b.linkIds.length ? tn(b.linkIds.length, '{n} declared link', '{n} declared links') : '',
+      b.claimIds.length ? tn(b.claimIds.length, '{n} possible reason', '{n} possible reasons') : '',
+      b.linkIds.length ? tn(b.linkIds.length, '{n} link you drew', '{n} links you drew') : '',
     ].filter(Boolean);
     edges.push(
       makeEdge(`area:${b.from}>${b.to}`, a, z, {

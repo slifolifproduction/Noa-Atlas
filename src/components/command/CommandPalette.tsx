@@ -109,7 +109,7 @@ function buildIndex(data: AtlasData): Item[] {
     items.push({
       id: `area:${d.key}`,
       group: t('Areas of life'),
-      label: d.key === 'self' ? data.profile.name || t('You') : d.label,
+      label: d.label,
       detail: data.areas[d.key]?.statement,
       icon: AREA_ICONS[d.key],
       color: d.color,
