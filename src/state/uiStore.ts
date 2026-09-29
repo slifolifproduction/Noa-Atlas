@@ -74,6 +74,11 @@ interface UIState {
   toasts: Toast[];
   settings: ProviderSettings;
   spaceMode: SpaceMode;
+  /** The welcome guide has been seen (it opens by itself once). */
+  guideSeen: boolean;
+  guideOpen: boolean;
+  /** Pages whose "how this works" tip has been read and folded away. */
+  tipsSeen: string[];
   busy: Record<string, boolean>;
 
   openEntity(ref: EntityRef): void;
@@ -95,6 +100,8 @@ interface UIState {
   dismissToast(id: string): void;
   setSettings(patch: Partial<ProviderSettings>): void;
   setSpaceMode(mode: SpaceMode): void;
+  setGuideOpen(open: boolean): void;
+  setTipSeen(page: string, seen: boolean): void;
   setBusy(key: string, busy: boolean): void;
 }
 
@@ -115,6 +122,9 @@ export const useUI = create<UIState>()(
       toasts: [],
       settings: DEFAULT_PROVIDER_SETTINGS,
       spaceMode: 'auto',
+      guideSeen: false,
+      guideOpen: false,
+      tipsSeen: [],
       busy: {},
 
       openEntity: (ref) =>
@@ -149,6 +159,8 @@ export const useUI = create<UIState>()(
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
       setSpaceMode: (spaceMode) => set({ spaceMode }),
+      setGuideOpen: (guideOpen) => set((s) => ({ guideOpen, guideSeen: s.guideSeen || !guideOpen })),
+      setTipSeen: (page, seen) => set((s) => ({ tipsSeen: seen ? [...new Set([...s.tipsSeen, page])] : s.tipsSeen.filter((p) => p !== page) })),
       setBusy: (key, busy) => set((s) => ({ busy: { ...s.busy, [key]: busy } })),
     }),
     {
@@ -162,6 +174,8 @@ export const useUI = create<UIState>()(
         mindView: s.mindView,
         settings: s.settings,
         spaceMode: s.spaceMode,
+        guideSeen: s.guideSeen,
+        tipsSeen: s.tipsSeen,
       }),
     },
   ),

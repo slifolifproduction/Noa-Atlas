@@ -20,6 +20,21 @@ npm run build      # type-check and production build (static, works from any pat
 
 The app opens on a fictional sample atlas (Noa, a freelance creative producer) so every screen has something to show. Settings lets you export, import, reload the sample, or start empty. Data lives in `localStorage` in your browser.
 
+## Using it
+
+You do not need to learn the whole system first. The app runs on one loop:
+
+1. **Write what happens.** Press **Capture** (or `N`) and write a few lines. No title or fields needed: the first line becomes the title, and type, date, areas of life, tags and mood are under "More details" if you want them. Switch to "A decision" to log a choice with its options.
+2. **See what repeats.** The analysis suggests links and pattern evidence, always with the passage behind it. Accept what fits, reject what does not.
+3. **Choose a direction** in Paths, where options are compared side by side and never ranked.
+4. **Take the next step** from Navigation.
+
+Three things keep it easy:
+
+- **Do this next**, at the top of the left panel on Orbit, always shows one concrete action (write your first note, review suggestions, record a finished experiment's result, mark this week's step done…), worked out from your data.
+- **The Guide** (top bar, or `⌘K` → "Guide") is a four-step introduction. It opens by itself on the first visit.
+- **How this page works**: every page has a short note, open on the first visit and one click away afterwards; the graph pages have it behind the `?` button in their toolbar.
+
 ## The five sections
 
 Each primary section answers one question. Keys `1`–`5` switch between them.
@@ -28,9 +43,9 @@ Each primary section answers one question. Keys `1`–`5` switch between them.
 | --- | --- | --- |
 | **01 Orbit** | Where am I? | Ten life domains as a spatial graph (self → intent → work → conditions). Hub arcs show where recent writing went; badges show active patterns. The status panel on the left is the whole dashboard: current state, active objective and next action, current experiment, recent patterns, open questions, recent decisions, and the model chain. |
 | **02 Mind** | How am I thinking? | Beliefs, assumptions, motivations, fears, values, mental models, decisions, questions and experiences, linked by typed relationships (causes, influences, supports, conflicts with, contradicts, derived from, examines). Detected patterns sit in the middle, linked to the nodes they rest on. |
-| **03 Patterns** | What patterns are emerging? | Each pattern: trigger → behaviour → consequence, frequency, derived confidence, first and last observed, an evidence timeline, every piece of evidence with its exact passage, possible interpretations, counter-evidence, strategic implications, experiments, your own assessment, and the model history. |
-| **04 Paths** | What options exist? | Scenarios branching from your current state, compared on the same attributes (requirements, dependencies, skills, capital, time, risks, trade-offs, opportunity costs, unknowns, patterns in play, experiments). Listed alphabetically; never ranked. |
-| **05 Navigation** | What should I test next? | The execution route for the direction you chose: position → 12-month objective → 90-day experiment → milestone → 30-day targets → this week → next action. Alongside it, experiments and the result → model-update loop. |
+| **03 Patterns** | What keeps happening? | Each pattern: trigger → behaviour → consequence, frequency, derived confidence, first and last observed, an evidence timeline, every piece of evidence with its exact passage, possible interpretations, counter-evidence, strategic implications, experiments, your own assessment, and the model history. |
+| **04 Paths** | What are my options? | Scenarios branching from your current state, compared on the same attributes (requirements, dependencies, skills, capital, time, risks, trade-offs, opportunity costs, unknowns, patterns in play, experiments). Listed alphabetically; never ranked. |
+| **05 Navigation** | What do I do next? | The execution route for the direction you chose: position → 12-month objective → 90-day experiment → milestone → 30-day targets → this week → next action. Alongside it, experiments and the result → model-update loop. |
 
 Records live in the secondary area: **Journal** (`J`), **Decision log** (`D`), **Open questions** (`Q`), and **Settings**. `N` captures anything, `⌘K` searches everything, `?` lists all shortcuts.
 

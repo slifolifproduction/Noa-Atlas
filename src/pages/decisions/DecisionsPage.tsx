@@ -32,7 +32,8 @@ export function DecisionsPage() {
       <PageHeader
         eyebrow="Records · Decisions"
         title="Decision log"
-        description="Each decision keeps its options, the reasons each was considered, what you expected and what actually happened. Reviewed outcomes are what allow decision patterns to surface."
+        help="decisions"
+        description="Each decision with its options, what you expected and what actually happened. Comparing the two shows how you decide."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => openCapture('decision')}>
             Log decision

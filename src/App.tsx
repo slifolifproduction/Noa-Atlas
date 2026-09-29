@@ -4,6 +4,7 @@ import { useGlobalShortcuts } from './app/useGlobalShortcuts';
 import { CaptureModal } from './components/capture/CaptureModal';
 import { CommandPalette } from './components/command/CommandPalette';
 import { Inspector } from './components/inspector/Inspector';
+import { Guide } from './components/shell/Guide';
 import { ShortcutsDialog } from './components/shell/ShortcutsDialog';
 import { MobileTabBar, TopBar } from './components/shell/TopBar';
 import { Toasts } from './components/ui/Toasts';
@@ -88,6 +89,7 @@ export function App() {
       <MobileTabBar active={route.key} />
       <CaptureModal />
       <CommandPalette />
+      <Guide />
       <ShortcutsDialog />
       <Toasts />
     </div>

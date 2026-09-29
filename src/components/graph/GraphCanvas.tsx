@@ -697,25 +697,23 @@ function SignalReadout({ signal, labelOf, left, right }: { signal: Signal; label
   const first = signal.first.map(labelOf).filter(Boolean);
   return (
     <div
-      className="atlas-readout pointer-events-none absolute bottom-3 z-10 animate-fade-in max-w-[min(520px,55%)] -translate-x-1/2 truncate rounded-[6px] bg-canvas/70 px-2 py-1 font-mono text-[10.5px] tracking-wide text-ink-3"
+      className="atlas-readout pointer-events-none absolute bottom-3 z-10 max-w-[min(520px,55%)] -translate-x-1/2 animate-fade-in truncate rounded-[6px] bg-canvas/70 px-2 py-1 font-mono text-[10.5px] tracking-wide text-ink-3"
       style={{ left: `calc(${left}px + (100% - ${left + right}px) / 2)` }}
-      aria-live="off"
+      title="The map links your notes in the background. This shows the connection it is following right now."
     >
       <span className="atlas-live-dot mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" aria-hidden />
-      <span className="text-ink-2">LIVE</span> · signal <span className="text-ink-2">{labelOf(signal.origin)}</span>
+      <span className="text-ink-2">Live</span> · following <span className="text-ink-2">{labelOf(signal.origin)}</span>
       {first.length > 0 && (
         <>
           {' '}
           → {first.slice(0, 3).join(', ')}
           {first.length > 3 ? ` +${first.length - 3}` : ''}
         </>
-      )}{' '}
-      · {signal.hops} hop
-      {signal.hops === 1 ? '' : 's'}, {signal.nodes} nodes
+      )}
       {signal.focus && (
         <>
           {' '}
-          · attention <span className="text-ink-2">{labelOf(signal.focus)}</span>
+          · you often look at <span className="text-ink-2">{labelOf(signal.focus)}</span>
         </>
       )}
     </div>

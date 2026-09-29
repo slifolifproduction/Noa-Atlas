@@ -49,10 +49,11 @@ export function JournalPage() {
       <PageHeader
         eyebrow="Records · Journal"
         title="Journal"
-        description="The raw material. Entries count as evidence only when you link them to a node or accept an analysis suggestion."
+        help="journal"
+        description="Everything you have written. A note becomes evidence once you connect it to something or accept one of its suggestions."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')} kbd="N">
-            New entry
+            Write a note
           </Button>
         }
       />

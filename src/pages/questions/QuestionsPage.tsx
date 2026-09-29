@@ -29,7 +29,8 @@ export function QuestionsPage() {
       <PageHeader
         eyebrow="Records · Questions"
         title="Open questions"
-        description="Questions worth keeping open rather than answering too early. Each one links to the beliefs, assumptions and goals it examines, and lives in the Mind graph."
+        help="questions"
+        description="Questions worth keeping open instead of answering too early. Each one also appears on the Mind map."
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>
             New question

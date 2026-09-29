@@ -1,4 +1,4 @@
-import { ArrowRight, CornerDownLeft, FlaskConical, Keyboard, Plus, ScanSearch, Search, Split, type LucideIcon } from 'lucide-react';
+import { ArrowRight, CornerDownLeft, FlaskConical, Keyboard, LifeBuoy, Plus, ScanSearch, Search, Split, type LucideIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { navigate } from '../../app/router';
@@ -45,6 +45,7 @@ function buildIndex(data: AtlasData): Item[] {
       },
     },
     { id: 'act:keys', group: 'Actions', label: 'Keyboard shortcuts', icon: Keyboard, run: () => ui.setShortcutsOpen(true) },
+    { id: 'act:guide', group: 'Actions', label: 'Guide: how it works', detail: 'The four-step introduction', icon: LifeBuoy, run: () => ui.setGuideOpen(true) },
   ];
   for (const d of DOMAINS) {
     items.push({

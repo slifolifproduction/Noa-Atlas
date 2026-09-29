@@ -55,14 +55,15 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
     <div className="mx-auto max-w-[1320px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
         section="patterns"
-        description="Observed, not diagnosed. Every pattern carries its evidence, its counter-evidence and a confidence derived from both."
+        help="patterns"
+        description="Things that keep happening in your notes, each with the evidence for and against it. Observed, never diagnosed."
         actions={
           <>
             <Button variant="ghost" icon={Plus} onClick={() => setDescribing(true)}>
               Describe a pattern
             </Button>
             <Button icon={ScanSearch} onClick={scan} loading={busyScan} disabled={empty}>
-              Scan entries for evidence
+              Look for evidence
             </Button>
           </>
         }

@@ -1,4 +1,4 @@
-import { BookOpen, CircleQuestionMark, Menu, Plus, Search, Settings, Split } from 'lucide-react';
+import { BookOpen, CircleQuestionMark, LifeBuoy, Menu, Plus, Search, Settings, Split } from 'lucide-react';
 import { useState } from 'react';
 import { hrefFor, type RouteKey } from '../../app/router';
 import { SECTIONS } from '../../domain/constants';
@@ -17,6 +17,7 @@ const UTILITIES = [
 export function TopBar({ active }: { active: RouteKey }) {
   const openCapture = useUI((s) => s.openCapture);
   const setPaletteOpen = useUI((s) => s.setPaletteOpen);
+  const setGuideOpen = useUI((s) => s.setGuideOpen);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -83,6 +84,16 @@ export function TopBar({ active }: { active: RouteKey }) {
           </Button>
         </span>
         <IconButton icon={Plus} label="Capture" className="sm:hidden" onClick={() => openCapture('journal')} />
+        <button
+          type="button"
+          onClick={() => setGuideOpen(true)}
+          title="How Cognitive Atlas works"
+          className="hidden h-8 items-center gap-1.5 rounded-[6px] px-2 text-[12.5px] text-ink-3 transition-colors hover:bg-white/[0.04] hover:text-ink-2 lg:flex"
+        >
+          <LifeBuoy size={14} strokeWidth={1.7} aria-hidden />
+          <span className="hidden xl:inline">Guide</span>
+          <span className="sr-only xl:hidden">Guide</span>
+        </button>
         <a
           href={hrefFor('settings')}
           aria-current={active === 'settings' ? 'page' : undefined}
@@ -115,6 +126,17 @@ export function TopBar({ active }: { active: RouteKey }) {
                     {u.label}
                   </a>
                 ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setGuideOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] text-ink-2 hover:bg-white/[0.04]"
+                >
+                  <LifeBuoy size={14} aria-hidden />
+                  Guide: how it works
+                </button>
               </div>
             </>
           )}

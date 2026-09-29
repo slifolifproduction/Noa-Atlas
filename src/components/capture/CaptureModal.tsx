@@ -20,7 +20,7 @@ import { toast, useUI } from '../../state/uiStore';
 import { CAPTURE_ICONS } from '../icons';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
-import { FieldLabel, Kbd, ToggleChip } from '../ui/primitives';
+import { FieldLabel, Kbd, Segmented, ToggleChip } from '../ui/primitives';
 
 interface Draft {
   kind: CaptureKind;
@@ -134,16 +134,17 @@ function CaptureForm({ onClose }: { onClose(): void }) {
     return emptyDraft(request.kind);
   });
   const [showContext, setShowContext] = useState(Boolean(draft.energy !== undefined || draft.mood !== undefined || draft.emotions.length));
+  // Simple by default: one box. Everything else (type, title, date, domains, tags, context) is one click away.
+  const [details, setDetails] = useState(Boolean(editing) || (request.kind !== 'journal' && request.kind !== 'decision'));
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const isDecision = draft.kind === 'decision';
   const target = CAPTURE_NODE_TARGET[draft.kind];
   const kindMeta = CAPTURE_KINDS.find((k) => k.key === draft.kind)!;
-  const valid = draft.title.trim().length > 0 && (isDecision || draft.content.trim().length > 0);
+  // Notes do not need a title: the first line is used.
+  const title = draft.title.trim() || (isDecision ? '' : firstLine(draft.content));
+  const valid = isDecision ? title.length > 0 : draft.content.trim().length > 0;
 
-  const kinds = useMemo(
-    () => (editing ? CAPTURE_KINDS.filter((k) => (editing.kind === 'decision' ? k.key === 'decision' : k.key !== 'decision')) : CAPTURE_KINDS),
-    [editing],
-  );
+  const noteKinds = useMemo(() => CAPTURE_KINDS.filter((k) => k.key !== 'decision'), []);
 
   const save = async () => {
     if (!valid || saving) return;
@@ -159,7 +160,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
       if (isDecision) {
         const options = draft.options.filter((o) => o.label.trim());
         const payload = {
-          title: draft.title.trim(),
+          title,
           date: draft.date,
           context: draft.content.trim(),
           options,
@@ -184,7 +185,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
       } else if (editing) {
         updateEntry(editing.id, {
           kind: draft.kind as EntryKind,
-          title: draft.title.trim(),
+          title,
           content: draft.content.trim(),
           date: draft.date,
           domains: draft.domains,
@@ -197,7 +198,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
         await captureEntry(
           {
             kind: draft.kind as EntryKind,
-            title: draft.title.trim(),
+            title,
             content: draft.content.trim(),
             date: draft.date,
             domains: draft.domains,
@@ -226,14 +227,25 @@ function CaptureForm({ onClose }: { onClose(): void }) {
     return () => window.removeEventListener('keydown', onKey);
   });
 
+  const summary = [
+    isDecision ? null : CAPTURE_KINDS.find((k) => k.key === draft.kind)?.label,
+    draft.date === todayISO() ? 'today' : draft.date,
+    draft.domains.length ? `${draft.domains.length} area${draft.domains.length === 1 ? '' : 's'}` : null,
+    parseTags(draft.tags).length ? `${parseTags(draft.tags).length} tag${parseTags(draft.tags).length === 1 ? '' : 's'}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <Modal
       open
       onClose={onClose}
       title={editing ? `Edit ${kindMeta.label.toLowerCase()}` : 'Capture'}
-      description={kindMeta.hint}
-      width="max-w-[680px]"
-      initialFocus="#cap-title"
+      description={
+        isDecision ? 'A choice you are making: the options, and what you expect.' : 'Anything that happened or crossed your mind. The atlas does the sorting.'
+      }
+      width="max-w-[640px]"
+      initialFocus={isDecision ? '#cap-title' : '#cap-content'}
       footer={
         <>
           <span className="mr-auto hidden items-center gap-1 text-[11.5px] text-ink-3 sm:flex">
@@ -244,7 +256,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
             Cancel
           </Button>
           <Button variant="primary" onClick={save} disabled={!valid} loading={saving}>
-            {editing ? 'Save changes' : isDecision ? 'Log decision' : 'Save entry'}
+            {editing ? 'Save changes' : isDecision ? 'Log decision' : 'Save note'}
           </Button>
         </>
       }
@@ -256,143 +268,225 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           void save();
         }}
       >
-        <div role="radiogroup" aria-label="Type" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1">
-          {kinds.map((k) => {
-            const Icon = CAPTURE_ICONS[k.key];
-            const active = draft.kind === k.key;
-            return (
-              <button
-                key={k.key}
-                type="button"
-                role="radio"
-                aria-checked={active}
-                onClick={() => set('kind', k.key)}
-                className={cn(
-                  'flex shrink-0 items-center gap-1.5 rounded-[6px] border px-2.5 py-1.5 text-[12.5px] transition-colors',
-                  active ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-3 hover:border-line-strong hover:text-ink-2',
-                )}
-              >
-                <Icon size={13} aria-hidden />
-                {k.label}
-              </button>
-            );
-          })}
-        </div>
+        {!editing && (
+          <Segmented<'note' | 'decision'>
+            label="What are you capturing?"
+            value={isDecision ? 'decision' : 'note'}
+            onChange={(v) => set('kind', v === 'decision' ? 'decision' : 'journal')}
+            options={[
+              { value: 'note', label: 'A note' },
+              { value: 'decision', label: 'A decision' },
+            ]}
+          />
+        )}
 
-        <div className="grid gap-3 sm:grid-cols-[1fr_150px]">
+        {isDecision ? (
+          <>
+            <div>
+              <FieldLabel htmlFor="cap-title">What are you deciding?</FieldLabel>
+              <input
+                id="cap-title"
+                className="field"
+                value={draft.title}
+                onChange={(e) => set('title', e.target.value)}
+                placeholder="e.g. Take the agency retainer or keep two days for my own film"
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="cap-content" hint="optional">
+                What is the situation?
+              </FieldLabel>
+              <textarea
+                id="cap-content"
+                className="field min-h-[80px] resize-y leading-relaxed"
+                value={draft.content}
+                onChange={(e) => set('content', e.target.value)}
+                placeholder="What is at stake, and why now?"
+              />
+            </div>
+            <DecisionFields draft={draft} set={set} editing={Boolean(editing)} />
+          </>
+        ) : (
           <div>
-            <FieldLabel htmlFor="cap-title">{isDecision ? 'Decision' : 'Title'}</FieldLabel>
-            <input
-              id="cap-title"
-              className="field"
-              value={draft.title}
-              onChange={(e) => set('title', e.target.value)}
-              placeholder={isDecision ? 'What are you deciding?' : 'A short, specific title'}
+            <FieldLabel htmlFor="cap-content">What happened?</FieldLabel>
+            <textarea
+              id="cap-content"
+              className="field min-h-[150px] resize-y leading-relaxed"
+              value={draft.content}
+              onChange={(e) => set('content', e.target.value)}
+              placeholder="Write it like a note to yourself: what happened, what you noticed, how it felt. A few lines is enough."
             />
           </div>
-          <div>
-            <FieldLabel htmlFor="cap-date">Date</FieldLabel>
-            <input id="cap-date" type="date" className="field num" value={draft.date} onChange={(e) => set('date', e.target.value)} />
-          </div>
-        </div>
+        )}
 
-        <div>
-          <FieldLabel htmlFor="cap-content" hint={isDecision ? 'optional' : undefined}>
-            {isDecision ? 'Context' : 'Content'}
-          </FieldLabel>
-          <textarea
-            id="cap-content"
-            className="field min-h-[112px] resize-y leading-relaxed"
-            value={draft.content}
-            onChange={(e) => set('content', e.target.value)}
-            placeholder={
-              isDecision ? 'What is the situation, and what is at stake?' : 'What happened, what you noticed. Plain facts first; interpretation can come later.'
-            }
-          />
-        </div>
-
-        {isDecision && <DecisionFields draft={draft} set={set} editing={Boolean(editing)} />}
-
-        <div>
-          <FieldLabel hint="optional">Life domains</FieldLabel>
-          <div className="flex flex-wrap gap-1.5">
-            {DOMAINS.map((d) => {
-              const on = draft.domains.includes(d.key);
-              return (
-                <ToggleChip
-                  key={d.key}
-                  on={on}
-                  onClick={() => set('domains', on ? draft.domains.filter((x) => x !== d.key) : [...draft.domains, d.key])}
-                  className="py-1"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: d.color, opacity: on ? 1 : 0.55 }} aria-hidden />
-                  {d.label}
-                </ToggleChip>
-              );
-            })}
-          </div>
-        </div>
-
-        <div>
-          <FieldLabel htmlFor="cap-tags" hint="comma separated">
-            Tags
-          </FieldLabel>
-          <input id="cap-tags" className="field" value={draft.tags} onChange={(e) => set('tags', e.target.value)} placeholder="focus, client, night-ferry" />
-        </div>
-
-        {!isDecision && (
-          <div className="rounded-[8px] border border-line">
-            <button
-              type="button"
-              className="flex w-full items-center justify-between px-3 py-2"
-              onClick={() => setShowContext(!showContext)}
-              aria-expanded={showContext}
-            >
-              <span className="label">Context · optional</span>
-              <ChevronDown size={14} className={cn('text-ink-3 transition-transform', !showContext && '-rotate-90')} aria-hidden />
-            </button>
-            {showContext && (
-              <div className="space-y-3 border-t border-line px-3 pt-3 pb-3.5">
-                <ScaleRow label="Energy" values={[1, 2, 3, 4, 5]} labels={ENERGY_LABELS} value={draft.energy} onChange={(v) => set('energy', v)} />
-                <ScaleRow label="Mood" values={[-2, -1, 0, 1, 2]} labels={MOOD_LABELS} value={draft.mood} onChange={(v) => set('mood', v)} />
+        <div className="rounded-[8px] border border-line">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between gap-3 px-3 py-2"
+            onClick={() => setDetails(!details)}
+            aria-expanded={details}
+          >
+            <span className="flex min-w-0 items-baseline gap-2">
+              <span className="text-[12.5px] text-ink-2">More details</span>
+              <span className="truncate text-[11.5px] text-ink-3">{details ? 'optional' : summary}</span>
+            </span>
+            <ChevronDown size={14} className={cn('shrink-0 text-ink-3 transition-transform', !details && '-rotate-90')} aria-hidden />
+          </button>
+          {details && (
+            <div className="space-y-4 border-t border-line px-3 pt-3 pb-3.5">
+              {!isDecision && (
                 <div>
-                  <div className="label mb-1.5">Felt</div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {EMOTION_OPTIONS.map((e) => {
-                      const on = draft.emotions.includes(e);
+                  <FieldLabel hint={kindMeta.hint}>Type</FieldLabel>
+                  <div role="radiogroup" aria-label="Type" className="flex flex-wrap gap-1.5">
+                    {noteKinds.map((k) => {
+                      const Icon = CAPTURE_ICONS[k.key];
+                      const active = draft.kind === k.key;
                       return (
-                        <ToggleChip key={e} on={on} onClick={() => set('emotions', on ? draft.emotions.filter((x) => x !== e) : [...draft.emotions, e])}>
-                          {e}
-                        </ToggleChip>
+                        <button
+                          key={k.key}
+                          type="button"
+                          role="radio"
+                          aria-checked={active}
+                          onClick={() => set('kind', k.key)}
+                          className={cn(
+                            'flex items-center gap-1.5 rounded-[6px] border px-2 py-1 text-[12px] transition-colors',
+                            active ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-3 hover:border-line-strong hover:text-ink-2',
+                          )}
+                        >
+                          <Icon size={12} aria-hidden />
+                          {k.label}
+                        </button>
                       );
                     })}
                   </div>
                 </div>
-                <div>
-                  <FieldLabel htmlFor="cap-setting">Setting</FieldLabel>
-                  <input
-                    id="cap-setting"
-                    className="field"
-                    value={draft.setting}
-                    onChange={(e) => set('setting', e.target.value)}
-                    placeholder="Where, when, with whom"
-                  />
+              )}
+
+              <div className={cn('grid gap-3', !isDecision && 'sm:grid-cols-[1fr_150px]')}>
+                {!isDecision && (
+                  <div>
+                    <FieldLabel htmlFor="cap-title" hint="optional: the first line is used">
+                      Title
+                    </FieldLabel>
+                    <input
+                      id="cap-title"
+                      className="field"
+                      value={draft.title}
+                      onChange={(e) => set('title', e.target.value)}
+                      placeholder={firstLine(draft.content) || 'A short, specific title'}
+                    />
+                  </div>
+                )}
+                <div className={isDecision ? 'max-w-[180px]' : undefined}>
+                  <FieldLabel htmlFor="cap-date">Date</FieldLabel>
+                  <input id="cap-date" type="date" className="field num" value={draft.date} onChange={(e) => set('date', e.target.value)} />
                 </div>
               </div>
-            )}
-          </div>
-        )}
 
-        {!editing && target && (
-          <label className="flex items-center gap-2 text-[12.5px] text-ink-2">
-            <input type="checkbox" checked={draft.addToMap} onChange={(e) => set('addToMap', e.target.checked)} className="accent-[var(--color-accent)]" />
-            Also add to {nodeTargetLabel(target)}
-          </label>
-        )}
+              <div>
+                <FieldLabel hint="the analysis suggests these too">Areas of life</FieldLabel>
+                <div className="flex flex-wrap gap-1.5">
+                  {DOMAINS.map((d) => {
+                    const on = draft.domains.includes(d.key);
+                    return (
+                      <ToggleChip
+                        key={d.key}
+                        on={on}
+                        onClick={() => set('domains', on ? draft.domains.filter((x) => x !== d.key) : [...draft.domains, d.key])}
+                        className="py-1"
+                      >
+                        <span className="h-1.5 w-1.5 rounded-full" style={{ background: d.color, opacity: on ? 1 : 0.55 }} aria-hidden />
+                        {d.label}
+                      </ToggleChip>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <FieldLabel htmlFor="cap-tags" hint="comma separated">
+                  Tags
+                </FieldLabel>
+                <input
+                  id="cap-tags"
+                  className="field"
+                  value={draft.tags}
+                  onChange={(e) => set('tags', e.target.value)}
+                  placeholder="focus, client, night-ferry"
+                />
+              </div>
+
+              {!isDecision && (
+                <div className="rounded-[8px] border border-line">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between px-3 py-2"
+                    onClick={() => setShowContext(!showContext)}
+                    aria-expanded={showContext}
+                  >
+                    <span className="text-[12.5px] text-ink-2">How you felt</span>
+                    <ChevronDown size={14} className={cn('text-ink-3 transition-transform', !showContext && '-rotate-90')} aria-hidden />
+                  </button>
+                  {showContext && (
+                    <div className="space-y-3 border-t border-line px-3 pt-3 pb-3.5">
+                      <ScaleRow label="Energy" values={[1, 2, 3, 4, 5]} labels={ENERGY_LABELS} value={draft.energy} onChange={(v) => set('energy', v)} />
+                      <ScaleRow label="Mood" values={[-2, -1, 0, 1, 2]} labels={MOOD_LABELS} value={draft.mood} onChange={(v) => set('mood', v)} />
+                      <div>
+                        <div className="label mb-1.5">Felt</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {EMOTION_OPTIONS.map((e) => {
+                            const on = draft.emotions.includes(e);
+                            return (
+                              <ToggleChip key={e} on={on} onClick={() => set('emotions', on ? draft.emotions.filter((x) => x !== e) : [...draft.emotions, e])}>
+                                {e}
+                              </ToggleChip>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      <div>
+                        <FieldLabel htmlFor="cap-setting">Setting</FieldLabel>
+                        <input
+                          id="cap-setting"
+                          className="field"
+                          value={draft.setting}
+                          onChange={(e) => set('setting', e.target.value)}
+                          placeholder="Where, when, with whom"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {!editing && target && (
+                <label className="flex items-center gap-2 text-[12.5px] text-ink-2">
+                  <input
+                    type="checkbox"
+                    checked={draft.addToMap}
+                    onChange={(e) => set('addToMap', e.target.checked)}
+                    className="accent-[var(--color-accent)]"
+                  />
+                  Also add to {nodeTargetLabel(target)}
+                </label>
+              )}
+            </div>
+          )}
+        </div>
         <button type="submit" hidden />
       </form>
     </Modal>
   );
+}
+
+/** The first sentence or line of a note, short enough to be its title. */
+function firstLine(text: string): string {
+  const line =
+    text
+      .trim()
+      .split(/\n|(?<=[.!?])\s/)[0]
+      ?.trim() ?? '';
+  return line.length > 72 ? `${line.slice(0, 69).trimEnd()}…` : line;
 }
 
 function ScaleRow({

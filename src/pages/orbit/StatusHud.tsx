@@ -21,6 +21,7 @@ import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { IconButton } from '../../components/ui/Button';
 import { Progress } from '../../components/ui/primitives';
+import { NextStepCard } from '../../components/shell/NextStepCard';
 
 function Block({ title, href, children, className }: { title: string; href?: string; children: ReactNode; className?: string }) {
   return (
@@ -68,6 +69,9 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
         {onClose && <IconButton icon={PanelLeftClose} label="Hide status panel" size="sm" onClick={onClose} />}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="px-3 pt-3 pb-1">
+          <NextStepCard />
+        </div>
         <Block title="Where I am" href={hrefFor('paths')} className="pt-3">
           {data.currentState.position ? (
             <>
@@ -200,7 +204,7 @@ function ModelChain() {
   ];
   return (
     <section className="border-t border-line px-4 pt-3 pb-4">
-      <h2 className="label mb-2">Model</h2>
+      <h2 className="label mb-2">How the atlas learns</h2>
       <ol className="grid grid-cols-3 gap-px overflow-hidden rounded-[6px] border border-line bg-line">
         {steps.map((s) => (
           <li key={s.label} className="bg-surface">
@@ -212,7 +216,7 @@ function ModelChain() {
         ))}
       </ol>
       <p className="mt-2 text-[11px] leading-snug text-ink-3">
-        Records become evidence, evidence forms patterns, patterns inform paths, experiments test them and update the model.
+        Your notes become evidence, evidence builds patterns, patterns shape your options, and experiments test them.
       </p>
     </section>
   );

@@ -1,5 +1,5 @@
 import type { FitViewOptions } from '@xyflow/react';
-import { Brain, Eye, EyeOff, Plus, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
+import { Brain, CircleHelp, Eye, EyeOff, Plus, RotateCcw, SlidersHorizontal, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AddNodeModal } from '../../components/graph/AddNodeModal';
 import { GraphCanvas } from '../../components/graph/GraphCanvas';
@@ -8,6 +8,7 @@ import { RelationSwatch } from '../../components/graph/Legend';
 import { CATEGORY_ICONS, PatternIcon } from '../../components/icons';
 import { refForNode } from '../../components/inspector/parts';
 import { Button, IconButton } from '../../components/ui/Button';
+import { HelpCard, PAGE_HELP, useGraphHelp } from '../../components/ui/HowItWorks';
 import { EmptyState, Segmented } from '../../components/ui/primitives';
 import { CATEGORIES, RELATION_META } from '../../domain/constants';
 import type { ID, MindCategory, RelationType } from '../../domain/types';
@@ -40,6 +41,7 @@ export function MindPage() {
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const help = useGraphHelp('mind');
 
   // Lay out every mind node (not just the visible ones) so filtering never reshuffles the map.
   const computed = useMemo(() => {
@@ -123,18 +125,25 @@ export function MindPage() {
               value={selectedId ? view.focusDepth : 0}
               onChange={(focusDepth) => setMindView({ focusDepth })}
               options={[
-                { value: 0, label: 'All' },
-                { value: 1, label: '1 hop' },
-                { value: 2, label: '2 hops' },
+                { value: 0, label: 'All', title: 'Show everything' },
+                { value: 1, label: 'Close', title: 'Only what is directly linked to the selection' },
+                { value: 2, label: 'Wider', title: 'Also what is linked to those' },
               ]}
             />
           </div>
           <ToolGroup>
             <IconButton icon={RotateCcw} size="sm" label="Reset layout" onClick={() => resetLayout('mind')} />
             <IconButton icon={Plus} size="sm" label="Add to Mind" onClick={() => setAdding(true)} />
+            <IconButton icon={CircleHelp} size="sm" label="How this page works" active={help.shown} onClick={help.toggle} />
           </ToolGroup>
           {!isMobile && <ZoomControls padding={padding} />}
         </div>
+
+        {help.shown && (
+          <div className="absolute top-14 z-20 w-[min(360px,calc(100%-24px))] animate-rise" style={{ right: occluded + 12 }}>
+            <HelpCard floating items={PAGE_HELP.mind} onDone={help.close} />
+          </div>
+        )}
 
         {total === 0 && (
           <div className="absolute inset-0 z-10 flex items-center justify-center p-6">

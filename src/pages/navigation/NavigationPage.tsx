@@ -21,7 +21,8 @@ export function NavigationPage() {
     <div className="mx-auto max-w-[1280px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
         section="navigation"
-        description="From the direction you chose to the next concrete action. Progress is shown as position on a route, not as a to-do count."
+        help="navigation"
+        description="Your chosen direction, broken down into a goal, this month's targets and this week's steps."
         actions={
           <a href={hrefFor('paths')} className="text-[12.5px] text-ink-2 hover:text-ink">
             Change direction →

@@ -1,4 +1,4 @@
-import { Crosshair, FoldVertical, PanelLeftOpen, Plus, RotateCcw, UnfoldVertical } from 'lucide-react';
+import { CircleHelp, Crosshair, FoldVertical, PanelLeftOpen, Plus, RotateCcw, UnfoldVertical } from 'lucide-react';
 import type { FitViewOptions } from '@xyflow/react';
 import { useCallback, useMemo, useState } from 'react';
 import { AddNodeModal } from '../../components/graph/AddNodeModal';
@@ -7,6 +7,7 @@ import { GraphSearch, ToolGroup, ZoomControls } from '../../components/graph/Gra
 import { Legend } from '../../components/graph/Legend';
 import { refForNode } from '../../components/inspector/parts';
 import { Button, IconButton } from '../../components/ui/Button';
+import { HelpCard, PAGE_HELP, useGraphHelp } from '../../components/ui/HowItWorks';
 import { DOMAIN_KEYS, hubKey, isHubId, ORBIT_DESKTOP, ORBIT_PORTRAIT } from '../../domain/constants';
 import type { DomainKey, ID, RelationType } from '../../domain/types';
 import { buildOrbit } from '../../graph/build';
@@ -37,6 +38,7 @@ export function OrbitPage() {
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
   const [mobileHud, setMobileHud] = useState(false);
+  const help = useGraphHelp('orbit');
 
   const selectedId = selectionFor(inspector, 'orbit', data);
   // On phones the map starts simplified: hubs only, a hub's satellites appear when it is selected.
@@ -152,9 +154,16 @@ export function OrbitPage() {
             )}
             <IconButton icon={RotateCcw} size="sm" label="Reset layout" onClick={() => resetLayout('orbit')} />
             <IconButton icon={Plus} size="sm" label="Add to Orbit" onClick={() => setAdding(true)} />
+            <IconButton icon={CircleHelp} size="sm" label="How this page works" active={help.shown} onClick={help.toggle} />
           </ToolGroup>
           {!isMobile && <ZoomControls padding={padding} />}
         </div>
+
+        {help.shown && (
+          <div className="absolute top-14 z-20 w-[min(360px,calc(100%-24px))] animate-rise" style={{ right: occluded + 12 }}>
+            <HelpCard floating items={PAGE_HELP.orbit} onDone={help.close} />
+          </div>
+        )}
 
         {/* Status panel (dashboard) */}
         {hudVisible ? (

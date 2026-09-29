@@ -308,11 +308,11 @@ export const SKILL_STATUS_LABEL: Record<SkillStatus, string> = {
 
 /** The five questions the interface keeps answering, one per primary section. */
 export const SECTIONS = [
-  { key: 'orbit', num: '01', label: 'Orbit', question: 'Where am I?', blurb: 'Life domains and how they connect.' },
-  { key: 'mind', num: '02', label: 'Mind', question: 'How am I thinking?', blurb: 'Beliefs, assumptions and the links between them.' },
-  { key: 'patterns', num: '03', label: 'Patterns', question: 'What patterns are emerging?', blurb: 'Recurring behaviour, with the evidence behind it.' },
-  { key: 'paths', num: '04', label: 'Paths', question: 'What options exist?', blurb: 'Strategic scenarios, compared without ranking.' },
-  { key: 'navigation', num: '05', label: 'Navigation', question: 'What should I test next?', blurb: 'From a chosen direction to the next action.' },
+  { key: 'orbit', num: '01', label: 'Orbit', question: 'Where am I?', blurb: 'Your areas of life at a glance.' },
+  { key: 'mind', num: '02', label: 'Mind', question: 'How am I thinking?', blurb: 'Your beliefs, fears and questions, and how they connect.' },
+  { key: 'patterns', num: '03', label: 'Patterns', question: 'What keeps happening?', blurb: 'Things that repeat in your notes, with the evidence.' },
+  { key: 'paths', num: '04', label: 'Paths', question: 'What are my options?', blurb: 'Possible directions, compared side by side.' },
+  { key: 'navigation', num: '05', label: 'Navigation', question: 'What do I do next?', blurb: 'Your chosen direction as concrete steps.' },
 ] as const;
 
 export type SectionKey = (typeof SECTIONS)[number]['key'];

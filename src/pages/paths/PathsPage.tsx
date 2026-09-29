@@ -43,7 +43,8 @@ export function PathsPage() {
     <div className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
         section="paths"
-        description="Scenarios described side by side, in the same terms. They are listed alphabetically and never ranked: the comparison is yours to make."
+        help="paths"
+        description="Your options side by side, described the same way. They are never ranked: the choice is yours."
         actions={
           <Button icon={Plus} onClick={() => setEditing(addPath())}>
             New path
