@@ -70,7 +70,7 @@ export type SpaceMode = 'auto' | 'on' | 'off';
 /** Requests older than this are ignored, so revisiting a graph never jumps to an old target. */
 export const FOCUS_REQUEST_TTL = 2500;
 
-interface UIState {
+export interface UIState {
   inspector: EntityRef[];
   /**
    * The thing being looked at, whichever lens is open: an element or an area.
