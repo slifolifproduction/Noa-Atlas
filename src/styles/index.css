@@ -198,7 +198,7 @@
     opacity 220ms var(--ease-out-quint),
     filter 700ms ease-out;
 }
-/* A node firing: a signal just arrived (or the scanner passed). Set by the space engine. */
+/* A node firing: a signal just arrived. Set by the space engine. */
 .react-flow__node[data-firing] {
   filter: brightness(1.45) drop-shadow(0 0 7px rgb(125 211 232 / 0.4));
   transition-duration: 220ms, 90ms;
@@ -438,24 +438,15 @@
   animation: atlas-spin 48s linear infinite;
 }
 
-/* The Orbit scanner: a thin leading edge with a faint trail. Hidden unless the space is live. */
-.scan-plane {
-  display: none;
+/* Orbits: each ring's dashes flow slowly around it while the space is live in 3D. */
+@keyframes atlas-orbit {
+  to {
+    transform: rotate(360deg);
+  }
 }
-.atlas-scanning .scan-plane {
-  display: block;
-}
-.scan-rotor {
-  background: conic-gradient(
-    from 0deg,
-    transparent 0deg 300deg,
-    rgb(125 211 232 / 0.022) 342deg,
-    rgb(125 211 232 / 0.05) 358deg,
-    rgb(125 211 232 / 0.24) 359.7deg,
-    transparent 360deg
-  );
-  -webkit-mask-image: radial-gradient(circle, transparent 7%, #000 22%, #000 93%, transparent 100%);
-  mask-image: radial-gradient(circle, transparent 7%, #000 22%, #000 93%, transparent 100%);
+.atlas-3d .ring-orbit {
+  transform-origin: 50% 50%;
+  animation: atlas-orbit 300s linear infinite;
   will-change: transform;
 }
 

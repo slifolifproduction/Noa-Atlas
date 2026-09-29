@@ -9,7 +9,7 @@ import { cn } from '../../../lib/cn';
 export function NodeRipple({ id, color, shape }: { id: string; color: string; shape: 'circle' | 'card' }) {
   const motion = useMotion();
   const living = motion.living && !motion.reduced;
-  const wave = useWave(living, (w) => w.kind !== 'scan' && (w.origin === id || w.reached.includes(id)));
+  const wave = useWave(living, (w) => w.origin === id || w.reached.includes(id));
   if (!living || !wave) return null;
   const origin = wave.origin === id;
   return (

@@ -45,11 +45,8 @@ export interface Wave {
   at: number;
   /** 1 for the origin, lower for nodes reached by propagation. */
   strength: number;
-  /**
-   * cascade: one step of a multi-hop signal travelling through the network;
-   * scan: the Orbit scanner passing over a node (a faint ping, no pulses).
-   */
-  kind?: 'cascade' | 'scan';
+  /** cascade: one step of a multi-hop signal travelling through the network. */
+  kind?: 'cascade';
   hop?: number;
 }
 

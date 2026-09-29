@@ -7,7 +7,8 @@
  * degrees, panning moves the pivot, zooming changes the focal length.
  *
  * On top of that the network behaves like a running system:
- * - bodies wander organically; satellites swing on their hubs;
+ * - bodies drift idly; each hub's satellites turn slowly back and forth
+ *   around it together, like a small planetary system;
  * - bodies are springs coupled along their links, so a disturbance in one
  *   node travels to its neighbours and dies away;
  * - a signal cascade (see GraphCanvas) jolts each node as it arrives, and the
@@ -16,7 +17,6 @@
  *   the rest makes room) and brings it forward;
  * - attention accumulates: nodes you hover and select come forward over time,
  *   and signals start from them more often;
- * - Orbit has a scanner sweeping the rings that pings what it passes;
  * - on first load, nodes arrive from deep space in reveal order.
  *
  * Each frame the engine projects every body through the camera and writes the
@@ -37,8 +37,8 @@ interface FlowStore {
   getState(): FlowState;
 }
 
-/** Depth of each Orbit ring: self nearest, conditions farthest. Index 4 is the scanner plane. */
-const RING_DEPTH = [85, 40, -40, -115, 0];
+/** Depth of each Orbit ring: self nearest, conditions farthest. */
+const RING_DEPTH = [85, 40, -40, -115];
 /** Focal length at the reference zoom (graph units). */
 const FOCAL = 1500;
 const REF_ZOOM = 0.7;
@@ -46,8 +46,6 @@ const MAX_YAW = (11 * Math.PI) / 180;
 const MAX_PITCH = (8 * Math.PI) / 180;
 /** Where nodes start on first load: far behind the scene. */
 const BOOT_DEPTH = 480;
-/** One turn of the Orbit scanner. */
-export const SCAN_MS = 16000;
 /** Above this many nodes the graph stays flat (the camera still moves the stars). */
 export const SPACE_MAX_NODES = 160;
 
@@ -103,8 +101,10 @@ interface Body {
   /** Boot: held far away until this time. */
   release: number;
   firingUntil: number;
-  /** Scanner angle (degrees clockwise from north) of this node, for pings. */
-  scanAngle: number;
+  /** Hubs: how their satellite system turns (amplitude in radians, period in seconds, phase). */
+  spinAmp: number;
+  spinPeriod: number;
+  spinPhase: number;
 }
 
 interface EdgeEls {
@@ -165,7 +165,6 @@ export class SpaceEngine {
   private tilt: { x: number; y: number } | null = null;
   private rect = { left: 0, top: 0, width: 0, height: 0 };
   private rectSize = '';
-  private scan: { rotor: HTMLElement; anim: Animation; sx: number; sy: number; angle: number } | null = null;
   private offWave: (() => void) | null = null;
   /** Frame-time watchdog for automatic mode: sustained slow frames switch depth off. */
   private governor = { on: false, since: 0, sum: 0, n: 0, strikes: 0 };
@@ -200,7 +199,6 @@ export class SpaceEngine {
     if (wasDepth && !this.depthOn) this.flatten();
     if (opts.camera && !this.cameraOn) this.start();
     else if (!opts.camera && this.cameraOn) this.stop();
-    this.syncScan();
     this.lastFull = 0;
   }
 
@@ -217,25 +215,28 @@ export class SpaceEngine {
       const h3 = hash01(`${n.id}:w`);
       let kind: Kind = 'mind';
       let base = 0;
-      let amp = 18;
-      let wander = 7;
+      let amp = 30;
+      let wander = 11;
+      let spin = 0;
       let hub: ID | undefined;
       if (n.type === 'hub') {
         kind = 'hub';
         base = hubDepth(n.data.key);
-        amp = 10;
-        wander = 3.5;
+        amp = 22;
+        wander = 9;
+        // Identity's satellites sit either side of its label, so they turn less.
+        spin = n.data.center ? 12 : 20 + h3 * 10;
       } else if (n.type === 'item') {
         // Satellites float around their hub's depth and drift through it over time.
         kind = 'item';
         hub = `domain:${n.data.domain}`;
         base = hubDepth(n.data.domain) + (h2 - 0.5) * 50 * q;
-        amp = 30;
-        wander = 6;
+        amp = 38;
+        wander = 4;
       } else if (n.type === 'pattern') {
         kind = 'pattern';
         base = 60 * q;
-        wander = 5;
+        wander = 8;
       } else {
         base = (h2 - 0.55) * 110 * q;
       }
@@ -270,7 +271,9 @@ export class SpaceEngine {
         att: prev?.att ?? 0,
         release: boot ? now + reveal : (prev?.release ?? 0),
         firingUntil: prev?.firingUntil ?? 0,
-        scanAngle: prev?.scanAngle ?? NaN,
+        spinAmp: (spin * Math.PI) / 180,
+        spinPeriod: 26 + h * 18,
+        spinPhase: h2 * TAU,
       });
     }
     for (const id of [...this.bodies.keys()]) if (!seen.has(id)) this.bodies.delete(id);
@@ -347,25 +350,6 @@ export class SpaceEngine {
     this.lastFull = 0;
   }
 
-  /** The Orbit scanner's rotating wedge, and the rings' stretch so pings match the ellipses. */
-  registerScan(rotor: HTMLElement | null, stretch: { x: number; y: number }) {
-    this.scan?.anim.cancel();
-    this.scan = null;
-    if (!rotor || typeof rotor.animate !== 'function') return;
-    const anim = rotor.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], { duration: SCAN_MS, iterations: Infinity });
-    this.scan = { rotor, anim, sx: stretch.x, sy: stretch.y, angle: NaN };
-    this.syncScan();
-  }
-
-  /** The scanner turns only while the space is live in depth; flat mode is for devices that need the headroom. */
-  private syncScan() {
-    const a = this.scan?.anim;
-    if (!a) return;
-    if (this.cameraOn && this.depthOn) {
-      if (a.playState !== 'running') a.play();
-    } else if (a.playState === 'running') a.pause();
-  }
-
   /** Current projected offset of a node (graph units), for overlays that track it. */
   offset(id: ID): Projection {
     return (this.depthOn && this.proj.get(id)) || { dx: 0, dy: 0, s: 1 };
@@ -389,7 +373,6 @@ export class SpaceEngine {
       typeof (globalThis.DeviceOrientationEvent as unknown as { requestPermission?: unknown } | undefined)?.requestPermission === 'function';
     if (typeof DeviceOrientationEvent !== 'undefined' && !needsPermission) window.addEventListener('deviceorientation', this.onTilt, { passive: true });
     this.offWave = waveBus.on(this.onWave);
-    this.syncScan();
     this.raf = requestAnimationFrame(this.frame);
   }
 
@@ -403,7 +386,6 @@ export class SpaceEngine {
     window.removeEventListener('deviceorientation', this.onTilt);
     this.offWave?.();
     this.offWave = null;
-    this.syncScan();
     this.camera.lx = this.camera.ly = 0;
     this.flatten();
   }
@@ -428,10 +410,6 @@ export class SpaceEngine {
     if (!this.depthOn) return;
     const now = performance.now();
     const s = w.strength;
-    if (w.kind === 'scan') {
-      this.kicks.push({ id: w.origin, at: now, vx: 0, vy: 0, vz: 70, fire: 500 });
-      return;
-    }
     this.kicks.push({ id: w.origin, at: now, vx: 0, vy: 0, vz: 90 * s, fire: 700 });
     const lookup = this.store.getState().nodeLookup;
     const o = lookup.get(w.origin)?.internals.positionAbsolute;
@@ -491,8 +469,6 @@ export class SpaceEngine {
     this.camera.lx += (gx - this.camera.lx) * ease;
     this.camera.ly += (gy - this.camera.ly) * ease;
 
-    this.scanPings(st);
-
     if (!this.depthOn) {
       for (const fn of this.listeners) fn();
       return;
@@ -500,9 +476,9 @@ export class SpaceEngine {
 
     const cameraMoved = tx !== this.prevTransform[0] || ty !== this.prevTransform[1] || k !== this.prevTransform[2];
     const pointerRecent = now - this.pointer.moved < 400;
-    // Full rate while you interact or something settles (pan, zoom, pointer, springs, signals).
-    // The idle drift alone is slow enough that ~15 fps is indistinguishable, and far cheaper.
-    if (!cameraMoved && !lookMoving && !pointerRecent && !this.active && !this.kicks.length && now - this.lastFull < 64) return;
+    // Full rate while you interact or something settles (pan, zoom, pointer, springs, signals);
+    // ~30 fps for the idle motion alone, which is slow and smooth at that rate.
+    if (!cameraMoved && !lookMoving && !pointerRecent && !this.active && !this.kicks.length && now - this.lastFull < 32) return;
     this.lastFull = now;
     this.prevTransform = [tx, ty, k];
     const pdt = Math.min(0.07, (now - this.lastProject) / 1000);
@@ -525,32 +501,7 @@ export class SpaceEngine {
       spaceHealth.degraded = true;
       this.depthOn = false;
       this.flatten();
-      this.syncScan();
       this.onDegrade?.();
-    }
-  }
-
-  /** The scanner pings hubs (a faint ripple) and satellites (a jolt) as its edge passes them. */
-  private scanPings(st: FlowState) {
-    const sc = this.scan;
-    if (!sc || sc.anim.playState !== 'running') return;
-    const time = Number(sc.anim.currentTime ?? 0);
-    const angle = ((time % SCAN_MS) / SCAN_MS) * 360;
-    const prev = sc.angle;
-    sc.angle = angle;
-    if (Number.isNaN(prev) || prev === angle) return;
-    const crossed = (a: number) => (prev < angle ? a > prev && a <= angle : a > prev || a <= angle);
-    for (const [id, b] of this.bodies) {
-      if (b.kind !== 'hub' && b.kind !== 'item') continue;
-      const n = st.nodeLookup.get(id);
-      if (!n) continue;
-      const x = n.internals.positionAbsolute.x + (n.measured.width ?? 0) / 2;
-      const y = n.internals.positionAbsolute.y + (n.measured.height ?? 0) / 2;
-      if (Math.hypot(x, y) < 60) continue; // the centre is where the scanner turns
-      b.scanAngle = ((Math.atan2(x / sc.sx, -y / sc.sy) * 180) / Math.PI + 360) % 360;
-      if (!crossed(b.scanAngle)) continue;
-      if (b.kind === 'hub') waveBus.emit({ origin: id, reached: [], at: Date.now(), strength: 0.35, kind: 'scan' });
-      else this.kicks.push({ id, at: performance.now(), vx: 0, vy: 0, vz: 45, fire: 380 });
     }
   }
 
@@ -683,14 +634,16 @@ export class SpaceEngine {
       // Organic wander: layered slow waves, never repeating quite the same path.
       let ox = b.wander * (0.6 * Math.sin(b.f1 * t + b.p1) + 0.4 * Math.sin(b.f2 * t + b.p2));
       let oy = b.wander * (0.6 * Math.cos(b.f3 * t + b.p3) + 0.4 * Math.sin(b.f1 * 0.7 * t + b.p2));
-      // Satellites swing along their arc and breathe in and out from their hub.
+      // Satellites turn with their hub's system (all together, like planets on one plane), with a
+      // little wobble of their own, and breathe in and out from the hub.
       if (b.hub) {
         const c = centre(b.hub);
-        if (c) {
+        const hub = this.bodies.get(b.hub);
+        if (c && hub) {
           const rx = hx - c.x;
           const ry = hy - c.y;
-          const swing = 0.075 * q * Math.sin(ang * 0.8);
-          const breathe = 1 + 0.035 * q * Math.sin(ang * 1.1 + b.p3);
+          const swing = q * (hub.spinAmp * Math.sin((t * TAU) / hub.spinPeriod + hub.spinPhase) + 0.05 * Math.sin(ang * 0.8));
+          const breathe = 1 + 0.06 * q * Math.sin(ang * 1.1 + b.p3);
           const cs = Math.cos(swing);
           const sn = Math.sin(swing);
           ox += (rx * cs - ry * sn) * breathe - rx;
@@ -749,7 +702,7 @@ export class SpaceEngine {
     }
     for (const e of this.edgeEls.values()) this.applyEdge(e);
 
-    // Rings (and the scanner plane): exact planes at their depth.
+    // Rings: exact planes at their depth.
     const rings = lookup.get('__rings');
     if (rings && this.ringEls.size) {
       const o = rings.internals.positionAbsolute;
@@ -887,11 +840,4 @@ export function useSpaceEdge(id: string, source: ID, target: ID) {
 export function useSpaceRing(index: number) {
   const space = useSpace();
   return useCallback((el: HTMLElement | SVGElement | null) => space?.registerRing(index, el), [space, index]);
-}
-
-/** Ref for the Orbit scanner's rotating wedge. */
-export function useSpaceScan(stretch: { x: number; y: number }) {
-  const space = useSpace();
-  const { x, y } = stretch;
-  return useCallback((el: HTMLElement | null) => space?.registerScan(el, { x, y }), [space, x, y]);
 }

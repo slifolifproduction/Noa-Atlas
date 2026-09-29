@@ -13,8 +13,7 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
   const motion = useMotion();
   const living = motion.living && !motion.reduced;
   const wave = useWave(living, (w) => w.origin === id || w.reached.includes(id));
-  // A scanner pass is a faint ping; a signal leaving or arriving is a clear ring.
-  const strength = wave ? (wave.kind === 'scan' ? 0.4 : wave.origin === id ? 1 : wave.strength) : 0;
+  const strength = wave ? (wave.origin === id ? 1 : wave.strength) : 0;
   const Icon = DOMAIN_ICONS[data.key];
   const size = data.center ? 108 : 78;
   const r = 46;

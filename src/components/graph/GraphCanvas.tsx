@@ -598,14 +598,13 @@ function Canvas({
             living && 'atlas-living',
             living && nodes.length > SPACE_MAX_NODES && 'atlas-dense',
             depthOn && 'atlas-3d',
-            depthOn && 'atlas-scanning',
             revealing && 'atlas-reveal',
           )}
           onPointerMove={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
           onPointerUp={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
         >
           <EdgeMarkers />
-          {living && <SpaceField reduced={reduced} camera={space.camera} />}
+          {living && <SpaceField reduced={reduced} camera={space.camera} lite={!depthOn} />}
           <ReactFlow<AtlasFlowNode, SemanticEdge>
             nodes={nodes}
             edges={edges}
