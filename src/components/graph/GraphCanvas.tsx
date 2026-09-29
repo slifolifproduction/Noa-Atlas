@@ -49,7 +49,7 @@ const edgeTypes: EdgeTypes = { semantic: SemanticEdgeView };
 const MINIMAP_COLORS: Record<string, string> = { hub: '#5b6572', item: '#3a424c', element: '#48515c' };
 
 /** Structure, not influence: carries no pulses and does not count as a connection. */
-const isStructural = (e: SemanticEdge) => e.data?.family === 'link' && e.data.linkType === 'part_of';
+const isStructural = (e: SemanticEdge) => e.data?.family === 'member' || (e.data?.family === 'link' && e.data.linkType === 'part_of');
 
 export interface GraphCanvasProps {
   layer: GraphLayer;

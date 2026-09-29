@@ -6,6 +6,7 @@ import { displayNode } from '../../domain/selectors';
 import type { LinkType } from '../../domain/types';
 import type { SemanticEdge } from '../../graph/types';
 import { t, tn } from '../../i18n';
+import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { Button } from '../ui/Button';
@@ -31,6 +32,55 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
   if (!e?.data) return null;
   const box = 'absolute z-20 w-[312px] animate-rise rounded-[2px] border border-line-strong bg-overlay p-3 shadow-2xl';
   const style = { left: Math.max(12, x + 10), top: Math.max(12, y - 10) };
+
+  if (e.data.family === 'area') {
+    const a = displayNode(data, e.source);
+    const b = displayNode(data, e.target);
+    const claims = (e.data.claimIds ?? []).map((id) => data.claims[id]).filter((c) => c !== undefined);
+    const links = (e.data.linkIds ?? []).map((id) => data.edges[id]).filter((l) => l !== undefined);
+    return (
+      <div role="dialog" aria-label={t('Between two areas')} className={cn(box, 'max-h-[70vh] overflow-y-auto')} style={style}>
+        <div className="flex items-center gap-2">
+          <span className="label">{t('Between two areas')}</span>
+          <span className="ml-auto font-mono text-[11px] tracking-wide text-ink-3 uppercase">{t('Derived')}</span>
+        </div>
+        <p className="mt-2 text-[13px] leading-snug text-ink">
+          {a?.label} → {b?.label}
+        </p>
+        <p className="mt-1 text-[11.5px] text-ink-3">
+          {t('Summed from the claims and links between their elements. It says nothing of its own: open a claim to see its evidence.')}
+        </p>
+        <ul className="mt-2 space-y-1">
+          {claims.map((c) => {
+            const status = claimStatus(data, c);
+            return (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  className="w-full rounded-[2px] px-1.5 py-1 text-left hover:bg-ink/[0.05]"
+                  onClick={() => (openEntity({ kind: 'claim', id: c.id }), onClose())}
+                >
+                  <span className="flex items-center gap-2">
+                    <EffectSwatch effect={c.effect} width={18} />
+                    <span className="font-mono text-[10.5px] tracking-wide text-ink-3 uppercase">{STATUS_META[status].label}</span>
+                  </span>
+                  <span className="block text-[12.5px] leading-snug text-ink-2">{claimSentence(data, c, status)}</span>
+                </button>
+              </li>
+            );
+          })}
+          {links.map((l) => (
+            <li key={l.id} className="flex items-center gap-2 px-1.5 py-1 text-[12.5px] text-ink-2">
+              <LinkSwatch type={l.type} width={18} />
+              <span>
+                {displayNode(data, l.source)?.label} <span className="text-ink-3">{LINK_META[l.type].verb}</span> {displayNode(data, l.target)?.label}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
 
   if (e.data.family === 'claim' && e.data.claimId) {
     const claim = data.claims[e.data.claimId];

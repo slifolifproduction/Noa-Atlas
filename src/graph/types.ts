@@ -80,8 +80,15 @@ export type RingsNodeData = {
 };
 
 export type SemanticEdgeData = {
-  /** A claim says one thing changes another; a link only organises the map. */
-  family: 'claim' | 'link';
+  /**
+   * A claim says one thing changes another; a link only organises the map.
+   * `area` lines are derived, never stored: they sum up the claims and links
+   * running between two areas of life. `member` ties an element to its area.
+   */
+  family: 'claim' | 'link' | 'area' | 'member';
+  /** Area lines: what they sum up. */
+  claimIds?: string[];
+  linkIds?: string[];
   effect?: Effect;
   status?: ClaimStatus;
   linkType?: LinkType;

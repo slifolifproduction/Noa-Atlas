@@ -53,6 +53,22 @@ interface EdgeStyle {
  * label, and every status its own dash.
  */
 function edgeStyle(data: SemanticEdgeData): EdgeStyle {
+  if (data.family === 'member') {
+    return { color: 'rgb(200 210 222 / 0.5)', width: 0.8, dash: '1 5', opacity: 0.35, straight: true };
+  }
+  if (data.family === 'area') {
+    // Thicker the more claims and links it sums up; dashed while its strongest claim is still tentative.
+    const n = (data.claimIds?.length ?? 0) + (data.linkIds?.length ?? 0);
+    const status = data.status ? STATUS_META[data.status] : undefined;
+    return {
+      color: '#d9d2c3',
+      width: 1 + Math.min(6, n) * 0.35,
+      dash: data.status ? status!.dash : '3 5',
+      opacity: 0.75,
+      marker: 'atlas-area',
+      straight: false,
+    };
+  }
   if (data.family === 'claim' && data.effect) {
     const status = STATUS_META[data.status ?? 'proposed'];
     const strong = data.status === 'tested' ? 1.7 : data.status === 'supported' ? 1.4 : 1.1;
@@ -91,7 +107,8 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const len = Math.hypot(dx, dy) || 1;
-  const bend = st.straight ? 0 : Math.min(36, len * 0.09);
+  // Area lines arc wide across the chart, so the two directions between a pair stay apart.
+  const bend = st.straight ? 0 : data.family === 'area' ? Math.min(90, len * 0.16) : Math.min(36, len * 0.09);
   const cx = (start.x + end.x) / 2 - (dy / len) * bend;
   const cy = (start.y + end.y) / 2 + (dx / len) * bend;
   const path = `M ${start.x},${start.y} Q ${cx},${cy} ${end.x},${end.y}`;
@@ -106,7 +123,7 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
         <BaseEdge
           id={id}
           path={path}
-          interactionWidth={14}
+          interactionWidth={data.family === 'member' ? 0 : 14}
           markerEnd={st.marker ? `url(#${st.marker})` : undefined}
           style={{
             stroke: st.color,
@@ -151,7 +168,8 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
  * meet. Structure (part of, aligns) carries nothing.
  */
 function flowOf(data: SemanticEdgeData): 'forward' | 'meet' | undefined {
-  if (data.family === 'claim') return 'forward';
+  if (data.family === 'claim' || data.family === 'area') return 'forward';
+  if (data.family === 'member') return undefined;
   if (data.linkType === 'conflicts') return 'meet';
   if (data.linkType === 'aims_at' || data.linkType === 'motivates') return 'forward';
   return undefined;
@@ -262,7 +280,7 @@ function EdgeFlow({
   const delay = phase * cycle;
   const color = engaged ? PULSE_COLOR : lineColor;
   const peak = engaged ? 0.95 : 0.6;
-  const r = data.family === 'link' ? 1.3 : 1.7;
+  const r = data.family === 'link' ? 1.3 : data.family === 'area' ? 2 : 1.7;
   const showWave = wave && !data.dim;
   if (!engaged && !idle && !showWave) return null;
 
@@ -319,6 +337,9 @@ export function EdgeMarkers() {
             )}
           </marker>
         ))}
+        <marker id="atlas-area" {...markerProps}>
+          <path d="M 1 1.5 L 9 5 L 1 8.5" fill="none" stroke="#d9d2c3" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        </marker>
         {LINKS.filter((l) => l.arrow).map((l) => (
           <marker key={l.key} id={`atlas-link-${l.key}`} {...markerProps}>
             <path d="M 1 1.5 L 9 5 L 1 8.5" fill="none" stroke={l.color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />

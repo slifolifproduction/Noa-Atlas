@@ -256,6 +256,9 @@ export function OrbitPage() {
                   <p className="text-[11.5px] leading-snug text-ink-3">
                     {t('Angle: the area of life. Rings, from you outward: what you hold, what you do, what surrounds you.')}
                   </p>
+                  <p className="text-[11.5px] leading-snug text-ink-3">
+                    {t('Arcs between areas: how many claims and links run from one area to another; thicker is more. Click one to see them.')}
+                  </p>
                   <p className="text-[11.5px] leading-snug text-ink-3">{t('Second ring around a mark: an outcome you want explained or changed.')}</p>
                   <p className="text-[11.5px] leading-snug text-ink-3">
                     {t('Area arc: share of notes in the last 60 days. Dashed marker: nothing written about it lately.')}

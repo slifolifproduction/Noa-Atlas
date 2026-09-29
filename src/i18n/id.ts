@@ -274,6 +274,10 @@ export const ID: Record<string, string> = {
   Name: 'Nama',
   Description: 'Deskripsi',
   'An outcome I want explained or changed': 'Hasil yang ingin kujelaskan atau kuubah',
+  'Between two areas': 'Di antara dua area',
+  Derived: 'Diturunkan',
+  'Summed from the claims and links between their elements. It says nothing of its own: open a claim to see its evidence.':
+    'Dijumlahkan dari klaim dan tautan antar-elemennya. Garis ini tidak menyatakan apa pun sendiri: buka sebuah klaim untuk melihat buktinya.',
   'How: {via}': 'Caranya: {via}',
   'Seen in {n} episode': 'Terlihat dalam {n} episode',
   'Seen in {n} episodes': 'Terlihat dalam {n} episode',
@@ -1132,6 +1136,10 @@ export const ID: Record<string, string> = {
   'Observed once': 'Teramati sekali',
   '{n}× in {span}': '{n}× dalam {span}',
   'together with': 'bersama',
+  '{n} claim': '{n} klaim',
+  '{n} claims': '{n} klaim',
+  '{n} declared link': '{n} tautan',
+  '{n} declared links': '{n} tautan',
   'This device ({zone})': 'Perangkat ini ({zone})',
   tomorrow: 'besok',
   yesterday: 'kemarin',
@@ -1314,6 +1322,8 @@ export const ID: Record<string, string> = {
   'Describe yourself': 'Gambarkan dirimu',
   'Angle: the area of life. Rings, from you outward: what you hold, what you do, what surrounds you.':
     'Sudut: area hidup. Cincin, dari kamu ke luar: apa yang kamu pegang, apa yang kamu lakukan, apa yang mengelilingimu.',
+  'Arcs between areas: how many claims and links run from one area to another; thicker is more. Click one to see them.':
+    'Busur antar-area: berapa banyak klaim dan tautan yang mengalir dari satu area ke area lain; makin tebal makin banyak. Klik untuk melihatnya.',
   'Second ring around a mark: an outcome you want explained or changed.': 'Cincin kedua di sekeliling tanda: hasil yang ingin kamu jelaskan atau ubah.',
   'Area arc: share of notes in the last 60 days. Dashed marker: nothing written about it lately.':
     'Busur area: bagian catatan dalam 60 hari terakhir. Penanda putus-putus: belum ada yang ditulis tentangnya belakangan ini.',

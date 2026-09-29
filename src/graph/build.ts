@@ -8,6 +8,7 @@ import type { CSSProperties } from 'react';
  * claims: what is said to affect what, each line styled by its derived status.
  */
 import { claimStatus } from '../domain/claims';
+import { STATUS_META } from '../domain/constants';
 import {
   AREA_MARKER_RADIUS,
   AREA_META,
@@ -28,7 +29,7 @@ import {
 import { loopById } from '../domain/loops';
 import { areaActivity, mapElements, neighborhood, neighbors, patternsForNode, recordsFor, thinSpots } from '../domain/selectors';
 import type { AreaKey, AtlasData, Claim, ClaimStatus, ID, LayerKey } from '../domain/types';
-import { t } from '../i18n';
+import { t, tn } from '../i18n';
 import type { NetworkView, XY } from '../state/uiStore';
 import { orbitLayout } from './layout';
 import type { AtlasFlowNode, LabelSide, SemanticEdge, SemanticEdgeData } from './types';
@@ -259,7 +260,61 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
       }
     }
   }
-  for (const e of edges) e.data!.flow = true;
+  // Each element belongs to its area: a faint line back to the area's marker (or to you).
+  const hubOf = (k: AreaKey) => (k === 'self' ? YOU_ID : areaHubId(k));
+  for (const n of elements) {
+    const hub = hubOf(n.area);
+    if (!visible.has(n.id) || !visible.has(hub)) continue;
+    edges.push(makeEdge(`member:${n.id}`, n.id, hub, { family: 'member', label: '', stored: false }));
+  }
+
+  // How the areas connect: every adopted claim and declared link that crosses from one area
+  // to another, summed into one line per direction. Derived from the elements, never stored.
+  const across = new Map<string, { from: AreaKey; to: AreaKey; claimIds: ID[]; linkIds: ID[]; best?: ClaimStatus }>();
+  const bucket = (from: AreaKey, to: AreaKey) => {
+    const k = `${from}>${to}`;
+    if (!across.has(k)) across.set(k, { from, to, claimIds: [], linkIds: [] });
+    return across.get(k)!;
+  };
+  for (const c of Object.values(data.claims)) {
+    if (c.state !== 'adopted') continue;
+    const status = claimStatus(data, c);
+    if (status === 'retired') continue;
+    const to = data.nodes[c.to]?.area;
+    const froms = new Set([c.from, ...c.with].map((id) => data.nodes[id]?.area).filter(Boolean) as AreaKey[]);
+    for (const from of froms) {
+      if (!to || from === to) continue;
+      const b = bucket(from, to);
+      b.claimIds.push(c.id);
+      if (!b.best || STATUS_META[status].rank > STATUS_META[b.best].rank) b.best = status;
+    }
+  }
+  for (const e of Object.values(data.edges)) {
+    if (e.type === 'part_of') continue;
+    const from = data.nodes[e.source]?.area;
+    const to = data.nodes[e.target]?.area;
+    if (from && to && from !== to) bucket(from, to).linkIds.push(e.id);
+  }
+  for (const b of across.values()) {
+    const a = hubOf(b.from);
+    const z = hubOf(b.to);
+    if (!visible.has(a) || !visible.has(z)) continue;
+    const parts = [
+      b.claimIds.length ? tn(b.claimIds.length, '{n} claim', '{n} claims') : '',
+      b.linkIds.length ? tn(b.linkIds.length, '{n} declared link', '{n} declared links') : '',
+    ].filter(Boolean);
+    edges.push(
+      makeEdge(`area:${b.from}>${b.to}`, a, z, {
+        family: 'area',
+        status: b.best,
+        claimIds: b.claimIds,
+        linkIds: b.linkIds,
+        label: parts.join(' · '),
+        stored: false,
+      }),
+    );
+  }
+  for (const e of edges) e.data!.flow = e.data!.family !== 'member';
 
   applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches));
   return { nodes, edges, visible, matches };
