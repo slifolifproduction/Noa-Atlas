@@ -37,13 +37,20 @@ interface FlowStore {
   getState(): FlowState;
 }
 
-/** Depth of each Orbit ring: self nearest, conditions farthest. */
-const RING_DEPTH = [85, 40, -40, -115];
+/**
+ * Depth of each Orbit ring: self nearest, conditions farthest. Together with the
+ * satellites (lifted toward the viewer) this gives three planes: the far rings as
+ * background, the hubs as midground, their satellites as foreground; the star
+ * field stays behind all of them.
+ */
+const RING_DEPTH = [170, 60, -90, -240];
+/** How far a hub's satellites float in front of it: the foreground plane. */
+const SATELLITE_LIFT = 90;
 /** Focal length at the reference zoom (graph units). */
 const FOCAL = 1500;
 const REF_ZOOM = 0.7;
-const MAX_YAW = (11 * Math.PI) / 180;
-const MAX_PITCH = (8 * Math.PI) / 180;
+const MAX_YAW = (17 * Math.PI) / 180;
+const MAX_PITCH = (12 * Math.PI) / 180;
 /** Where nodes start on first load: far behind the scene. */
 const BOOT_DEPTH = 480;
 /** Above this many nodes the graph stays flat (the camera still moves the stars). */
@@ -230,7 +237,7 @@ export class SpaceEngine {
         // Satellites float around their hub's depth and drift through it over time.
         kind = 'item';
         hub = `domain:${n.data.domain}`;
-        base = hubDepth(n.data.domain) + (h2 - 0.5) * 50 * q;
+        base = hubDepth(n.data.domain) + (SATELLITE_LIFT + (h2 - 0.5) * 50) * q;
         amp = 38;
         wander = 4;
       } else if (n.type === 'pattern') {
@@ -666,7 +673,7 @@ export class SpaceEngine {
       const X = Cx + x1 * persp;
       const Y = Cy + y2 * persp;
       // Farther is smaller, but only a little: text stays readable.
-      const s = clamp((persp / m0) * m0 ** 0.35, 0.72, 1.14);
+      const s = clamp((persp / m0) * m0 ** 0.6, 0.66, 1.22);
 
       // Pointer gravity: what is near the pointer leans toward it and rises.
       let tpx = 0;

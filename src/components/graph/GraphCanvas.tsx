@@ -158,6 +158,16 @@ function Canvas({
 
   // The graph as a 3D space: node depths, a turning camera, focus lift and pointer gravity.
   const space = useMemo(() => new SpaceEngine(store), [store]);
+  // Foreground: the viewfinder is the nearest plane, so it slides against the camera's turn.
+  const finder = useRef<HTMLDivElement>(null);
+  useEffect(
+    () =>
+      space.subscribe(() => {
+        const el = finder.current;
+        if (el) el.style.translate = `${(-space.camera.lx * 14).toFixed(1)}px ${(-space.camera.ly * 10).toFixed(1)}px`;
+      }),
+    [space],
+  );
   const spaceMode = useUI((s) => s.spaceMode);
   const [degraded, setDegraded] = useState(spaceHealth.degraded);
   useEffect(() => {
@@ -608,6 +618,7 @@ function Canvas({
           {/* Viewfinder: registration marks framing the free part of the view. */}
           {living && isDesktop && (
             <div
+              ref={finder}
               className="ticks pointer-events-none absolute z-[1] transition-[left,right] duration-200 [--tick-color:rgb(236_232_223/0.24)] [--tick:16px]"
               style={{ left: occludedLeft + 14, right: occludedRight + 14, top: 58, bottom: 14 }}
               aria-hidden
