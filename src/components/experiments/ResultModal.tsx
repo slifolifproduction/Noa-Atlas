@@ -84,7 +84,7 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
           {experiment.measures.length > 0 && (
             <div>
               <FieldLabel>Measures</FieldLabel>
-              <div className="divide-y divide-line rounded-[8px] border border-line">
+              <div className="divide-y divide-line rounded-[2px] border border-line">
                 {experiment.measures.map((m) => (
                   <label key={m.id} className="grid grid-cols-[1fr_auto_120px] items-center gap-3 px-3 py-2">
                     <span className="text-[12.5px] text-ink-2">{m.label}</span>
@@ -128,7 +128,7 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
         <div className="space-y-4">
           <p className="text-[13px] leading-relaxed text-ink-2">{proposal.learningNote}</p>
           {proposal.changes.length ? (
-            <ul className="divide-y divide-line rounded-[8px] border border-line">
+            <ul className="divide-y divide-line rounded-[2px] border border-line">
               {proposal.changes.map((c) => {
                 const p = data.patterns[c.patternId];
                 return (
@@ -149,7 +149,7 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
               })}
             </ul>
           ) : (
-            <p className="rounded-[8px] border border-dashed border-line-strong px-3 py-2.5 text-[12.5px] text-ink-3">No pattern confidence will change.</p>
+            <p className="rounded-[2px] border border-dashed border-line-strong px-3 py-2.5 text-[12.5px] text-ink-3">No pattern confidence will change.</p>
           )}
           {proposal.interpretationNotes.length > 0 && (
             <div>

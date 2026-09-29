@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { hrefFor } from '../../app/router';
 import { computeConfidence, pct } from '../../domain/confidence';
 import { currentAction, currentExperiment, experimentProgress, modelCounts, navigationProgress, pathCode, sortedPatterns } from '../../domain/selectors';
-import { formatDate } from '../../lib/dates';
+import { formatDate, todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
@@ -11,13 +11,16 @@ import { IconButton } from '../../components/ui/Button';
 import { Progress } from '../../components/ui/primitives';
 import { NextStepCard } from '../../components/shell/NextStepCard';
 
-function Block({ title, href, children, className }: { title: string; href?: string; children: ReactNode; className?: string }) {
+function Block({ n, title, href, children, className }: { n: number; title: string; href?: string; children: ReactNode; className?: string }) {
   return (
-    <section className={cn('border-t border-line px-4 py-3 first:border-t-0', className)}>
-      <div className="mb-1.5 flex items-center justify-between">
-        <h2 className="label">{title}</h2>
+    <section className={cn('border-t border-line px-4 pt-3.5 pb-4', className)}>
+      <div className="mb-2 flex items-center justify-between">
+        <h2 className="label">
+          <span className="mr-2 text-ink-3/60">{String(n).padStart(2, '0')}</span>
+          {title}
+        </h2>
         {href && (
-          <a href={href} className="rounded p-0.5 text-ink-3 hover:text-ink" aria-label={`Open ${title.toLowerCase()}`}>
+          <a href={href} className="rounded-[2px] p-0.5 text-ink-3 hover:text-ink" aria-label={`Open ${title.toLowerCase()}`}>
             <ArrowRight size={12} aria-hidden />
           </a>
         )}
@@ -27,7 +30,7 @@ function Block({ title, href, children, className }: { title: string; href?: str
   );
 }
 
-const rowBtn = 'group flex w-full items-baseline gap-2 rounded-[5px] px-1 py-[3px] -mx-1 text-left hover:bg-white/[0.04]';
+const rowBtn = 'group flex w-full items-baseline gap-2 rounded-[2px] px-1 py-[3px] -mx-1 text-left hover:bg-ink/[0.04]';
 
 /**
  * The overview, kept to four things: what to do now, where you are, your
@@ -49,16 +52,17 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
     <div className="flex h-full flex-col">
       <div className="flex h-10 shrink-0 items-center justify-between border-b border-line pr-1.5 pl-4">
         <span className="label text-ink-2!">Overview</span>
+        <span className="num ml-auto pr-2 text-[10px] tracking-[0.1em] text-ink-3">{formatDate(todayISO()).toUpperCase()}</span>
         {onClose && <IconButton icon={PanelLeftClose} label="Hide the overview (View menu brings it back)" size="sm" onClick={onClose} />}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-3 pt-3 pb-1">
+        <div className="px-3 pt-3 pb-3">
           <NextStepCard />
         </div>
-        <Block title="Where I am" href={hrefFor('paths')} className="pt-3">
+        <Block n={1} title="Where I am" href={hrefFor('paths')}>
           {data.currentState.position ? (
             <>
-              <p className="text-[13.5px] leading-snug text-ink">{data.currentState.position}</p>
+              <p className="display text-[20px] leading-[1.12] text-ink">{data.currentState.position}</p>
               {data.currentState.constraints.length > 0 && (
                 <p className="mt-1.5 text-[12px] leading-snug text-ink-3">{data.currentState.constraints.slice(0, 2).join(' · ')}</p>
               )}
@@ -68,19 +72,16 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
           )}
         </Block>
 
-        <Block title="My plan" href={hrefFor('navigation')}>
+        <Block n={2} title="My plan" href={hrefFor('navigation')}>
           {nav && progress ? (
             <>
-              <p className="text-[13px] leading-snug text-ink">{nav.objective.title}</p>
+              <p className="display text-[18px] leading-[1.15] text-ink">{nav.objective.title}</p>
               <p className="mt-0.5 text-[11.5px] text-ink-3">
                 {path ? `${pathCode(path.code)} · ${path.title}` : 'Direction'} · by {formatDate(nav.objective.targetDate)}
               </p>
               <Progress value={progress.objectiveRatio} className="mt-2" />
               {action && (
-                <a
-                  href={hrefFor('navigation')}
-                  className="mt-2.5 flex items-start gap-2 rounded-[6px] border border-accent/25 bg-accent-dim/50 px-2.5 py-2 hover:border-accent/45"
-                >
+                <a href={hrefFor('navigation')} className="mt-3 flex items-start gap-2.5 border-l border-accent py-0.5 pl-2.5 hover:bg-ink/[0.03]">
                   <span className="label mt-px shrink-0 text-accent!">Next</span>
                   <span className="text-[12.5px] leading-snug text-ink">{action.title}</span>
                 </a>
@@ -102,7 +103,7 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
           )}
         </Block>
 
-        <Block title="Patterns" href={hrefFor('patterns')}>
+        <Block n={3} title="Patterns" href={hrefFor('patterns')}>
           {patterns.length ? (
             <ul>
               {patterns.map((p) => (

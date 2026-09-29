@@ -43,7 +43,7 @@ export const ItemNodeView = memo(function ItemNodeView({ id, data, selected }: N
       <NodeRipple id={id} color={data.color} shape="circle" />
       <div
         className={cn(
-          'node-label pointer-events-none absolute w-max max-w-[150px] text-[12px] leading-[1.3] transition-opacity',
+          'node-label halo pointer-events-none absolute w-max max-w-[150px] text-[12px] leading-[1.3] transition-opacity',
           SIDE_CLASS[data.labelSide],
           selected ? 'text-ink' : 'text-ink-2',
           quiet && 'opacity-0 group-hover:opacity-100',

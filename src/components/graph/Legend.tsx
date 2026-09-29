@@ -46,7 +46,7 @@ export function Legend({
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className={cn('pointer-events-auto rounded-[8px] border border-line bg-surface/92 backdrop-blur-sm', open ? 'w-[212px]' : 'w-auto', className)}>
+    <div className={cn('pointer-events-auto rounded-[2px] border border-line bg-surface/92 backdrop-blur-sm', open ? 'w-[212px]' : 'w-auto', className)}>
       <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-3 py-2" aria-expanded={open}>
         <span className="label mr-3">Key</span>
         <ChevronDown size={13} className={cn('text-ink-3 transition-transform', !open && '-rotate-90')} aria-hidden />

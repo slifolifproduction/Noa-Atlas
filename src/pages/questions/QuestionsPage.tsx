@@ -71,10 +71,10 @@ function QuestionCard({ question: q }: { question: AtlasNode }) {
   const linked = neighbors(data, q.id);
   const experiments = Object.values(data.experiments).filter((x) => x.questionIds.includes(q.id));
   return (
-    <li className={cn('rounded-[10px] border border-line bg-surface px-4 py-3.5', q.status === 'resolved' && 'opacity-75')}>
+    <li className={cn('rounded-[2px] border border-line bg-surface px-4 py-3.5', q.status === 'resolved' && 'opacity-75')}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button type="button" onClick={() => open({ kind: 'node', id: q.id })} className="min-w-0 flex-1 text-left">
-          <p className="text-[15.5px] leading-snug text-ink hover:underline">{q.label}</p>
+          <p className="display text-[23px] leading-[1.12] text-ink hover:underline">{q.label}</p>
           {q.summary && <p className="mt-1 text-[12.5px] text-ink-2">{q.summary}</p>}
         </button>
         <Segmented<QuestionStatus>
@@ -100,7 +100,12 @@ function QuestionCard({ question: q }: { question: AtlasNode }) {
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-ink-3">
         <span>Opened {formatDate(q.createdAt.slice(0, 10), { year: true })}</span>
         {experiments.map((x) => (
-          <button key={x.id} type="button" className="text-accent/90 hover:underline" onClick={() => open({ kind: 'experiment', id: x.id })}>
+          <button
+            key={x.id}
+            type="button"
+            className="text-ink-2 underline decoration-ink-3/50 underline-offset-2 hover:text-ink"
+            onClick={() => open({ kind: 'experiment', id: x.id })}
+          >
             {experimentCode(x.code)} {x.title}
           </button>
         ))}

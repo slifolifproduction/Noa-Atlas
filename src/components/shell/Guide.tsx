@@ -1,4 +1,4 @@
-import { ArrowRight, BookOpen, Compass, Ellipsis, Orbit, PenLine, Repeat, Search, Split } from 'lucide-react';
+import { ArrowRight, BookOpen, Compass, Ellipsis, Orbit, Search } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { cn } from '../../lib/cn';
@@ -14,12 +14,7 @@ interface Step {
   tryIt?: { label: string; run(): void };
 }
 
-const LOOP = [
-  { icon: PenLine, label: 'Write what happens' },
-  { icon: Repeat, label: 'See what repeats' },
-  { icon: Split, label: 'Choose a direction' },
-  { icon: Compass, label: 'Take the next step' },
-];
+const LOOP = [{ label: 'Write what happens' }, { label: 'See what repeats' }, { label: 'Choose a direction' }, { label: 'Take the next step' }];
 
 /**
  * A short welcome: what this is, the one loop it runs on, and where things are.
@@ -49,9 +44,8 @@ export function Guide() {
           <p className="mt-2">It runs on one simple loop:</p>
           <ol className="mt-3 grid gap-2 sm:grid-cols-4">
             {LOOP.map((s, n) => (
-              <li key={s.label} className="flex items-center gap-2 rounded-[8px] border border-line bg-raised px-2.5 py-2 sm:flex-col sm:items-start">
-                <span className="num text-[10.5px] text-ink-3">{n + 1}</span>
-                <s.icon size={16} className="text-accent" aria-hidden />
+              <li key={s.label} className="flex items-center gap-3 border-t border-line-strong pt-2.5 sm:flex-col sm:items-start sm:gap-2">
+                <span className="display text-[34px] leading-none text-ink-3 italic">{n + 1}</span>
                 <span className="text-[12.5px] leading-snug text-ink">{s.label}</span>
               </li>
             ))}
@@ -157,7 +151,7 @@ export function Guide() {
                 type="button"
                 onClick={() => setI(n)}
                 aria-label={`Step ${n + 1}`}
-                className={cn('h-1.5 rounded-full transition-all', n === i ? 'w-5 bg-accent' : 'w-1.5 bg-white/20 hover:bg-white/35')}
+                className={cn('h-1.5 rounded-full transition-all', n === i ? 'w-5 bg-accent' : 'w-1.5 bg-ink/20 hover:bg-ink/35')}
               />
             ))}
           </div>
@@ -178,7 +172,11 @@ export function Guide() {
     >
       <div className="text-[13.5px] leading-relaxed text-ink-2">{step.body}</div>
       {step.tryIt && (
-        <button type="button" onClick={step.tryIt.run} className="mt-4 inline-flex items-center gap-1.5 text-[13px] text-accent hover:underline">
+        <button
+          type="button"
+          onClick={step.tryIt.run}
+          className="mt-5 inline-flex items-center gap-1.5 border-b border-accent pb-0.5 text-[13px] text-ink hover:text-accent"
+        >
           Try it now: {step.tryIt.label} <ArrowRight size={13} aria-hidden />
         </button>
       )}
@@ -189,8 +187,8 @@ export function Guide() {
 function Where({ icon: Icon, title, children }: { icon: typeof Orbit; title: string; children: ReactNode }) {
   return (
     <li className="flex gap-3">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] border border-line bg-raised">
-        <Icon size={14} className="text-accent" aria-hidden />
+      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[2px] border border-line bg-raised">
+        <Icon size={14} strokeWidth={1.5} className="text-ink-2" aria-hidden />
       </span>
       <span>
         <span className="block text-[13px] font-medium text-ink">{title}</span>

@@ -25,7 +25,7 @@ export function ConfidenceMeter({
         <span className={cn('num text-ink', size === 'lg' ? 'text-[22px] leading-none' : size === 'md' ? 'text-[14px]' : 'text-[12px]')}>{pct}%</span>
         {showBand && <span className={cn('text-ink-3', size === 'sm' ? 'text-[11px]' : 'text-[12px]')}>{band}</span>}
       </div>
-      <div className={cn('relative mt-1.5 w-full rounded-full bg-white/[0.07]', size === 'lg' ? 'h-[4px]' : 'h-[3px]')}>
+      <div className={cn('relative mt-1.5 w-full rounded-full bg-ink/[0.07]', size === 'lg' ? 'h-[4px]' : 'h-[3px]')}>
         <div className="absolute inset-y-0 left-0 rounded-full bg-ink-2" style={{ width: `${pct}%` }} />
         <div className="absolute -top-[3px] -bottom-[3px] left-1/2 w-px bg-ink-3/60" aria-hidden />
       </div>
@@ -37,7 +37,7 @@ export function ConfidenceMeter({
 export function EstimateTag({ value }: { value: number }) {
   return (
     <span
-      className="num inline-flex items-center rounded-[4px] border border-dashed border-line-strong px-1.5 text-[11px] text-ink-2"
+      className="num inline-flex items-center rounded-[2px] border border-dashed border-line-strong px-1.5 text-[11px] text-ink-2"
       title="Model estimate for this interpretation. Not derived from evidence counts."
     >
       est. {Math.round(value * 100)}%

@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, ChevronDown, FlaskConical, Plus, Repeat2, ScanSearch, Sparkles, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, FlaskConical, Plus, Repeat2, ScanSearch, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import type { ExperimentDraft } from '../../ai/types';
 import { hrefFor, navigate } from '../../app/router';
@@ -147,14 +147,14 @@ function PatternListItem({ pattern: p, active, pendingCount }: { pattern: Patter
         href={`#/patterns/${p.id}`}
         aria-current={active ? 'true' : undefined}
         className={cn(
-          'block rounded-[8px] border px-3 py-2.5 transition-colors',
+          'block rounded-[2px] border px-3 py-2.5 transition-colors',
           active ? 'border-line-strong bg-raised' : 'border-transparent hover:border-line hover:bg-surface',
           p.status === 'dismissed' && 'opacity-60',
         )}
       >
         <div className="flex items-center gap-2">
           <span className="label">{patternCode(p.code)}</span>
-          {p.status !== 'active' && <span className="rounded-[4px] border border-line px-1 text-[10px] text-ink-3">{PATTERN_STATUS_LABEL[p.status]}</span>}
+          {p.status !== 'active' && <span className="rounded-[2px] border border-line px-1 text-[10px] text-ink-3">{PATTERN_STATUS_LABEL[p.status]}</span>}
           {pendingCount > 0 && (
             <span className="ml-auto rounded-full bg-accent-dim px-1.5 text-[10.5px] text-accent" title="Evidence suggestions waiting for review">
               {pendingCount} to review
@@ -163,7 +163,7 @@ function PatternListItem({ pattern: p, active, pendingCount }: { pattern: Patter
         </div>
         <div className="mt-1 text-[13px] leading-snug text-ink">{p.chain.join(' → ')}</div>
         <div className="mt-2 flex items-center gap-2.5">
-          <div className="h-[3px] flex-1 rounded-full bg-white/[0.07]">
+          <div className="h-[3px] flex-1 rounded-full bg-ink/[0.07]">
             <div className="h-full rounded-full bg-ink-2" style={{ width: pct(stats.confidence) }} />
           </div>
           <span className="num text-[11.5px] text-ink-2">{pct(stats.confidence)}</span>
@@ -209,13 +209,10 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
             </span>
           )}
         </div>
-        <h2
-          id="pattern-title"
-          className="mt-3 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-[20px] leading-tight font-medium tracking-[-0.015em] text-ink"
-        >
+        <h2 id="pattern-title" className="display mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[34px] text-ink">
           {p.chain.map((step, i) => (
-            <span key={step} className="flex items-center gap-2.5">
-              {i > 0 && <ArrowRight size={16} className="text-ink-3" aria-hidden />}
+            <span key={step} className="flex items-center gap-3">
+              {i > 0 && <ArrowRight size={18} strokeWidth={1.3} className="text-accent" aria-hidden />}
               <span>{step}</span>
             </span>
           ))}
@@ -225,14 +222,14 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
           {p.observation}
         </p>
         {p.status === 'dismissed' && (
-          <p className="mt-3 rounded-[8px] border border-dashed border-line-strong px-3 py-2 text-[12.5px] text-ink-2">
+          <p className="mt-3 rounded-[2px] border border-dashed border-line-strong px-3 py-2 text-[12.5px] text-ink-2">
             You dismissed this pattern{p.userAssessment?.note ? `: “${p.userAssessment.note}”` : '.'} It no longer informs paths or the dashboard, and stays
             here for reference.
           </p>
         )}
       </header>
 
-      <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-[10px] border border-line bg-line sm:grid-cols-5">
+      <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-[2px] border border-line bg-line sm:grid-cols-5">
         <Stat label="Frequency" value={stats.frequency} />
         <div className="bg-surface px-3.5 py-3" title={CONFIDENCE_EXPLAINER}>
           <dt className="label">Confidence</dt>
@@ -245,7 +242,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
         <Stat label="Last observed" value={formatDate(stats.lastObserved, { year: true })} mono className="col-span-2 sm:col-span-1" />
       </dl>
 
-      <div className="mt-5 rounded-[10px] border border-line bg-surface px-4 pt-3.5 pb-2">
+      <div className="mt-5 rounded-[2px] border border-line bg-surface px-4 pt-3.5 pb-2">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
           <Label>Evidence over time</Label>
           <span className="flex items-center gap-3 text-[11.5px] text-ink-3">
@@ -264,7 +261,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
         <EvidenceTimeline pattern={p} history={stats.history} />
       </div>
 
-      <div className="mt-6 grid gap-px overflow-hidden rounded-[10px] border border-line bg-line md:grid-cols-[1fr_auto_1fr_auto_1fr]">
+      <div className="mt-6 grid gap-px overflow-hidden rounded-[2px] border border-line bg-line md:grid-cols-[1fr_auto_1fr_auto_1fr]">
         <ChainColumn title="Triggers" items={p.triggers} />
         <ChainArrow />
         <ChainColumn title="Behaviour" items={p.behaviors} />
@@ -304,7 +301,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
           </p>
           <ul className="space-y-3">
             {p.interpretations.map((i) => (
-              <li key={i.id} className="rounded-[8px] border border-line px-3.5 py-3">
+              <li key={i.id} className="rounded-[2px] border border-line px-3.5 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <p className="text-[14px] leading-snug text-ink">{i.statement}</p>
                   <EstimateTag value={i.confidence} />
@@ -350,7 +347,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
                     <div className="mt-1 flex flex-wrap gap-1.5">
                       {im.pathIds.map((pid) =>
                         data.paths[pid] ? (
-                          <a key={pid} href="#/paths" className="rounded-[5px] border border-line px-1.5 py-px text-[12px] text-ink-2 hover:text-ink">
+                          <a key={pid} href="#/paths" className="rounded-[2px] border border-line px-1.5 py-px text-[12px] text-ink-2 hover:text-ink">
                             {pathCode(data.paths[pid].code)} · {data.paths[pid].title}
                           </a>
                         ) : null,
@@ -401,7 +398,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
         </Section>
 
         {(p.cues.supports.length > 0 || p.cues.counters.length > 0) && (
-          <details className="group rounded-[8px] border border-line px-3.5 py-2.5">
+          <details className="group rounded-[2px] border border-line px-3.5 py-2.5">
             <summary className="flex cursor-pointer list-none items-center justify-between">
               <span className="label">How the analyzer looks for evidence</span>
               <ChevronDown size={14} className="text-ink-3 transition-transform group-open:rotate-180" aria-hidden />
@@ -411,7 +408,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
                 <div className="mb-1 text-ink-3">Phrases that suggest support</div>
                 <div className="flex flex-wrap gap-1">
                   {p.cues.supports.map((c) => (
-                    <code key={c} className="rounded bg-white/[0.05] px-1.5 py-px font-mono text-[11.5px] text-ink-2">
+                    <code key={c} className="rounded-[2px] bg-ink/[0.05] px-1.5 py-px font-mono text-[11.5px] text-ink-2">
                       {c}
                     </code>
                   ))}
@@ -421,7 +418,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
                 <div className="mb-1 text-ink-3">Phrases that suggest counter-evidence</div>
                 <div className="flex flex-wrap gap-1">
                   {p.cues.counters.map((c) => (
-                    <code key={c} className="rounded bg-white/[0.05] px-1.5 py-px font-mono text-[11.5px] text-ink-2">
+                    <code key={c} className="rounded-[2px] bg-ink/[0.05] px-1.5 py-px font-mono text-[11.5px] text-ink-2">
                       {c}
                     </code>
                   ))}
@@ -440,7 +437,7 @@ function Stat({ label, value, mono, className }: { label: string; value: string;
   return (
     <div className={cn('bg-surface px-3.5 py-3', className)}>
       <dt className="label">{label}</dt>
-      <dd className={cn('mt-1 text-[13.5px] text-ink', mono && 'num')}>{value}</dd>
+      <dd className={cn('mt-1.5 text-ink', mono ? 'num text-[13px]' : 'display text-[22px] leading-[1.1]')}>{value}</dd>
     </div>
   );
 }
@@ -474,12 +471,12 @@ function PendingEvidence({ patternId }: { patternId: ID }) {
   const items = pendingSuggestions(data).filter((x) => x.suggestion.type === 'pattern_evidence' && x.suggestion.patternId === patternId);
   if (!items.length) return null;
   return (
-    <div className="mb-3 rounded-[8px] border border-accent/25 bg-accent-dim/30">
-      <div className="flex items-center gap-2 border-b border-accent/15 px-3 py-2">
-        <Sparkles size={13} className="text-accent" aria-hidden />
+    <div className="ticks relative mb-3 rounded-[2px] border border-line-strong [--tick-color:var(--color-accent)]">
+      <div className="flex items-center gap-2 border-b border-line px-3 py-2">
+        <span className="atlas-live-dot h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
         <span className="text-[12.5px] text-ink">Proposed by analysis · review before it counts</span>
       </div>
-      <ul className="divide-y divide-accent/10">
+      <ul className="divide-y divide-line">
         {items.map(({ entry, suggestion: s }) =>
           s.type === 'pattern_evidence' ? (
             <li key={s.id} className="flex items-start gap-2.5 px-3 py-2.5">
@@ -535,7 +532,7 @@ function AddEvidence({ pattern }: { pattern: Pattern }) {
     );
   return (
     <form
-      className="mt-3 space-y-2.5 rounded-[8px] border border-line p-3"
+      className="mt-3 space-y-2.5 rounded-[2px] border border-line p-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (!source || !text.trim()) return;
@@ -622,9 +619,9 @@ function PatternExperiments({ pattern }: { pattern: Pattern }) {
               <button
                 type="button"
                 onClick={() => open({ kind: 'experiment', id: x.id })}
-                className="flex w-full items-baseline gap-3 rounded-[6px] px-1.5 py-1 text-left hover:bg-white/[0.035]"
+                className="flex w-full items-baseline gap-3 rounded-[2px] px-1.5 py-1 text-left hover:bg-ink/[0.035]"
               >
-                <span className="num w-12 shrink-0 text-[12px] text-accent/90">{experimentCode(x.code)}</span>
+                <span className="num w-12 shrink-0 text-[12px] text-ink-3">{experimentCode(x.code)}</span>
                 <span className="min-w-0 flex-1 text-[13px] text-ink-2">{x.hypothesis}</span>
                 <span className="shrink-0 text-[11.5px] text-ink-3">{EXPERIMENT_STATUS_LABEL[x.status]}</span>
               </button>
@@ -637,7 +634,7 @@ function PatternExperiments({ pattern }: { pattern: Pattern }) {
       {drafts && (
         <div className="mt-3 space-y-2">
           {drafts.map((d) => (
-            <div key={d.title} className="rounded-[8px] border border-dashed border-line-strong px-3.5 py-3">
+            <div key={d.title} className="rounded-[2px] border border-dashed border-line-strong px-3.5 py-3">
               <div className="label">Draft · {d.durationDays} days</div>
               <p className="mt-1 text-[13.5px] text-ink">{d.hypothesis}</p>
               <p className="mt-1 text-[12.5px] text-ink-2">{d.design}</p>

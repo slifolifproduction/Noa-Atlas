@@ -20,7 +20,7 @@ export function GraphSearch({
   const [index, setIndex] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   return (
-    <div className="flex h-8 items-center gap-1.5 rounded-[7px] border border-line bg-surface/95 pr-1 pl-2.5 backdrop-blur focus-within:border-accent/50">
+    <div className="flex h-8 items-center gap-1.5 rounded-[2px] border border-line bg-surface/95 pr-1 pl-2.5 backdrop-blur focus-within:border-accent/50">
       <Search size={13} className="shrink-0 text-ink-3" aria-hidden />
       <input
         ref={input}
@@ -49,7 +49,7 @@ export function GraphSearch({
           <span className="num shrink-0 text-[11px] text-ink-3" aria-live="polite">
             {matches.length}
           </span>
-          <button type="button" className="rounded p-1 text-ink-3 hover:text-ink" aria-label="Clear search" onClick={() => onQuery('')}>
+          <button type="button" className="rounded-[2px] p-1 text-ink-3 hover:text-ink" aria-label="Clear search" onClick={() => onQuery('')}>
             <X size={12} aria-hidden />
           </button>
         </>
@@ -59,7 +59,7 @@ export function GraphSearch({
 }
 
 const zoomBtn =
-  'flex h-8 items-center justify-center gap-1.5 rounded-[6px] border border-line bg-surface text-[12.5px] text-ink-2 outline-none hover:border-line-strong hover:text-ink focus-visible:border-accent/60';
+  'flex h-8 items-center justify-center gap-1.5 rounded-[2px] border border-line bg-surface text-[12.5px] text-ink-2 outline-none hover:border-line-strong hover:text-ink focus-visible:border-accent/60';
 
 /**
  * Every way of changing how the graph looks, behind one button: zoom, the

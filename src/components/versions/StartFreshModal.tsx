@@ -50,7 +50,7 @@ export function StartFreshModal() {
   const option = (value: 'empty' | 'sample', title: string, body: string) => (
     <label
       className={cn(
-        'flex cursor-pointer gap-3 rounded-[8px] border px-3.5 py-3',
+        'flex cursor-pointer gap-3 rounded-[2px] border px-3.5 py-3',
         mode === value ? 'border-accent/45 bg-accent-dim/40' : 'border-line hover:border-line-strong',
       )}
     >
@@ -81,7 +81,7 @@ export function StartFreshModal() {
       }
     >
       <div className="space-y-4">
-        <div className="rounded-[8px] border border-line px-3.5 py-3">
+        <div className="rounded-[2px] border border-line px-3.5 py-3">
           <label className="flex items-center gap-2 text-[13px] text-ink">
             <input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} className="accent-[var(--color-accent)]" />
             Save the current atlas as a version first

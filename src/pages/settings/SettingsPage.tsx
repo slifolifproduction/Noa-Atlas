@@ -18,7 +18,7 @@ function Block({ title, description, children }: { title: string; description?: 
   return (
     <section className="grid gap-4 border-t border-line py-6 md:grid-cols-[240px_minmax(0,1fr)]">
       <div>
-        <h2 className="text-[14px] font-medium text-ink">{title}</h2>
+        <h2 className="display text-[22px] text-ink">{title}</h2>
         {description && <p className="mt-1 text-[12.5px] leading-relaxed text-ink-3">{description}</p>}
       </div>
       <div className="min-w-0">{children}</div>
@@ -131,7 +131,7 @@ export function SettingsPage() {
               <label
                 key={o.id}
                 className={cn(
-                  'flex cursor-pointer gap-3 rounded-[8px] border px-3.5 py-3',
+                  'flex cursor-pointer gap-3 rounded-[2px] border px-3.5 py-3',
                   settings.provider === o.id ? 'border-accent/45 bg-accent-dim/40' : 'border-line hover:border-line-strong',
                 )}
               >
@@ -174,8 +174,8 @@ export function SettingsPage() {
               </div>
               {health && <p className={cn('text-[12.5px]', health.ok ? 'text-support' : 'text-counter')}>{health.message}</p>}
               <p className="text-[12px] text-ink-3">
-                Start it with <code className="rounded bg-white/[0.06] px-1 font-mono text-[11.5px]">ANTHROPIC_API_KEY=… npm run proxy</code>. The key stays on
-                the server.
+                Start it with <code className="rounded-[2px] bg-ink/[0.06] px-1 font-mono text-[11.5px]">ANTHROPIC_API_KEY=… npm run proxy</code>. The key stays
+                on the server.
               </p>
             </div>
           )}
@@ -195,7 +195,7 @@ export function SettingsPage() {
             <input ref={file} type="file" accept="application/json,.json" hidden onChange={(e) => e.target.files?.[0] && importData(e.target.files[0])} />
           </div>
           <p className="mt-2 text-[12px] text-ink-3">Importing replaces the atlas in this browser; the current one is saved as a version first.</p>
-          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-line p-3.5">
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[2px] border border-line p-3.5">
             <div className="min-w-0">
               <div className="text-[13px] text-ink">Versions and starting over</div>
               <div className="text-[12px] leading-snug text-ink-3">

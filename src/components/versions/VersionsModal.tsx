@@ -109,7 +109,7 @@ export function VersionsModal() {
         </>
       }
     >
-      <div className="rounded-[8px] border border-line bg-raised px-3.5 py-3">
+      <div className="rounded-[2px] border border-line bg-raised px-3.5 py-3">
         <div className="label">Now</div>
         <div className="mt-0.5 text-[13px] text-ink">
           {data.profile.name || 'Your atlas'} <span className="text-ink-3">· {counts(now)}</span>
@@ -140,14 +140,14 @@ export function VersionsModal() {
         {versions === null ? (
           <p className="text-[12.5px] text-ink-3">Loading…</p>
         ) : versions.length === 0 ? (
-          <div className="flex items-start gap-3 rounded-[8px] border border-dashed border-line px-3.5 py-3">
+          <div className="flex items-start gap-3 rounded-[2px] border border-dashed border-line px-3.5 py-3">
             <History size={16} className="mt-0.5 shrink-0 text-ink-3" aria-hidden />
             <p className="text-[12.5px] leading-snug text-ink-3">
               No versions yet. Save one before big changes. Starting fresh or importing also saves one for you automatically.
             </p>
           </div>
         ) : (
-          <ul className="divide-y divide-line rounded-[8px] border border-line">
+          <ul className="divide-y divide-line rounded-[2px] border border-line">
             {versions.map((v) => (
               <li key={v.id} className="px-3.5 py-2.5">
                 <div className="flex items-start gap-3">

@@ -22,7 +22,7 @@ export function PatternView({ id }: { id: ID }) {
         <div className="label">
           {patternCode(p.code)} · {PATTERN_KIND_LABEL[p.kind]} · {PATTERN_STATUS_LABEL[p.status]}
         </div>
-        <h2 className="mt-2 text-[16px] leading-snug font-medium text-ink">{p.chain.join(' → ')}</h2>
+        <h2 className="mt-2 display text-[28px] leading-[1.04] text-ink">{p.chain.join(' → ')}</h2>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
           <span className="text-ink-3">Observed pattern: </span>
           {p.observation}
@@ -80,7 +80,7 @@ export function PathView({ id }: { id: ID }) {
   return (
     <div className="px-4 pt-4 pb-4">
       <div className="label">{pathCode(path.code)}</div>
-      <h2 className="mt-2 text-[17px] font-medium text-ink">{path.title}</h2>
+      <h2 className="mt-2 display text-[28px] leading-[1.04] text-ink">{path.title}</h2>
       <p className="mt-2 text-[13px] text-ink-2">{path.objective}</p>
       {path.summary && <p className="mt-1.5 text-[12.5px] text-ink-3">{path.summary}</p>}
       <Button

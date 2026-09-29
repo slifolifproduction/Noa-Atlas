@@ -1,4 +1,4 @@
-import { ArrowRight, Check, Compass, Ellipsis, FlaskConical, Play, Plus, SkipForward, Target, Trash, X } from 'lucide-react';
+import { ArrowRight, Check, Compass, Ellipsis, Play, Plus, SkipForward, Target, Trash, X } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { hrefFor } from '../../app/router';
 import { ResultModal } from '../../components/experiments/ResultModal';
@@ -66,7 +66,7 @@ function Waypoint({ label, progress, children, last, current }: { label: string;
       <div className="relative flex justify-center">
         {!last && <span className="absolute top-5 bottom-[-6px] w-px bg-line-strong" aria-hidden />}
         <svg width="20" height="20" className="relative mt-0.5" aria-hidden>
-          <circle cx="10" cy="10" r={r} fill="var(--color-canvas)" stroke={current ? 'var(--color-accent)' : 'rgb(255 255 255 / 0.2)'} strokeWidth="1.5" />
+          <circle cx="10" cy="10" r={r} fill="var(--color-canvas)" stroke={current ? 'var(--color-accent)' : 'rgb(236 232 223 / 0.2)'} strokeWidth="1.5" />
           {progress !== undefined && progress > 0 && (
             <circle
               cx="10"
@@ -114,7 +114,7 @@ function Route() {
         <EditableLine
           value={nav.position}
           onSave={(position) => update({ position })}
-          className="text-[15px] text-ink"
+          className="display text-[24px] leading-[1.1] text-ink"
           placeholder="Where are you on this route?"
         />
         {path && (
@@ -128,7 +128,7 @@ function Route() {
         <EditableLine
           value={nav.objective.title}
           onSave={(title) => update({ objective: { ...nav.objective, title } })}
-          className="text-[16px] font-medium text-ink"
+          className="display text-[28px] leading-[1.06] text-ink"
         />
         <EditableLine
           value={nav.objective.description}
@@ -149,17 +149,17 @@ function Route() {
           <button
             type="button"
             onClick={() => open({ kind: 'experiment', id: exp.id })}
-            className="block w-full rounded-[8px] border border-line bg-surface px-3.5 py-3 text-left hover:border-line-strong"
+            className="block w-full rounded-[2px] border border-line bg-surface px-3.5 py-3 text-left hover:border-line-strong"
           >
             <div className="flex items-center gap-2">
-              <span className="num text-[11.5px] text-accent/90">{experimentCode(exp.code)}</span>
+              <span className="num text-[11.5px] text-ink-3">{experimentCode(exp.code)}</span>
               <span className="text-[13px] font-medium text-ink">{exp.title}</span>
               <span className="ml-auto text-[11px] text-ink-3">{EXPERIMENT_STATUS_LABEL[exp.status]}</span>
             </div>
             <p className="mt-1 text-[13px] text-ink-2">{exp.hypothesis}</p>
             {exp.status === 'running' && (
               <div className="mt-2 flex items-center gap-3">
-                <Progress value={expProgress.ratio} color="var(--color-accent)" />
+                <Progress value={expProgress.ratio} color="var(--color-ink)" />
                 <span className="num shrink-0 text-[11.5px] text-ink-3">
                   day {expProgress.day} of {expProgress.total}
                 </span>
@@ -191,7 +191,7 @@ function Route() {
                 aria-checked={t.done}
                 onClick={() => toggleTarget(t.id)}
                 className={cn(
-                  'flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border',
+                  'flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border',
                   t.done ? 'border-ink-2 bg-ink-2 text-canvas' : 'border-line-strong hover:border-ink-3',
                 )}
                 aria-label={t.title}
@@ -202,7 +202,7 @@ function Route() {
               <span className="num shrink-0 text-[11.5px] text-ink-3">{formatDate(t.due)}</span>
               <button
                 type="button"
-                className="shrink-0 rounded p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+                className="shrink-0 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
                 aria-label={`Remove ${t.title}`}
                 onClick={() => deleteTarget(t.id)}
               >
@@ -249,7 +249,7 @@ function NextAction({ action }: { action: NavAction }) {
   const setStatus = useAtlas((s) => s.setActionStatus);
   const target = useAtlas((s) => s.data.navigation?.targets.find((t) => t.id === action.targetId));
   return (
-    <div className="rounded-[10px] border border-accent/35 bg-accent-dim/40 px-4 py-3.5">
+    <div className="rounded-[2px] border border-accent/35 bg-accent-dim/40 px-4 py-3.5">
       <p className="text-[17px] leading-snug font-medium text-ink">{action.title}</p>
       {target && <p className="mt-1 text-[12.5px] text-ink-2">Toward: {target.title}</p>}
       <div className="mt-3 flex gap-2">
@@ -308,17 +308,17 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
               {a.title}
               {a.status === 'skipped' && <span className="ml-1.5 text-[11px]">skipped</span>}
             </span>
-            {current?.id === a.id && <span className="shrink-0 rounded-[4px] border border-accent/40 px-1 text-[10.5px] text-accent">next</span>}
+            {current?.id === a.id && <span className="shrink-0 rounded-[2px] border border-accent/40 px-1 text-[10.5px] text-accent">next</span>}
             <button
               type="button"
-              className="shrink-0 rounded p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+              className="shrink-0 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
               aria-label="More"
               onClick={() => setMenu(menu === a.id ? null : a.id)}
             >
               <Ellipsis size={14} aria-hidden />
             </button>
             {menu === a.id && (
-              <div className="absolute top-6 right-0 z-10 w-44 rounded-[8px] border border-line-strong bg-overlay p-1 shadow-xl">
+              <div className="absolute top-6 right-0 z-10 w-44 rounded-[2px] border border-line-strong bg-overlay p-1 shadow-xl">
                 {a.status === 'todo' && (
                   <MenuItem icon={Play} onClick={() => (setCurrent(a.id), setMenu(null))}>
                     Make it the next action
@@ -364,7 +364,7 @@ function MenuItem({ icon: Icon, children, onClick }: { icon: typeof Play; childr
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center gap-2 rounded-[6px] px-2 py-1.5 text-left text-[12.5px] text-ink-2 hover:bg-white/[0.05] hover:text-ink"
+      className="flex w-full items-center gap-2 rounded-[2px] px-2 py-1.5 text-left text-[12.5px] text-ink-2 hover:bg-ink/[0.05] hover:text-ink"
     >
       <Icon size={13} aria-hidden />
       {children}
@@ -391,7 +391,7 @@ function EditableLine({
     return (
       <button
         type="button"
-        className={cn('block w-full rounded-[4px] text-left hover:bg-white/[0.03]', className)}
+        className={cn('block w-full rounded-[2px] text-left hover:bg-ink/[0.03]', className)}
         onClick={() => (setDraft(value), setEditing(true))}
         title="Click to edit"
       >
@@ -453,7 +453,7 @@ function LoopStrip() {
     <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11.5px] text-ink-3" aria-label="Feedback loop">
       {steps.map((s, i) => (
         <li key={s} className="flex items-center gap-1.5">
-          <span className="rounded-[4px] border border-line px-1.5 py-px">{s}</span>
+          <span className="rounded-[2px] border border-line px-1.5 py-px">{s}</span>
           {i < steps.length - 1 && <ArrowRight size={11} aria-hidden />}
         </li>
       ))}
@@ -472,10 +472,7 @@ function ExperimentsColumn({ onCreate }: { onCreate(): void }) {
   return (
     <div className="lg:sticky lg:top-0">
       <div className="flex items-center justify-between">
-        <h2 className="flex items-center gap-2 text-[15px] font-medium text-ink">
-          <FlaskConical size={15} className="text-ink-3" aria-hidden />
-          Experiments
-        </h2>
+        <h2 className="display text-[26px] text-ink">Experiments</h2>
         <Button size="sm" icon={Plus} onClick={onCreate}>
           New
         </Button>
@@ -517,10 +514,10 @@ function ExperimentCard({ experiment: x }: { experiment: Experiment }) {
   const [recording, setRecording] = useState(false);
   const prog = experimentProgress(x);
   return (
-    <li className="rounded-[9px] border border-line bg-surface px-3.5 py-3">
+    <li className="rounded-[2px] border border-line bg-surface px-3.5 py-3">
       <button type="button" className="block w-full text-left" onClick={() => open({ kind: 'experiment', id: x.id })}>
         <div className="flex items-center gap-2">
-          <span className="num text-[11.5px] text-accent/90">{experimentCode(x.code)}</span>
+          <span className="num text-[11.5px] text-ink-3">{experimentCode(x.code)}</span>
           <span className="truncate text-[13px] font-medium text-ink">{x.title}</span>
         </div>
         <p className="mt-1 text-[12.5px] leading-snug text-ink-2">{x.hypothesis}</p>
@@ -536,7 +533,7 @@ function ExperimentCard({ experiment: x }: { experiment: Experiment }) {
       )}
       {x.status === 'running' && (
         <div className="mt-2.5 flex items-center gap-2.5">
-          <Progress value={prog.ratio} color="var(--color-accent)" />
+          <Progress value={prog.ratio} color="var(--color-ink)" />
           <span className={cn('num shrink-0 text-[11px]', prog.overdue ? 'text-counter' : 'text-ink-3')}>
             {prog.overdue ? 'result due' : `day ${prog.day}/${prog.total}`}
           </span>

@@ -1,4 +1,6 @@
 import { BookOpen, Compass, Ellipsis, History, Keyboard, LifeBuoy, Orbit, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
+import { useAtlas } from '../../state/atlasStore';
+import { daysBetween, todayISO } from '../../lib/dates';
 import { groupTarget, hrefFor, type RouteKey } from '../../app/router';
 import { GROUPS, groupOf, VIEWS, type GroupKey } from '../../domain/constants';
 import { cn } from '../../lib/cn';
@@ -7,7 +9,7 @@ import { PatternIcon } from '../icons';
 import { Button, IconButton } from '../ui/Button';
 import { Menu, MenuItem, MenuSeparator } from '../ui/Menu';
 import { Kbd } from '../ui/primitives';
-import { LogoMark } from './Logo';
+import { LogoMark, Wordmark } from './Logo';
 
 export const GROUP_ICONS: Record<GroupKey, LucideIcon> = {
   map: Orbit,
@@ -26,44 +28,46 @@ export function TopBar({ active }: { active: RouteKey }) {
   const current = groupOf(active)?.key;
 
   return (
-    <header className="relative z-30 flex h-12 shrink-0 items-center gap-2 border-b border-line bg-canvas/95 px-3 backdrop-blur md:px-4">
-      <a href={hrefFor('orbit')} className="mr-2 flex items-center gap-2.5 rounded-md py-1 pr-1" aria-label="Cognitive Atlas, home">
+    <header className="relative z-30 flex h-[52px] shrink-0 items-center gap-2 border-b border-line bg-canvas px-3 md:px-5">
+      <a href={hrefFor('orbit')} className="mr-3 flex items-center gap-2.5 rounded-[2px] py-1 pr-1 lg:mr-6" aria-label="Cognitive Atlas, home">
         <LogoMark />
-        <span className="hidden text-[13px] font-medium tracking-[-0.01em] text-ink lg:inline">Cognitive Atlas</span>
+        <Wordmark className="hidden lg:inline" />
       </a>
 
       <nav aria-label="Main" className="hidden h-full items-stretch md:flex">
         {GROUPS.map((g, i) => {
           const isActive = current === g.key;
-          const Icon = GROUP_ICONS[g.key];
           return (
             <a
               key={g.key}
               href={hrefFor(isActive ? active : groupTarget(g.key))}
               aria-current={isActive ? 'page' : undefined}
-              title={`${g.question} (${i + 1})`}
+              title={`${g.question} (key ${i + 1})`}
               className={cn(
-                'relative flex items-center gap-2 px-3 text-[13px] transition-colors lg:px-3.5',
-                isActive ? 'text-ink' : 'text-ink-3 hover:text-ink-2',
+                'group relative flex items-baseline gap-1.5 px-3 pt-[17px] text-[13.5px] transition-colors lg:px-4',
+                isActive ? 'text-ink' : 'text-ink-3 hover:text-ink',
               )}
             >
-              <Icon size={14} strokeWidth={1.8} className={isActive ? 'text-accent' : undefined} aria-hidden />
-              <span className="font-medium">{g.label}</span>
-              {isActive && <span className="absolute inset-x-3 -bottom-px h-px bg-accent lg:inset-x-3.5" aria-hidden />}
+              <span className={cn('num text-[9.5px] tracking-[0.06em]', isActive ? 'text-accent' : 'text-ink-3/70 group-hover:text-ink-3')} aria-hidden>
+                0{i + 1}
+              </span>
+              <span className="font-medium tracking-[0.005em]">{g.label}</span>
+              {isActive && <span className="absolute inset-x-3 -bottom-px h-px bg-accent lg:inset-x-4" aria-hidden />}
             </a>
           );
         })}
       </nav>
 
       <div className="ml-auto flex items-center gap-1.5">
+        <Elapsed />
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
-          className="hidden h-8 items-center gap-2 rounded-[6px] border border-line bg-surface pr-1.5 pl-2.5 text-[12.5px] text-ink-3 transition-colors hover:border-line-strong hover:text-ink-2 sm:flex"
+          className="hidden h-8 items-center gap-2 rounded-[2px] border border-line-strong pr-1.5 pl-2.5 text-[12.5px] text-ink-3 transition-colors hover:border-ink/40 hover:text-ink-2 sm:flex"
         >
           <Search size={13} aria-hidden />
-          <span className="pr-4">Search</span>
-          <Kbd>⌘K</Kbd>
+          <span className="pr-6">Search</span>
+          <Kbd className="border-line bg-transparent">⌘K</Kbd>
         </button>
         <IconButton icon={Search} label="Search" className="sm:hidden" onClick={() => setPaletteOpen(true)} />
         <span className="hidden sm:inline-flex">
@@ -75,6 +79,26 @@ export function TopBar({ active }: { active: RouteKey }) {
         <MoreMenu />
       </div>
     </header>
+  );
+}
+
+/**
+ * Mission-elapsed time for the atlas: days since the first note, like the
+ * T+ clock of a flight. Hidden until there is a first note.
+ */
+function Elapsed() {
+  const first = useAtlas((s) => {
+    let min = '';
+    for (const e of Object.values(s.data.entries)) if (!min || e.date < min) min = e.date;
+    return min;
+  });
+  if (!first) return null;
+  const days = Math.max(0, daysBetween(first, todayISO()));
+  return (
+    <span className="num mr-3 hidden items-center gap-2 text-[10.5px] tracking-[0.12em] text-ink-3 xl:flex" title={`${days} days since your first note`}>
+      <span className="atlas-live-dot h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+      T+{String(days).padStart(3, '0')}D
+    </span>
   );
 }
 
@@ -105,23 +129,24 @@ export function SubNav({ active }: { active: RouteKey }) {
   const group = groupOf(active);
   if (!group || group.views.length < 2) return null;
   return (
-    <nav aria-label={group.label} className="relative z-20 flex h-10 shrink-0 items-center gap-3 border-b border-line bg-canvas/95 px-3 backdrop-blur md:px-4">
-      <div className="flex items-center gap-0.5 rounded-[8px] border border-line bg-surface p-0.5">
+    <nav aria-label={group.label} className="relative z-20 flex h-10 shrink-0 items-stretch gap-6 border-b border-line bg-canvas px-3 md:px-5">
+      <div className="flex items-stretch gap-5">
         {group.views.map((v) => (
           <a
             key={v}
             href={hrefFor(v)}
             aria-current={v === active ? 'page' : undefined}
             className={cn(
-              'rounded-[6px] px-3 py-1 text-[12.5px] font-medium transition-colors',
-              v === active ? 'bg-raised text-ink shadow-sm' : 'text-ink-3 hover:text-ink-2',
+              'relative flex items-center text-[12.5px] font-medium tracking-[0.01em] transition-colors',
+              v === active ? 'text-ink' : 'text-ink-3 hover:text-ink',
             )}
           >
             {VIEWS[v].label}
+            {v === active && <span className="absolute inset-x-0 -bottom-px h-px bg-ink" aria-hidden />}
           </a>
         ))}
       </div>
-      <span className="hidden truncate text-[12.5px] text-ink-3 sm:inline">{VIEWS[active].question}</span>
+      <span className="display hidden items-center truncate text-[16px] text-ink-3 italic sm:flex">{VIEWS[active].question}</span>
     </nav>
   );
 }
@@ -129,8 +154,8 @@ export function SubNav({ active }: { active: RouteKey }) {
 export function MobileTabBar({ active }: { active: RouteKey }) {
   const current = groupOf(active)?.key;
   return (
-    <nav aria-label="Main" className="z-30 flex shrink-0 border-t border-line bg-canvas/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-      {GROUPS.map((g) => {
+    <nav aria-label="Main" className="z-30 flex shrink-0 border-t border-line bg-canvas pb-[env(safe-area-inset-bottom)] md:hidden">
+      {GROUPS.map((g, i) => {
         const isActive = current === g.key;
         const Icon = GROUP_ICONS[g.key];
         return (
@@ -140,9 +165,14 @@ export function MobileTabBar({ active }: { active: RouteKey }) {
             aria-current={isActive ? 'page' : undefined}
             className={cn('relative flex h-14 flex-1 flex-col items-center justify-center gap-1', isActive ? 'text-ink' : 'text-ink-3')}
           >
-            <Icon size={17} strokeWidth={1.8} className={isActive ? 'text-accent' : undefined} aria-hidden />
-            <span className="text-[11px] font-medium">{g.label}</span>
-            {isActive && <span className="absolute inset-x-4 top-0 h-px bg-accent" aria-hidden />}
+            <Icon size={16} strokeWidth={1.6} className={isActive ? 'text-accent' : undefined} aria-hidden />
+            <span className="text-[11px] font-medium">
+              <span className={cn('num mr-1 text-[9px]', isActive ? 'text-accent' : 'text-ink-3/70')} aria-hidden>
+                0{i + 1}
+              </span>
+              {g.label}
+            </span>
+            {isActive && <span className="absolute inset-x-5 top-0 h-px bg-accent" aria-hidden />}
           </a>
         );
       })}

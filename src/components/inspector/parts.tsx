@@ -38,7 +38,7 @@ export function NodeChip({ id, className }: { id: ID; className?: string }) {
       type="button"
       onClick={() => open(refForNode(id))}
       className={cn(
-        'inline-flex max-w-full items-center gap-1.5 rounded-[5px] border border-line bg-white/[0.025] px-1.5 py-[3px] text-left text-[12.5px] leading-[17px] text-ink-2 transition-colors hover:border-line-strong hover:text-ink',
+        'inline-flex max-w-full items-center gap-1.5 rounded-[2px] border border-line bg-ink/[0.025] px-1.5 py-[3px] text-left text-[12.5px] leading-[17px] text-ink-2 transition-colors hover:border-line-strong hover:text-ink',
         className,
       )}
       title={`${d.kindLabel}: ${d.label}`}
@@ -61,9 +61,9 @@ export function RecordRow({ kind, id, meta }: { kind: 'entry' | 'decision'; id: 
       <button
         type="button"
         onClick={() => open({ kind, id })}
-        className="group flex w-full items-baseline gap-2 rounded-[5px] px-1.5 py-1 text-left hover:bg-white/[0.035]"
+        className="group flex w-full items-baseline gap-2 rounded-[2px] px-1.5 py-1 text-left hover:bg-ink/[0.035]"
       >
-        <span className="num w-[84px] shrink-0 text-[11.5px] text-accent/90">{code}</span>
+        <span className="num w-[84px] shrink-0 text-[11px] tracking-[0.04em] text-ink-3">{code}</span>
         <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2 group-hover:text-ink">{rec.title}</span>
         {meta}
         <span className="num shrink-0 text-[11px] text-ink-3">{formatDate(rec.date)}</span>
@@ -82,7 +82,7 @@ export function PatternRow({ id }: { id: ID }) {
       <button
         type="button"
         onClick={() => open({ kind: 'pattern', id })}
-        className="group flex w-full items-start gap-2 rounded-[5px] px-1.5 py-1.5 text-left hover:bg-white/[0.035]"
+        className="group flex w-full items-start gap-2 rounded-[2px] px-1.5 py-1.5 text-left hover:bg-ink/[0.035]"
       >
         <PatternIcon size={13} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">

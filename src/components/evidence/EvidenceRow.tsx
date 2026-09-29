@@ -10,7 +10,7 @@ export function StanceMark({ stance }: { stance: Evidence['stance'] }) {
   const Icon = supports ? Plus : Minus;
   return (
     <span
-      className="mt-[2px] inline-flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[4px] border"
+      className="mt-[2px] inline-flex h-[16px] w-[16px] shrink-0 items-center justify-center rounded-[2px] border"
       style={{ borderColor: supports ? 'rgb(116 198 154 / 0.45)' : 'rgb(232 162 92 / 0.5)', color: supports ? 'var(--color-support)' : 'var(--color-counter)' }}
       title={supports ? 'Supporting evidence' : 'Counter-evidence'}
       aria-label={supports ? 'Supports' : 'Counters'}
@@ -44,7 +44,7 @@ export function EvidenceRow({ evidence, onRemove }: { evidence: Evidence; onRemo
         <button
           type="button"
           onClick={onRemove}
-          className="h-6 w-6 shrink-0 rounded text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+          className="h-6 w-6 shrink-0 rounded-[2px] text-ink-3 opacity-0 transition-opacity group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
           aria-label="Remove this evidence"
           title="Remove this evidence"
         >

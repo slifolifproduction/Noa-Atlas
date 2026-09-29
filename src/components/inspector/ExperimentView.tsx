@@ -34,7 +34,7 @@ export function ExperimentView({ id }: { id: ID }) {
             {experimentCode(x.code)} · {EXPERIMENT_STATUS_LABEL[x.status]}
           </span>
         </div>
-        <h2 className="mt-2 text-[17px] font-medium text-ink">{x.title}</h2>
+        <h2 className="mt-2 display text-[28px] leading-[1.04] text-ink">{x.title}</h2>
         <div className="mt-3 space-y-2.5">
           <div>
             <div className="label">Hypothesis</div>
@@ -53,7 +53,7 @@ export function ExperimentView({ id }: { id: ID }) {
               </span>
               <span className="num">ends {formatDate(prog.endDate)}</span>
             </div>
-            <Progress value={prog.ratio} color="var(--color-accent)" />
+            <Progress value={prog.ratio} color="var(--color-ink)" />
           </div>
         )}
         <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
@@ -133,7 +133,7 @@ export function ExperimentView({ id }: { id: ID }) {
                   key={l.patternId}
                   type="button"
                   onClick={() => open({ kind: 'pattern', id: l.patternId })}
-                  className="rounded-[5px] border border-line px-1.5 py-[3px] text-[12.5px] text-ink-2 hover:text-ink"
+                  className="rounded-[2px] border border-line px-1.5 py-[3px] text-[12.5px] text-ink-2 hover:text-ink"
                 >
                   {patternCode(data.patterns[l.patternId].code)}
                 </button>
@@ -145,7 +145,7 @@ export function ExperimentView({ id }: { id: ID }) {
                   key={p}
                   type="button"
                   onClick={() => open({ kind: 'path', id: p })}
-                  className="rounded-[5px] border border-line px-1.5 py-[3px] text-[12.5px] text-ink-2 hover:text-ink"
+                  className="rounded-[2px] border border-line px-1.5 py-[3px] text-[12.5px] text-ink-2 hover:text-ink"
                 >
                   {pathCode(data.paths[p].code)} · {data.paths[p].title}
                 </button>

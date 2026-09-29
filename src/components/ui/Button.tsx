@@ -15,10 +15,10 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-ink text-canvas hover:bg-white border-transparent',
-  secondary: 'bg-raised text-ink border-line hover:border-line-strong hover:bg-overlay',
-  ghost: 'bg-transparent text-ink-2 border-transparent hover:text-ink hover:bg-white/[0.045]',
-  danger: 'bg-transparent text-danger border-danger/30 hover:bg-danger/10',
+  primary: 'bg-ink text-canvas border-ink hover:bg-[#fffaf0] hover:border-[#fffaf0]',
+  secondary: 'bg-transparent text-ink border-line-strong hover:border-ink/45 hover:bg-ink/[0.04]',
+  ghost: 'bg-transparent text-ink-2 border-transparent hover:text-ink hover:bg-ink/[0.05]',
+  danger: 'bg-transparent text-danger border-danger/35 hover:bg-danger/10',
 };
 
 const SIZES: Record<Size, string> = {
@@ -29,7 +29,7 @@ const SIZES: Record<Size, string> = {
 /** Button styling for links, so navigation stays an <a> without nesting a <button> inside it. */
 export function buttonClass(variant: Variant = 'secondary', size: Size = 'md', className?: string) {
   return cn(
-    'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-[6px] border font-medium transition-colors',
+    'inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap rounded-[2px] border font-medium tracking-[0.005em] transition-colors',
     VARIANTS[variant],
     SIZES[size],
     className,
@@ -72,9 +72,9 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
       title={label}
       aria-pressed={active}
       className={cn(
-        'inline-flex shrink-0 items-center justify-center rounded-[6px] border transition-colors disabled:opacity-40',
+        'inline-flex shrink-0 items-center justify-center rounded-[2px] border transition-colors disabled:opacity-40',
         size === 'sm' ? 'h-7 w-7' : 'h-8 w-8',
-        active ? 'border-accent/40 bg-accent-dim text-accent' : 'border-transparent text-ink-2 hover:bg-white/[0.05] hover:text-ink',
+        active ? 'border-accent/40 bg-accent-dim text-accent' : 'border-transparent text-ink-2 hover:bg-ink/[0.05] hover:text-ink',
         className,
       )}
       {...rest}

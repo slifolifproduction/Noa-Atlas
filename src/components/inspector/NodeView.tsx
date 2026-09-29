@@ -78,13 +78,13 @@ export function NodeView({ id }: { id: ID }) {
     <div>
       <div className="px-4 pt-4 pb-4">
         <div className="flex items-center gap-2">
-          <span className="flex h-6 w-6 items-center justify-center rounded-[6px] border" style={{ borderColor: `${color}66` }}>
+          <span className="flex h-6 w-6 items-center justify-center rounded-[2px] border" style={{ borderColor: `${color}66` }}>
             <Icon size={13} color={color} strokeWidth={1.8} aria-hidden />
           </span>
           <KindEyebrow id={id} />
           {node?.origin === 'inferred' && (
             <span
-              className="num ml-auto rounded-[4px] border border-dashed border-line-strong px-1.5 text-[10.5px] text-ink-2"
+              className="num ml-auto rounded-[2px] border border-dashed border-line-strong px-1.5 text-[10.5px] text-ink-2"
               title="Proposed by the analysis layer from your entries"
             >
               inferred{node.confidence !== undefined ? ` · ${Math.round(node.confidence * 100)}%` : ''}
@@ -104,7 +104,7 @@ export function NodeView({ id }: { id: ID }) {
           />
         ) : (
           <>
-            <h2 className="mt-2.5 text-[18px] leading-snug font-medium tracking-[-0.01em] text-ink">{hub ? DOMAIN_META[key!].label : display.label}</h2>
+            <h2 className="mt-2.5 display text-[28px] leading-[1.04] text-ink">{hub ? DOMAIN_META[key!].label : display.label}</h2>
             {hub ? (
               <>
                 <p className="mt-1 text-[14px] text-ink">
@@ -361,7 +361,7 @@ function ConnectForm({ id, onDone }: { id: ID; onDone(): void }) {
   const others = Object.values(data.nodes).filter((n) => n.id !== id);
   return (
     <form
-      className="mt-3 space-y-2 rounded-[8px] border border-line bg-raised/60 p-3"
+      className="mt-3 space-y-2 rounded-[2px] border border-line bg-raised/60 p-3"
       onSubmit={(e) => {
         e.preventDefault();
         if (!target) return;

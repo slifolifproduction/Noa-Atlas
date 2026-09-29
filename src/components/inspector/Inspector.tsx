@@ -39,7 +39,7 @@ export function Inspector() {
         <button
           type="button"
           onClick={back}
-          className="flex min-w-0 items-center gap-1.5 rounded-[6px] px-2 py-1 text-[12px] text-ink-2 hover:bg-white/[0.05] hover:text-ink"
+          className="flex min-w-0 items-center gap-1.5 rounded-[2px] px-2 py-1 text-[12px] text-ink-2 hover:bg-ink/[0.05] hover:text-ink"
           title="Back (Alt + ←)"
         >
           <ArrowLeft size={13} className="shrink-0" aria-hidden />
@@ -75,7 +75,7 @@ export function Inspector() {
     return (
       <aside
         aria-label="Inspector"
-        className="absolute top-0 right-0 bottom-0 z-20 flex animate-slide-in-right flex-col border-l border-line bg-surface/[0.97] shadow-[-24px_0_48px_-24px_rgb(0_0_0/0.6)] backdrop-blur-md"
+        className="absolute top-0 right-0 bottom-0 z-20 flex animate-slide-in-right flex-col border-l border-line-strong bg-surface/[0.97] shadow-[-40px_0_80px_-40px_rgb(0_0_0/0.8)] backdrop-blur-md"
         style={{ width: panelWidth }}
       >
         {header}
@@ -91,7 +91,7 @@ export function Inspector() {
       className="fixed inset-x-0 bottom-0 z-40 flex max-h-[80dvh] animate-slide-in-up flex-col rounded-t-[14px] border-t border-line-strong bg-surface shadow-[0_-24px_48px_-12px_rgb(0_0_0/0.7)]"
     >
       <div className="flex justify-center pt-2" aria-hidden>
-        <span className="h-1 w-9 rounded-full bg-white/15" />
+        <span className="h-1 w-9 rounded-full bg-ink/15" />
       </div>
       {header}
       <div ref={body} className="min-h-0 flex-1 overflow-y-auto pb-[env(safe-area-inset-bottom)]" key={`${top.kind}:${top.id}`}>

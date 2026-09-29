@@ -29,7 +29,7 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
     <div
       role="dialog"
       aria-label="Relationship"
-      className="absolute z-20 w-[300px] animate-rise rounded-[9px] border border-line-strong bg-overlay p-3 shadow-2xl"
+      className="absolute z-20 w-[300px] animate-rise rounded-[2px] border border-line-strong bg-overlay p-3 shadow-2xl"
       style={{ left: Math.max(12, x + 10), top: Math.max(12, y - 10) }}
     >
       <div className="flex items-center gap-2">

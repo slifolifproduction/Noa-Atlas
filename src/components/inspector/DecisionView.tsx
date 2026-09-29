@@ -33,7 +33,7 @@ export function DecisionView({ id }: { id: ID }) {
           <span className="label">{decisionCode(d.seq)}</span>
           <span className="num ml-auto text-[11.5px] text-ink-3">{formatDate(d.date, { year: true })}</span>
         </div>
-        <h2 className="mt-2 text-[17px] leading-snug font-medium text-ink">{d.title}</h2>
+        <h2 className="mt-2 display text-[28px] leading-[1.04] text-ink">{d.title}</h2>
         {d.context && <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{d.context}</p>}
         <div className="mt-3 flex items-center gap-1.5">
           <Button size="sm" icon={Pencil} onClick={() => openCapture('decision', { kind: 'decision', id })}>
@@ -55,7 +55,7 @@ export function DecisionView({ id }: { id: ID }) {
           {d.options.map((o) => {
             const chosen = o.id === d.chosenOptionId;
             return (
-              <li key={o.id} className={cn('rounded-[7px] border px-2.5 py-2', chosen ? 'border-accent/40 bg-accent-dim/40' : 'border-line')}>
+              <li key={o.id} className={cn('rounded-[2px] border px-2.5 py-2', chosen ? 'border-accent/40 bg-accent-dim/40' : 'border-line')}>
                 <div className="flex items-center gap-2 text-[13px] text-ink">
                   {chosen && <Check size={13} className="shrink-0 text-accent" aria-label="Chosen" />}
                   {o.label}
@@ -78,7 +78,7 @@ export function DecisionView({ id }: { id: ID }) {
                 {i < d.optimizingFor.length - 1 ? ', ' : ''}
               </span>
             ))}
-            <span className="ml-1.5 rounded-[4px] border border-line px-1 text-[10.5px]">{HORIZON_LABEL[horizon]}</span>
+            <span className="ml-1.5 rounded-[2px] border border-line px-1 text-[10.5px]">{HORIZON_LABEL[horizon]}</span>
           </p>
         )}
       </PanelSection>
@@ -97,7 +97,7 @@ export function DecisionView({ id }: { id: ID }) {
                 <button
                   type="button"
                   onClick={() => open({ kind: 'pattern', id: pattern.id })}
-                  className="flex w-full items-start gap-2 rounded-[5px] px-1 py-1 text-left hover:bg-white/[0.035]"
+                  className="flex w-full items-start gap-2 rounded-[2px] px-1 py-1 text-left hover:bg-ink/[0.035]"
                 >
                   <StanceMark stance={evidence.stance} />
                   <span className="min-w-0">

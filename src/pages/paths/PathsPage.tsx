@@ -73,17 +73,17 @@ export function PathsPage() {
 function CurrentStateCell({ onEdit, wide }: { onEdit(): void; wide?: boolean }) {
   const state = useAtlas((s) => s.data.currentState);
   return (
-    <div className="rounded-[10px] border border-line-strong bg-raised px-4 py-3.5">
+    <div className="rounded-[2px] border border-line-strong bg-raised px-4 py-3.5">
       <div className="flex items-center justify-between">
         <span className="label text-ink-2!">Current state · you are here</span>
-        <button type="button" onClick={onEdit} className="rounded p-1 text-ink-3 hover:text-ink" aria-label="Edit current state">
+        <button type="button" onClick={onEdit} className="rounded-[2px] p-1 text-ink-3 hover:text-ink" aria-label="Edit current state">
           <Pencil size={13} aria-hidden />
         </button>
       </div>
       {state.position ? (
         <div className={cn('mt-1.5 grid gap-x-8 gap-y-3', wide && 'lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]')}>
           <div>
-            <p className="text-[15px] leading-snug text-ink">{state.position}</p>
+            <p className="display text-[23px] leading-[1.12] text-ink">{state.position}</p>
             {state.summary && <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{state.summary}</p>}
             <p className="mt-2 text-[11px] text-ink-3">Updated {formatDate(state.updatedAt.slice(0, 10))}</p>
           </div>
@@ -156,7 +156,7 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
               key={i}
               d={c.d}
               fill="none"
-              stroke={c.active ? 'var(--color-accent)' : 'rgb(255 255 255 / 0.2)'}
+              stroke={c.active ? 'var(--color-accent)' : 'rgb(236 232 223 / 0.2)'}
               strokeWidth={c.active ? 1.5 : 1.2}
               strokeDasharray={c.active ? undefined : '4 5'}
             />
@@ -181,29 +181,34 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
             <div
               key={p.id}
               ref={(el) => void (heads.current[i] = el)}
-              className={cn('relative z-[1] self-start rounded-[10px] border bg-surface p-4', isDirection ? 'border-accent/40' : 'border-line')}
+              className={cn('relative z-[1] self-start rounded-[2px] border bg-surface p-4', isDirection ? 'border-accent/40' : 'border-line')}
             >
               <div className="flex items-center gap-2">
                 <span className="label text-ink-2!">{pathCode(p.code)}</span>
                 {isDirection && (
                   <span
-                    className="rounded-[4px] border border-accent/40 px-1.5 text-[10.5px] text-accent"
+                    className="rounded-[2px] border border-accent/40 px-1.5 text-[10.5px] text-accent"
                     title="You chose this direction; it is not a ranking"
                   >
                     Your current direction · since {formatDate(nav!.committedAt)}
                   </span>
                 )}
-                <button type="button" onClick={() => onEdit(p.id)} className="ml-auto rounded p-1 text-ink-3 hover:text-ink" aria-label={`Edit ${p.title}`}>
+                <button
+                  type="button"
+                  onClick={() => onEdit(p.id)}
+                  className="ml-auto rounded-[2px] p-1 text-ink-3 hover:text-ink"
+                  aria-label={`Edit ${p.title}`}
+                >
                   <Pencil size={13} aria-hidden />
                 </button>
               </div>
-              <h2 className="mt-1.5 text-[17px] font-medium tracking-[-0.01em] text-ink">{p.title}</h2>
+              <h2 className="display mt-2 text-[27px] leading-[1.05] text-ink">{p.title}</h2>
               <p className="mt-1.5 text-[13px] leading-snug text-ink">{p.objective || <span className="text-ink-3">No objective yet.</span>}</p>
               {p.summary && <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{p.summary}</p>}
               <div className="mt-3">
                 {isDirection ? (
                   <Button size="sm" onClick={() => navigate('navigation')}>
-                    Open navigation
+                    Open my plan
                   </Button>
                 ) : confirm === p.id ? (
                   <div className="space-y-2">
@@ -369,7 +374,7 @@ function Cell({
             );
           })}
           {p.proposedExperiments.map((idea) => (
-            <div key={idea} className="flex items-start gap-2 rounded-[6px] border border-dashed border-line-strong px-2 py-1.5">
+            <div key={idea} className="flex items-start gap-2 rounded-[2px] border border-dashed border-line-strong px-2 py-1.5">
               <span className="min-w-0 flex-1 text-[12.5px]">{idea}</span>
               <button
                 type="button"

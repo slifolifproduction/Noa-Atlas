@@ -58,7 +58,7 @@ export function JournalPage() {
       />
 
       <div className="mt-6 flex flex-wrap items-center gap-2">
-        <div className="flex h-8 min-w-[200px] flex-1 items-center gap-2 rounded-[7px] border border-line bg-surface px-2.5 focus-within:border-accent/50 sm:max-w-[280px]">
+        <div className="flex h-8 min-w-[200px] flex-1 items-center gap-2 rounded-[2px] border border-line bg-surface px-2.5 focus-within:border-accent/50 sm:max-w-[280px]">
           <Search size={13} className="text-ink-3" aria-hidden />
           <input
             value={query}
@@ -94,7 +94,7 @@ export function JournalPage() {
           aria-pressed={review}
           onClick={() => setReview(!review)}
           className={cn(
-            'h-8 rounded-[7px] border px-2.5 text-[12.5px]',
+            'h-8 rounded-[2px] border px-2.5 text-[12.5px]',
             review ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-2 hover:border-line-strong',
           )}
         >
@@ -151,7 +151,7 @@ export function JournalPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <Icon size={13} className="shrink-0 text-ink-3" aria-hidden />
-                            <span className="truncate text-[14px] text-ink">{e.title}</span>
+                            <span className="display truncate text-[21px] leading-[1.15] text-ink">{e.title}</span>
                           </div>
                           <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-snug text-ink-2">{e.content}</p>
                           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -172,7 +172,7 @@ export function JournalPage() {
                           {usages.map(({ pattern, evidence }) => (
                             <span
                               key={pattern.id}
-                              className="num rounded-[4px] border px-1.5 py-px text-[10.5px]"
+                              className="num rounded-[2px] border px-1.5 py-px text-[10.5px]"
                               style={{
                                 borderColor: evidence.stance === 'supports' ? 'rgb(116 198 154 / 0.35)' : 'rgb(232 162 92 / 0.4)',
                                 color: evidence.stance === 'supports' ? 'var(--color-support)' : 'var(--color-counter)',

@@ -25,11 +25,17 @@ export function NextStepCard({ className }: { className?: string }) {
   };
 
   return (
-    <section className={cn('rounded-[8px] border border-accent/30 bg-accent-dim/40 px-3 py-2.5', className)} aria-label="Do this next">
-      <div className="label text-accent!">Do this next</div>
-      <p className="mt-1 text-[13.5px] leading-snug font-medium text-ink">{step.title}</p>
-      <p className="mt-0.5 text-[12px] leading-snug text-ink-2">{step.detail}</p>
-      <div className="mt-2.5 flex flex-wrap items-center gap-2">
+    <section
+      className={cn('ticks relative border border-line-strong bg-ink/[0.02] px-3.5 pt-3 pb-3.5 [--tick-color:var(--color-accent)]', className)}
+      aria-label="Do this next"
+    >
+      <div className="label flex items-center gap-2 text-accent!">
+        <span className="atlas-live-dot h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
+        Do this next
+      </div>
+      <p className="display mt-2 text-[23px] leading-[1.08] text-ink">{step.title}</p>
+      <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{step.detail}</p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
         <Button size="sm" variant="primary" icon={step.action.kind === 'done' ? Check : ArrowRight} onClick={() => run(step.action)}>
           {step.cta}
         </Button>

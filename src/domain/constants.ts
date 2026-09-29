@@ -54,20 +54,20 @@ export const DOMAINS: DomainMeta[] = [
   {
     key: 'identity',
     label: 'Identity',
-    color: '#e6e0d0',
+    color: '#ece8df',
     ring: 0,
     angle: 0,
     description: 'Who you take yourself to be, and which of those self-descriptions the evidence supports.',
   },
-  { key: 'values', label: 'Values', color: '#d6a531', ring: 1, angle: -55, description: 'What you protect when things compete.' },
-  { key: 'goals', label: 'Goals', color: '#2fb383', ring: 1, angle: -112, description: 'Outcomes you are deliberately working toward.' },
-  { key: 'career', label: 'Career', color: '#5b9ae8', ring: 2, angle: -10, description: 'How you earn, and the trajectory of your work.' },
-  { key: 'projects', label: 'Projects', color: '#e0773f', ring: 2, angle: -165, description: 'Active commitments with a defined output.' },
-  { key: 'skills', label: 'Skills', color: '#9a90ee', ring: 2, angle: 152, description: 'Capabilities you have, are building, or lack.' },
-  { key: 'finance', label: 'Finance', color: '#6aa84f', ring: 3, angle: 30, description: 'Runway, income structure, and financial constraints.' },
-  { key: 'relationships', label: 'Relationships', color: '#de6f98', ring: 3, angle: 70, description: 'The people who shape and are shaped by your choices.' },
-  { key: 'environment', label: 'Environment', color: '#4fb8cf', ring: 3, angle: 110, description: 'Where and when work happens; the conditions around it.' },
-  { key: 'habits', label: 'Habits', color: '#ea7373', ring: 3, angle: 136, description: 'Recurring behaviours that compound, for better or worse.' },
+  { key: 'values', label: 'Values', color: '#d8b46c', ring: 1, angle: -55, description: 'What you protect when things compete.' },
+  { key: 'goals', label: 'Goals', color: '#6cbf9c', ring: 1, angle: -112, description: 'Outcomes you are deliberately working toward.' },
+  { key: 'career', label: 'Career', color: '#80a6e2', ring: 2, angle: -10, description: 'How you earn, and the trajectory of your work.' },
+  { key: 'projects', label: 'Projects', color: '#c99d76', ring: 2, angle: -165, description: 'Active commitments with a defined output.' },
+  { key: 'skills', label: 'Skills', color: '#a99ee6', ring: 2, angle: 152, description: 'Capabilities you have, are building, or lack.' },
+  { key: 'finance', label: 'Finance', color: '#9fc27a', ring: 3, angle: 30, description: 'Runway, income structure, and financial constraints.' },
+  { key: 'relationships', label: 'Relationships', color: '#e094b0', ring: 3, angle: 70, description: 'The people who shape and are shaped by your choices.' },
+  { key: 'environment', label: 'Environment', color: '#72bccb', ring: 3, angle: 110, description: 'Where and when work happens; the conditions around it.' },
+  { key: 'habits', label: 'Habits', color: '#e28a84', ring: 3, angle: 136, description: 'Recurring behaviours that compound, for better or worse.' },
 ];
 
 export const DOMAIN_META = Object.fromEntries(DOMAINS.map((d) => [d.key, d])) as Record<DomainKey, DomainMeta>;
@@ -89,29 +89,29 @@ export interface CategoryMeta {
 
 /** Ordered as the clusters sit around the Mind graph. */
 export const CATEGORIES: CategoryMeta[] = [
-  { key: 'value', label: 'Value', plural: 'Values', color: '#d6a531', angle: -90, description: 'What you protect when things compete.' },
-  { key: 'question', label: 'Question', plural: 'Questions', color: '#de6f98', angle: -50, description: 'Open questions you are actively examining.' },
+  { key: 'value', label: 'Value', plural: 'Values', color: '#d8b46c', angle: -90, description: 'What you protect when things compete.' },
+  { key: 'question', label: 'Question', plural: 'Questions', color: '#e094b0', angle: -50, description: 'Open questions you are actively examining.' },
   {
     key: 'assumption',
     label: 'Assumption',
     plural: 'Assumptions',
-    color: '#4fb8cf',
+    color: '#72bccb',
     angle: -10,
     description: 'Things taken as true that have not been tested.',
   },
-  { key: 'fear', label: 'Fear', plural: 'Fears', color: '#ea7373', angle: 30, description: 'Outcomes you try to avoid, stated plainly.' },
-  { key: 'belief', label: 'Belief', plural: 'Beliefs', color: '#5b9ae8', angle: 70, description: 'Working convictions about how things are.' },
-  { key: 'motivation', label: 'Motivation', plural: 'Motivations', color: '#6aa84f', angle: 110, description: 'What pulls you toward action.' },
-  { key: 'mental_model', label: 'Mental model', plural: 'Mental models', color: '#9a90ee', angle: 150, description: 'Frameworks you reason with.' },
-  { key: 'experience', label: 'Experience', plural: 'Experiences', color: '#e0773f', angle: 190, description: 'Events that shaped your thinking.' },
-  { key: 'decision', label: 'Decision', plural: 'Decisions', color: '#2fb383', angle: 230, description: 'Choices, mirrored from the decision log.' },
+  { key: 'fear', label: 'Fear', plural: 'Fears', color: '#e28a84', angle: 30, description: 'Outcomes you try to avoid, stated plainly.' },
+  { key: 'belief', label: 'Belief', plural: 'Beliefs', color: '#80a6e2', angle: 70, description: 'Working convictions about how things are.' },
+  { key: 'motivation', label: 'Motivation', plural: 'Motivations', color: '#9fc27a', angle: 110, description: 'What pulls you toward action.' },
+  { key: 'mental_model', label: 'Mental model', plural: 'Mental models', color: '#a99ee6', angle: 150, description: 'Frameworks you reason with.' },
+  { key: 'experience', label: 'Experience', plural: 'Experiences', color: '#c99d76', angle: 190, description: 'Events that shaped your thinking.' },
+  { key: 'decision', label: 'Decision', plural: 'Decisions', color: '#6cbf9c', angle: 230, description: 'Choices, mirrored from the decision log.' },
 ];
 
 export const CATEGORY_META = Object.fromEntries(CATEGORIES.map((c) => [c.key, c])) as Record<MindCategory, CategoryMeta>;
 export const CATEGORY_KEYS = CATEGORIES.map((c) => c.key);
 
 /** Derived pattern nodes in the Mind graph. */
-export const PATTERN_COLOR = '#e6e0d0';
+export const PATTERN_COLOR = '#ece8df';
 
 export interface RelationMeta {
   key: RelationType;
@@ -142,7 +142,7 @@ export const RELATIONS: RelationMeta[] = [
     key: 'conflicts',
     verb: 'conflicts with',
     label: 'Conflicts with',
-    color: '#e39a52',
+    color: '#d9a55a',
     dash: '6 4',
     width: 1.4,
     arrow: false,
@@ -152,7 +152,7 @@ export const RELATIONS: RelationMeta[] = [
     key: 'contradicts',
     verb: 'contradicts',
     label: 'Contradicts',
-    color: '#ec7d74',
+    color: '#e5827a',
     dash: '2 3',
     width: 1.5,
     arrow: true,

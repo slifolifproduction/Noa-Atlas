@@ -5,7 +5,7 @@ import { AddNodeModal } from '../../components/graph/AddNodeModal';
 import { GraphCanvas } from '../../components/graph/GraphCanvas';
 import { GraphSearch, ViewMenu } from '../../components/graph/GraphToolbar';
 import { RelationSwatch } from '../../components/graph/Legend';
-import { CATEGORY_ICONS, PatternIcon } from '../../components/icons';
+import { PatternIcon } from '../../components/icons';
 import { refForNode } from '../../components/inspector/parts';
 import { Button, IconButton } from '../../components/ui/Button';
 import { HelpCard, PAGE_HELP, useGraphHelp } from '../../components/ui/HowItWorks';
@@ -92,7 +92,7 @@ export function MindPage() {
       >
         {railVisible && (
           <div
-            className="absolute top-3 bottom-3 left-3 z-10 flex flex-col overflow-hidden rounded-[10px] border border-line bg-surface/[0.96] backdrop-blur-md"
+            className="ticks absolute top-3 bottom-3 left-3 z-10 flex flex-col overflow-hidden rounded-[2px] border border-line bg-surface/[0.9] backdrop-blur-md"
             style={{ width: RAIL_WIDTH }}
           >
             <div className="border-b border-line px-4 pt-3 pb-2.5">
@@ -209,7 +209,6 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
       </div>
       <ul className="px-2">
         {CATEGORIES.map((c) => {
-          const Icon = CATEGORY_ICONS[c.key];
           const on = !hidden.has(c.key);
           const only = isolated && on;
           return (
@@ -219,12 +218,12 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
                 aria-pressed={on}
                 onClick={() => setView({ hiddenCategories: on ? [...hidden, c.key] : [...hidden].filter((k) => k !== c.key) })}
                 className={cn(
-                  'flex min-w-0 flex-1 items-center gap-2.5 rounded-[6px] px-2 py-[5px] text-left transition-colors hover:bg-white/[0.04]',
+                  'flex min-w-0 flex-1 items-center gap-2.5 rounded-[2px] px-2 py-[5px] text-left transition-colors hover:bg-ink/[0.04]',
                   !on && 'opacity-45',
                 )}
                 title={c.description}
               >
-                <Icon size={13} color={c.color} strokeWidth={1.9} aria-hidden />
+                <span className="h-3 w-[2px] shrink-0" style={{ background: c.color }} aria-hidden />
                 <span className="flex-1 truncate text-[12.5px] text-ink-2">{c.plural}</span>
                 <span className="num text-[11px] text-ink-3">{counts[c.key]}</span>
               </button>
@@ -232,7 +231,7 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
                 type="button"
                 onClick={() => setView({ hiddenCategories: only ? [] : CATEGORIES.filter((x) => x.key !== c.key).map((x) => x.key) })}
                 className={cn(
-                  'ml-0.5 rounded px-1.5 py-0.5 text-[10.5px] text-ink-3 hover:bg-white/[0.05] hover:text-ink',
+                  'ml-0.5 rounded-[2px] px-1.5 py-0.5 text-[10.5px] text-ink-3 hover:bg-ink/[0.05] hover:text-ink',
                   only ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
                 )}
                 aria-label={only ? 'Show all categories' : `Show only ${c.plural}`}
@@ -249,7 +248,7 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
           type="button"
           aria-expanded={more}
           onClick={() => setMore(!more)}
-          className="flex w-full items-center gap-2 rounded-[6px] px-2 py-[5px] text-left text-[12.5px] text-ink-2 hover:bg-white/[0.04] hover:text-ink"
+          className="flex w-full items-center gap-2 rounded-[2px] px-2 py-[5px] text-left text-[12.5px] text-ink-2 hover:bg-ink/[0.04] hover:text-ink"
         >
           <ChevronRight size={13} className={cn('text-ink-3 transition-transform', more && 'rotate-90')} aria-hidden />
           <span className="flex-1">More filters</span>
@@ -286,7 +285,7 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
                     type="button"
                     aria-pressed={on}
                     onClick={() => setView({ hiddenRelations: on ? [...hiddenRel, r] : [...hiddenRel].filter((x) => x !== r) })}
-                    className={cn('flex w-full items-center gap-2.5 rounded-[6px] px-2 py-[5px] text-left hover:bg-white/[0.04]', !on && 'opacity-40')}
+                    className={cn('flex w-full items-center gap-2.5 rounded-[2px] px-2 py-[5px] text-left hover:bg-ink/[0.04]', !on && 'opacity-40')}
                     title={RELATION_META[r].description}
                   >
                     <RelationSwatch relation={r} width={24} />
@@ -308,11 +307,11 @@ function ToggleRow({ on, onClick, icon, children }: { on: boolean; onClick(): vo
       type="button"
       aria-pressed={on}
       onClick={onClick}
-      className={cn('flex w-full items-center gap-2.5 rounded-[6px] px-2 py-[5px] text-left hover:bg-white/[0.04]', !on && 'opacity-45')}
+      className={cn('flex w-full items-center gap-2.5 rounded-[2px] px-2 py-[5px] text-left hover:bg-ink/[0.04]', !on && 'opacity-45')}
     >
       {icon}
       <span className="flex-1 text-[12.5px] text-ink-2">{children}</span>
-      <span className={cn('h-3.5 w-6 rounded-full p-[2px] transition-colors', on ? 'bg-accent/60' : 'bg-white/10')} aria-hidden>
+      <span className={cn('h-3.5 w-6 rounded-full p-[2px] transition-colors', on ? 'bg-accent/60' : 'bg-ink/10')} aria-hidden>
         <span className={cn('block h-2.5 w-2.5 rounded-full bg-ink transition-transform', on && 'translate-x-2.5')} />
       </span>
     </button>

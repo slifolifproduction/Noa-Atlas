@@ -319,7 +319,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           </div>
         )}
 
-        <div className="rounded-[8px] border border-line">
+        <div className="rounded-[2px] border border-line">
           <button
             type="button"
             className="flex w-full items-center justify-between gap-3 px-3 py-2"
@@ -349,7 +349,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
                           aria-checked={active}
                           onClick={() => set('kind', k.key)}
                           className={cn(
-                            'flex items-center gap-1.5 rounded-[6px] border px-2 py-1 text-[12px] transition-colors',
+                            'flex items-center gap-1.5 rounded-[2px] border px-2 py-1 text-[12px] transition-colors',
                             active ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-3 hover:border-line-strong hover:text-ink-2',
                           )}
                         >
@@ -417,7 +417,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
               </div>
 
               {!isDecision && (
-                <div className="rounded-[8px] border border-line">
+                <div className="rounded-[2px] border border-line">
                   <button
                     type="button"
                     className="flex w-full items-center justify-between px-3 py-2"
@@ -528,7 +528,7 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
         <FieldLabel hint="mark the one you chose">Options considered</FieldLabel>
         <div className="space-y-2">
           {draft.options.map((o, i) => (
-            <div key={o.id} className="grid grid-cols-[auto_1fr_auto] items-start gap-2 rounded-[8px] border border-line p-2">
+            <div key={o.id} className="grid grid-cols-[auto_1fr_auto] items-start gap-2 rounded-[2px] border border-line p-2">
               <input
                 type="radio"
                 name="chosen"
@@ -555,7 +555,7 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
               </div>
               <button
                 type="button"
-                className="mt-1.5 rounded p-1 text-ink-3 hover:text-ink"
+                className="mt-1.5 rounded-[2px] p-1 text-ink-3 hover:text-ink"
                 aria-label="Remove option"
                 onClick={() =>
                   set(
@@ -609,7 +609,7 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
         </div>
       </div>
       {editing && (
-        <div className="space-y-3 rounded-[8px] border border-line p-3">
+        <div className="space-y-3 rounded-[2px] border border-line p-3">
           <div>
             <FieldLabel htmlFor="cap-actual">Actual outcome</FieldLabel>
             <textarea id="cap-actual" className="field min-h-[56px]" value={draft.actualOutcome} onChange={(e) => set('actualOutcome', e.target.value)} />

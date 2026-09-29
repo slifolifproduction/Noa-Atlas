@@ -15,15 +15,18 @@ export function Toasts() {
         <div
           key={t.id}
           className={cn(
-            'pointer-events-auto flex max-w-[520px] animate-rise items-center gap-3 rounded-[8px] border bg-overlay py-2 pr-2 pl-3.5 text-[13px] text-ink shadow-xl',
-            t.tone === 'warning' ? 'border-counter/40' : t.tone === 'success' ? 'border-support/30' : 'border-line-strong',
+            'pointer-events-auto relative flex max-w-[520px] animate-rise items-center gap-3 overflow-hidden rounded-[2px] border border-line-strong bg-overlay py-2 pr-2 pl-4 text-[13px] text-ink shadow-[0_20px_60px_-24px_rgb(0_0_0/0.9)]',
           )}
         >
+          <span
+            className={cn('absolute inset-y-0 left-0 w-[2px]', t.tone === 'warning' ? 'bg-counter' : t.tone === 'success' ? 'bg-support' : 'bg-accent')}
+            aria-hidden
+          />
           <span className="min-w-0">{t.message}</span>
           {t.action && (
             <button
               type="button"
-              className="shrink-0 rounded-[5px] px-2 py-1 text-[12px] font-medium text-accent hover:bg-accent-dim"
+              className="shrink-0 rounded-[2px] px-2 py-1 text-[12px] font-medium text-accent hover:bg-accent-dim"
               onClick={() => {
                 t.action!.run();
                 dismiss(t.id);
@@ -32,7 +35,7 @@ export function Toasts() {
               {t.action.label}
             </button>
           )}
-          <button type="button" aria-label="Dismiss" className="shrink-0 rounded p-1 text-ink-3 hover:text-ink" onClick={() => dismiss(t.id)}>
+          <button type="button" aria-label="Dismiss" className="shrink-0 rounded-[2px] p-1 text-ink-3 hover:text-ink" onClick={() => dismiss(t.id)}>
             <X size={13} aria-hidden />
           </button>
         </div>

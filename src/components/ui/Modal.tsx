@@ -68,21 +68,21 @@ export function Modal({
   if (!open) return null;
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-start sm:pt-[10vh]" role="presentation">
-      <div className="absolute inset-0 animate-fade-in bg-black/60 backdrop-blur-[2px]" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 animate-fade-in bg-[#040506]/80 backdrop-blur-[3px]" onClick={onClose} aria-hidden />
       <div
         ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
         className={cn(
-          'relative flex max-h-[92dvh] w-full animate-slide-in-up flex-col overflow-hidden rounded-t-[12px] border border-line-strong bg-surface shadow-2xl sm:max-h-[80vh] sm:animate-rise sm:rounded-[10px]',
+          'ticks relative flex max-h-[92dvh] w-full animate-slide-in-up flex-col overflow-hidden rounded-t-[2px] border border-line-strong bg-surface shadow-[0_40px_120px_-40px_rgb(0_0_0/0.9)] sm:max-h-[80vh] sm:animate-rise sm:rounded-[2px]',
           width,
         )}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-line px-5 pt-4 pb-3">
+        <header className="flex items-start justify-between gap-4 border-b border-line px-5 pt-5 pb-4">
           <div className="min-w-0">
-            <h2 className="text-[15px] font-medium text-ink">{title}</h2>
-            {description && <p className="mt-0.5 text-[12.5px] text-ink-2">{description}</p>}
+            <h2 className="display text-[26px] text-ink">{title}</h2>
+            {description && <p className="mt-1.5 max-w-[60ch] text-[12.5px] leading-relaxed text-ink-2">{description}</p>}
           </div>
           <IconButton icon={X} label="Close" onClick={onClose} data-close size="sm" />
         </header>

@@ -15,17 +15,17 @@ export const PatternNodeView = memo(function PatternNodeView({ id, data, selecte
   const pct = Math.round(data.confidence * 100);
   const spaceRef = useSpaceNode(id);
   return (
-    <div ref={spaceRef} className="node-body pattern-body relative" style={{ filter: selected ? 'drop-shadow(0 0 6px rgb(125 211 232 / 0.35))' : undefined }}>
-      <div className="p-px" style={{ clipPath: CLIP, background: selected ? 'var(--color-accent)' : `${PATTERN_COLOR}55` }}>
-        <div className="max-w-[250px] bg-raised px-5 py-2" style={{ clipPath: CLIP }}>
+    <div ref={spaceRef} className="node-body pattern-body relative" style={{ filter: selected ? 'drop-shadow(0 0 8px rgb(255 90 31 / 0.3))' : undefined }}>
+      <div className="p-px" style={{ clipPath: CLIP, background: selected ? 'var(--color-accent)' : 'rgb(236 232 223 / 0.3)' }}>
+        <div className="max-w-[250px] bg-canvas px-5 py-2" style={{ clipPath: CLIP }}>
           <div className="flex items-center gap-1.5">
             <PatternIcon size={11} strokeWidth={2} className="text-ink-2" aria-hidden />
             <span className="label text-ink-2!">Pattern {pad2(data.code)}</span>
             <span className="num ml-auto pl-3 text-[10px] text-ink-2">{pct}%</span>
           </div>
-          <div className="mt-0.5 text-[12px] leading-[1.35] text-ink">{data.title}</div>
-          <div className="mt-1.5 h-[2px] w-full rounded-full bg-white/8">
-            <div className="h-full rounded-full bg-ink-2" style={{ width: `${pct}%` }} />
+          <div className="display mt-1 text-[16px] leading-[1.12] text-ink">{data.title}</div>
+          <div className="mt-2 h-px w-full bg-ink/10">
+            <div className="h-full bg-ink" style={{ width: `${pct}%` }} />
           </div>
         </div>
       </div>

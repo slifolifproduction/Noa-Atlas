@@ -59,7 +59,7 @@ export function DecisionsPage() {
             Log decisions as you make them, with the options you weighed. Come back later to record what happened.
           </EmptyState>
         ) : (
-          <div className="overflow-x-auto rounded-[10px] border border-line">
+          <div className="overflow-x-auto rounded-[2px] border border-line">
             <table className="w-full min-w-[720px] text-left text-[13px]">
               <thead className="border-b border-line bg-surface">
                 <tr className="text-[11px] tracking-[0.06em] text-ink-3 uppercase">
@@ -85,7 +85,7 @@ export function DecisionsPage() {
                       <td className="px-3 py-2.5">
                         <button
                           type="button"
-                          className="text-left text-ink hover:underline"
+                          className="display text-left text-[20px] leading-[1.15] text-ink hover:underline"
                           onClick={(e) => (e.stopPropagation(), openEntity({ kind: 'decision', id: d.id }))}
                         >
                           {d.title}
@@ -133,7 +133,7 @@ function DecisionPatterns({ count }: { count: number }) {
   const visible = (candidates ?? []).filter((c) => !hidden.includes(c.signature));
 
   return (
-    <section className="mt-6 rounded-[12px] border border-line bg-surface" aria-labelledby="dp-title">
+    <section className="mt-6 rounded-[2px] border border-line bg-surface" aria-labelledby="dp-title">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
         <div>
           <h2 id="dp-title" className="label text-ink-2!">
@@ -167,7 +167,7 @@ function DecisionPatterns({ count }: { count: number }) {
             return (
               <li key={c.signature} className="px-4 py-4">
                 <div className="label">Decision pattern · {c.chain.join(' → ')}</div>
-                <p className="mt-1.5 text-[16px] leading-snug text-ink">“{c.statement}”</p>
+                <p className="display mt-1.5 text-[22px] leading-[1.15] text-ink">“{c.statement}”</p>
                 <p className="mt-1 text-[12.5px] text-ink-2">{c.observation}</p>
                 <dl className="mt-3 grid grid-cols-3 gap-4 sm:max-w-[560px]">
                   <div>
@@ -196,7 +196,10 @@ function DecisionPatterns({ count }: { count: number }) {
                 </div>
                 <div className="mt-3.5 flex flex-wrap gap-2">
                   {existing ? (
-                    <a href={hrefFor('patterns', existing.id)} className="inline-flex items-center gap-1.5 text-[12.5px] text-accent hover:underline">
+                    <a
+                      href={hrefFor('patterns', existing.id)}
+                      className="inline-flex items-center gap-1.5 text-[12.5px] text-ink underline decoration-ink-3/50 underline-offset-[3px] hover:decoration-ink"
+                    >
                       In the model as {patternCode(existing.code)} <ArrowRight size={12} aria-hidden />
                     </a>
                   ) : (

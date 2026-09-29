@@ -225,7 +225,7 @@ function Palette({ onClose }: { onClose(): void }) {
         role="dialog"
         aria-modal="true"
         aria-label="Search and commands"
-        className="relative w-full max-w-[600px] animate-rise overflow-hidden rounded-[10px] border border-line-strong bg-surface shadow-2xl"
+        className="relative w-full max-w-[600px] animate-rise overflow-hidden rounded-[2px] border border-line-strong bg-surface shadow-2xl"
       >
         <div className="flex items-center gap-2.5 border-b border-line px-4">
           <Search size={15} className="text-ink-3" aria-hidden />
@@ -271,7 +271,7 @@ function Palette({ onClose }: { onClose(): void }) {
                     aria-selected={index === active}
                     onMouseMove={() => setActive(index)}
                     onClick={() => run(item)}
-                    className={cn('flex cursor-pointer items-center gap-3 rounded-[6px] px-2.5 py-2', index === active ? 'bg-white/[0.06]' : '')}
+                    className={cn('flex cursor-pointer items-center gap-3 rounded-[2px] px-2.5 py-2', index === active ? 'bg-ink/[0.06]' : '')}
                   >
                     <item.icon size={14} strokeWidth={1.8} color={item.color} className={cn('shrink-0', !item.color && 'text-ink-3')} aria-hidden />
                     <span className="min-w-0 flex-1">

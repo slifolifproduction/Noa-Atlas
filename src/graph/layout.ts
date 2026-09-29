@@ -76,7 +76,7 @@ function pillSize(label: string, pattern: boolean): { hw: number; hh: number } {
   const perLine = pattern ? 34 : 30;
   const lines = Math.min(3, Math.ceil(label.length / perLine));
   const width = Math.min(pattern ? 250 : 228, 44 + Math.min(label.length, perLine) * 6.4);
-  const height = (pattern ? 44 : 16) + lines * 18;
+  const height = (pattern ? 48 : 30) + lines * 18;
   return { hw: width / 2, hh: height / 2 };
 }
 

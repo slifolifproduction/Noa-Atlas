@@ -42,7 +42,7 @@ export function EntryView({ id }: { id: ID }) {
           </span>
           <span className="num ml-auto text-[11.5px] text-ink-3">{formatDate(entry.date, { year: true })}</span>
         </div>
-        <h2 className="mt-2.5 text-[17px] leading-snug font-medium text-ink">{entry.title}</h2>
+        <h2 className="mt-2.5 display text-[28px] leading-[1.04] text-ink">{entry.title}</h2>
         <p className="mt-2 text-[13.5px] leading-relaxed whitespace-pre-wrap text-ink-2">{entry.content}</p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {entry.domains.map((d) => (
@@ -135,7 +135,7 @@ export function EntryView({ id }: { id: ID }) {
                 <NodeChip id={n} />
                 <button
                   type="button"
-                  className="ml-0.5 rounded p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+                  className="ml-0.5 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
                   aria-label="Unlink"
                   title="Unlink"
                   onClick={() => updateEntry(id, { nodeIds: entry.nodeIds.filter((x) => x !== n) })}
@@ -158,7 +158,7 @@ export function EntryView({ id }: { id: ID }) {
                 <button
                   type="button"
                   onClick={() => open({ kind: 'pattern', id: pattern.id })}
-                  className="flex w-full items-start gap-2 rounded-[5px] px-1 py-1 text-left hover:bg-white/[0.035]"
+                  className="flex w-full items-start gap-2 rounded-[2px] px-1 py-1 text-left hover:bg-ink/[0.035]"
                 >
                   <StanceMark stance={evidence.stance} />
                   <span className="min-w-0">
@@ -208,7 +208,7 @@ export function EntryView({ id }: { id: ID }) {
             {pending.length > 0 && (
               <div>
                 <div className="mb-1 text-[11.5px] text-ink-3">Suggestions for you to review</div>
-                <ul className="divide-y divide-line rounded-[8px] border border-line">
+                <ul className="divide-y divide-line rounded-[2px] border border-line">
                   {pending.map((s) => (
                     <SuggestionRow key={s.id} entryId={id} suggestion={s} />
                   ))}

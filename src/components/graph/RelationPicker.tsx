@@ -50,7 +50,7 @@ export function RelationPicker({
       ref={ref}
       role="dialog"
       aria-label="Choose a relationship"
-      className="absolute z-20 w-[284px] animate-rise rounded-[9px] border border-line-strong bg-overlay p-1.5 shadow-2xl"
+      className="absolute z-20 w-[284px] animate-rise rounded-[2px] border border-line-strong bg-overlay p-1.5 shadow-2xl"
       style={{ left, top }}
       onKeyDown={(e) => {
         if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -68,7 +68,7 @@ export function RelationPicker({
           key={r.key}
           type="button"
           onClick={() => pick(r.key)}
-          className="flex w-full items-center gap-2.5 rounded-[6px] px-2 py-1.5 text-left hover:bg-white/[0.05] focus-visible:bg-white/[0.05] focus-visible:outline-none"
+          className="flex w-full items-center gap-2.5 rounded-[2px] px-2 py-1.5 text-left hover:bg-ink/[0.05] focus-visible:bg-ink/[0.05] focus-visible:outline-none"
         >
           <RelationSwatch relation={r.key} />
           <span className="min-w-0">

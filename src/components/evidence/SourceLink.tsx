@@ -18,7 +18,9 @@ export function SourceLink({ source, showTitle, className }: { source: SourceRef
       className={cn('group inline-flex min-w-0 items-baseline gap-1.5 text-left', className)}
       title={`${r.code} · ${r.title} · ${formatDate(r.date)}`}
     >
-      <span className="num shrink-0 text-[12px] text-accent underline decoration-accent/30 underline-offset-2 group-hover:decoration-accent">{r.code}</span>
+      <span className="num shrink-0 text-[11.5px] tracking-[0.02em] text-ink-2 underline decoration-ink-3/40 underline-offset-[3px] group-hover:text-ink group-hover:decoration-ink">
+        {r.code}
+      </span>
       {showTitle && <span className="truncate text-[12.5px] text-ink-2 group-hover:text-ink">{r.title}</span>}
     </button>
   );

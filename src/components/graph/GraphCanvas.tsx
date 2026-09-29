@@ -605,6 +605,14 @@ function Canvas({
         >
           <EdgeMarkers />
           {living && <SpaceField reduced={reduced} camera={space.camera} lite={!depthOn} />}
+          {/* Viewfinder: registration marks framing the free part of the view. */}
+          {living && isDesktop && (
+            <div
+              className="ticks pointer-events-none absolute z-[1] transition-[left,right] duration-200 [--tick-color:rgb(236_232_223/0.24)] [--tick:16px]"
+              style={{ left: occludedLeft + 14, right: occludedRight + 14, top: 58, bottom: 14 }}
+              aria-hidden
+            />
+          )}
           <ReactFlow<AtlasFlowNode, SemanticEdge>
             nodes={nodes}
             edges={edges}
@@ -647,7 +655,7 @@ function Canvas({
             zoomOnDoubleClick={false}
             onlyRenderVisibleElements={nodes.length > 160}
           >
-            {!living && <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgb(255 255 255 / 0.07)" />}
+            {!living && <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgb(236 232 223 / 0.07)" />}
             {selectedNode && (
               <ViewportPortal>
                 <Reticle key={selectedNode.id} node={selectedNode} />
@@ -697,7 +705,7 @@ function SignalReadout({ signal, labelOf, left, right }: { signal: Signal; label
   const first = signal.first.map(labelOf).filter(Boolean);
   return (
     <div
-      className="atlas-readout pointer-events-none absolute bottom-3 z-10 max-w-[min(520px,55%)] -translate-x-1/2 animate-fade-in truncate rounded-[6px] bg-canvas/70 px-2 py-1 font-mono text-[10.5px] tracking-wide text-ink-3"
+      className="atlas-readout pointer-events-none absolute bottom-3 z-10 max-w-[min(520px,55%)] -translate-x-1/2 animate-fade-in truncate rounded-[2px] bg-canvas/70 px-2 py-1 font-mono text-[10.5px] tracking-wide text-ink-3"
       style={{ left: `calc(${left}px + (100% - ${left + right}px) / 2)` }}
       title="The map links your notes in the background. This shows the connection it is following right now."
     >

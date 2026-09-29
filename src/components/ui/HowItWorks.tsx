@@ -83,7 +83,7 @@ export function HowItWorks({ page, className }: { page: string; className?: stri
 export function HelpCard({ items, onDone, className, floating }: { items: ReactNode[]; onDone(): void; className?: string; floating?: boolean }) {
   return (
     <section
-      className={cn('rounded-[9px] border border-line-strong px-4 py-3', floating ? 'bg-overlay/95 shadow-2xl backdrop-blur-md' : 'bg-surface', className)}
+      className={cn('rounded-[2px] border border-line-strong px-4 py-3', floating ? 'bg-overlay/95 shadow-2xl backdrop-blur-md' : 'bg-surface', className)}
       aria-label="How this page works"
     >
       <div className="flex items-center justify-between gap-3">
@@ -91,7 +91,7 @@ export function HelpCard({ items, onDone, className, floating }: { items: ReactN
           <CircleHelp size={12} aria-hidden /> How this page works
         </span>
         {floating && (
-          <button type="button" onClick={onDone} className="rounded p-0.5 text-ink-3 hover:text-ink" aria-label="Close">
+          <button type="button" onClick={onDone} className="rounded-[2px] p-0.5 text-ink-3 hover:text-ink" aria-label="Close">
             <X size={14} aria-hidden />
           </button>
         )}

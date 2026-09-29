@@ -5,8 +5,11 @@ import { useSpaceNode } from '../../../graph/space';
 import type { HubNode } from '../../../graph/types';
 import { useLabelScale } from '../../../hooks/useZoom';
 import { cn } from '../../../lib/cn';
-import { DOMAIN_ICONS } from '../../icons';
 import { NodeHandles } from './Handles';
+
+/** Dial spacing in the hub's 0–100 viewBox: a mark every 10°, and the four cardinal marks. */
+const DIAL_STEP = (2 * Math.PI * 55.5) / 36;
+const DIAL_QUARTER = (2 * Math.PI * 57) / 4;
 
 /** A life-domain hub. The outer arc shows how much recent writing touched it. */
 export const HubNodeView = memo(function HubNodeView({ id, data, selected }: NodeProps<HubNode>) {
@@ -14,7 +17,8 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
   const living = motion.living && !motion.reduced;
   const wave = useWave(living, (w) => w.origin === id || w.reached.includes(id));
   const strength = wave ? (wave.origin === id ? 1 : wave.strength) : 0;
-  const Icon = DOMAIN_ICONS[data.key];
+  // Each domain is named by a two-letter symbol, as elements and constellations are.
+  const symbol = data.key[0].toUpperCase() + data.key[1];
   const size = data.center ? 108 : 78;
   const r = 46;
   const circ = 2 * Math.PI * r;
@@ -59,7 +63,20 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
           strokeWidth="1.25"
           vectorEffect="non-scaling-stroke"
         />
-        <circle cx="50" cy="50" r={r} fill="none" stroke="rgb(255 255 255 / 0.05)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
+        {/* The dial: a degree scale around the hub, with the four cardinal marks longer. */}
+        <circle cx="50" cy="50" r="55.5" fill="none" stroke={data.color} strokeOpacity="0.38" strokeWidth="3" strokeDasharray={`0.55 ${DIAL_STEP - 0.55}`} />
+        <circle
+          cx="50"
+          cy="50"
+          r="57"
+          fill="none"
+          stroke={data.color}
+          strokeOpacity="0.7"
+          strokeWidth="6"
+          strokeDasharray={`0.8 ${DIAL_QUARTER - 0.8}`}
+          transform="rotate(-90.5 50 50)"
+        />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="rgb(236 232 223 / 0.05)" strokeWidth="2" vectorEffect="non-scaling-stroke" />
         {data.activityCount > 0 && (
           <circle
             cx="50"
@@ -77,7 +94,9 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
         )}
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <Icon size={data.center ? 26 : 19} strokeWidth={1.6} color={data.color} aria-hidden />
+        <span className="display select-none italic" style={{ color: data.color, fontSize: data.center ? 34 : 25, lineHeight: 1 }} aria-hidden>
+          {symbol}
+        </span>
       </div>
       {data.patternCount > 0 && (
         <span
@@ -87,20 +106,28 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
           {data.patternCount}
         </span>
       )}
+      {/* A leader from the dial to the label, as on a chart. */}
+      <span
+        className="pointer-events-none absolute left-1/2 w-px"
+        style={{ background: data.color, opacity: 0.45, height: 9, ...(data.labelSide === 'bottom' ? { top: size + 4 } : { bottom: size + 4 }) }}
+        aria-hidden
+      />
       <div
-        className="node-label pointer-events-none absolute left-1/2 w-max max-w-[160px] -translate-x-1/2 rounded-[5px] bg-canvas/75 px-1.5 py-0.5 text-center"
+        className="node-label halo pointer-events-none absolute left-1/2 w-max max-w-[170px] -translate-x-1/2 text-center"
         style={
           data.labelSide === 'bottom'
-            ? { top: size + 8, transform: `scale(${scale})`, transformOrigin: 'top center' }
-            : { bottom: size + 8, transform: `scale(${scale})`, transformOrigin: 'bottom center' }
+            ? { top: size + 15, transform: `scale(${scale})`, transformOrigin: 'top center' }
+            : { bottom: size + 15, transform: `scale(${scale})`, transformOrigin: 'bottom center' }
         }
       >
-        <div className="label text-ink!" style={{ letterSpacing: '0.1em' }}>
+        <div className="label text-ink!" style={{ letterSpacing: data.compact ? '0.08em' : '0.16em' }}>
           {data.label}
           {data.collapsed && data.itemCount > 0 && <span className="text-ink-3"> · +{data.itemCount}</span>}
         </div>
         {data.statement && (!data.compact || selected) && (
-          <div className={cn('mt-0.5 line-clamp-2 text-[12px] leading-[1.35] text-ink-2', data.center && 'text-[13px] text-ink')}>{data.statement}</div>
+          <div className={cn('mt-1 line-clamp-2 text-[12px] leading-[1.35] text-ink-2', data.center && 'display text-[19px] leading-[1.1] text-ink')}>
+            {data.statement}
+          </div>
         )}
       </div>
       <NodeHandles />

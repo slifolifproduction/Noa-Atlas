@@ -123,7 +123,7 @@ export function NodeProbe({ id, occludedRight, hint }: { id: ID; occludedRight: 
   if (!info) return null;
   return (
     <div ref={ref} className="atlas-probe pointer-events-none absolute top-0 left-0 z-[5]" style={{ width: WIDTH }} role="tooltip">
-      <div className="atlas-probe-card rounded-[8px] border border-line-strong bg-surface/[0.94] px-3 py-2.5 shadow-2xl backdrop-blur-md">
+      <div className="atlas-probe-card rounded-[2px] border border-line-strong bg-surface/[0.94] px-3 py-2.5 shadow-2xl backdrop-blur-md">
         <div className="flex items-center gap-1.5">
           <span className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: info.color }} />
           <span className="label truncate">{info.kind}</span>

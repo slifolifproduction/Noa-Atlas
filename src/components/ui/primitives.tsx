@@ -37,7 +37,7 @@ export function Kbd({ children, className }: { children: ReactNode; className?: 
   return (
     <kbd
       className={cn(
-        'num inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] border border-line-strong bg-raised px-1 text-[10.5px] text-ink-2',
+        'num inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[2px] border border-line-strong bg-raised px-1 text-[10.5px] text-ink-2',
         className,
       )}
     >
@@ -80,8 +80,8 @@ export function Chip({
     </>
   );
   const cls = cn(
-    'inline-flex max-w-full items-center gap-1.5 rounded-[5px] border px-1.5 py-[2px] text-[12px] leading-[18px] transition-colors',
-    active ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line bg-white/[0.025] text-ink-2',
+    'inline-flex max-w-full items-center gap-1.5 rounded-[2px] border px-1.5 py-[2px] text-[12px] leading-[18px] transition-colors',
+    active ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line bg-ink/[0.025] text-ink-2',
     onClick && 'hover:border-line-strong hover:text-ink',
     className,
   );
@@ -110,9 +110,9 @@ export function EmptyState({
   className?: string;
 }) {
   return (
-    <div className={cn('flex flex-col items-start gap-2 rounded-[8px] border border-dashed border-line-strong px-4 py-5', className)}>
+    <div className={cn('flex flex-col items-start gap-2 rounded-[2px] border border-dashed border-line-strong px-4 py-5', className)}>
       {Icon && <Icon size={18} strokeWidth={1.5} className="text-ink-3" aria-hidden />}
-      <div className="text-[13px] font-medium text-ink">{title}</div>
+      <div className="display text-[21px] text-ink">{title}</div>
       {children && <div className="max-w-prose text-[12.5px] leading-relaxed text-ink-2">{children}</div>}
       {action && <div className="mt-1">{action}</div>}
     </div>
@@ -134,7 +134,7 @@ export function Segmented<T extends string | number>({
   size?: 'sm' | 'md';
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex rounded-[6px] border border-line bg-surface p-0.5">
+    <div role="radiogroup" aria-label={label} className="inline-flex rounded-[2px] border border-line bg-surface p-0.5">
       {options.map((o) => (
         <button
           key={String(o.value)}
@@ -144,9 +144,9 @@ export function Segmented<T extends string | number>({
           title={o.title}
           onClick={() => onChange(o.value)}
           className={cn(
-            'rounded-[4px] px-2 font-medium transition-colors',
+            'rounded-[2px] px-2 font-medium transition-colors',
             size === 'sm' ? 'h-6 text-[11.5px]' : 'h-7 text-[12px]',
-            o.value === value ? 'bg-overlay text-ink' : 'text-ink-3 hover:text-ink-2',
+            o.value === value ? 'bg-ink text-canvas' : 'text-ink-3 hover:text-ink-2',
           )}
         >
           {o.label}
@@ -169,13 +169,13 @@ export function Progress({ value, className, color = 'var(--color-ink-2)' }: { v
   const pct = Math.max(0, Math.min(1, value)) * 100;
   return (
     <div
-      className={cn('h-[3px] w-full overflow-hidden rounded-full bg-white/[0.07]', className)}
+      className={cn('h-[2px] w-full overflow-hidden bg-ink/[0.09]', className)}
       role="progressbar"
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}
     >
-      <div className="h-full rounded-full transition-[width] duration-500" style={{ width: `${pct}%`, background: color }} />
+      <div className="h-full transition-[width] duration-500" style={{ width: `${pct}%`, background: color }} />
     </div>
   );
 }
@@ -201,7 +201,7 @@ export function ToggleChip({
       onClick={onClick}
       title={title}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-[5px] border px-2 py-0.5 text-[12px] transition-colors',
+        'inline-flex items-center gap-1.5 rounded-[2px] border px-2 py-0.5 text-[12px] transition-colors',
         on ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-3 hover:border-line-strong hover:text-ink-2',
         className,
       )}

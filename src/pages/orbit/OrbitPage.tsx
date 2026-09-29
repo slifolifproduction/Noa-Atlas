@@ -117,7 +117,7 @@ export function OrbitPage() {
             <button
               type="button"
               onClick={() => setMobileHud(true)}
-              className="mr-auto h-8 rounded-[7px] border border-line bg-surface/95 px-2.5 text-[12px] text-ink-2"
+              className="mr-auto h-8 rounded-[2px] border border-line bg-surface/95 px-2.5 text-[12px] text-ink-2"
             >
               Overview
             </button>
@@ -177,7 +177,7 @@ export function OrbitPage() {
         {/* Overview panel */}
         {hudVisible && (
           <div
-            className="absolute top-3 bottom-3 left-3 z-10 animate-fade-in overflow-hidden rounded-[10px] border border-line bg-surface/[0.96] shadow-2xl backdrop-blur-md"
+            className="ticks absolute top-3 bottom-3 left-3 z-10 animate-fade-in overflow-hidden rounded-[2px] border border-line bg-surface/[0.9] shadow-2xl backdrop-blur-md"
             style={{ width: HUD_WIDTH }}
           >
             <StatusHud onClose={() => setHudOpen(false)} />
@@ -187,7 +187,7 @@ export function OrbitPage() {
         {/* First step, only on an empty atlas */}
         {Object.keys(data.entries).length === 0 && Object.keys(data.nodes).length === 0 && (
           <div
-            className="absolute bottom-12 z-10 w-[min(440px,calc(100%-24px))] -translate-x-1/2 rounded-[10px] border border-line-strong bg-surface/95 px-4 py-3.5 backdrop-blur"
+            className="absolute bottom-12 z-10 w-[min(440px,calc(100%-24px))] -translate-x-1/2 rounded-[2px] border border-line-strong bg-surface/95 px-4 py-3.5 backdrop-blur"
             style={{ left: isDesktop ? `calc(${leftInset}px + (100% - ${leftInset + occluded}px) / 2)` : '50%' }}
           >
             <div className="label">Start here</div>

@@ -88,7 +88,7 @@ export function Menu({
           }
         }}
         className={cn(
-          'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[7px] border text-[12.5px] transition-colors',
+          'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[2px] border text-[12.5px] transition-colors',
           iconOnly ? 'w-8' : 'px-2.5',
           open ? 'border-line-strong bg-raised text-ink' : 'border-line bg-surface/95 text-ink-2 hover:border-line-strong hover:text-ink',
           className,
@@ -105,7 +105,7 @@ export function Menu({
           role="menu"
           aria-label={label}
           className={cn(
-            'absolute top-full z-40 mt-1 animate-rise rounded-[9px] border border-line-strong bg-overlay p-1 shadow-2xl',
+            'absolute top-full z-40 mt-1 animate-rise rounded-[2px] border border-line-strong bg-overlay p-1 shadow-2xl',
             align === 'end' ? 'right-0' : 'left-0',
             width,
             panelClassName,
@@ -158,7 +158,7 @@ export function MenuItem({
     </>
   );
   const cls = cn(
-    'flex w-full items-start gap-2.5 rounded-[6px] px-2.5 py-[7px] text-left outline-none hover:bg-white/[0.05] focus-visible:bg-white/[0.07] disabled:opacity-40',
+    'flex w-full items-start gap-2.5 rounded-[2px] px-2.5 py-[7px] text-left outline-none hover:bg-ink/[0.05] focus-visible:bg-ink/[0.07] disabled:opacity-40',
   );
   if (href) {
     return (

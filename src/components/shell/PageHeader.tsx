@@ -22,14 +22,15 @@ export function PageHeader({
   const v = view ? VIEWS[view] : undefined;
   return (
     <div className={className}>
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4 border-b border-line pb-5">
         <div className="min-w-0">
-          <h1 className="text-[20px] leading-tight font-medium tracking-[-0.015em] text-ink">{title ?? v?.question}</h1>
-          {(description ?? v?.blurb) && <p className="mt-1 max-w-[62ch] text-[13px] text-ink-2">{description ?? v?.blurb}</p>}
+          {v && <div className="label mb-3 text-ink-3">{v.label}</div>}
+          <h1 className="display text-[40px] text-ink md:text-[52px]">{title ?? v?.question}</h1>
+          {(description ?? v?.blurb) && <p className="mt-3 max-w-[58ch] text-[13.5px] leading-relaxed text-ink-2">{description ?? v?.blurb}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
-      {help && <HowItWorks page={help} className="mt-3" />}
+      {help && <HowItWorks page={help} className="mt-4" />}
     </div>
   );
 }
