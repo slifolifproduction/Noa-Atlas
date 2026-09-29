@@ -1,4 +1,5 @@
-import { Check, CircleDashed, Compass, FlaskConical, Pencil, Plus } from 'lucide-react';
+import { Check, Pencil, Plus } from 'lucide-react';
+import { CATEGORY_ICONS, ExperimentIcon, PLACE_ICONS } from '../../components/icons';
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { PageHeader } from '../../components/shell/PageHeader';
@@ -55,7 +56,7 @@ export function PathsPage() {
       {paths.length === 0 ? (
         <div className="mt-6 grid gap-6 md:grid-cols-[280px_1fr]">
           <CurrentStateCell onEdit={() => setEditingState(true)} />
-          <EmptyState icon={Compass} title="No paths yet">
+          <EmptyState icon={PLACE_ICONS.plan} title="No paths yet">
             Describe two or three genuinely different directions. The same questions are asked of each (requirements, capital, time, risks, unknowns) so they
             can be compared without a verdict.
           </EmptyState>
@@ -330,7 +331,7 @@ function Cell({
         <ul className="space-y-1">
           {p.unknowns.map((u) => (
             <li key={u} className="flex gap-2">
-              <CircleDashed size={12} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
+              <CATEGORY_ICONS.assumption size={12} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
               <span>{u}</span>
             </li>
           ))}
@@ -366,7 +367,7 @@ function Cell({
             if (!x) return null;
             return (
               <button key={id} type="button" onClick={() => onOpenExperiment(id)} className="flex w-full items-baseline gap-2 text-left hover:text-ink">
-                <FlaskConical size={12} className="shrink-0 translate-y-[2px] text-ink-3" aria-hidden />
+                <ExperimentIcon size={12} className="shrink-0 translate-y-[2px] text-ink-3" aria-hidden />
                 <span className="num text-[11.5px] text-ink-3">{experimentCode(x.code)}</span>
                 <span className="min-w-0 flex-1">{x.title}</span>
                 <span className="shrink-0 text-[11px] text-ink-3">{EXPERIMENT_STATUS_LABEL[x.status]}</span>

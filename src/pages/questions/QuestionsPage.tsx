@@ -1,4 +1,5 @@
-import { CircleQuestionMark, Crosshair, Plus } from 'lucide-react';
+import { Crosshair, Plus } from 'lucide-react';
+import { CATEGORY_ICONS } from '../../components/icons';
 import { useState } from 'react';
 import { showOnMap } from '../../app/showOnMap';
 import { AddNodeModal } from '../../components/graph/AddNodeModal';
@@ -37,7 +38,7 @@ export function QuestionsPage() {
         }
       />
       {questions.length === 0 ? (
-        <EmptyState icon={CircleQuestionMark} title="No open questions" className="mt-6">
+        <EmptyState icon={CATEGORY_ICONS.question} title="No open questions" className="mt-6">
           Good questions to start with: what you are actually optimising for, which opportunities to stop accepting, and which assumptions about your work have
           never been tested.
         </EmptyState>

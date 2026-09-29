@@ -1,4 +1,5 @@
-import { ArrowRight, BookOpen, Compass, Ellipsis, Orbit, Search } from 'lucide-react';
+import { ArrowRight, Ellipsis, Search, type LucideIcon } from 'lucide-react';
+import { PLACE_ICONS } from '../icons';
 import { useEffect, useState, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { cn } from '../../lib/cn';
@@ -112,14 +113,14 @@ export function Guide() {
       title: 'Finding your way around',
       body: (
         <ul className="space-y-2.5">
-          <Where icon={Orbit} title="Map">
+          <Where icon={PLACE_ICONS.map} title="Map">
             Orbit shows your areas of life, Mind shows how you think. Click anything to open it; “Add point” adds your own. The Overview on the left always
             shows one thing to do next.
           </Where>
-          <Where icon={BookOpen} title="Notes">
+          <Where icon={PLACE_ICONS.notes} title="Notes">
             Everything you have written: notes, decisions and open questions.
           </Where>
-          <Where icon={Compass} title="Plan">
+          <Where icon={PLACE_ICONS.plan} title="Plan">
             Your options side by side, the direction you chose, and this week&apos;s steps.
           </Where>
           <Where icon={Ellipsis} title="More (⋯, top right)">
@@ -184,7 +185,7 @@ export function Guide() {
   );
 }
 
-function Where({ icon: Icon, title, children }: { icon: typeof Orbit; title: string; children: ReactNode }) {
+function Where({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
   return (
     <li className="flex gap-3">
       <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[2px] border border-line bg-raised">

@@ -85,7 +85,7 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
           <EdgeFlow id={id} curve={{ x0: start.x, y0: start.y, cx, cy, x1: end.x, y1: end.y }} length={len} data={data} source={source} target={target} />
           {label && (
             <div
-              className="nodrag nopan pointer-events-none absolute w-max rounded-[2px] border border-line bg-canvas/90 px-1.5 py-px font-mono text-[10px] tracking-wide text-ink-2"
+              className="nodrag nopan pointer-events-none absolute w-max rounded-[2px] border border-line bg-canvas/90 px-1.5 py-px font-mono text-[11px] tracking-wide text-ink-2"
               style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}
             >
               {meta.verb}

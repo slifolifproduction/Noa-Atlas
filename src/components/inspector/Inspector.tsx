@@ -88,7 +88,7 @@ export function Inspector() {
   return (
     <aside
       aria-label="Inspector"
-      className="fixed inset-x-0 bottom-0 z-40 flex max-h-[80dvh] animate-slide-in-up flex-col rounded-t-[14px] border-t border-line-strong bg-surface shadow-[0_-24px_48px_-12px_rgb(0_0_0/0.7)]"
+      className="fixed inset-x-0 bottom-0 z-40 flex max-h-[80dvh] animate-slide-in-up flex-col rounded-t-[2px] border-t border-line-strong bg-surface shadow-[0_-24px_48px_-12px_rgb(0_0_0/0.7)]"
     >
       <div className="flex justify-center pt-2" aria-hidden>
         <span className="h-1 w-9 rounded-full bg-ink/15" />

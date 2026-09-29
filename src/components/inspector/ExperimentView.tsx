@@ -1,4 +1,5 @@
-import { ArrowUpRight, FlaskConical, Play } from 'lucide-react';
+import { ArrowUpRight, Play } from 'lucide-react';
+import { ExperimentIcon } from '../icons';
 import { useState } from 'react';
 import { navigate } from '../../app/router';
 import { EXPERIMENT_STATUS_LABEL } from '../../domain/constants';
@@ -29,7 +30,7 @@ export function ExperimentView({ id }: { id: ID }) {
     <div>
       <div className="px-4 pt-4 pb-4">
         <div className="flex items-center gap-2">
-          <FlaskConical size={14} className="text-ink-3" aria-hidden />
+          <ExperimentIcon size={14} className="text-ink-3" aria-hidden />
           <span className="label">
             {experimentCode(x.code)} · {EXPERIMENT_STATUS_LABEL[x.status]}
           </span>

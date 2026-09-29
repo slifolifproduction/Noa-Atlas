@@ -81,15 +81,19 @@ export function OrbitPage() {
   );
 
   const allCollapsed = view.collapsed.length === DOMAIN_KEYS.length;
+  const empty = Object.keys(data.entries).length === 0 && Object.keys(data.nodes).length === 0;
   const occluded = inspector.length ? panelWidth : 0;
   const hudVisible = isDesktop && hudOpen;
   const leftInset = hudVisible ? HUD_WIDTH + 24 : 12;
+  // On an empty atlas without the overview on screen, a start card sits at the top (clear of the
+  // toasts at the bottom): fit the map below it.
+  const startCard = empty && !hudVisible;
   const padding = useMemo(
     (): FitViewOptions['padding'] =>
       isMobile
-        ? { top: '112px', bottom: '24px', left: '20px', right: '20px' }
-        : { top: '80px', bottom: '32px', left: `${leftInset + 56}px`, right: `${occluded + 96}px` },
-    [isMobile, leftInset, occluded],
+        ? { top: startCard ? '300px' : '112px', bottom: '24px', left: '20px', right: '20px' }
+        : { top: startCard ? '230px' : '80px', bottom: '32px', left: `${leftInset + 56}px`, right: `${occluded + 96}px` },
+    [isMobile, leftInset, occluded, startCard],
   );
 
   return (
@@ -104,6 +108,7 @@ export function OrbitPage() {
         occludedRight={occluded}
         persistViewport={!isMobile}
         fitPadding={padding}
+        refitKey={startCard ? 'start' : 'map'}
         draggable={!isMobile}
         occludedLeft={hudVisible ? leftInset : 0}
         living
@@ -180,14 +185,17 @@ export function OrbitPage() {
             className="ticks absolute top-3 bottom-3 left-3 z-10 animate-fade-in overflow-hidden rounded-[2px] border border-line bg-surface/[0.9] shadow-2xl backdrop-blur-md"
             style={{ width: HUD_WIDTH }}
           >
-            <StatusHud onClose={() => setHudOpen(false)} />
+            <StatusHud
+              onClose={() => setHudOpen(false)}
+              start={empty ? { addPoint: () => setAdding(true), identity: () => openEntity({ kind: 'domain', id: 'identity' }) } : undefined}
+            />
           </div>
         )}
 
         {/* First step, only on an empty atlas */}
-        {Object.keys(data.entries).length === 0 && Object.keys(data.nodes).length === 0 && (
+        {startCard && (
           <div
-            className="absolute bottom-12 z-10 w-[min(440px,calc(100%-24px))] -translate-x-1/2 rounded-[2px] border border-line-strong bg-surface/95 px-4 py-3.5 backdrop-blur"
+            className="absolute top-[64px] z-10 max-md:top-[108px] w-[min(440px,calc(100%-24px))] -translate-x-1/2 rounded-[2px] border border-line-strong bg-surface/95 px-4 py-3.5 backdrop-blur"
             style={{ left: isDesktop ? `calc(${leftInset}px + (100% - ${leftInset + occluded}px) / 2)` : '50%' }}
           >
             <div className="label">Start here</div>

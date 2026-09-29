@@ -98,7 +98,7 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
       </div>
       {data.patternCount > 0 && (
         <span
-          className="num absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-line-strong bg-raised px-1 text-[10px] text-ink"
+          className="num absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-line-strong bg-raised px-1 text-[11px] text-ink"
           title={`${data.patternCount} active pattern${data.patternCount === 1 ? '' : 's'} involve this domain`}
         >
           {data.patternCount}

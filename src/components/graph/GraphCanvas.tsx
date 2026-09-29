@@ -59,6 +59,8 @@ export interface GraphCanvasProps {
   occludedRight?: number;
   minimap?: boolean;
   fitPadding?: FitViewOptions['padding'];
+  /** Changing this refits the view (e.g. when a card starts or stops covering part of the map). */
+  refitKey?: string;
   /** Lower bound for the automatic fit, so text stays readable on small screens. */
   fitMinZoom?: number;
   draggable?: boolean;
@@ -118,6 +120,7 @@ function Canvas({
   occludedRight = 0,
   minimap,
   fitPadding = 0.12,
+  refitKey,
   fitMinZoom,
   draggable = true,
   persistViewport = true,
@@ -202,10 +205,15 @@ function Canvas({
     );
   }, [space, selectedId, built.nodes, hovered]);
 
+  // Whether the view is still the automatic fit. A fitted view stays fitted when side panels open
+  // or close; once you pan, zoom or a selection moves the camera, the view is yours and stays put.
+  const fitted = useRef(!initialViewport);
+
   // Momentum: a thrown pan keeps drifting and slows down, as things do in space.
   const momentum = useRef({ dragging: false, samples: [] as { t: number; x: number; y: number }[], raf: 0 });
   const onMoveStart = useCallback((e: MouseEvent | TouchEvent | null) => {
     if (!e) return;
+    fitted.current = false;
     const m = momentum.current;
     cancelAnimationFrame(m.raf);
     m.raf = 0;
@@ -383,6 +391,7 @@ function Canvas({
     // Wait a frame so an initial fit (on a freshly mounted canvas) does not override the focus.
     const raf = requestAnimationFrame(() => {
       const zoom = Math.max(rf.getZoom(), 0.9);
+      fitted.current = false;
       rf.setCenter(n.position.x + occludedRight / 2 / zoom, n.position.y, { zoom, duration: 500 });
     });
     return () => cancelAnimationFrame(raf);
@@ -401,12 +410,14 @@ function Canvas({
     if (travelled.current === selectedId) {
       // Keyboard travel: the camera flies to each node in turn.
       travelled.current = null;
+      fitted.current = false;
       rf.setCenter(centre(zoom), n.position.y, { zoom, duration: reduced ? 0 : 560, ease: easeInOutCubic });
       return;
     }
     if (living && n.type === 'hub') {
       // Navigating to a region: a gentle glide that brings the domain and its satellites into view.
       const target = Math.min(1.05, Math.max(zoom, 0.78));
+      fitted.current = false;
       rf.setCenter(centre(target), n.position.y, { zoom: target, duration: reduced ? 0 : 900, ease: easeInOutCubic });
       return;
     }
@@ -414,9 +425,38 @@ function Canvas({
     const sy = n.position.y * zoom + y;
     const margin = 80;
     if (sx < occludedLeft + margin || sx > rect.width - occludedRight - margin || sy < margin || sy > rect.height - margin) {
+      fitted.current = false;
       rf.setCenter(centre(zoom), n.position.y, { zoom, duration: reduced ? 0 : 600, ease: easeInOutCubic });
     }
   }, [selectedId]);
+
+  // Side panels opening or closing change the visible area. A view that is still the automatic fit
+  // refits when room is given back (so closing the panel never leaves the map pushed to one side); a
+  // view you have moved stays where you put it, except that the overview's own toggle keeps its centre.
+  const occlusion = useRef({ left: occludedLeft, right: occludedRight });
+  useEffect(() => {
+    const prev = occlusion.current;
+    occlusion.current = { left: occludedLeft, right: occludedRight };
+    const dL = occludedLeft - prev.left;
+    const dR = occludedRight - prev.right;
+    if (!dL && !dR) return;
+    if (fitted.current) {
+      // Opening the inspector leaves the view alone (shrinking the map to fit beside it would make
+      // everything tiny); closing it, or toggling the overview, refits to the room there is.
+      if (dR <= 0) rf.fitView({ ...fitOptionsRef.current, duration: reduced ? 0 : 420 });
+    } else if (dL && !dR) {
+      const vp = rf.getViewport();
+      rf.setViewport({ ...vp, x: vp.x + dL / 2 }, { duration: reduced ? 0 : 420 });
+    }
+  }, [occludedLeft, occludedRight]);
+
+  const refitted = useRef(refitKey);
+  useEffect(() => {
+    if (refitted.current === refitKey) return;
+    refitted.current = refitKey;
+    fitted.current = true;
+    rf.fitView({ ...fitOptionsRef.current, duration: reduced ? 0 : 500 });
+  }, [refitKey]);
 
   // The network thinks: every few seconds a signal leaves one node (a domain in Orbit, a
   // well-connected thought in Mind) and travels up to three links outward, one hop at a time,
@@ -561,8 +601,10 @@ function Canvas({
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
-      if (e.key === 'f') rf.fitView({ ...fitOptionsRef.current, duration: 400 });
-      else if (e.key === '=' || e.key === '+') rf.zoomIn({ duration: 200 });
+      if (e.key === 'f') {
+        fitted.current = true;
+        rf.fitView({ ...fitOptionsRef.current, duration: 400 });
+      } else if (e.key === '=' || e.key === '+') rf.zoomIn({ duration: 200 });
       else if (e.key === '-') rf.zoomOut({ duration: 200 });
       else if (e.key === 'Enter' && document.activeElement?.classList.contains('react-flow__node')) {
         const id = document.activeElement.getAttribute('data-id');

@@ -145,10 +145,10 @@
   /* Small mono caps label: the structural voice of the interface. */
   .label {
     font-family: var(--font-mono);
-    font-size: 0.65625rem;
+    font-size: 0.6875rem;
     line-height: 1rem;
     font-weight: 400;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--color-ink-3);
   }

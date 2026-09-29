@@ -66,10 +66,10 @@ function Ring({ index, r, w, h, stretch, label }: { index: number; r: number; w:
         <text
           x={cx + r * stretch.x * Math.cos(a) + 10}
           y={cy + r * stretch.y * Math.sin(a) - 8}
-          fill="rgb(142 139 132 / 0.85)"
+          fill="rgb(142 139 132)"
           fontFamily="var(--font-mono)"
-          fontSize="10.5"
-          letterSpacing="2"
+          fontSize="14"
+          letterSpacing="2.4"
         >
           {`R${index + 1} — ${label?.toUpperCase() ?? ''}`}
         </text>

@@ -21,7 +21,7 @@ export const PatternNodeView = memo(function PatternNodeView({ id, data, selecte
           <div className="flex items-center gap-1.5">
             <PatternIcon size={11} strokeWidth={2} className="text-ink-2" aria-hidden />
             <span className="label text-ink-2!">Pattern {pad2(data.code)}</span>
-            <span className="num ml-auto pl-3 text-[10px] text-ink-2">{pct}%</span>
+            <span className="num ml-auto pl-3 text-[11px] text-ink-2">{pct}%</span>
           </div>
           <div className="display mt-1 text-[14px] leading-[1.2] text-ink">{data.title}</div>
           <div className="mt-2 h-px w-full bg-ink/10">

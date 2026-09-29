@@ -1,22 +1,17 @@
-import { BookOpen, Compass, Ellipsis, History, Keyboard, LifeBuoy, Orbit, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
+import { Ellipsis, History, Keyboard, LifeBuoy, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
 import { useAtlas } from '../../state/atlasStore';
 import { daysBetween, todayISO } from '../../lib/dates';
 import { groupTarget, hrefFor, type RouteKey } from '../../app/router';
 import { GROUPS, groupOf, VIEWS, type GroupKey } from '../../domain/constants';
 import { cn } from '../../lib/cn';
 import { useUI } from '../../state/uiStore';
-import { PatternIcon } from '../icons';
+import { PLACE_ICONS } from '../icons';
 import { Button, IconButton } from '../ui/Button';
 import { Menu, MenuItem, MenuSeparator } from '../ui/Menu';
 import { Kbd } from '../ui/primitives';
 import { LogoMark, Wordmark } from './Logo';
 
-export const GROUP_ICONS: Record<GroupKey, LucideIcon> = {
-  map: Orbit,
-  notes: BookOpen,
-  patterns: PatternIcon,
-  plan: Compass,
-};
+export const GROUP_ICONS: Record<GroupKey, LucideIcon> = PLACE_ICONS;
 
 /**
  * Four places, search, capture, and one "more" menu. Everything else lives
@@ -48,7 +43,7 @@ export function TopBar({ active }: { active: RouteKey }) {
                 isActive ? 'text-ink' : 'text-ink-3 hover:text-ink',
               )}
             >
-              <span className={cn('num text-[9.5px] tracking-[0.06em]', isActive ? 'text-accent' : 'text-ink-3/70 group-hover:text-ink-3')} aria-hidden>
+              <span className={cn('num text-[10.5px] tracking-[0.06em]', isActive ? 'text-accent' : 'text-ink-3 group-hover:text-ink-2')} aria-hidden>
                 0{i + 1}
               </span>
               <span className="font-medium tracking-[0.005em]">{g.label}</span>
@@ -167,7 +162,7 @@ export function MobileTabBar({ active }: { active: RouteKey }) {
           >
             <Icon size={16} strokeWidth={1.6} className={isActive ? 'text-accent' : undefined} aria-hidden />
             <span className="text-[11px] font-medium">
-              <span className={cn('num mr-1 text-[9px]', isActive ? 'text-accent' : 'text-ink-3/70')} aria-hidden>
+              <span className={cn('num mr-1 text-[10.5px]', isActive ? 'text-accent' : 'text-ink-3')} aria-hidden>
                 0{i + 1}
               </span>
               {g.label}

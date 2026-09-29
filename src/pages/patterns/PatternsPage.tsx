@@ -1,4 +1,5 @@
-import { ArrowLeft, ArrowRight, Check, ChevronDown, FlaskConical, Plus, Repeat2, ScanSearch, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, ChevronDown, Plus, ScanSearch, X } from 'lucide-react';
+import { ExperimentIcon, PatternIcon } from '../../components/icons';
 import { useMemo, useState } from 'react';
 import type { ExperimentDraft } from '../../ai/types';
 import { hrefFor, navigate } from '../../app/router';
@@ -72,7 +73,7 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
 
       {empty ? (
         <EmptyState
-          icon={Repeat2}
+          icon={PatternIcon}
           title="No patterns yet"
           className="mt-6"
           action={
@@ -154,7 +155,7 @@ function PatternListItem({ pattern: p, active, pendingCount }: { pattern: Patter
       >
         <div className="flex items-center gap-2">
           <span className="label">{patternCode(p.code)}</span>
-          {p.status !== 'active' && <span className="rounded-[2px] border border-line px-1 text-[10px] text-ink-3">{PATTERN_STATUS_LABEL[p.status]}</span>}
+          {p.status !== 'active' && <span className="rounded-[2px] border border-line px-1 text-[11px] text-ink-3">{PATTERN_STATUS_LABEL[p.status]}</span>}
           {pendingCount > 0 && (
             <span className="ml-auto rounded-full bg-accent-dim px-1.5 text-[10.5px] text-accent" title="Evidence suggestions waiting for review">
               {pendingCount} to review
@@ -606,7 +607,7 @@ function PatternExperiments({ pattern }: { pattern: Pattern }) {
       title="Experiments"
       aside={
         pattern.status !== 'dismissed' && (
-          <Button size="sm" variant="ghost" icon={FlaskConical} loading={busy} onClick={async () => setDrafts(await proposeExperiments(pattern.id))}>
+          <Button size="sm" variant="ghost" icon={ExperimentIcon} loading={busy} onClick={async () => setDrafts(await proposeExperiments(pattern.id))}>
             Suggest experiments
           </Button>
         )

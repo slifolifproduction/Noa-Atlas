@@ -30,7 +30,7 @@ export const MindNodeView = memo(function MindNodeView({ id, data, selected }: N
       <span className="absolute inset-y-[-1px] left-[-1px] w-[2px]" style={{ background: data.color }} aria-hidden />
       <div className="mind-glow" style={{ ['--glow' as string]: data.color }} aria-hidden />
       <NodeRipple id={id} color={data.color} shape="card" />
-      <div className="flex items-baseline gap-2 font-mono text-[9.5px] leading-[12px] tracking-[0.14em] uppercase" style={{ color: data.color }}>
+      <div className="flex items-baseline gap-2 font-mono text-[10.5px] leading-[13px] tracking-[0.12em] uppercase" style={{ color: data.color }}>
         {CATEGORY_META[data.category].label}
         {data.origin === 'inferred' && data.confidence !== undefined && (
           <span className="text-ink-3" title="Inferred by analysis; confidence in the inference">

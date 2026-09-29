@@ -1,4 +1,5 @@
-import { ArrowRight, Check, Compass, Ellipsis, Play, Plus, SkipForward, Target, Trash, X } from 'lucide-react';
+import { ArrowRight, Check, Ellipsis, Play, Plus, SkipForward, Trash, X } from 'lucide-react';
+import { DOMAIN_ICONS, PLACE_ICONS } from '../../components/icons';
 import { useState, type ReactNode } from 'react';
 import { hrefFor } from '../../app/router';
 import { ResultModal } from '../../components/experiments/ResultModal';
@@ -24,9 +25,11 @@ export function NavigationPage() {
         help="navigation"
         description="Your chosen direction, broken down into a goal, this month's targets and this week's steps."
         actions={
-          <a href={hrefFor('paths')} className="text-[12.5px] text-ink-2 hover:text-ink">
-            Change direction →
-          </a>
+          nav && (
+            <a href={hrefFor('paths')} className="text-[12.5px] text-ink-2 hover:text-ink">
+              Change direction →
+            </a>
+          )
         }
       />
       <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -34,7 +37,7 @@ export function NavigationPage() {
           <Route />
         ) : (
           <EmptyState
-            icon={Compass}
+            icon={PLACE_ICONS.plan}
             title="No direction chosen"
             action={
               <a href={hrefFor('paths')} className={buttonClass('primary', 'md', 'gap-2')}>
@@ -482,7 +485,7 @@ function ExperimentsColumn({ onCreate }: { onCreate(): void }) {
         <LoopStrip />
       </div>
       {all.length === 0 ? (
-        <EmptyState icon={Target} title="No experiments yet" className="mt-4">
+        <EmptyState icon={DOMAIN_ICONS.goals} title="No experiments yet" className="mt-4">
           Suggest experiments from any pattern, or design one from a path’s unknowns.
         </EmptyState>
       ) : (

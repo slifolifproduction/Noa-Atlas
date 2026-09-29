@@ -102,7 +102,7 @@ export function PanelSection({ title, count, children, aside }: { title: string;
       <div className="mb-1.5 flex items-center justify-between gap-2">
         <h3 className="label">
           {title}
-          {count !== undefined && <span className="num ml-1.5 text-ink-3/80">{count}</span>}
+          {count !== undefined && <span className="num ml-1.5 text-ink-3">{count}</span>}
         </h3>
         {aside}
       </div>

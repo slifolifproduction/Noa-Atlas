@@ -1,4 +1,4 @@
-import { ArrowRight, PanelLeftClose } from 'lucide-react';
+import { ArrowRight, PanelLeftClose, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { hrefFor } from '../../app/router';
 import { computeConfidence, pct } from '../../domain/confidence';
@@ -7,7 +7,7 @@ import { formatDate, todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
-import { IconButton } from '../../components/ui/Button';
+import { Button, IconButton } from '../../components/ui/Button';
 import { Progress } from '../../components/ui/primitives';
 import { NextStepCard } from '../../components/shell/NextStepCard';
 
@@ -16,7 +16,7 @@ function Block({ n, title, href, children, className }: { n: number; title: stri
     <section className={cn('border-t border-line px-4 pt-3.5 pb-4', className)}>
       <div className="mb-2 flex items-center justify-between">
         <h2 className="label">
-          <span className="mr-2 text-ink-3/60">{String(n).padStart(2, '0')}</span>
+          <span className="mr-2 text-ink-3">{String(n).padStart(2, '0')}</span>
           {title}
         </h2>
         {href && (
@@ -36,7 +36,7 @@ const rowBtn = 'group flex w-full items-baseline gap-2 rounded-[2px] px-1 py-[3p
  * The overview, kept to four things: what to do now, where you are, your
  * plan, and what keeps happening. Everything opens in place.
  */
-export function StatusHud({ onClose }: { onClose?: () => void }) {
+export function StatusHud({ onClose, start }: { onClose?: () => void; start?: { addPoint(): void; identity(): void } }) {
   const data = useAtlas((s) => s.data);
   const open = useUI((s) => s.openEntity);
   const nav = data.navigation;
@@ -52,12 +52,25 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
     <div className="flex h-full flex-col">
       <div className="flex h-10 shrink-0 items-center justify-between border-b border-line pr-1.5 pl-4">
         <span className="label text-ink-2!">Overview</span>
-        <span className="num ml-auto pr-2 text-[10px] tracking-[0.1em] text-ink-3">{formatDate(todayISO()).toUpperCase()}</span>
+        <span className="num ml-auto pr-2 text-[11px] tracking-[0.1em] text-ink-3">{formatDate(todayISO()).toUpperCase()}</span>
         {onClose && <IconButton icon={PanelLeftClose} label="Hide the overview (View menu brings it back)" size="sm" onClick={onClose} />}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="px-3 pt-3 pb-3">
           <NextStepCard />
+          {start && (
+            <div className="mt-3 px-1">
+              <p className="text-[12.5px] leading-snug text-ink-3">Or begin with the map itself: add your goals, projects, people and skills.</p>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button size="sm" icon={Plus} onClick={start.addPoint}>
+                  Add a point
+                </Button>
+                <Button size="sm" variant="ghost" onClick={start.identity}>
+                  Describe your identity
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
         <Block n={1} title="Where I am" href={hrefFor('paths')}>
           {data.currentState.position ? (

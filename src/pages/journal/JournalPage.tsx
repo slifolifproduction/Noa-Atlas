@@ -1,6 +1,6 @@
-import { BookOpen, Plus, Search, X } from 'lucide-react';
+import { Plus, Search, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { CAPTURE_ICONS } from '../../components/icons';
+import { CAPTURE_ICONS, PLACE_ICONS } from '../../components/icons';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/primitives';
@@ -107,7 +107,7 @@ export function JournalPage() {
 
       {all.length === 0 ? (
         <EmptyState
-          icon={BookOpen}
+          icon={PLACE_ICONS.notes}
           title="No entries yet"
           className="mt-6"
           action={
@@ -126,7 +126,7 @@ export function JournalPage() {
           {[...months.entries()].map(([month, list]) => (
             <section key={month} className="mb-6">
               <h2 className="label sticky top-0 z-[1] -mx-2 mb-1 bg-canvas/95 px-2 py-2 backdrop-blur">
-                {formatMonth(`${month}-01`)} <span className="num ml-1 text-ink-3/70">{list.length}</span>
+                {formatMonth(`${month}-01`)} <span className="num ml-1 text-ink-3">{list.length}</span>
               </h2>
               <ul className="divide-y divide-line border-y border-line">
                 {list.map((e) => {
