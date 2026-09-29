@@ -3,7 +3,8 @@
  * whole system before it helps. Checked in order of what unblocks the most.
  */
 import { daysBetween, todayISO } from '../lib/dates';
-import { currentAction, experimentCode, experimentProgress, pendingSuggestions } from './selectors';
+import { claimSentence } from './claims';
+import { currentAction, experimentCode, experimentProgress, pendingSuggestions, thinSpots } from './selectors';
 import type { AtlasData, CaptureKind, EntityRef, ID } from './types';
 import { t, tn } from '../i18n';
 
@@ -47,7 +48,7 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
     return {
       key: `result:${due.id}`,
       title: t('Record what happened in {code}', { code: experimentCode(due.code) }),
-      detail: t('“{title}” has run its {n} days. Its result updates the patterns it was testing.', { title: due.title, n: due.durationDays }),
+      detail: t('“{title}” has run its {n} days. Compare what happened with what you predicted.', { title: due.title, n: due.durationDays }),
       cta: t('Record the result'),
       action: { kind: 'open', ref: { kind: 'experiment', id: due.id } },
     };
@@ -62,14 +63,14 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
       ? {
           key: 'review-evidence',
           title: tn(evidence, 'Review {n} suggestion', 'Review {n} suggestions'),
-          detail: t('The atlas found notes that may support or count against a pattern. Accept what fits, reject what does not.'),
+          detail: t('The atlas found notes that may be instances of, or counter-cases to, a pattern. Accept what fits, reject what does not.'),
           cta: t('Review in Patterns'),
           action: { kind: 'route', route: 'patterns' },
         }
       : {
           key: `review-links:${latest.id}`,
-          title: tn(pending.length, 'Check {n} suggested link', 'Check {n} suggested links'),
-          detail: t('From “{title}”. Say yes to add them to your map, or dismiss them.', { title: latest.title }),
+          title: tn(pending.length, 'Check {n} suggestion', 'Check {n} suggestions'),
+          detail: t('From “{title}”: what happened, what it is about, and any cause you named. Say yes to what fits.', { title: latest.title }),
           cta: t('Open the note'),
           action: { kind: 'open', ref: { kind: 'entry', id: latest.id } },
         };
@@ -87,6 +88,29 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
       detail: lastDate ? t('Your last note was {n} days ago. What happened since then?', { n: daysBetween(lastDate, today) }) : t('What happened this week?'),
       cta: t('Write a note'),
       action: { kind: 'capture', capture: 'journal' },
+    };
+  }
+
+  // Where understanding is thin: something you care about with no explanation, or a claim with nothing behind it.
+  const thin = thinSpots(data, today);
+  if (!data.navigation && thin.unexplained.length) {
+    const n = thin.unexplained[0];
+    return {
+      key: `ask-why:${n.id}`,
+      title: t('Ask why: {label}', { label: n.label }),
+      detail: t('You care about this, and nothing on the map explains it yet. What might be acting on it?'),
+      cta: t('Open it'),
+      action: { kind: 'open', ref: { kind: 'node', id: n.id } },
+    };
+  }
+  if (!data.navigation && thin.bareClaims.length) {
+    const c = thin.bareClaims[0];
+    return {
+      key: `back-claim:${c.id}`,
+      title: t('Check a claim against your notes'),
+      detail: t('“{claim}” has nothing behind it yet. Look for a time it happened, and a time it did not.', { claim: claimSentence(data, c) }),
+      cta: t('Open the claim'),
+      action: { kind: 'open', ref: { kind: 'claim', id: c.id } },
     };
   }
 

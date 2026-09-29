@@ -2,26 +2,36 @@ import type { CSSProperties } from 'react';
 /**
  * Map atlas data to React Flow nodes and edges. Pure functions: given the same
  * data, positions and view state they return the same graph.
+ *
+ * Orbit shows what exists (elements, by area and layer) and, as lines, the
+ * declared links and adopted claims between them. Connections shows only
+ * claims: what is said to affect what, each line styled by its derived status.
  */
-import { computeConfidence } from '../domain/confidence';
+import { claimStatus } from '../domain/claims';
 import {
-  CATEGORY_META,
-  DOMAIN_META,
+  AREA_MARKER_RADIUS,
+  AREA_META,
+  CORE_RADIUS,
+  effectPhrase,
+  LAYER_META,
+  LAYER_RADII,
+  layerOf,
+  LINK_META,
   ORBIT_DESKTOP,
+  SECTOR_KEYS,
+  areaHubId,
+  areaHubKey,
+  isAreaHubId,
+  YOU_ID,
   type OrbitGeometry,
-  DOMAINS,
-  hubId,
-  hubKey,
-  isHubId,
-  RELATION_META,
-  RING_LABELS,
-  RING_RADII,
 } from '../domain/constants';
-import { domainActivity, evidenceForNode, neighborhood, neighbors, patternsForNode } from '../domain/selectors';
-import type { AtlasData, DomainKey, ID, MindCategory, RelationType, SkillStatus } from '../domain/types';
-import type { MindView, XY } from '../state/uiStore';
+import { loopById } from '../domain/loops';
+import { areaActivity, mapElements, neighborhood, neighbors, patternsForNode, recordsFor, thinSpots } from '../domain/selectors';
+import type { AreaKey, AtlasData, Claim, ClaimStatus, ID, LayerKey } from '../domain/types';
+import { t } from '../i18n';
+import type { NetworkView, XY } from '../state/uiStore';
 import { orbitLayout } from './layout';
-import type { AtlasFlowNode, LabelSide, SemanticEdge } from './types';
+import type { AtlasFlowNode, LabelSide, SemanticEdge, SemanticEdgeData } from './types';
 
 export interface BuiltGraph {
   nodes: AtlasFlowNode[];
@@ -30,7 +40,7 @@ export interface BuiltGraph {
   matches: ID[];
 }
 
-const matchesQuery = (q: string, ...texts: (string | undefined)[]) => Boolean(q) && texts.some((t) => t?.toLowerCase().includes(q));
+const matchesQuery = (q: string, ...texts: (string | undefined)[]) => Boolean(q) && texts.some((x) => x?.toLowerCase().includes(q));
 
 function labelSide(from: XY, to: XY): LabelSide {
   const dx = to.x - from.x;
@@ -38,6 +48,7 @@ function labelSide(from: XY, to: XY): LabelSide {
   if (Math.abs(dy) >= Math.abs(dx) * 0.8) return dy > 0 ? 'bottom' : 'top';
   return dx > 0 ? 'right' : 'left';
 }
+const FLIP: Record<LabelSide, LabelSide> = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
 
 /** Selection highlighting: the selected node, its neighbours, and the edges between them. */
 function applyEmphasis(nodes: AtlasFlowNode[], edges: SemanticEdge[], data: AtlasData, selectedId: ID | undefined, query: string, matches: Set<ID>) {
@@ -59,23 +70,39 @@ function applyEmphasis(nodes: AtlasFlowNode[], edges: SemanticEdge[], data: Atla
   }
 }
 
-function edge(id: string, source: ID, target: ID, relation: RelationType, stored: boolean, note?: string): SemanticEdge {
-  return {
-    id,
-    source,
-    target,
-    type: 'semantic',
-    data: { relation, active: false, label: RELATION_META[relation].verb, note, stored },
-    zIndex: 0,
-    focusable: false,
-  };
+function makeEdge(id: string, source: ID, target: ID, data: Omit<SemanticEdgeData, 'active'>): SemanticEdge {
+  return { id, source, target, type: 'semantic', data: { ...data, active: false }, zIndex: 0, focusable: false };
 }
+
+/** One line per claim, plus one from each joint condition. */
+function claimEdges(claim: Claim, status: ClaimStatus, visible: Set<ID>): SemanticEdge[] {
+  const out: SemanticEdge[] = [];
+  const base = {
+    family: 'claim' as const,
+    effect: claim.effect,
+    status,
+    claimId: claim.id,
+    label: effectPhrase(claim.effect, status),
+    note: claim.via,
+    stored: true,
+    suggested: claim.state === 'suggested',
+  };
+  if (visible.has(claim.from) && visible.has(claim.to)) out.push(makeEdge(claim.id, claim.from, claim.to, base));
+  for (const w of claim.with) {
+    if (visible.has(w) && visible.has(claim.to)) out.push(makeEdge(`${claim.id}:with:${w}`, w, claim.to, { ...base, label: t('together with') }));
+  }
+  return out;
+}
+
+const areaOf = (data: AtlasData, id: ID): AreaKey | undefined => (id === YOU_ID ? 'self' : isAreaHubId(id) ? areaHubKey(id) : data.nodes[id]?.area);
 
 /* ------------------------------------------------------------ orbit */
 
 export interface OrbitOptions {
   stored: Record<ID, XY>;
-  collapsed: Set<DomainKey>;
+  collapsed: Set<AreaKey>;
+  hiddenLayers: Set<LayerKey>;
+  showClaims: boolean;
   selectedId?: ID;
   focus: boolean;
   query: string;
@@ -83,26 +110,32 @@ export interface OrbitOptions {
   geometry?: OrbitGeometry;
 }
 
+/** Sector boundaries, halfway between neighbouring areas. */
+const SPOKES = SECTOR_KEYS.map((k) => AREA_META[k].angle + 180 / SECTOR_KEYS.length);
+
 export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
   const q = opts.query.trim().toLowerCase();
   const g = opts.geometry ?? ORBIT_DESKTOP;
-  const positions = { ...orbitLayout(data, g), ...opts.stored };
-  const activity = Object.fromEntries(DOMAINS.map((d) => [d.key, domainActivity(data, d.key, 60, opts.today)])) as Record<DomainKey, number>;
+  const placed = orbitLayout(data, g);
+  const positions = { ...placed.positions, ...opts.stored };
+  const thin = thinSpots(data, opts.today);
+  const activity = Object.fromEntries(Object.keys(AREA_META).map((k) => [k, areaActivity(data, k as AreaKey, 60, opts.today)])) as Record<AreaKey, number>;
   const maxActivity = Math.max(1, ...Object.values(activity));
 
-  const selectedDomain = opts.selectedId ? (isHubId(opts.selectedId) ? hubKey(opts.selectedId) : data.nodes[opts.selectedId]?.domain) : undefined;
-
-  const items = Object.values(data.nodes).filter((n) => n.domain);
-  const near = new Set(opts.selectedId ? [opts.selectedId, ...neighbors(data, opts.selectedId).map((x) => x.otherId)] : []);
-  let visible = new Set<ID>([
-    ...DOMAINS.map((d) => hubId(d.key)),
-    ...items.filter((n) => !opts.collapsed.has(n.domain!) || n.domain === selectedDomain).map((n) => n.id),
-  ]);
+  const selectedArea = opts.selectedId ? areaOf(data, opts.selectedId) : undefined;
+  const elements = mapElements(data);
+  const shown = (id: ID) => {
+    const n = data.nodes[id]!;
+    if (id === opts.selectedId) return true;
+    if (opts.collapsed.has(n.area) && n.area !== selectedArea) return false;
+    return n.area === 'self' || !opts.hiddenLayers.has(layerOf(n.kind));
+  };
+  let visible = new Set<ID>([YOU_ID, ...SECTOR_KEYS.map(areaHubId), ...elements.filter((n) => shown(n.id)).map((n) => n.id)]);
 
   if (opts.focus && opts.selectedId && visible.has(opts.selectedId)) {
     const near = neighborhood(data, opts.selectedId, 1, visible);
-    const hubs = [...near].map((id) => (isHubId(id) ? id : data.nodes[id]?.domain ? hubId(data.nodes[id]!.domain!) : null)).filter(Boolean) as ID[];
-    visible = new Set([...near, ...hubs]);
+    const hubs = [...near].map((id) => areaOf(data, id)).map((k) => (!k ? null : k === 'self' ? YOU_ID : areaHubId(k)));
+    visible = new Set([...near, YOU_ID, ...(hubs.filter(Boolean) as ID[])]);
   }
 
   const matches: ID[] = [];
@@ -112,9 +145,12 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
       type: 'rings',
       position: { x: 0, y: 0 },
       data: {
-        radii: [RING_RADII[1], RING_RADII[2], RING_RADII[3]].map((r) => r * g.scale),
-        labels: [RING_LABELS[1], RING_LABELS[2], RING_LABELS[3]],
+        radii: [LAYER_RADII.hold, LAYER_RADII.do, LAYER_RADII.around].map((r) => r * g.scale),
+        labels: [LAYER_META.hold.short, LAYER_META.do.short, LAYER_META.around.short],
         stretch: { x: g.x, y: g.y },
+        spokes: SPOKES,
+        spokeInner: (CORE_RADIUS + 70) * g.scale,
+        spokeRadius: (AREA_MARKER_RADIUS - 60) * g.scale,
       },
       draggable: false,
       selectable: false,
@@ -124,114 +160,159 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     },
   ];
 
-  let hubIndex = 0;
-  for (const d of DOMAINS) {
-    const id = hubId(d.key);
-    if (!visible.has(id)) continue;
-    const domain = data.domains[d.key];
-    const matched = matchesQuery(q, d.label, domain?.statement);
+  const itemCount = (k: AreaKey) => elements.filter((n) => n.area === k).length;
+  const pushHub = (id: ID, key: AreaKey, reveal: number) => {
+    const meta = AREA_META[key];
+    const center = key === 'self';
+    const label = center ? data.profile.name || t('You') : meta.label;
+    const statement = data.areas[key]?.statement ?? '';
+    const matched = matchesQuery(q, label, statement);
     if (matched) matches.push(id);
+    const count = itemCount(key);
     nodes.push({
       id,
       type: 'hub',
-      // Hubs (and their labels) render above satellites and edges.
+      // Hubs (and their labels) render above elements and lines.
       zIndex: 2,
-      // Staged reveal: identity first, then each ring outward.
-      style: { '--reveal': `${d.ring === 0 ? 80 : 200 + d.ring * 90 + hubIndex++ * 25}ms` } as CSSProperties,
+      style: { '--reveal': `${reveal}ms` } as CSSProperties,
       position: positions[id],
       data: {
-        key: d.key,
-        label: d.label,
-        statement: domain?.statement ?? '',
-        color: d.color,
-        activity: activity[d.key] / maxActivity,
-        activityCount: activity[d.key],
+        area: key,
+        center,
+        label,
+        statement,
+        color: meta.color,
+        activity: activity[key] / maxActivity,
+        activityCount: activity[key],
         patternCount: patternsForNode(data, id).length,
-        itemCount: items.filter((n) => n.domain === d.key).length,
-        collapsed: opts.collapsed.has(d.key) && selectedDomain !== d.key,
-        center: d.ring === 0,
+        itemCount: count,
+        collapsed: opts.collapsed.has(key) && selectedArea !== key,
         matched,
-        labelSide: d.ring > 1 && positions[id].y > 40 ? 'top' : 'bottom',
+        quiet: !center && (count === 0 || thin.quietAreas.includes(key)),
+        labelSide: center || positions[id].y > 0 ? 'bottom' : 'top',
         compact: g !== ORBIT_DESKTOP,
       },
     });
-  }
+  };
+  pushHub(YOU_ID, 'self', 80);
+  SECTOR_KEYS.forEach((k, i) => visible.has(areaHubId(k)) && pushHub(areaHubId(k), k, 260 + i * 40));
 
-  let itemIndex = 0;
-  for (const n of items) {
+  const centre = { x: 0, y: 0 };
+  for (const n of elements) {
     if (!visible.has(n.id)) continue;
-    const key = n.domain!;
-    const pos = positions[n.id] ?? positions[hubId(key)];
+    const pos = positions[n.id] ?? centre;
     const matched = matchesQuery(q, n.label, n.summary);
     if (matched) matches.push(n.id);
-    const mark = key === 'skills' ? (n.tags.find((t) => t === 'have' || t === 'developing' || t === 'gap') as SkillStatus | undefined) : undefined;
+    const core = n.area === 'self';
+    const layer = layerOf(n.kind);
+    const side = labelSide(centre, pos);
+    const records = recordsFor(data, n.id);
     nodes.push({
       id: n.id,
       type: 'item',
-      style: { '--reveal': `${680 + Math.round(itemIndex++ * 9)}ms` } as CSSProperties,
+      // Staged reveal: the centre first, then each ring outward.
+      style: { '--reveal': `${core ? 200 : layer === 'hold' ? 420 : layer === 'do' ? 560 : 700}ms` } as CSSProperties,
       position: pos,
       data: {
         label: n.label,
-        color: DOMAIN_META[key].color,
-        domain: key,
+        color: AREA_META[n.area].color,
+        area: n.area,
+        kind: n.kind,
+        layer,
+        core,
         origin: n.origin,
-        mark,
-        evidenceCount: evidenceForNode(data, n.id).entries.length,
-        labelSide: labelSide(positions[hubId(key)], pos),
+        concern: Boolean(n.concern),
+        external: Boolean(n.external),
+        level: n.level,
+        status: n.status,
+        ended: Boolean(n.until && n.until < opts.today),
+        evidenceCount: records.entries.length + records.decisions.length,
+        labelSide: placed.inward.has(n.id) ? FLIP[side] : side,
         matched,
-        near: near.has(n.id),
+        near: false,
       },
     });
   }
+  if (opts.selectedId) {
+    const near = new Set(neighbors(data, opts.selectedId).map((x) => x.otherId));
+    for (const n of nodes) if (n.type === 'item' && near.has(n.id)) n.data.near = true;
+  }
 
   const edges: SemanticEdge[] = [];
-  for (const n of items) {
-    if (visible.has(n.id)) edges.push(edge(`part:${n.id}`, n.id, hubId(n.domain!), 'part_of', false));
-  }
   for (const e of Object.values(data.edges)) {
     if (!visible.has(e.source) || !visible.has(e.target)) continue;
-    const ed = edge(e.id, e.source, e.target, e.relation, true, e.note);
-    const da = isHubId(e.source) ? hubKey(e.source) : data.nodes[e.source]?.domain;
-    const db = isHubId(e.target) ? hubKey(e.target) : data.nodes[e.target]?.domain;
-    ed.data!.secondary = !isHubId(e.source) && !isHubId(e.target) && da !== db;
+    const meta = LINK_META[e.type];
+    const ed = makeEdge(e.id, e.source, e.target, { family: 'link', linkType: e.type, label: meta.verb, note: e.note, stored: true });
+    ed.data!.secondary = areaOf(data, e.source) !== areaOf(data, e.target);
     edges.push(ed);
+  }
+  // The map shows what exists. Claims are understanding: shown when asked for, or around the selection.
+  const touches = (c: Claim) => c.from === opts.selectedId || c.to === opts.selectedId || c.with.includes(opts.selectedId ?? '');
+  if (opts.showClaims || opts.selectedId) {
+    for (const c of Object.values(data.claims)) {
+      if (c.state !== 'adopted' || (!opts.showClaims && !touches(c))) continue;
+      const status = claimStatus(data, c);
+      if (status === 'retired') continue;
+      for (const ed of claimEdges(c, status, visible)) {
+        ed.data!.secondary = areaOf(data, ed.source) !== areaOf(data, ed.target);
+        edges.push(ed);
+      }
+    }
   }
   for (const e of edges) e.data!.flow = true;
 
-  const matchSet = new Set(matches);
-  applyEmphasis(nodes, edges, data, opts.selectedId, q, matchSet);
+  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches));
   return { nodes, edges, visible, matches };
 }
 
-/* ------------------------------------------------------------ mind */
+/* ------------------------------------------------------------ connections */
 
-export interface MindOptions {
+export interface NetworkOptions {
   positions: Record<ID, XY>;
-  view: MindView;
+  view: NetworkView;
   selectedId?: ID;
   query: string;
 }
 
-export function mindMembers(data: AtlasData, view: Pick<MindView, 'hiddenCategories' | 'showInferred' | 'showPatterns'>) {
-  const hidden = new Set<MindCategory>(view.hiddenCategories);
-  const nodeIds = Object.values(data.nodes)
-    .filter((n) => n.category && !hidden.has(n.category) && (view.showInferred || n.origin !== 'inferred'))
-    .map((n) => n.id);
-  const patternIds = view.showPatterns
-    ? Object.values(data.patterns)
-        .filter((p) => p.status !== 'dismissed')
-        .map((p) => p.id)
-    : [];
-  return { nodeIds, patternIds };
+/** The claims the network shows, and the elements they connect. */
+export function networkMembers(data: AtlasData, view: Pick<NetworkView, 'hiddenStatuses' | 'hiddenAreas' | 'showSuggested'>) {
+  const hiddenStatus = new Set(view.hiddenStatuses);
+  const hiddenArea = new Set(view.hiddenAreas);
+  const claims: { claim: Claim; status: ClaimStatus }[] = [];
+  const ids = new Set<ID>();
+  for (const c of Object.values(data.claims)) {
+    if (c.state === 'set_aside' || (c.state === 'suggested' && !view.showSuggested)) continue;
+    const status = claimStatus(data, c);
+    if (hiddenStatus.has(status)) continue;
+    const ends = [c.from, ...c.with, c.to];
+    if (ends.some((id) => !data.nodes[id] || hiddenArea.has(data.nodes[id]!.area))) continue;
+    claims.push({ claim: c, status });
+    for (const id of ends) ids.add(id);
+  }
+  return { nodeIds: [...ids], claims };
 }
 
-export function buildMind(data: AtlasData, opts: MindOptions): BuiltGraph {
+/** Links used by the force layout: every claim, whatever the filters, so positions stay stable. */
+export function networkLinks(data: AtlasData) {
+  const links: { source: ID; target: ID }[] = [];
+  for (const c of Object.values(data.claims)) {
+    if (c.state === 'set_aside') continue;
+    links.push({ source: c.from, target: c.to });
+    for (const w of c.with) links.push({ source: w, target: c.to });
+  }
+  return links;
+}
+
+export function buildNetwork(data: AtlasData, opts: NetworkOptions): BuiltGraph {
   const q = opts.query.trim().toLowerCase();
-  const { nodeIds, patternIds } = mindMembers(data, opts.view);
-  let visible = new Set<ID>([...nodeIds, ...patternIds]);
+  const { nodeIds, claims } = networkMembers(data, opts.view);
+  let visible = new Set<ID>(nodeIds);
   if (opts.view.focusDepth > 0 && opts.selectedId && visible.has(opts.selectedId)) {
     visible = neighborhood(data, opts.selectedId, opts.view.focusDepth, visible);
   }
+  const loop = opts.view.loopId ? loopById(data, opts.view.loopId) : undefined;
+  const loopNodes = new Set(loop?.nodeIds ?? []);
+  const loopClaims = new Set(loop?.claimIds ?? []);
 
   const matches: ID[] = [];
   const nodes: AtlasFlowNode[] = [];
@@ -243,64 +324,40 @@ export function buildMind(data: AtlasData, opts: MindOptions): BuiltGraph {
     const position = opts.positions[id] ?? { x: 0, y: 0 };
     nodes.push({
       id,
-      type: 'mind',
-      // Staged reveal: thought appears outward from the centre.
+      type: 'element',
+      // Staged reveal: outward from the centre.
       style: { '--reveal': `${240 + Math.round(Math.min(640, Math.hypot(position.x, position.y) * 0.7))}ms` } as CSSProperties,
       position,
+      className: loop && !loopNodes.has(id) ? 'is-soft' : undefined,
       data: {
         label: n.label,
-        category: n.category!,
-        color: CATEGORY_META[n.category!].color,
+        kind: n.kind,
+        area: n.area,
+        color: AREA_META[n.area].color,
         origin: n.origin,
-        confidence: n.confidence,
+        adopted: n.adopted,
+        concern: Boolean(n.concern),
         status: n.status,
-        mirror: Boolean(n.source),
-        evidenceCount: evidenceForNode(data, id).entries.length + evidenceForNode(data, id).decisions.length,
+        inCount: claims.filter((c) => c.claim.to === id && c.claim.state === 'adopted').length,
+        outCount: claims.filter((c) => (c.claim.from === id || c.claim.with.includes(id)) && c.claim.state === 'adopted').length,
         matched,
+        inLoop: loopNodes.has(id),
       },
     });
   }
-  for (const id of patternIds) {
-    if (!visible.has(id)) continue;
-    const p = data.patterns[id]!;
-    const matched = matchesQuery(q, p.title, p.observation, p.chain.join(' '));
-    if (matched) matches.push(id);
-    const position = opts.positions[id] ?? { x: 0, y: 0 };
-    nodes.push({
-      id,
-      type: 'pattern',
-      // Patterns sit near the middle and come first: they are what the rest is read through.
-      style: { '--reveal': `${100 + Math.round(Math.min(300, Math.hypot(position.x, position.y) * 0.4))}ms` } as CSSProperties,
-      position,
-      data: { code: p.code, title: p.chain.length ? p.chain.join(' → ') : p.title, confidence: computeConfidence(p.evidence), status: p.status, matched },
-    });
-  }
 
-  const hiddenRelations = new Set(opts.view.hiddenRelations);
   const edges: SemanticEdge[] = [];
-  for (const e of Object.values(data.edges)) {
-    if (hiddenRelations.has(e.relation)) continue;
-    if (visible.has(e.source) && visible.has(e.target)) edges.push(edge(e.id, e.source, e.target, e.relation, true, e.note));
-  }
-  if (!hiddenRelations.has('derived_from')) {
-    for (const id of patternIds) {
-      if (!visible.has(id)) continue;
-      for (const nid of data.patterns[id]!.nodeIds) {
-        if (visible.has(nid)) edges.push(edge(`pl:${id}:${nid}`, id, nid, 'derived_from', false));
+  for (const { claim, status } of claims) {
+    for (const ed of claimEdges(claim, status, visible)) {
+      ed.data!.flow = true;
+      if (loop) {
+        ed.data!.loop = loopClaims.has(claim.id);
+        if (!ed.data!.loop) ed.className = 'is-soft';
       }
+      edges.push(ed);
     }
   }
 
-  for (const e of edges) e.data!.flow = true;
-
-  const matchSet = new Set(matches);
-  applyEmphasis(nodes, edges, data, opts.selectedId, q, matchSet);
+  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches));
   return { nodes, edges, visible, matches };
-}
-
-/** Links used by the force layout (stored edges + pattern links). */
-export function mindLinks(data: AtlasData) {
-  const links = Object.values(data.edges).map((e) => ({ source: e.source, target: e.target }));
-  for (const p of Object.values(data.patterns)) for (const nid of p.nodeIds) links.push({ source: p.id, target: nid });
-  return links;
 }

@@ -1,13 +1,14 @@
 import { ArrowRight } from 'lucide-react';
 import { useState } from 'react';
 import type { ModelUpdateProposal } from '../../ai/types';
-import { pct } from '../../domain/confidence';
-import { experimentCode, patternCode } from '../../domain/selectors';
+import { claimCode, claimSentence } from '../../domain/claims';
+import { experimentCode } from '../../domain/selectors';
 import type { Experiment, ExperimentOutcome, ExperimentResult } from '../../domain/types';
 import { useAtlas } from '../../state/atlasStore';
 import { reviewExperimentResult } from '../../state/operations';
 import { toast, useUI } from '../../state/uiStore';
 import { StanceMark } from '../evidence/EvidenceRow';
+import { StatusBadge } from '../evidence/Status';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { FieldLabel, Segmented } from '../ui/primitives';
@@ -17,13 +18,13 @@ const OUTCOMES: { value: ExperimentOutcome; label: string }[] = [
   {
     value: 'supports',
     get label() {
-      return t('Supported');
+      return t('As predicted');
     },
   },
   {
     value: 'contradicts',
     get label() {
-      return t('Contradicted');
+      return t('Not as predicted');
     },
   },
   {
@@ -35,8 +36,9 @@ const OUTCOMES: { value: ExperimentOutcome; label: string }[] = [
 ];
 
 /**
- * Hypothesis → experiment → result → learning → model update.
- * The update is previewed before anything changes, and the user applies it.
+ * Predict → test → compare → revise. The result is compared with the
+ * prediction written beforehand; what it would change on the claim is
+ * previewed before anything changes, and the person applies it.
  */
 export function ResultModal({ experiment, onClose }: { experiment: Experiment; onClose(): void }) {
   const updateExperiment = useAtlas((s) => s.updateExperiment);
@@ -46,10 +48,17 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
   const [outcome, setOutcome] = useState<ExperimentOutcome>('supports');
   const [summary, setSummary] = useState('');
   const [learning, setLearning] = useState('');
+  const [sideEffects, setSideEffects] = useState('');
   const [measures, setMeasures] = useState(() => Object.fromEntries(experiment.measures.map((m) => [m.id, m.result ?? ''])));
   const [proposal, setProposal] = useState<ModelUpdateProposal | null>(null);
 
-  const result = (): ExperimentResult => ({ outcome, summary: summary.trim(), learning: learning.trim(), recordedAt: new Date().toISOString() });
+  const result = (): ExperimentResult => ({
+    outcome,
+    summary: summary.trim(),
+    learning: learning.trim(),
+    sideEffects: sideEffects.trim() || undefined,
+    recordedAt: new Date().toISOString(),
+  });
 
   const preview = async () => {
     updateExperiment(experiment.id, { measures: experiment.measures.map((m) => ({ ...m, result: measures[m.id] || undefined })) });
@@ -60,7 +69,7 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
     if (!proposal) return;
     apply(experiment.id, result(), proposal);
     toast(
-      t(proposal.changes.length ? '{code} completed. The model was updated.' : '{code} completed. No pattern changed.', {
+      t(proposal.changes.length ? '{code} completed. The claim was updated.' : '{code} completed. No claim changed.', {
         code: experimentCode(experiment.code),
       }),
       { tone: 'success' },
@@ -98,8 +107,15 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
     >
       {!proposal ? (
         <div className="space-y-4">
+          {experiment.prediction && (
+            <div className="rounded-[2px] border border-line px-3 py-2">
+              <div className="label">{t('You predicted')}</div>
+              <p className="mt-0.5 text-[13px] text-ink-2">{experiment.prediction}</p>
+              {experiment.criteria && <p className="mt-1 text-[12px] text-ink-3">{t('It did not work if: {c}', { c: experiment.criteria })}</p>}
+            </div>
+          )}
           <div>
-            <FieldLabel>{t('Was the hypothesis supported?')}</FieldLabel>
+            <FieldLabel>{t('Compared with the prediction')}</FieldLabel>
             <Segmented label={t('Outcome')} value={outcome} onChange={setOutcome} options={OUTCOMES} />
           </div>
           {experiment.measures.length > 0 && (
@@ -144,6 +160,18 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
               placeholder={t('What would you do differently, or keep doing?')}
             />
           </div>
+          <div>
+            <FieldLabel htmlFor="res-side" hint="optional">
+              {t('What else changed')}
+            </FieldLabel>
+            <input
+              id="res-side"
+              className="field"
+              value={sideEffects}
+              onChange={(e) => setSideEffects(e.target.value)}
+              placeholder={t('Effects you did not aim for, good or bad')}
+            />
+          </div>
         </div>
       ) : (
         <div className="space-y-4">
@@ -151,19 +179,21 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
           {proposal.changes.length ? (
             <ul className="divide-y divide-line rounded-[2px] border border-line">
               {proposal.changes.map((c) => {
-                const p = data.patterns[c.patternId];
+                const claim = data.claims[c.claimId];
                 return (
-                  <li key={c.patternId} className="flex items-start gap-3 px-3 py-2.5">
+                  <li key={c.claimId} className="flex items-start gap-3 px-3 py-2.5">
                     <StanceMark stance={c.stance} />
                     <div className="min-w-0 flex-1">
-                      <div className="label">{p ? patternCode(p.code) : t('Pattern')}</div>
-                      <div className="text-[13px] text-ink">{p?.chain.join(' → ')}</div>
+                      <div className="label">{claim ? claimCode(claim.code) : t('Claim')}</div>
+                      <div className="text-[13px] text-ink">{claim ? claimSentence(data, claim, c.before) : ''}</div>
                       <div className="mt-0.5 text-[12px] text-ink-3">
-                        {t(c.stance === 'supports' ? 'Added as supporting evidence, weight {w}' : 'Added as counter-evidence, weight {w}', { w: c.weight })}
+                        {c.stance === 'supports' ? t('Added as a test that went as predicted.') : t('Added as a test that did not go as predicted.')}
                       </div>
                     </div>
-                    <div className="num shrink-0 text-right text-[13px] text-ink">
-                      {pct(c.before)} <span className="text-ink-3">→</span> {pct(c.after)}
+                    <div className="flex shrink-0 flex-col items-end gap-1">
+                      <StatusBadge status={c.before} />
+                      <span className="text-[11px] text-ink-3">↓</span>
+                      <StatusBadge status={c.after} />
                     </div>
                   </li>
                 );
@@ -171,18 +201,8 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
             </ul>
           ) : (
             <p className="rounded-[2px] border border-dashed border-line-strong px-3 py-2.5 text-[12.5px] text-ink-3">
-              {t('No pattern confidence will change.')}
+              {t('This test is not linked to a claim, so no status will change. An inconclusive result changes nothing either.')}
             </p>
-          )}
-          {proposal.interpretationNotes.length > 0 && (
-            <div>
-              <FieldLabel>{t('Suggested interpretation notes')}</FieldLabel>
-              <ul className="space-y-1 text-[12.5px] text-ink-2">
-                {proposal.interpretationNotes.map((n) => (
-                  <li key={n.patternId}>{n.statement}</li>
-                ))}
-              </ul>
-            </div>
           )}
         </div>
       )}

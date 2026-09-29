@@ -10,8 +10,12 @@ export interface Route {
 
 const KEYS = new Set<string>(Object.keys(VIEWS));
 
+/** Pages that were renamed: old links keep working. */
+const RENAMED: Record<string, RouteKey> = { mind: 'network' };
+
 export function parseHash(hash: string): Route {
-  const [key, param] = hash.replace(/^#\/?/, '').split('/');
+  const [raw, param] = hash.replace(/^#\/?/, '').split('/');
+  const key = RENAMED[raw] ?? raw;
   return KEYS.has(key) ? { key: key as RouteKey, param: param ? decodeURIComponent(param) : undefined } : { key: 'orbit' };
 }
 

@@ -132,7 +132,7 @@ function MoreMenu() {
   );
 }
 
-/** Tabs for the pages inside the current place (e.g. Orbit and Mind inside Map). */
+/** Tabs for the pages inside the current place (e.g. Timeline, Journal and Decisions inside History). */
 export function SubNav({ active }: { active: RouteKey }) {
   const group = groupOf(active);
   if (!group || group.views.length < 2) return null;

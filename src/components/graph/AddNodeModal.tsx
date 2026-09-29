@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { CATEGORIES, DOMAINS } from '../../domain/constants';
-import type { DomainKey, MindCategory } from '../../domain/types';
+import { AREAS, AREA_META, KIND_META, KINDS_BY_LAYER, LAYERS } from '../../domain/constants';
+import type { AreaKey, ElementKind, GraphLayer } from '../../domain/types';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { Button } from '../ui/Button';
@@ -8,29 +8,49 @@ import { Modal } from '../ui/Modal';
 import { FieldLabel } from '../ui/primitives';
 import { t } from '../../i18n';
 
-/** Add a satellite to an Orbit domain, or a node to the Mind graph. */
+const PLACEHOLDER: Partial<Record<ElementKind, () => string>> = {
+  value: () => t('e.g. Autonomy'),
+  belief: () => t('e.g. Good work gets noticed on its own'),
+  fear: () => t('e.g. Running out of money'),
+  goal: () => t('e.g. Finish my short film'),
+  question: () => t('e.g. Why do my projects slip?'),
+  behaviour: () => t('e.g. Saying yes to every request'),
+  commitment: () => t('e.g. The documentary edit'),
+  skill: () => t('e.g. Colour grading'),
+  role: () => t('e.g. Freelance producer'),
+  state: () => t('e.g. Energy'),
+  person: () => t('e.g. My sister'),
+  resource: () => t('e.g. Savings'),
+  place: () => t('e.g. The studio'),
+};
+
+/**
+ * Add an element to the map. What kind of thing it is decides its ring (what
+ * I hold, do, or what surrounds me); the area decides its sector.
+ */
 export function AddNodeModal({
-  layer,
+  layer = 'orbit',
   onClose,
-  defaultDomain,
-  defaultCategory,
+  defaultArea,
+  defaultKind,
 }: {
-  layer: 'orbit' | 'mind';
+  layer?: GraphLayer;
   onClose(): void;
-  defaultDomain?: DomainKey;
-  defaultCategory?: MindCategory;
+  defaultArea?: AreaKey;
+  defaultKind?: ElementKind;
 }) {
   const addNode = useAtlas((s) => s.addNode);
   const openEntity = useUI((s) => s.openEntity);
   const requestFocus = useUI((s) => s.requestFocus);
-  const [domain, setDomain] = useState<DomainKey>(defaultDomain ?? 'projects');
-  const [category, setCategory] = useState<MindCategory>(defaultCategory ?? 'belief');
+  const [area, setArea] = useState<AreaKey>(defaultArea ?? 'projects');
+  const [kind, setKind] = useState<ElementKind>(defaultKind ?? 'goal');
   const [label, setLabel] = useState('');
   const [summary, setSummary] = useState('');
+  const [concern, setConcern] = useState(false);
 
   const submit = () => {
     if (!label.trim()) return;
-    const id = addNode(layer === 'orbit' ? { label, summary, domain } : { label, summary, category });
+    const id = addNode({ label, summary, area, kind, concern: concern || undefined });
     openEntity({ kind: 'node', id });
     setTimeout(() => requestFocus(layer, id), 60);
     onClose();
@@ -40,20 +60,16 @@ export function AddNodeModal({
     <Modal
       open
       onClose={onClose}
-      title={layer === 'orbit' ? t('Add a point to Orbit') : t('Add a point to Mind')}
-      description={
-        layer === 'orbit'
-          ? t('Something in one area of your life: a goal, project, skill, person or situation.')
-          : t('A thought in your own words: a belief, fear, question, value, decision…')
-      }
-      width="max-w-[480px]"
+      title={t('Add to the map')}
+      description={t('Something that exists in your life: something you hold, something you do, or something around you.')}
+      width="max-w-[500px]"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={submit} disabled={!label.trim()}>
-            {t('Add point')}
+            {t('Add')}
           </Button>
         </>
       }
@@ -65,37 +81,43 @@ export function AddNodeModal({
           submit();
         }}
       >
-        {layer === 'orbit' ? (
+        <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <FieldLabel htmlFor="add-domain">{t('Area of life')}</FieldLabel>
-            <select id="add-domain" className="field" value={domain} onChange={(e) => setDomain(e.target.value as DomainKey)}>
-              {DOMAINS.map((d) => (
+            <FieldLabel htmlFor="add-kind">{t('What kind of thing')}</FieldLabel>
+            <select id="add-kind" className="field" value={kind} onChange={(e) => setKind(e.target.value as ElementKind)}>
+              {LAYERS.map((l) => (
+                <optgroup key={l.key} label={l.label}>
+                  {KINDS_BY_LAYER[l.key].map((k) => (
+                    <option key={k} value={k}>
+                      {KIND_META[k].label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <div>
+            <FieldLabel htmlFor="add-area">{t('Area of life')}</FieldLabel>
+            <select id="add-area" className="field" value={area} onChange={(e) => setArea(e.target.value as AreaKey)}>
+              {AREAS.map((d) => (
                 <option key={d.key} value={d.key}>
                   {d.label}
                 </option>
               ))}
             </select>
           </div>
-        ) : (
-          <div>
-            <FieldLabel htmlFor="add-cat">{t('Kind')}</FieldLabel>
-            <select id="add-cat" className="field" value={category} onChange={(e) => setCategory(e.target.value as MindCategory)}>
-              {CATEGORIES.map((c) => (
-                <option key={c.key} value={c.key}>
-                  {c.label} — {c.description}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        </div>
+        <p className="text-[12px] text-ink-3">
+          {KIND_META[kind].description} {area === 'self' ? t('It sits in the centre, with you.') : AREA_META[area].description}
+        </p>
         <div>
-          <FieldLabel htmlFor="add-label">{layer === 'mind' && category === 'question' ? t('Question') : t('Name')}</FieldLabel>
+          <FieldLabel htmlFor="add-label">{kind === 'question' ? t('Question') : t('Name')}</FieldLabel>
           <input
             id="add-label"
             className="field"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder={layer === 'orbit' ? t('e.g. Finish my short film, Learn Spanish, My sister') : t('e.g. Good work gets noticed on its own')}
+            placeholder={PLACEHOLDER[kind]?.() ?? ''}
             autoFocus
           />
         </div>
@@ -105,6 +127,10 @@ export function AddNodeModal({
           </FieldLabel>
           <textarea id="add-summary" className="field min-h-[72px]" value={summary} onChange={(e) => setSummary(e.target.value)} />
         </div>
+        <label className="flex items-start gap-2 text-[12.5px] text-ink-2">
+          <input type="checkbox" className="mt-[3px]" checked={concern} onChange={(e) => setConcern(e.target.checked)} />
+          <span>{t('An outcome I want explained or changed')}</span>
+        </label>
         <button type="submit" hidden />
       </form>
     </Modal>

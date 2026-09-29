@@ -7,7 +7,7 @@ import type { Viewport } from '@xyflow/react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_PROVIDER_SETTINGS, type ProviderSettings } from '../ai';
-import type { CaptureKind, DomainKey, EntityRef, GraphLayer, ID, MindCategory, RelationType } from '../domain/types';
+import type { AreaKey, CaptureKind, ClaimStatus, EntityRef, GraphLayer, ID, LayerKey } from '../domain/types';
 import { createId } from '../lib/ids';
 import { safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
 
@@ -22,18 +22,25 @@ export interface GraphLayoutState {
 }
 
 export interface OrbitView {
-  /** Hubs whose satellites are hidden. */
-  collapsed: DomainKey[];
+  /** Areas whose elements are folded away. */
+  collapsed: AreaKey[];
+  /** Layers hidden from the map. */
+  hiddenLayers: LayerKey[];
   focus: boolean;
+  /** Show claims as lines on the map (declared links always show). */
+  showClaims: boolean;
 }
 
-export interface MindView {
-  hiddenCategories: MindCategory[];
-  hiddenRelations: RelationType[];
-  showPatterns: boolean;
-  showInferred: boolean;
-  /** 0 = show everything; 1 or 2 = only nodes within that many hops of the selection. */
+export interface NetworkView {
+  /** Claim statuses hidden from the network. */
+  hiddenStatuses: ClaimStatus[];
+  hiddenAreas: AreaKey[];
+  /** Proposals from the analysis, shown dashed until adopted. */
+  showSuggested: boolean;
+  /** 0 = everything; 1 or 2 = only what is within that many links of the selection. */
   focusDepth: 0 | 1 | 2;
+  /** A loop to highlight. */
+  loopId?: string;
 }
 
 export interface Toast {
@@ -69,7 +76,7 @@ interface UIState {
   hudOpen: boolean;
   layouts: Record<GraphLayer, GraphLayoutState>;
   orbitView: OrbitView;
-  mindView: MindView;
+  networkView: NetworkView;
   focusRequest: FocusRequest | null;
   toasts: Toast[];
   settings: ProviderSettings;
@@ -96,7 +103,7 @@ interface UIState {
   setViewport(layer: GraphLayer, viewport: Viewport): void;
   resetLayout(layer: GraphLayer): void;
   setOrbitView(patch: Partial<OrbitView>): void;
-  setMindView(patch: Partial<MindView>): void;
+  setNetworkView(patch: Partial<NetworkView>): void;
   requestFocus(layer: GraphLayer, id: ID): void;
   toast(message: string, opts?: Partial<Omit<Toast, 'id' | 'message'>>): void;
   dismissToast(id: string): void;
@@ -119,9 +126,9 @@ export const useUI = create<UIState>()(
       paletteOpen: false,
       shortcutsOpen: false,
       hudOpen: true,
-      layouts: { orbit: { positions: {} }, mind: { positions: {} } },
-      orbitView: { collapsed: [], focus: false },
-      mindView: { hiddenCategories: [], hiddenRelations: [], showPatterns: true, showInferred: true, focusDepth: 0 },
+      layouts: { orbit: { positions: {} }, network: { positions: {} } },
+      orbitView: { collapsed: [], hiddenLayers: [], focus: false, showClaims: false },
+      networkView: { hiddenStatuses: ['retired'], hiddenAreas: [], showSuggested: true, focusDepth: 0 },
       focusRequest: null,
       toasts: [],
       settings: DEFAULT_PROVIDER_SETTINGS,
@@ -154,7 +161,7 @@ export const useUI = create<UIState>()(
       setViewport: (layer, viewport) => set((s) => ({ layouts: { ...s.layouts, [layer]: { ...s.layouts[layer], viewport } } })),
       resetLayout: (layer) => set((s) => ({ layouts: { ...s.layouts, [layer]: { positions: {} } } })),
       setOrbitView: (patch) => set((s) => ({ orbitView: { ...s.orbitView, ...patch } })),
-      setMindView: (patch) => set((s) => ({ mindView: { ...s.mindView, ...patch } })),
+      setNetworkView: (patch) => set((s) => ({ networkView: { ...s.networkView, ...patch } })),
       requestFocus: (layer, id) => set({ focusRequest: { layer, id, at: Date.now() } }),
 
       toast: (message, opts) => {
@@ -173,13 +180,20 @@ export const useUI = create<UIState>()(
     }),
     {
       name: STORAGE_KEYS.ui,
-      version: 1,
+      version: 2,
       storage: createJSONStorage(() => safeLocalStorage),
+      // v1 laid the map out by domains and had a Mind graph; both layouts are rebuilt for the layered map.
+      migrate: (persisted, version) => {
+        const p = (persisted ?? {}) as Record<string, unknown>;
+        if (version >= 2) return p;
+        const { mindView: _m, layouts: _l, orbitView: _o, ...rest } = p;
+        return rest;
+      },
       partialize: (s) => ({
         hudOpen: s.hudOpen,
         layouts: s.layouts,
         orbitView: s.orbitView,
-        mindView: s.mindView,
+        networkView: s.networkView,
         settings: s.settings,
         spaceMode: s.spaceMode,
         guideSeen: s.guideSeen,

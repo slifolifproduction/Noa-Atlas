@@ -1,9 +1,11 @@
 /**
- * The atlas store: all user data and every mutation of it.
+ * The atlas store: all of the person's data and every mutation of it.
  *
  * Components never mutate records directly; they call these actions. Each
- * action keeps referential integrity (deleting a node removes its edges and
- * backlinks) and records model changes in the append-only model log.
+ * action keeps referential integrity (deleting an element removes the links
+ * and claims that depend on it, deleting a note removes the evidence and the
+ * history read from it) and records changes in understanding in the
+ * append-only model log, with the claim status before and after.
  */
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -11,33 +13,37 @@ import { immer } from 'zustand/middleware/immer';
 import type { ModelUpdateProposal, PatternCandidate } from '../ai/types';
 import { createEmptyData } from '../data/empty';
 import { createSeedData } from '../data/seed';
-import { computeConfidence } from '../domain/confidence';
-import { CATEGORY_META, DOMAIN_META, EXPERIMENT_OUTCOME_LABEL, PATTERN_STATUS_LABEL } from '../domain/constants';
+import { claimCode, claimSentence, claimStatus } from '../domain/claims';
+import { EXPERIMENT_OUTCOME_LABEL, STATUS_META } from '../domain/constants';
 import { decisionCode, entryCode, experimentCode, pathCode, patternCode, resolveSource, sameRef } from '../domain/selectors';
 import type {
   AnalysisSuggestion,
+  Area,
+  AreaKey,
   AtlasData,
   AtlasEdge,
   AtlasNode,
+  Claim,
   Decision,
-  Domain,
-  DomainKey,
   Entry,
   EntryAnalysis,
   Evidence,
+  EvidenceKind,
   Experiment,
   ExperimentResult,
   ID,
+  Investigation,
+  LinkType,
   ModelUpdate,
   NavActionStatus,
   NavigationPlan,
+  Occurrence,
   Pattern,
-  PatternStatus,
   PatternVerdict,
-  RelationType,
   SourceRef,
   Stance,
   StrategicPath,
+  View,
 } from '../domain/types';
 import { todayISO, weekStart } from '../lib/dates';
 import { createId } from '../lib/ids';
@@ -46,23 +52,49 @@ import { t } from '../i18n';
 
 const now = () => new Date().toISOString();
 
-export type NewNode = Pick<AtlasNode, 'label'> &
-  Partial<Pick<AtlasNode, 'summary' | 'domain' | 'category' | 'status' | 'tags' | 'source' | 'origin' | 'confidence'>>;
+export type NewNode = Pick<AtlasNode, 'label' | 'kind' | 'area'> &
+  Partial<
+    Pick<
+      AtlasNode,
+      'summary' | 'since' | 'until' | 'concern' | 'external' | 'scale' | 'level' | 'status' | 'tags' | 'origin' | 'adopted' | 'claimId' | 'investigation'
+    >
+  >;
+export type NewClaim = Pick<Claim, 'from' | 'to' | 'effect'> & Partial<Pick<Claim, 'with' | 'via' | 'when' | 'lag' | 'author' | 'state' | 'rivalIds'>>;
+export type NewOccurrence = Omit<Occurrence, 'id' | 'createdAt' | 'origin' | 'mode'> & Partial<Pick<Occurrence, 'origin' | 'mode'>>;
 export type NewEntry = Omit<Entry, 'id' | 'seq' | 'createdAt' | 'updatedAt' | 'analysis'>;
 export type NewDecision = Omit<Decision, 'id' | 'seq' | 'createdAt' | 'updatedAt'>;
 export type NewExperiment = Omit<Experiment, 'id' | 'code' | 'createdAt' | 'updatedAt'>;
-export type NewPattern = Pick<Pattern, 'kind' | 'chain' | 'observation' | 'triggers' | 'behaviors' | 'consequences' | 'cues' | 'domains'>;
+export type NewPattern = Pick<Pattern, 'kind' | 'steps' | 'observation' | 'triggers' | 'behaviors' | 'consequences' | 'cues' | 'areas'>;
+export type NewEvidence = { source: SourceRef; stance: Stance; excerpt: string; kind?: EvidenceKind; note?: string; addedBy: Evidence['addedBy'] };
 
 interface AtlasActions {
-  // graph
+  // map: elements, links, areas
   addNode(input: NewNode): ID;
   updateNode(id: ID, patch: Partial<Omit<AtlasNode, 'id' | 'createdAt'>>): void;
   deleteNode(id: ID): void;
-  addEdge(source: ID, target: ID, relation: RelationType, note?: string): ID | null;
-  updateEdge(id: ID, patch: Partial<Pick<AtlasEdge, 'relation' | 'note'>>): void;
-  deleteEdge(id: ID): void;
-  updateDomain(key: DomainKey, patch: Partial<Pick<Domain, 'statement' | 'summary'>>): void;
-  // raw data
+  adoptNode(id: ID): void;
+  addLink(source: ID, target: ID, type: LinkType, note?: string): ID | null;
+  updateLink(id: ID, patch: Partial<Pick<AtlasEdge, 'type' | 'note'>>): void;
+  deleteLink(id: ID): void;
+  updateArea(key: AreaKey, patch: Partial<Pick<Area, 'statement' | 'summary'>>): void;
+  // understanding: claims
+  addClaim(input: NewClaim, evidence?: NewEvidence[]): ID;
+  updateClaim(id: ID, patch: Partial<Pick<Claim, 'from' | 'to' | 'with' | 'effect' | 'via' | 'when' | 'lag'>>): void;
+  adoptClaim(id: ID): void;
+  setClaimAside(id: ID): void;
+  deleteClaim(id: ID): void;
+  setClaimView(id: ID, stance: View | null, note?: string): void;
+  addClaimEvidence(claimId: ID, input: NewEvidence): void;
+  removeClaimEvidence(claimId: ID, evidenceId: ID): void;
+  toggleRival(claimId: ID, otherId: ID): void;
+  retireClaim(id: ID, note?: string): void;
+  restoreClaim(id: ID): void;
+  nameLoop(loopId: string, name: string): void;
+  // history
+  addOccurrence(input: NewOccurrence): ID;
+  updateOccurrence(id: ID, patch: Partial<Omit<Occurrence, 'id' | 'createdAt'>>): void;
+  deleteOccurrence(id: ID): void;
+  // record
   addEntry(input: NewEntry): Entry;
   updateEntry(id: ID, patch: Partial<NewEntry>): void;
   deleteEntry(id: ID): void;
@@ -72,13 +104,16 @@ interface AtlasActions {
   updateDecision(id: ID, patch: Partial<NewDecision>): void;
   deleteDecision(id: ID): void;
   // patterns
-  addEvidence(patternId: ID, input: { source: SourceRef; stance: Stance; excerpt: string; weight?: number; addedBy: Evidence['addedBy'] }): void;
-  removeEvidence(patternId: ID, evidenceId: ID): void;
-  setPatternStatus(id: ID, status: PatternStatus): void;
+  addPatternEvidence(patternId: ID, input: NewEvidence): void;
+  removePatternEvidence(patternId: ID, evidenceId: ID): void;
   assessPattern(id: ID, verdict: PatternVerdict, note?: string): void;
+  setPatternAside(id: ID, aside: boolean, note?: string): void;
+  toggleExplanation(patternId: ID, claimId: ID): void;
   adoptCandidate(candidate: PatternCandidate): ID;
   addPattern(input: NewPattern): ID;
-  // strategy
+  // investigations
+  updateInvestigation(questionId: ID, patch: Partial<Investigation>): void;
+  // possibility and plans
   updateCurrentState(patch: Partial<Omit<AtlasData['currentState'], 'updatedAt'>>): void;
   addPath(): ID;
   updatePath(id: ID, patch: Partial<Omit<StrategicPath, 'id' | 'createdAt'>>): void;
@@ -87,7 +122,6 @@ interface AtlasActions {
   updateExperiment(id: ID, patch: Partial<NewExperiment>): void;
   deleteExperiment(id: ID): void;
   applyExperimentResult(id: ID, result: ExperimentResult, proposal: ModelUpdateProposal): void;
-  // navigation
   setNavigation(plan: NavigationPlan): void;
   updateNavigation(patch: Partial<NavigationPlan>): void;
   clearNavigation(): void;
@@ -114,14 +148,59 @@ const logUpdate = (data: AtlasData, update: Omit<ModelUpdate, 'id' | 'at'>) => {
 };
 
 const suggestionKey = (s: AnalysisSuggestion) =>
-  s.type === 'link_node' ? `n:${s.nodeId}` : s.type === 'domain' ? `d:${s.domain}` : `p:${s.patternId}:${s.stance}`;
+  s.type === 'link_node'
+    ? `n:${s.nodeId}`
+    : s.type === 'area'
+      ? `a:${s.area}`
+      : s.type === 'pattern_evidence'
+        ? `p:${s.patternId}:${s.stance}`
+        : s.type === 'occurrence'
+          ? `o:${s.kind}:${s.instanceOf ?? s.label}`
+          : `x:${s.excerpt}`;
+
+/** Remove every piece of evidence that cites a source, logging what changed. */
+function dropEvidence(d: AtlasData, ref: SourceRef, code: string) {
+  for (const p of Object.values(d.patterns)) {
+    if (!p.evidence.some((e) => sameRef(e.source, ref))) continue;
+    p.evidence = p.evidence.filter((e) => !sameRef(e.source, ref));
+    logUpdate(d, {
+      kind: 'evidence_removed',
+      summary: t('{code} was deleted and removed from {pattern}.', { code, pattern: patternCode(p.code) }),
+      patternId: p.id,
+    });
+  }
+  for (const c of Object.values(d.claims)) {
+    if (!c.evidence.some((e) => sameRef(e.source, ref))) continue;
+    const before = claimStatus(d, c);
+    c.evidence = c.evidence.filter((e) => !sameRef(e.source, ref));
+    logUpdate(d, {
+      kind: 'evidence_removed',
+      summary: t('{code} was deleted and removed from {claim}.', { code, claim: claimCode(c.code) }),
+      claimId: c.id,
+      before,
+      after: claimStatus(d, c),
+    });
+  }
+}
+
+function removeClaimRefs(d: AtlasData, id: ID) {
+  for (const c of Object.values(d.claims)) c.rivalIds = c.rivalIds.filter((x) => x !== id);
+  for (const x of Object.values(d.decisions)) x.claimIds = x.claimIds.filter((c) => c !== id);
+  for (const p of Object.values(d.patterns)) p.explainedBy = p.explainedBy.filter((c) => c !== id);
+  for (const p of Object.values(d.paths)) p.assumptionIds = p.assumptionIds.filter((c) => c !== id);
+  for (const x of Object.values(d.experiments)) if (x.claimId === id) x.claimId = undefined;
+  for (const n of Object.values(d.nodes)) {
+    if (n.claimId === id) n.claimId = undefined;
+    if (n.investigation) n.investigation.claimIds = n.investigation.claimIds.filter((c) => c !== id);
+  }
+}
 
 export const useAtlas = create<AtlasState>()(
   persist(
     immer((set, get) => ({
       data: createSeedData(),
 
-      /* ---------------- graph ---------------- */
+      /* ---------------- map ---------------- */
 
       addNode(input) {
         const id = createId('node');
@@ -131,13 +210,20 @@ export const useAtlas = create<AtlasState>()(
             id,
             label: input.label.trim(),
             summary: input.summary?.trim() ?? '',
-            domain: input.domain,
-            category: input.category,
-            status: input.category === 'question' ? (input.status ?? 'open') : input.status,
-            tags: input.tags ?? [],
-            source: input.source,
+            kind: input.kind,
+            area: input.area,
             origin: input.origin ?? 'user',
-            confidence: input.confidence,
+            adopted: input.adopted ?? true,
+            since: input.since,
+            until: input.until,
+            concern: input.concern,
+            external: input.external,
+            scale: input.scale,
+            level: input.level,
+            claimId: input.claimId,
+            status: input.kind === 'question' ? (input.status ?? 'open') : input.status,
+            investigation: input.investigation,
+            tags: input.tags ?? [],
             createdAt: at,
             updatedAt: at,
           };
@@ -158,48 +244,278 @@ export const useAtlas = create<AtlasState>()(
           const d = s.data;
           delete d.nodes[id];
           for (const [eid, e] of Object.entries(d.edges)) if (e.source === id || e.target === id) delete d.edges[eid];
+          for (const c of Object.values(d.claims)) {
+            if (c.from === id || c.to === id) {
+              delete d.claims[c.id];
+              removeClaimRefs(d, c.id);
+            } else c.with = c.with.filter((w) => w !== id);
+          }
           for (const e of Object.values(d.entries)) e.nodeIds = e.nodeIds.filter((n) => n !== id);
           for (const x of Object.values(d.decisions)) x.nodeIds = x.nodeIds.filter((n) => n !== id);
-          for (const p of Object.values(d.patterns)) p.nodeIds = p.nodeIds.filter((n) => n !== id);
+          for (const p of Object.values(d.patterns)) {
+            p.nodeIds = p.nodeIds.filter((n) => n !== id);
+            p.steps.forEach((step) => step.elementId === id && (step.elementId = undefined));
+          }
+          for (const o of Object.values(d.occurrences)) {
+            o.about = o.about.filter((n) => n !== id);
+            if (o.instanceOf === id) o.instanceOf = undefined;
+          }
           for (const x of Object.values(d.experiments)) x.questionIds = x.questionIds.filter((n) => n !== id);
+          for (const n of Object.values(d.nodes)) if (n.investigation?.anchorId === id) n.investigation.anchorId = undefined;
         });
       },
 
-      addEdge(source, target, relation, note) {
+      adoptNode(id) {
+        set((s) => {
+          const n = s.data.nodes[id];
+          if (!n || n.adopted) return;
+          n.adopted = true;
+          n.updatedAt = now();
+          logUpdate(s.data, {
+            kind: 'element_adopted',
+            summary: t('You confirmed “{label}”, proposed by the analysis. It is now on your map.', { label: n.label }),
+          });
+        });
+      },
+
+      addLink(source, target, type, note) {
         if (source === target) return null;
+        const symmetric = type === 'conflicts' || type === 'aligns';
         const existing = Object.values(get().data.edges).find(
-          (e) =>
-            e.relation === relation &&
-            ((e.source === source && e.target === target) || (relation === 'conflicts' && e.source === target && e.target === source)),
+          (e) => e.type === type && ((e.source === source && e.target === target) || (symmetric && e.source === target && e.target === source)),
         );
         if (existing) return existing.id;
         const id = createId('edge');
         set((s) => {
-          s.data.edges[id] = { id, source, target, relation, note, origin: 'user', createdAt: now() };
+          s.data.edges[id] = { id, source, target, type, note, origin: 'user', createdAt: now() };
         });
         return id;
       },
 
-      updateEdge(id, patch) {
+      updateLink(id, patch) {
         set((s) => {
           const e = s.data.edges[id];
           if (e) Object.assign(e, patch);
         });
       },
 
-      deleteEdge(id) {
+      deleteLink(id) {
         set((s) => {
           delete s.data.edges[id];
         });
       },
 
-      updateDomain(key, patch) {
+      updateArea(key, patch) {
         set((s) => {
-          Object.assign(s.data.domains[key], patch, { updatedAt: now() });
+          Object.assign(s.data.areas[key], patch, { updatedAt: now() });
         });
       },
 
-      /* ---------------- entries ---------------- */
+      /* ---------------- claims ---------------- */
+
+      addClaim(input, evidence = []) {
+        const existing = Object.values(get().data.claims).find(
+          (c) => c.from === input.from && c.to === input.to && c.effect === input.effect && c.state !== 'set_aside',
+        );
+        if (existing) return existing.id;
+        const id = createId('claim');
+        set((s) => {
+          const d = s.data;
+          const at = now();
+          const code = ++d.counters.claim;
+          d.claims[id] = {
+            id,
+            code,
+            from: input.from,
+            with: input.with ?? [],
+            to: input.to,
+            effect: input.effect,
+            via: input.via?.trim() || undefined,
+            when: input.when?.trim() || undefined,
+            lag: input.lag?.trim() || undefined,
+            author: input.author ?? 'user',
+            state: input.state ?? 'adopted',
+            evidence: evidence.map((e) => ({ id: createId('ev'), ...e, kind: e.kind ?? 'instance', addedAt: at })),
+            rivalIds: input.rivalIds ?? [],
+            createdAt: at,
+            updatedAt: at,
+          };
+          if (d.claims[id].state === 'adopted') {
+            logUpdate(d, {
+              kind: 'claim_added',
+              summary: t('You added {claim}: {sentence}.', { claim: claimCode(code), sentence: claimSentence(d, d.claims[id]!) }),
+              claimId: id,
+              after: claimStatus(d, d.claims[id]!),
+            });
+          }
+        });
+        return id;
+      },
+
+      updateClaim(id, patch) {
+        set((s) => {
+          const c = s.data.claims[id];
+          if (c) Object.assign(c, patch, { updatedAt: now() });
+        });
+      },
+
+      adoptClaim(id) {
+        set((s) => {
+          const c = s.data.claims[id];
+          if (!c || c.state === 'adopted') return;
+          c.state = 'adopted';
+          c.updatedAt = now();
+          logUpdate(s.data, {
+            kind: 'claim_adopted',
+            summary: t('You adopted {claim} as a hypothesis: {sentence}.', { claim: claimCode(c.code), sentence: claimSentence(s.data, c) }),
+            claimId: id,
+            after: claimStatus(s.data, c),
+          });
+        });
+      },
+
+      setClaimAside(id) {
+        set((s) => {
+          const c = s.data.claims[id];
+          if (c) c.state = 'set_aside';
+        });
+      },
+
+      deleteClaim(id) {
+        set((s) => {
+          delete s.data.claims[id];
+          removeClaimRefs(s.data, id);
+        });
+      },
+
+      setClaimView(id, stance, note) {
+        set((s) => {
+          const c = s.data.claims[id];
+          if (!c) return;
+          c.view = stance ? { stance, note: note?.trim() || undefined, at: now() } : undefined;
+          if (stance) {
+            const said =
+              stance === 'agree'
+                ? t('You said {claim} matches your experience.', { claim: claimCode(c.code) })
+                : stance === 'disagree'
+                  ? t('You said {claim} does not match your experience.', { claim: claimCode(c.code) })
+                  : t('You are not sure about {claim}.', { claim: claimCode(c.code) });
+            logUpdate(s.data, { kind: 'claim_view', summary: `${said} ${t('Its status still comes from the evidence.')}`, claimId: id });
+          }
+        });
+      },
+
+      addClaimEvidence(claimId, input) {
+        set((s) => {
+          const d = s.data;
+          const c = d.claims[claimId];
+          if (!c || c.evidence.some((e) => sameRef(e.source, input.source) && (e.kind ?? 'instance') === (input.kind ?? 'instance'))) return;
+          const before = claimStatus(d, c);
+          c.evidence.push({ id: createId('ev'), ...input, kind: input.kind ?? 'instance', addedAt: now() });
+          c.updatedAt = now();
+          const code = resolveSource(d, input.source).code;
+          logUpdate(d, {
+            kind: 'evidence_added',
+            summary:
+              input.stance === 'supports'
+                ? t('{code} added as supporting evidence to {claim}.', { code, claim: claimCode(c.code) })
+                : t('{code} added as counter-evidence to {claim}.', { code, claim: claimCode(c.code) }),
+            claimId,
+            before,
+            after: claimStatus(d, c),
+            source: input.source,
+          });
+        });
+      },
+
+      removeClaimEvidence(claimId, evidenceId) {
+        set((s) => {
+          const d = s.data;
+          const c = d.claims[claimId];
+          const ev = c?.evidence.find((e) => e.id === evidenceId);
+          if (!c || !ev) return;
+          const before = claimStatus(d, c);
+          c.evidence = c.evidence.filter((e) => e.id !== evidenceId);
+          logUpdate(d, {
+            kind: 'evidence_removed',
+            summary: t('You removed {code} from {claim}.', { code: resolveSource(d, ev.source).code, claim: claimCode(c.code) }),
+            claimId,
+            before,
+            after: claimStatus(d, c),
+            source: ev.source,
+          });
+        });
+      },
+
+      toggleRival(claimId, otherId) {
+        set((s) => {
+          const c = s.data.claims[claimId];
+          const o = s.data.claims[otherId];
+          if (!c || !o) return;
+          const on = c.rivalIds.includes(otherId) || o.rivalIds.includes(claimId);
+          c.rivalIds = on ? c.rivalIds.filter((x) => x !== otherId) : [...c.rivalIds, otherId];
+          if (on) o.rivalIds = o.rivalIds.filter((x) => x !== claimId);
+        });
+      },
+
+      retireClaim(id, note) {
+        set((s) => {
+          const c = s.data.claims[id];
+          if (!c) return;
+          const before = claimStatus(s.data, c);
+          c.retired = { at: todayISO(), note: note?.trim() || undefined };
+          logUpdate(s.data, {
+            kind: 'claim_retired',
+            summary: t('You marked {claim} as no longer holding.', { claim: claimCode(c.code) }),
+            claimId: id,
+            before,
+            after: 'retired',
+          });
+        });
+      },
+
+      restoreClaim(id) {
+        set((s) => {
+          const c = s.data.claims[id];
+          if (c) c.retired = undefined;
+        });
+      },
+
+      nameLoop(loopId, name) {
+        set((s) => {
+          if (name.trim()) s.data.loopNames[loopId] = name.trim();
+          else delete s.data.loopNames[loopId];
+        });
+      },
+
+      /* ---------------- history ---------------- */
+
+      addOccurrence(input) {
+        const id = createId('occ');
+        set((s) => {
+          s.data.occurrences[id] = { ...input, id, mode: input.mode ?? 'actual', origin: input.origin ?? 'user', createdAt: now() };
+        });
+        return id;
+      },
+
+      updateOccurrence(id, patch) {
+        set((s) => {
+          const o = s.data.occurrences[id];
+          if (o) Object.assign(o, patch);
+        });
+      },
+
+      deleteOccurrence(id) {
+        set((s) => {
+          const d = s.data;
+          const o = d.occurrences[id];
+          if (!o) return;
+          delete d.occurrences[id];
+          dropEvidence(d, { kind: 'occurrence', id }, o.label);
+        });
+      },
+
+      /* ---------------- notes ---------------- */
 
       addEntry(input) {
         const id = createId('ent');
@@ -227,21 +543,14 @@ export const useAtlas = create<AtlasState>()(
           if (!entry) return;
           delete d.entries[id];
           const ref: SourceRef = { kind: 'entry', id };
-          for (const p of Object.values(d.patterns)) {
-            const had = p.evidence.some((e) => sameRef(e.source, ref));
-            if (!had) continue;
-            const before = computeConfidence(p.evidence);
-            p.evidence = p.evidence.filter((e) => !sameRef(e.source, ref));
-            p.counterEvidence.forEach((c) => (c.sources = c.sources.filter((r) => !sameRef(r, ref))));
-            logUpdate(d, {
-              kind: 'evidence_removed',
-              summary: t('{code} was deleted and removed from {pattern}.', { code: entryCode(entry.seq), pattern: patternCode(p.code) }),
-              patternId: p.id,
-              before,
-              after: computeConfidence(p.evidence),
-            });
+          dropEvidence(d, ref, entryCode(entry.seq));
+          // What was read from the note goes with it: history keeps its trail or nothing.
+          for (const o of Object.values(d.occurrences)) {
+            if (o.source && sameRef(o.source, ref)) {
+              delete d.occurrences[o.id];
+              dropEvidence(d, { kind: 'occurrence', id: o.id }, o.label);
+            }
           }
-          for (const n of Object.values(d.nodes)) if (n.source && sameRef(n.source, ref)) n.source = undefined;
         });
       },
 
@@ -249,7 +558,7 @@ export const useAtlas = create<AtlasState>()(
         set((s) => {
           const e = s.data.entries[id];
           if (!e) return;
-          // Keep decisions the user already made on equivalent suggestions.
+          // Keep decisions the person already made on equivalent suggestions.
           const prior = new Map((e.analysis?.suggestions ?? []).filter((x) => x.state !== 'pending').map((x) => [suggestionKey(x), x.state]));
           for (const sug of analysis.suggestions) {
             const state = prior.get(suggestionKey(sug));
@@ -264,7 +573,18 @@ export const useAtlas = create<AtlasState>()(
         const sug = entry?.analysis?.suggestions.find((x) => x.id === suggestionId);
         if (!entry || !sug) return;
         if (accept && sug.type === 'pattern_evidence') {
-          get().addEvidence(sug.patternId, { source: { kind: 'entry', id: entryId }, stance: sug.stance, excerpt: sug.excerpt, addedBy: 'user' });
+          get().addPatternEvidence(sug.patternId, { source: { kind: 'entry', id: entryId }, stance: sug.stance, excerpt: sug.excerpt, addedBy: 'user' });
+        }
+        if (accept && sug.type === 'occurrence') {
+          get().addOccurrence({
+            kind: sug.kind,
+            label: sug.label,
+            date: entry.date,
+            about: sug.about,
+            instanceOf: sug.instanceOf,
+            source: { kind: 'entry', id: entryId },
+            excerpt: sug.excerpt,
+          });
         }
         set((s) => {
           const e = s.data.entries[entryId];
@@ -273,7 +593,7 @@ export const useAtlas = create<AtlasState>()(
           x.state = accept ? 'accepted' : 'dismissed';
           if (!accept) return;
           if (x.type === 'link_node' && !e.nodeIds.includes(x.nodeId)) e.nodeIds.push(x.nodeId);
-          if (x.type === 'domain' && !e.domains.includes(x.domain)) e.domains.push(x.domain);
+          if (x.type === 'area' && !e.areas.includes(x.area)) e.areas.push(x.area);
         });
       },
 
@@ -302,38 +622,23 @@ export const useAtlas = create<AtlasState>()(
           const dec = d.decisions[id];
           if (!dec) return;
           delete d.decisions[id];
-          const ref: SourceRef = { kind: 'decision', id };
-          for (const p of Object.values(d.patterns)) {
-            if (!p.evidence.some((e) => sameRef(e.source, ref))) continue;
-            const before = computeConfidence(p.evidence);
-            p.evidence = p.evidence.filter((e) => !sameRef(e.source, ref));
-            p.counterEvidence.forEach((c) => (c.sources = c.sources.filter((r) => !sameRef(r, ref))));
-            logUpdate(d, {
-              kind: 'evidence_removed',
-              summary: t('{code} was deleted and removed from {pattern}.', { code: decisionCode(dec.seq), pattern: patternCode(p.code) }),
-              patternId: p.id,
-              before,
-              after: computeConfidence(p.evidence),
-            });
-          }
-          for (const n of Object.values(d.nodes)) if (n.source && sameRef(n.source, ref)) n.source = undefined;
+          dropEvidence(d, { kind: 'decision', id }, decisionCode(dec.seq));
         });
       },
 
       /* ---------------- patterns ---------------- */
 
-      addEvidence(patternId, input) {
+      addPatternEvidence(patternId, input) {
         set((s) => {
           const d = s.data;
           const p = d.patterns[patternId];
           if (!p || p.evidence.some((e) => sameRef(e.source, input.source))) return;
-          const before = computeConfidence(p.evidence);
           p.evidence.push({
             id: createId('ev'),
             source: input.source,
             stance: input.stance,
             excerpt: input.excerpt,
-            weight: input.weight ?? 1,
+            note: input.note,
             addedBy: input.addedBy,
             addedAt: now(),
           });
@@ -343,45 +648,26 @@ export const useAtlas = create<AtlasState>()(
             kind: 'evidence_added',
             summary:
               input.stance === 'supports'
-                ? t('{code} added as supporting evidence to {pattern}.', { code, pattern: patternCode(p.code) })
-                : t('{code} added as counter-evidence to {pattern}.', { code, pattern: patternCode(p.code) }),
+                ? t('{code} added as an instance of {pattern}.', { code, pattern: patternCode(p.code) })
+                : t('{code} added as a counter-case to {pattern}.', { code, pattern: patternCode(p.code) }),
             patternId,
-            before,
-            after: computeConfidence(p.evidence),
             source: input.source,
           });
         });
       },
 
-      removeEvidence(patternId, evidenceId) {
+      removePatternEvidence(patternId, evidenceId) {
         set((s) => {
           const d = s.data;
           const p = d.patterns[patternId];
           const ev = p?.evidence.find((e) => e.id === evidenceId);
           if (!p || !ev) return;
-          const before = computeConfidence(p.evidence);
           p.evidence = p.evidence.filter((e) => e.id !== evidenceId);
           logUpdate(d, {
             kind: 'evidence_removed',
             summary: t('You removed {code} from {pattern}.', { code: resolveSource(d, ev.source).code, pattern: patternCode(p.code) }),
             patternId,
-            before,
-            after: computeConfidence(p.evidence),
             source: ev.source,
-          });
-        });
-      },
-
-      setPatternStatus(id, status) {
-        set((s) => {
-          const p = s.data.patterns[id];
-          if (!p || p.status === status) return;
-          p.status = status;
-          p.updatedAt = now();
-          logUpdate(s.data, {
-            kind: 'pattern_status',
-            summary: t('You set {pattern} to {status}.', { pattern: patternCode(p.code), status: PATTERN_STATUS_LABEL[status].toLowerCase() }),
-            patternId: id,
           });
         });
       },
@@ -396,13 +682,31 @@ export const useAtlas = create<AtlasState>()(
               ? t('You said {pattern} matches your experience.', { pattern: patternCode(p.code) })
               : verdict === 'partial'
                 ? t('You said {pattern} partly matches your experience.', { pattern: patternCode(p.code) })
-                : t('You said {pattern} is not accurate.', { pattern: patternCode(p.code) });
-          if (verdict === 'inaccurate' && p.status !== 'dismissed') p.status = 'dismissed';
-          logUpdate(s.data, {
-            kind: 'pattern_assessed',
-            summary: `${said}${verdict === 'inaccurate' ? ` ${t('It was dismissed and no longer informs paths.')}` : ''}`,
-            patternId: id,
-          });
+                : t('You said {pattern} does not match your experience.', { pattern: patternCode(p.code) });
+          logUpdate(s.data, { kind: 'pattern_assessed', summary: `${said} ${t('What the evidence shows is unchanged.')}`, patternId: id });
+        });
+      },
+
+      setPatternAside(id, aside, note) {
+        set((s) => {
+          const p = s.data.patterns[id];
+          if (!p) return;
+          p.setAside = aside ? { at: now(), note: note?.trim() || undefined } : undefined;
+          if (aside) {
+            logUpdate(s.data, {
+              kind: 'pattern_set_aside',
+              summary: t('You set {pattern} aside. It stays here for reference and no longer informs paths.', { pattern: patternCode(p.code) }),
+              patternId: id,
+            });
+          }
+        });
+      },
+
+      toggleExplanation(patternId, claimId) {
+        set((s) => {
+          const p = s.data.patterns[patternId];
+          if (!p) return;
+          p.explainedBy = p.explainedBy.includes(claimId) ? p.explainedBy.filter((c) => c !== claimId) : [...p.explainedBy, claimId];
         });
       },
 
@@ -418,7 +722,6 @@ export const useAtlas = create<AtlasState>()(
             source: { kind: 'decision', id: decisionId },
             stance,
             excerpt,
-            weight: 1,
             addedBy: 'inferred',
             addedAt: at,
           });
@@ -426,35 +729,21 @@ export const useAtlas = create<AtlasState>()(
             ...candidate.supporting.map((x) => mk(x.decisionId, 'supports', x.excerpt)),
             ...candidate.counter.map((x) => mk(x.decisionId, 'counters', x.excerpt)),
           ];
-          // Link the pattern into the Mind graph through the decision nodes it rests on.
-          const decisionIds = new Set(evidence.map((e) => e.source.id));
-          const nodeIds = Object.values(d.nodes)
-            .filter((n) => n.source?.kind === 'decision' && decisionIds.has(n.source.id))
-            .map((n) => n.id);
+          const nodeIds = [...new Set(evidence.flatMap((e) => d.decisions[e.source.id]?.nodeIds ?? []))];
           d.patterns[id] = {
             id,
             code,
             kind: candidate.kind,
             title: candidate.title,
-            chain: candidate.chain,
-            status: 'emerging',
+            steps: candidate.steps.map((label) => ({ label })),
             observation: candidate.statement,
             triggers: candidate.triggers,
             behaviors: candidate.behaviors,
             consequences: candidate.consequences,
             evidence,
-            interpretations: [{ id: createId('int'), ...candidate.interpretation }],
-            counterEvidence: candidate.counterStatement
-              ? [
-                  {
-                    id: createId('ce'),
-                    statement: candidate.counterStatement,
-                    sources: candidate.counter.map((c) => ({ kind: 'decision' as const, id: c.decisionId })),
-                  },
-                ]
-              : [],
+            explainedBy: [],
             implications: candidate.implication ? [{ id: createId('im'), statement: candidate.implication, pathIds: [] }] : [],
-            domains: candidate.domains,
+            areas: candidate.areas,
             nodeIds,
             cues: { supports: [], counters: [] },
             signature: candidate.signature,
@@ -464,13 +753,12 @@ export const useAtlas = create<AtlasState>()(
           };
           logUpdate(d, {
             kind: 'pattern_created',
-            summary: t('{pattern} added to the model from {support} supporting and {counter} counter decisions.', {
+            summary: t('{pattern} added from {support} decisions that fit it and {counter} that do not.', {
               pattern: patternCode(code),
               support: candidate.supporting.length,
               counter: candidate.counter.length,
             }),
             patternId: id,
-            after: computeConfidence(evidence),
           });
         });
         return id;
@@ -486,28 +774,44 @@ export const useAtlas = create<AtlasState>()(
             ...input,
             id,
             code,
-            title: input.chain[0] ?? t('Untitled pattern'),
-            status: 'emerging',
+            title: input.steps[0]?.label ?? t('Untitled pattern'),
             evidence: [],
-            interpretations: [],
-            counterEvidence: [],
+            explainedBy: [],
             implications: [],
-            nodeIds: [],
+            nodeIds: input.steps.map((step) => step.elementId).filter((x): x is ID => Boolean(x)),
             origin: 'user',
             createdAt: at,
             updatedAt: at,
           };
           logUpdate(d, {
             kind: 'pattern_created',
-            summary: t('You described {pattern}. It has no evidence yet, so it starts at the 50% prior.', { pattern: patternCode(code) }),
+            summary: t('You described {pattern}. It has no instances yet; it becomes recurring once three separate episodes are found.', {
+              pattern: patternCode(code),
+            }),
             patternId: id,
-            after: computeConfidence([]),
           });
         });
         return id;
       },
 
-      /* ---------------- strategy ---------------- */
+      /* ---------------- investigations ---------------- */
+
+      updateInvestigation(questionId, patch) {
+        set((s) => {
+          const q = s.data.nodes[questionId];
+          if (!q) return;
+          const current: Investigation = q.investigation ?? { kind: 'why', claimIds: [] };
+          const next = { ...current, ...patch };
+          if (patch.conclusion !== undefined && patch.conclusion.trim() && patch.conclusion !== current.conclusion) {
+            next.concludedAt = now();
+            logUpdate(s.data, { kind: 'investigation_concluded', summary: t('You wrote a provisional answer to “{question}”.', { question: q.label }) });
+          }
+          q.investigation = next;
+          q.updatedAt = now();
+        });
+      },
+
+      /* ---------------- possibility and plans ---------------- */
 
       updateCurrentState(patch) {
         set((s) => {
@@ -536,6 +840,7 @@ export const useAtlas = create<AtlasState>()(
             tradeoffs: [],
             opportunityCosts: [],
             unknowns: [],
+            assumptionIds: [],
             proposedExperiments: [],
             experimentIds: [],
             patternIds: [],
@@ -588,6 +893,7 @@ export const useAtlas = create<AtlasState>()(
           delete s.data.experiments[id];
           for (const p of Object.values(s.data.paths)) p.experimentIds = p.experimentIds.filter((x) => x !== id);
           if (s.data.navigation?.experimentId === id) s.data.navigation.experimentId = undefined;
+          dropEvidence(s.data, { kind: 'experiment', id }, t('Test'));
         });
       },
 
@@ -601,15 +907,15 @@ export const useAtlas = create<AtlasState>()(
           x.updatedAt = now();
           const ref: SourceRef = { kind: 'experiment', id };
           for (const change of proposal.changes) {
-            const p = d.patterns[change.patternId];
-            if (!p || p.evidence.some((e) => sameRef(e.source, ref))) continue;
-            const before = computeConfidence(p.evidence);
-            p.evidence.push({
+            const c = d.claims[change.claimId];
+            if (!c || c.evidence.some((e) => sameRef(e.source, ref))) continue;
+            const before = claimStatus(d, c);
+            c.evidence.push({
               id: createId('ev'),
               source: ref,
               stance: change.stance,
+              kind: 'intervention',
               excerpt: change.excerpt,
-              weight: change.weight,
               addedBy: 'user',
               addedAt: now(),
             });
@@ -617,32 +923,18 @@ export const useAtlas = create<AtlasState>()(
               kind: 'experiment_result',
               summary:
                 change.stance === 'supports'
-                  ? t('{exp} result applied: supports {pattern} (weight {w}).', { exp: experimentCode(x.code), pattern: patternCode(p.code), w: change.weight })
-                  : t('{exp} result applied: counters {pattern} (weight {w}).', {
-                      exp: experimentCode(x.code),
-                      pattern: patternCode(p.code),
-                      w: change.weight,
-                    }),
-              patternId: p.id,
+                  ? t('{exp}: the prediction held. {claim} gets a test result as evidence.', { exp: experimentCode(x.code), claim: claimCode(c.code) })
+                  : t('{exp}: the prediction did not hold. {claim} gets a failed test as evidence.', { exp: experimentCode(x.code), claim: claimCode(c.code) }),
+              claimId: c.id,
               before,
-              after: computeConfidence(p.evidence),
+              after: claimStatus(d, c),
               source: ref,
             });
-          }
-          for (const note of proposal.interpretationNotes) {
-            const p = d.patterns[note.patternId];
-            if (p)
-              p.interpretations.push({
-                id: createId('int'),
-                statement: note.statement,
-                confidence: 0.5,
-                rationale: t('Suggested after {exp}.', { exp: experimentCode(x.code) }),
-              });
           }
           if (!proposal.changes.length) {
             logUpdate(d, {
               kind: 'experiment_result',
-              summary: t('{exp} result recorded ({outcome}); no pattern confidence changed.', {
+              summary: t('{exp} result recorded ({outcome}); no claim changed.', {
                 exp: experimentCode(x.code),
                 outcome: EXPERIMENT_OUTCOME_LABEL[result.outcome],
               }),
@@ -651,8 +943,6 @@ export const useAtlas = create<AtlasState>()(
           }
         });
       },
-
-      /* ---------------- navigation ---------------- */
 
       setNavigation(plan) {
         set((s) => {
@@ -681,8 +971,8 @@ export const useAtlas = create<AtlasState>()(
 
       toggleTarget(id) {
         set((s) => {
-          const t = s.data.navigation?.targets.find((x) => x.id === id);
-          if (t) t.done = !t.done;
+          const x = s.data.navigation?.targets.find((y) => y.id === id);
+          if (x) x.done = !x.done;
         });
       },
 
@@ -696,7 +986,7 @@ export const useAtlas = create<AtlasState>()(
         set((s) => {
           const nav = s.data.navigation;
           if (!nav) return;
-          nav.targets = nav.targets.filter((t) => t.id !== id);
+          nav.targets = nav.targets.filter((x) => x.id !== id);
           nav.actions.forEach((a) => a.targetId === id && (a.targetId = undefined));
         });
       },
@@ -768,9 +1058,9 @@ export const useAtlas = create<AtlasState>()(
   ),
 );
 
-/** Where a captured entry of a given kind can also appear on a map. */
-export function nodeTargetLabel(target: { domain?: DomainKey; category?: AtlasNode['category'] }) {
-  if (target.domain) return `${DOMAIN_META[target.domain].label} in Orbit`;
-  if (target.category) return `${CATEGORY_META[target.category].plural} in Mind`;
-  return '';
-}
+/** Where a status went, in words ("Plausible → Supported"). */
+export const statusChange = (before?: string, after?: string) =>
+  [before, after]
+    .filter(Boolean)
+    .map((s) => STATUS_META[s as keyof typeof STATUS_META]?.label ?? s)
+    .join(' → ');

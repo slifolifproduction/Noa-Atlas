@@ -1,4 +1,5 @@
 import { Minus, Plus, X } from 'lucide-react';
+import { EVIDENCE_KIND_HINT, EVIDENCE_KIND_LABEL } from '../../domain/constants';
 import { resolveSource } from '../../domain/selectors';
 import type { Evidence } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
@@ -32,14 +33,15 @@ export function EvidenceRow({ evidence, onRemove }: { evidence: Evidence; onRemo
         <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
           <SourceLink source={evidence.source} />
           <span className="num text-[11px] text-ink-3">{formatDate(src.date)}</span>
-          {evidence.weight > 1 && (
-            <span className="num text-[11px] text-ink-3" title={t('Experiment results count double')}>
-              ×{evidence.weight}
+          {evidence.kind && (
+            <span className="font-mono text-[10.5px] tracking-wide text-ink-2 uppercase" title={EVIDENCE_KIND_HINT[evidence.kind]}>
+              {EVIDENCE_KIND_LABEL[evidence.kind]}
             </span>
           )}
           <span className="text-[11px] text-ink-3">· {evidence.addedBy === 'user' ? t('added by you') : t('proposed by analysis')}</span>
         </div>
         <p className="mt-0.5 text-[13px] leading-snug text-ink-2">“{evidence.excerpt}”</p>
+        {evidence.note && <p className="mt-0.5 text-[12px] text-ink-3">{evidence.note}</p>}
       </div>
       {onRemove && (
         <button

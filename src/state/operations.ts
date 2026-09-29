@@ -7,7 +7,7 @@ import { resolveProvider, type AnalysisProvider } from '../ai';
 import { AnalysisError } from '../ai/errors';
 import { analyzeEntryLocally } from '../ai/localAnalysis';
 import type { ExperimentDraft, ModelUpdateProposal } from '../ai/types';
-import { CAPTURE_NODE_TARGET } from '../domain/constants';
+import { CAPTURE_TARGET } from '../domain/constants';
 import { decisionCode, entryCode, experimentCode, pathCode } from '../domain/selectors';
 import type { CaptureKind, Entry, EntryAnalysis, Experiment, ExperimentResult, ID } from '../domain/types';
 import { useAtlas, type NewDecision, type NewEntry } from './atlasStore';
@@ -49,19 +49,35 @@ export async function analyzeEntry(id: ID): Promise<EntryAnalysis | undefined> {
   });
 }
 
-/** Create an entry, optionally place it on a map, then analyse it. */
+/**
+ * Create a note, optionally place what it describes on the map (a goal, a
+ * commitment, a behaviour) or in history (a formative experience), then read it.
+ * The note itself always stays the record.
+ */
 export async function captureEntry(input: NewEntry, opts: { addToMap?: boolean } = {}): Promise<Entry> {
   const atlas = useAtlas.getState();
-  const target = CAPTURE_NODE_TARGET[input.kind as CaptureKind];
+  const target = CAPTURE_TARGET[input.kind as CaptureKind];
   const entry = atlas.addEntry(input);
-  if (opts.addToMap && target) {
+  if (opts.addToMap && target?.element) {
     const nodeId = atlas.addNode({
       label: input.title,
       summary: '',
-      ...target,
-      source: target.category ? { kind: 'entry', id: entry.id } : undefined,
+      kind: target.element,
+      area: input.areas[0] ?? 'projects',
+      since: target.element === 'commitment' ? input.date : undefined,
     });
-    if (!target.category) atlas.updateEntry(entry.id, { nodeIds: [...entry.nodeIds, nodeId] });
+    atlas.updateEntry(entry.id, { nodeIds: [...entry.nodeIds, nodeId] });
+  }
+  if (opts.addToMap && target?.occurrence) {
+    atlas.addOccurrence({
+      kind: target.occurrence,
+      label: input.title,
+      date: input.date,
+      about: input.nodeIds,
+      landmark: true,
+      source: { kind: 'entry', id: entry.id },
+      excerpt: input.content,
+    });
   }
   const ui = useUI.getState();
   const analysis = await analyzeEntry(entry.id);
@@ -76,12 +92,10 @@ export async function captureEntry(input: NewEntry, opts: { addToMap?: boolean }
   return useAtlas.getState().data.entries[entry.id];
 }
 
-export function captureDecision(input: NewDecision, opts: { addToMap?: boolean } = {}) {
+/** A decision is a branch point in history; it needs no copy on the map. */
+export function captureDecision(input: NewDecision) {
   const atlas = useAtlas.getState();
   const decision = atlas.addDecision(input);
-  if (opts.addToMap) {
-    atlas.addNode({ label: input.title, summary: '', category: 'decision', source: { kind: 'decision', id: decision.id } });
-  }
   toast(t('Logged {code}.', { code: decisionCode(decision.seq) }), {
     tone: 'success',
     action: { label: t('Open'), run: () => useUI.getState().openEntity({ kind: 'decision', id: decision.id }) },
@@ -108,21 +122,25 @@ export async function detectDecisionPatterns() {
   return withBusy('decision-patterns', () => provider().detectDecisionPatterns(useAtlas.getState().data));
 }
 
-export async function proposeExperiments(patternId: ID): Promise<ExperimentDraft[]> {
-  const pattern = useAtlas.getState().data.patterns[patternId];
-  if (!pattern) return [];
-  return withBusy(`propose:${patternId}`, () => provider().proposeExperiments(pattern, useAtlas.getState().data));
+/** Ways to test a claim: change the cause on purpose, or look for contrast cases. */
+export async function proposeExperiments(claimId: ID): Promise<ExperimentDraft[]> {
+  const claim = useAtlas.getState().data.claims[claimId];
+  if (!claim) return [];
+  return withBusy(`propose:${claimId}`, () => provider().proposeExperiments(claim, useAtlas.getState().data));
 }
 
-export function adoptExperimentDraft(draft: ExperimentDraft, links: { patternId?: ID; pathId?: ID; questionId?: ID }): ID {
+export function adoptExperimentDraft(draft: ExperimentDraft, links: { claimId?: ID; patternId?: ID; pathId?: ID; questionId?: ID }): ID {
   const id = useAtlas.getState().addExperiment({
     title: draft.title,
     hypothesis: draft.hypothesis,
     design: draft.design,
     durationDays: draft.durationDays,
     status: 'proposed',
+    claimId: links.claimId,
+    prediction: draft.prediction,
+    criteria: draft.criteria,
     measures: draft.measures.map((m, i) => ({ id: `m${i + 1}`, ...m })),
-    patternLinks: links.patternId ? [{ patternId: links.patternId, ifSupported: 'supports' }] : [],
+    patternIds: links.patternId ? [links.patternId] : [],
     pathIds: links.pathId ? [links.pathId] : [],
     questionIds: links.questionId ? [links.questionId] : [],
   });

@@ -5,22 +5,25 @@
  */
 import { addDays, dateOf, daysBetween, formatSpan, todayISO, weekStart } from '../lib/dates';
 import { pad2 } from '../lib/text';
-import { computeConfidence, confidenceHistory } from './confidence';
-import { CATEGORY_META, DOMAIN_META, DRIVER_HORIZON, hubId, hubKey, isHubId, PATTERN_COLOR } from './constants';
+import { claimStatus } from './claims';
+import { AREA_META, areaHubKey, DRIVER_HORIZON, isAreaHubId, KIND_META, SECTOR_KEYS, YOU_ID } from './constants';
 import type {
+  AreaKey,
   AtlasData,
   AtlasEdge,
   AtlasNode,
+  Claim,
   Decision,
-  DomainKey,
+  Effect,
   Entry,
   Evidence,
   Experiment,
   ID,
   ISODate,
+  LinkType,
   NavigationPlan,
   Pattern,
-  RelationType,
+  Regularity,
   SourceRef,
 } from './types';
 import { t } from '../i18n';
@@ -54,8 +57,14 @@ export function resolveSource(data: AtlasData, ref: SourceRef): ResolvedSource {
   if (ref.kind === 'decision') {
     const d = data.decisions[ref.id];
     return d
-      ? { ref, code: decisionCode(d.seq), title: d.title, date: d.date, body: d.context, exists: true }
+      ? { ref, code: decisionCode(d.seq), title: d.title, date: d.date, body: d.actualOutcome || d.context, exists: true }
       : { ref, code: t('Decision'), title: t('Deleted decision'), exists: false };
+  }
+  if (ref.kind === 'occurrence') {
+    const o = data.occurrences[ref.id];
+    if (!o) return { ref, code: t('Event'), title: t('Deleted event'), exists: false };
+    const from = o.source ? resolveSource(data, o.source) : undefined;
+    return { ref, code: from?.code ?? t('History'), title: o.label, date: o.date, body: o.excerpt ?? from?.body, exists: true };
   }
   const x = data.experiments[ref.id];
   return x
@@ -72,56 +81,63 @@ export function resolveSource(data: AtlasData, ref: SourceRef): ResolvedSource {
 
 export const sameRef = (a: SourceRef, b: SourceRef) => a.kind === b.kind && a.id === b.id;
 
-/** Every pattern that cites this record as evidence. */
-export function usagesOfSource(data: AtlasData, ref: SourceRef): { pattern: Pattern; evidence: Evidence }[] {
-  const out: { pattern: Pattern; evidence: Evidence }[] = [];
-  for (const p of Object.values(data.patterns)) {
-    for (const ev of p.evidence) if (sameRef(ev.source, ref)) out.push({ pattern: p, evidence: ev });
-  }
-  return out.sort((a, b) => a.pattern.code - b.pattern.code);
+/** Every claim and pattern that cites this record. */
+export function usagesOfSource(data: AtlasData, ref: SourceRef): { pattern?: Pattern; claim?: Claim; evidence: Evidence }[] {
+  const out: { pattern?: Pattern; claim?: Claim; evidence: Evidence }[] = [];
+  for (const p of Object.values(data.patterns)) for (const ev of p.evidence) if (sameRef(ev.source, ref)) out.push({ pattern: p, evidence: ev });
+  for (const c of Object.values(data.claims)) for (const ev of c.evidence) if (sameRef(ev.source, ref)) out.push({ claim: c, evidence: ev });
+  return out;
 }
 
 /* ---------------- patterns ---------------- */
 
 export interface PatternStats {
-  confidence: number;
-  supportCount: number;
-  counterCount: number;
+  regularity: Regularity;
+  /** Supporting instances. */
+  instances: number;
+  /** Separate weeks the instances fall in. */
+  episodes: number;
+  counter: number;
   firstObserved?: ISODate;
   lastObserved?: ISODate;
   frequency: string;
-  history: { date: ISODate; value: number; evidenceId: string }[];
+  points: { date: ISODate; stance: Evidence['stance']; evidenceId: string }[];
 }
 
-export function patternStats(data: AtlasData, pattern: Pattern): PatternStats {
-  const dateOf = (e: Evidence) => resolveSource(data, e.source).date;
-  const supporting = pattern.evidence.filter((e) => e.stance === 'supports');
-  const dates = supporting
-    .map(dateOf)
-    .filter((d): d is ISODate => Boolean(d))
-    .sort();
-  const first = dates[0];
-  const last = dates[dates.length - 1];
+export function patternStats(data: AtlasData, pattern: Pattern, today: ISODate = todayISO()): PatternStats {
+  const points = pattern.evidence
+    .map((e) => ({ date: resolveSource(data, e.source).date, stance: e.stance, evidenceId: e.id }))
+    .filter((p): p is { date: ISODate; stance: Evidence['stance']; evidenceId: string } => Boolean(p.date))
+    .sort((a, b) => a.date.localeCompare(b.date));
+  const supporting = points.filter((p) => p.stance === 'supports');
+  const episodes = new Set(supporting.map((p) => weekStart(p.date))).size;
+  const first = supporting[0]?.date;
+  const last = supporting[supporting.length - 1]?.date;
+  const latest = points[points.length - 1];
+  const regularity: Regularity = episodes < 3 ? 'emerging' : latest?.stance === 'counters' || (last && daysBetween(last, today) > 90) ? 'fading' : 'recurring';
   const frequency =
-    dates.length === 0
+    supporting.length === 0
       ? t('Not yet observed')
-      : dates.length === 1
+      : supporting.length === 1
         ? t('Observed once')
-        : t('{n}× in {span}', { n: dates.length, span: formatSpan(first, last) });
+        : t('{n}× in {span}', { n: supporting.length, span: formatSpan(first!, last!) });
   return {
-    confidence: computeConfidence(pattern.evidence),
-    supportCount: supporting.length,
-    counterCount: pattern.evidence.length - supporting.length,
+    regularity,
+    instances: supporting.length,
+    episodes,
+    counter: points.length - supporting.length,
     firstObserved: first,
     lastObserved: last,
     frequency,
-    history: confidenceHistory(pattern.evidence, dateOf),
+    points,
   };
 }
 
-export function sortedPatterns(data: AtlasData, opts: { includeDismissed?: boolean } = {}): Pattern[] {
+export const patternLive = (p: Pattern) => !p.setAside;
+
+export function sortedPatterns(data: AtlasData, opts: { includeSetAside?: boolean } = {}): Pattern[] {
   return Object.values(data.patterns)
-    .filter((p) => opts.includeDismissed || p.status !== 'dismissed')
+    .filter((p) => opts.includeSetAside || patternLive(p))
     .sort((a, b) => {
       const la = patternStats(data, a).lastObserved ?? '';
       const lb = patternStats(data, b).lastObserved ?? '';
@@ -129,7 +145,14 @@ export function sortedPatterns(data: AtlasData, opts: { includeDismissed?: boole
     });
 }
 
-/* ---------------- nodes & graph ---------------- */
+export const patternTitle = (p: Pattern) => (p.steps.length ? p.steps.map((s) => s.label).join(' → ') : p.title);
+
+/* ---------------- elements ---------------- */
+
+/** Elements on the map: the person's own, and proposals they adopted. */
+export const mapElements = (data: AtlasData) => Object.values(data.nodes).filter((n) => n.adopted);
+/** Proposals from the analysis waiting for the person's yes or no. */
+export const suggestedElements = (data: AtlasData) => Object.values(data.nodes).filter((n) => !n.adopted);
 
 export interface DisplayNode {
   id: ID;
@@ -138,80 +161,89 @@ export interface DisplayNode {
   color: string;
   kindLabel: string;
   isHub: boolean;
-  domain?: DomainKey;
+  area?: AreaKey;
   node?: AtlasNode;
   pattern?: Pattern;
 }
 
-/** A uniform view of hubs, atlas nodes and derived pattern nodes. */
+/** A uniform view of the centre, area markers, elements and patterns. */
 export function displayNode(data: AtlasData, id: ID): DisplayNode | undefined {
-  if (isHubId(id)) {
-    const key = hubKey(id);
-    const meta = DOMAIN_META[key];
-    const domain = data.domains[key];
+  if (id === YOU_ID) {
+    return {
+      id,
+      label: data.profile.name || t('You'),
+      summary: data.areas.self?.statement || AREA_META.self.description,
+      color: AREA_META.self.color,
+      kindLabel: t('You'),
+      isHub: true,
+      area: 'self',
+    };
+  }
+  if (isAreaHubId(id)) {
+    const key = areaHubKey(id);
+    const meta = AREA_META[key];
     if (!meta) return undefined;
     return {
       id,
       label: meta.label,
-      summary: domain?.statement || meta.description,
+      summary: data.areas[key]?.statement || meta.description,
       color: meta.color,
-      kindLabel: t('Domain'),
+      kindLabel: t('Area'),
       isHub: true,
-      domain: key,
+      area: key,
     };
   }
   const pattern = data.patterns[id];
   if (pattern) {
-    return {
-      id,
-      label: pattern.title,
-      summary: pattern.observation,
-      color: PATTERN_COLOR,
-      kindLabel: patternCode(pattern.code),
-      isHub: false,
-      pattern,
-    };
+    return { id, label: pattern.title, summary: pattern.observation, color: '#ece8df', kindLabel: patternCode(pattern.code), isHub: false, pattern };
   }
   const node = data.nodes[id];
   if (!node) return undefined;
-  const color = node.category ? CATEGORY_META[node.category].color : node.domain ? DOMAIN_META[node.domain].color : '#aab2bc';
-  const kindLabel = node.category ? CATEGORY_META[node.category].label : node.domain ? DOMAIN_META[node.domain].label : t('Node');
-  return { id, label: node.label, summary: node.summary, color, kindLabel, isHub: false, domain: node.domain, node };
+  return {
+    id,
+    label: node.label,
+    summary: node.summary,
+    color: AREA_META[node.area]?.color ?? '#aab2bc',
+    kindLabel: KIND_META[node.kind]?.label ?? t('Element'),
+    isHub: false,
+    area: node.area,
+    node,
+  };
 }
+
+export type NeighborRelation = { family: 'link'; type: LinkType } | { family: 'claim'; effect: Effect; claimId: ID } | { family: 'pattern' };
 
 export interface Neighbor {
   otherId: ID;
-  relation: RelationType;
+  relation: NeighborRelation;
   direction: 'out' | 'in';
   edge?: AtlasEdge;
 }
 
-/**
- * Stored edges plus structural links: a hub contains its domain's nodes, and a
- * derived pattern node is linked to the nodes it names.
- */
+/** Declared links, adopted claims, and the patterns an element takes part in. */
 export function neighbors(data: AtlasData, id: ID): Neighbor[] {
   const out: Neighbor[] = [];
   for (const e of Object.values(data.edges)) {
-    if (e.source === id) out.push({ otherId: e.target, relation: e.relation, direction: 'out', edge: e });
-    else if (e.target === id) out.push({ otherId: e.source, relation: e.relation, direction: 'in', edge: e });
+    if (e.source === id) out.push({ otherId: e.target, relation: { family: 'link', type: e.type }, direction: 'out', edge: e });
+    else if (e.target === id) out.push({ otherId: e.source, relation: { family: 'link', type: e.type }, direction: 'in', edge: e });
   }
-  if (isHubId(id)) {
-    const key = hubKey(id);
-    for (const n of Object.values(data.nodes)) if (n.domain === key) out.push({ otherId: n.id, relation: 'part_of', direction: 'in' });
-  } else {
-    const node = data.nodes[id];
-    if (node?.domain) out.push({ otherId: hubId(node.domain), relation: 'part_of', direction: 'out' });
-    const pattern = data.patterns[id];
-    if (pattern) for (const nid of pattern.nodeIds) out.push({ otherId: nid, relation: 'derived_from', direction: 'out' });
-    for (const p of Object.values(data.patterns)) {
-      if (p.status !== 'dismissed' && p.nodeIds.includes(id)) out.push({ otherId: p.id, relation: 'derived_from', direction: 'in' });
+  for (const c of Object.values(data.claims)) {
+    if (c.state !== 'adopted') continue;
+    const rel = { family: 'claim' as const, effect: c.effect, claimId: c.id };
+    if (c.from === id || c.with.includes(id)) out.push({ otherId: c.to, relation: rel, direction: 'out' });
+    if (c.to === id) {
+      out.push({ otherId: c.from, relation: rel, direction: 'in' });
+      for (const w of c.with) out.push({ otherId: w, relation: rel, direction: 'in' });
     }
   }
-  return out.filter((n) => displayNode(data, n.otherId));
+  const pattern = data.patterns[id];
+  if (pattern) for (const nid of pattern.nodeIds) out.push({ otherId: nid, relation: { family: 'pattern' }, direction: 'out' });
+  for (const p of Object.values(data.patterns))
+    if (patternLive(p) && p.nodeIds.includes(id)) out.push({ otherId: p.id, relation: { family: 'pattern' }, direction: 'in' });
+  return out.filter((n) => n.otherId !== id && displayNode(data, n.otherId));
 }
 
-/** All node ids within `depth` hops of `start`, restricted to `visible`. */
+/** All ids within `depth` hops of `start`, restricted to `visible`. */
 export function neighborhood(data: AtlasData, start: ID, depth: number, visible?: Set<ID>): Set<ID> {
   const seen = new Set<ID>([start]);
   let frontier = [start];
@@ -231,18 +263,17 @@ export function neighborhood(data: AtlasData, start: ID, depth: number, visible?
   return seen;
 }
 
-/** Raw records that act as evidence for a node. Hubs collect their whole domain. */
-export function evidenceForNode(data: AtlasData, id: ID): { entries: Entry[]; decisions: Decision[] } {
+/** Notes and decisions about an element. The centre and area markers collect their whole territory. */
+export function recordsFor(data: AtlasData, id: ID): { entries: Entry[]; decisions: Decision[] } {
   let entries: Entry[];
   let decisions: Decision[];
-  if (isHubId(id)) {
-    const key = hubKey(id);
-    entries = Object.values(data.entries).filter((e) => e.domains.includes(key));
-    decisions = Object.values(data.decisions).filter((d) => d.domains.includes(key));
+  const area = id === YOU_ID ? 'self' : isAreaHubId(id) ? areaHubKey(id) : undefined;
+  if (area) {
+    entries = Object.values(data.entries).filter((e) => e.areas.includes(area));
+    decisions = Object.values(data.decisions).filter((d) => d.areas.includes(area));
   } else {
-    const node = data.nodes[id];
-    entries = Object.values(data.entries).filter((e) => e.nodeIds.includes(id) || (node?.source?.kind === 'entry' && node.source.id === e.id));
-    decisions = Object.values(data.decisions).filter((d) => d.nodeIds.includes(id) || (node?.source?.kind === 'decision' && node.source.id === d.id));
+    entries = Object.values(data.entries).filter((e) => e.nodeIds.includes(id));
+    decisions = Object.values(data.decisions).filter((d) => d.nodeIds.includes(id));
   }
   return {
     entries: entries.sort((a, b) => b.date.localeCompare(a.date)),
@@ -251,33 +282,55 @@ export function evidenceForNode(data: AtlasData, id: ID): { entries: Entry[]; de
 }
 
 export function patternsForNode(data: AtlasData, id: ID): Pattern[] {
-  const hub = isHubId(id) ? hubKey(id) : undefined;
-  const { entries, decisions } = evidenceForNode(data, id);
-  const refs = new Set([...entries.map((e) => `entry:${e.id}`), ...decisions.map((d) => `decision:${d.id}`)]);
+  const area = id === YOU_ID ? 'self' : isAreaHubId(id) ? areaHubKey(id) : undefined;
   return Object.values(data.patterns)
-    .filter((p) => p.status !== 'dismissed')
-    .filter((p) => p.nodeIds.includes(id) || (hub && p.domains.includes(hub)) || (!hub && p.evidence.some((e) => refs.has(`${e.source.kind}:${e.source.id}`))))
+    .filter(patternLive)
+    .filter((p) => (area ? p.areas.includes(area) : p.nodeIds.includes(id) || p.steps.some((s) => s.elementId === id)))
     .sort((a, b) => a.code - b.code);
 }
 
 export function questionNodes(data: AtlasData): AtlasNode[] {
   const order = { exploring: 0, open: 1, resolved: 2 } as const;
-  return Object.values(data.nodes)
-    .filter((n) => n.category === 'question')
+  return mapElements(data)
+    .filter((n) => n.kind === 'question')
     .sort((a, b) => order[a.status ?? 'open'] - order[b.status ?? 'open'] || a.createdAt.localeCompare(b.createdAt));
 }
 
-/** Entries touching a domain in the last `days` days: where attention went. */
-export function domainActivity(data: AtlasData, key: DomainKey, days = 60, today = todayISO()): number {
+/** Notes touching an area in the last `days` days: where attention went. */
+export function areaActivity(data: AtlasData, key: AreaKey, days = 60, today = todayISO()): number {
   const from = addDays(today, -days);
-  return Object.values(data.entries).filter((e) => e.domains.includes(key) && e.date >= from && e.date <= today).length;
+  return Object.values(data.entries).filter((e) => e.areas.includes(key) && e.date >= from && e.date <= today).length;
+}
+
+/* ---------------- where understanding is thin ---------------- */
+
+export interface ThinSpots {
+  /** Areas with no notes in the last 60 days. */
+  quietAreas: AreaKey[];
+  /** Outcomes of concern with no claim explaining them. */
+  unexplained: AtlasNode[];
+  /** Beliefs never held up against the record. */
+  untestedBeliefs: AtlasNode[];
+  /** Claims with nothing behind them yet. */
+  bareClaims: Claim[];
+}
+
+export function thinSpots(data: AtlasData, today = todayISO()): ThinSpots {
+  const elements = mapElements(data);
+  const adopted = Object.values(data.claims).filter((c) => c.state === 'adopted' && !c.retired);
+  return {
+    quietAreas: SECTOR_KEYS.filter((k) => elements.some((n) => n.area === k) && areaActivity(data, k, 60, today) === 0),
+    unexplained: elements.filter((n) => n.concern && !adopted.some((c) => c.to === n.id)),
+    untestedBeliefs: elements.filter((n) => n.kind === 'belief' && (!n.claimId || !data.claims[n.claimId]?.evidence.length)),
+    bareClaims: adopted.filter((c) => claimStatus(data, c) === 'proposed'),
+  };
 }
 
 /* ---------------- decisions ---------------- */
 
 export type DecisionHorizon = 'immediate' | 'long_term' | 'neutral';
 
-/** Classifies a decision by the drivers the user said it optimised for. */
+/** Classifies a decision by the reasons the person gave for it. */
 export function decisionHorizon(decision: Pick<Decision, 'optimizingFor'>): DecisionHorizon {
   let immediate = 0;
   let longTerm = 0;
@@ -297,6 +350,18 @@ export function sortedDecisions(data: AtlasData): Decision[] {
 
 export function sortedEntries(data: AtlasData): Entry[] {
   return Object.values(data.entries).sort((a, b) => b.date.localeCompare(a.date) || b.seq - a.seq);
+}
+
+/** Expected vs actual across reviewed decisions: how well consequences were foreseen. */
+export function calibration(data: AtlasData): { reviewed: number; asExpected: number; better: number; worse: number; mixed: number } {
+  const rated = Object.values(data.decisions).filter((d) => d.outcomeRating);
+  return {
+    reviewed: rated.length,
+    asExpected: rated.filter((d) => d.outcomeRating === 'as_expected').length,
+    better: rated.filter((d) => d.outcomeRating === 'better').length,
+    worse: rated.filter((d) => d.outcomeRating === 'worse').length,
+    mixed: rated.filter((d) => d.outcomeRating === 'mixed').length,
+  };
 }
 
 /* ---------------- experiments & navigation ---------------- */
@@ -325,9 +390,11 @@ export function experimentProgress(x: Experiment, today = todayISO()): Experimen
 
 export function currentExperiment(data: AtlasData): Experiment | undefined {
   const running = Object.values(data.experiments).filter((x) => x.status === 'running');
-  // The shortest running experiment is the one closest to producing a result.
+  // The shortest running test is the one closest to producing a result.
   return running.sort((a, b) => a.durationDays - b.durationDays)[0];
 }
+
+export const testsOfClaim = (data: AtlasData, claimId: ID) => Object.values(data.experiments).filter((x) => x.claimId === claimId);
 
 export interface NavigationProgress {
   targetsDone: number;
@@ -347,7 +414,7 @@ export function navigationProgress(plan: NavigationPlan, today = todayISO()): Na
   const weekActions = plan.actions.filter((a) => a.week === shownWeek);
   const span = Math.max(1, daysBetween(plan.committedAt, plan.objective.targetDate));
   return {
-    targetsDone: plan.targets.filter((t) => t.done).length,
+    targetsDone: plan.targets.filter((x) => x.done).length,
     targetsTotal: plan.targets.length,
     week: shownWeek,
     weekActions,
@@ -369,19 +436,22 @@ export function modelCounts(data: AtlasData) {
   const entries = Object.values(data.entries);
   const observations = entries.reduce((n, e) => n + (e.analysis?.observations.length ?? 0), 0);
   const patterns = Object.values(data.patterns);
+  const claims = Object.values(data.claims).filter((c) => c.state === 'adopted');
   return {
     records: entries.length + Object.keys(data.decisions).length,
+    occurrences: Object.keys(data.occurrences).length,
     observations,
-    evidence: patterns.reduce((n, p) => n + p.evidence.length, 0),
-    patterns: patterns.filter((p) => p.status !== 'dismissed').length,
-    nodes: Object.keys(data.nodes).length,
+    evidence: patterns.reduce((n, p) => n + p.evidence.length, 0) + claims.reduce((n, c) => n + c.evidence.length, 0),
+    patterns: patterns.filter(patternLive).length,
+    claims: claims.length,
+    nodes: mapElements(data).length,
     paths: Object.keys(data.paths).length,
     experiments: Object.values(data.experiments).filter((x) => x.status === 'running' || x.status === 'proposed').length,
     updates: data.modelLog.length,
   };
 }
 
-/** Pending analysis suggestions across all entries. */
+/** Pending analysis suggestions across all notes. */
 export function pendingSuggestions(data: AtlasData) {
   const out: { entry: Entry; suggestion: NonNullable<Entry['analysis']>['suggestions'][number] }[] = [];
   for (const entry of Object.values(data.entries)) {

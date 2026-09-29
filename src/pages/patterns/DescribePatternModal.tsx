@@ -31,13 +31,16 @@ export function DescribePatternModal({ onClose }: { onClose(): void }) {
     if (!valid) return;
     const id = addPattern({
       kind,
-      chain: steps.map((x) => x.trim()).filter(Boolean),
+      steps: steps
+        .map((x) => x.trim())
+        .filter(Boolean)
+        .map((label) => ({ label })),
       observation: observation.trim(),
       triggers: lines(triggers),
       behaviors: lines(behaviors),
       consequences: lines(consequences),
       cues: { supports: splitPhrases(supports), counters: splitPhrases(counters) },
-      domains: [],
+      areas: [],
     });
     onClose();
     navigate('patterns', id);
@@ -48,7 +51,9 @@ export function DescribePatternModal({ onClose }: { onClose(): void }) {
       open
       onClose={onClose}
       title={t('Describe a pattern')}
-      description={t('Something you suspect recurs. It enters the model with no evidence; confidence moves only as you attach entries and decisions to it.')}
+      description={t(
+        'Something you suspect keeps happening. It starts with no instances; it becomes a regularity only as you attach the notes and decisions where it happened.',
+      )}
       width="max-w-[640px]"
       footer={
         <>

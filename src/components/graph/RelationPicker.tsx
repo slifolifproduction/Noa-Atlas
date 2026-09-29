@@ -1,14 +1,18 @@
 import { useEffect, useRef } from 'react';
-import { SEMANTIC_RELATIONS } from '../../domain/constants';
+import { EFFECTS, LINKS } from '../../domain/constants';
 import { displayNode } from '../../domain/selectors';
-import type { ID, RelationType } from '../../domain/types';
+import type { Effect, ID, LinkType } from '../../domain/types';
 import type { AtlasFlowNode } from '../../graph/types';
-import { useAtlas } from '../../state/atlasStore';
-import { toast } from '../../state/uiStore';
-import { RelationSwatch } from './Legend';
 import { t } from '../../i18n';
+import { useAtlas } from '../../state/atlasStore';
+import { toast, useUI } from '../../state/uiStore';
+import { EffectSwatch, LinkSwatch } from './Legend';
 
-/** Shown after dragging a connection: the user names the relationship. */
+/**
+ * Shown after dragging from one element to another. Two different things can
+ * be said: a claim that one changes the other (a hypothesis, checked against
+ * the record), or a declared link (true because you say so).
+ */
 export function RelationPicker({
   x,
   y,
@@ -25,10 +29,13 @@ export function RelationPicker({
   onClose(): void;
 }) {
   const data = useAtlas((s) => s.data);
-  const addEdge = useAtlas((s) => s.addEdge);
+  const addLink = useAtlas((s) => s.addLink);
+  const addClaim = useAtlas((s) => s.addClaim);
+  const openEntity = useUI((s) => s.openEntity);
   const ref = useRef<HTMLDivElement>(null);
   const a = displayNode(data, sourceId);
   const b = displayNode(data, targetId);
+  const bothElements = Boolean(data.nodes[sourceId] && data.nodes[targetId]);
 
   useEffect(() => {
     ref.current?.querySelector<HTMLButtonElement>('button')?.focus();
@@ -37,23 +44,28 @@ export function RelationPicker({
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const pick = (relation: RelationType) => {
-    addEdge(sourceId, targetId, relation);
-    toast(t('Connected: {a} {verb} {b}.', { a: a?.label ?? '', verb: SEMANTIC_RELATIONS.find((r) => r.key === relation)?.verb ?? '', b: b?.label ?? '' }), {
-      tone: 'success',
-    });
+  const claim = (effect: Effect) => {
+    const id = addClaim({ from: sourceId, to: targetId, effect, author: 'user', state: 'adopted' });
+    toast(t('Claim added. It stays proposed until the record backs it: add the notes that show it.'), { tone: 'success' });
+    openEntity({ kind: 'claim', id });
+    onClose();
+  };
+  const link = (type: LinkType) => {
+    addLink(sourceId, targetId, type);
+    toast(t('Linked: {a} {verb} {b}.', { a: a?.label ?? '', verb: LINKS.find((r) => r.key === type)?.verb ?? '', b: b?.label ?? '' }), { tone: 'success' });
     onClose();
   };
 
-  const left = Math.max(12, Math.min(x + 12, (ref.current?.parentElement?.clientWidth ?? 9999) - 300));
-  const top = Math.max(12, Math.min(y - 20, (ref.current?.parentElement?.clientHeight ?? 9999) - 380));
+  const left = Math.max(12, Math.min(x + 12, (ref.current?.parentElement?.clientWidth ?? 9999) - 316));
+  const top = Math.max(12, Math.min(y - 20, (ref.current?.parentElement?.clientHeight ?? 9999) - 560));
+  const row = 'flex w-full items-center gap-2.5 rounded-[2px] px-2 py-1.5 text-left hover:bg-ink/[0.05] focus-visible:bg-ink/[0.05] focus-visible:outline-none';
 
   return (
     <div
       ref={ref}
       role="dialog"
-      aria-label={t('Choose a relationship')}
-      className="absolute z-20 w-[284px] animate-rise rounded-[2px] border border-line-strong bg-overlay p-1.5 shadow-2xl"
+      aria-label={t('Connect two elements')}
+      className="absolute z-20 max-h-[min(560px,80vh)] w-[300px] animate-rise overflow-y-auto rounded-[2px] border border-line-strong bg-overlay p-1.5 shadow-2xl"
       style={{ left, top }}
       onKeyDown={(e) => {
         if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -66,14 +78,30 @@ export function RelationPicker({
       <div className="px-2 pt-1 pb-2 text-[12px] leading-snug text-ink-2">
         <span className="text-ink">{a?.label}</span> → <span className="text-ink">{b?.label}</span>
       </div>
-      {SEMANTIC_RELATIONS.map((r) => (
-        <button
-          key={r.key}
-          type="button"
-          onClick={() => pick(r.key)}
-          className="flex w-full items-center gap-2.5 rounded-[2px] px-2 py-1.5 text-left hover:bg-ink/[0.05] focus-visible:bg-ink/[0.05] focus-visible:outline-none"
-        >
-          <RelationSwatch relation={r.key} />
+      {bothElements && (
+        <>
+          <div className="px-2 pt-1">
+            <div className="label">{t('A claim: how A changes B')}</div>
+            <p className="mt-0.5 text-[11px] text-ink-3">{t('A hypothesis. It starts as proposed and climbs only with evidence.')}</p>
+          </div>
+          {EFFECTS.map((e) => (
+            <button key={e.key} type="button" onClick={() => claim(e.key)} className={row}>
+              <EffectSwatch effect={e.key} />
+              <span className="min-w-0">
+                <span className="block text-[12.5px] text-ink">{e.label}</span>
+                <span className="block text-[11px] text-ink-3">{e.description}</span>
+              </span>
+            </button>
+          ))}
+        </>
+      )}
+      <div className="mt-1 border-t border-line px-2 pt-2">
+        <div className="label">{t('A declared link')}</div>
+        <p className="mt-0.5 text-[11px] text-ink-3">{t('How they relate, in your own terms. Needs no evidence; claims nothing about causes.')}</p>
+      </div>
+      {LINKS.map((r) => (
+        <button key={r.key} type="button" onClick={() => link(r.key)} className={row}>
+          <LinkSwatch type={r.key} />
           <span className="min-w-0">
             <span className="block text-[12.5px] text-ink">{r.label}</span>
             <span className="block text-[11px] text-ink-3">{r.description}</span>

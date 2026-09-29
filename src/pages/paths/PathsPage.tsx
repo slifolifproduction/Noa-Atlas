@@ -1,13 +1,15 @@
 import { Check, Pencil, Plus } from 'lucide-react';
-import { CATEGORY_ICONS, ExperimentIcon, PLACE_ICONS } from '../../components/icons';
+import { AssumptionIcon, ExperimentIcon, PLACE_ICONS } from '../../components/icons';
+import { StatusBadge } from '../../components/evidence/Status';
+import { claimCode, claimSentence, claimStatus } from '../../domain/claims';
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/primitives';
-import { computeConfidence, pct } from '../../domain/confidence';
 import { EXPERIMENT_STATUS_LABEL, SKILL_STATUS_LABEL } from '../../domain/constants';
-import { experimentCode, pathCode, patternCode } from '../../domain/selectors';
+import { experimentCode, pathCode, patternCode, patternStats, patternTitle } from '../../domain/selectors';
+import { RegularityTag } from '../../components/evidence/Status';
 import type { SkillStatus, StrategicPath } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
 import { cn } from '../../lib/cn';
@@ -18,7 +20,7 @@ import { CurrentStateEditor } from './CurrentStateEditor';
 import { PathEditor } from './PathEditor';
 import { t } from '../../i18n';
 
-const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns'; label: string; hint: string }[] = [
+const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns' | 'assumptions'; label: string; hint: string }[] = [
   {
     key: 'requirements',
     get label() {
@@ -97,7 +99,16 @@ const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns'; label: stri
       return t('Unknowns');
     },
     get hint() {
-      return t('Untested beliefs');
+      return t('What you do not know yet');
+    },
+  },
+  {
+    key: 'assumptions',
+    get label() {
+      return t('Relies on');
+    },
+    get hint() {
+      return t('Claims that must hold, and how well they do');
     },
   },
   {
@@ -112,7 +123,7 @@ const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns'; label: stri
   {
     key: 'experiments',
     get label() {
-      return t('Experiments');
+      return t('Tests');
     },
     get hint() {
       return t('Ways to find out');
@@ -421,7 +432,7 @@ function Cell({
         <ul className="space-y-1">
           {p.unknowns.map((u) => (
             <li key={u} className="flex gap-2">
-              <CATEGORY_ICONS.assumption size={12} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
+              <AssumptionIcon size={12} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
               <span>{u}</span>
             </li>
           ))}
@@ -434,13 +445,35 @@ function Cell({
         <ul className="space-y-1">
           {p.patternIds.map((id) => {
             const pat = data.patterns[id];
-            if (!pat || pat.status === 'dismissed') return null;
+            if (!pat || pat.setAside) return null;
             return (
               <li key={id}>
                 <button type="button" onClick={() => onOpenPattern(id)} className="text-left hover:text-ink">
                   <span className="num mr-1.5 text-[11.5px] text-ink-3">{patternCode(pat.code)}</span>
-                  {pat.chain[0]}
-                  <span className="num ml-1.5 text-[11.5px] text-ink-3">{pct(computeConfidence(pat.evidence))}</span>
+                  {patternTitle(pat)} <RegularityTag regularity={patternStats(data, pat).regularity} />
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      ) : (
+        <span className="text-ink-3">{t('None linked')}</span>
+      );
+    case 'assumptions':
+      return p.assumptionIds.length ? (
+        <ul className="space-y-1.5">
+          {p.assumptionIds.map((id) => {
+            const c = data.claims[id];
+            if (!c) return null;
+            const status = claimStatus(data, c);
+            return (
+              <li key={id}>
+                <button type="button" onClick={() => useUI.getState().openEntity({ kind: 'claim', id })} className="text-left hover:text-ink">
+                  <span className="flex items-center gap-2">
+                    <span className="num text-[11.5px] text-ink-3">{claimCode(c.code)}</span>
+                    <StatusBadge status={status} />
+                  </span>
+                  <span className="block">{claimSentence(data, c, status)}</span>
                 </button>
               </li>
             );
@@ -477,6 +510,8 @@ function Cell({
                       hypothesis: t('Trying “{idea}” will reduce an unknown in {path}.', { idea: idea.toLowerCase(), path: pathCode(p.code) }),
                       design: idea,
                       durationDays: 30,
+                      prediction: '',
+                      criteria: '',
                       measures: [],
                     },
                     { pathId: p.id },

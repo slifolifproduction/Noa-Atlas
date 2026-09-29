@@ -9,8 +9,8 @@ import { refForNode } from '../../components/inspector/parts';
 import { Button } from '../../components/ui/Button';
 import { MenuItem, MenuSeparator } from '../../components/ui/Menu';
 import { HelpCard, pageHelp, useGraphHelp } from '../../components/ui/HowItWorks';
-import { DOMAIN_KEYS, hubKey, isHubId, ORBIT_DESKTOP, ORBIT_PORTRAIT } from '../../domain/constants';
-import type { DomainKey, ID, RelationType } from '../../domain/types';
+import { areaHubKey, isAreaHubId, LAYERS, ORBIT_DESKTOP, ORBIT_PORTRAIT, SECTOR_KEYS } from '../../domain/constants';
+import type { AreaKey, ID, LayerKey, LinkType } from '../../domain/types';
 import { buildOrbit } from '../../graph/build';
 import { selectionFor } from '../../graph/selection';
 import { useInspectorWidth, useIsDesktop, useIsMobile } from '../../hooks/useMediaQuery';
@@ -43,8 +43,9 @@ export function OrbitPage() {
   const help = useGraphHelp('orbit');
 
   const selectedId = selectionFor(inspector, 'orbit', data);
-  // On phones the map starts simplified: hubs only, a hub's satellites appear when it is selected.
-  const collapsed = useMemo(() => new Set<DomainKey>(isMobile ? DOMAIN_KEYS : view.collapsed), [isMobile, view.collapsed]);
+  // On phones the map starts simplified: the centre and the area markers; an area's elements appear when it is selected.
+  const collapsed = useMemo(() => new Set<AreaKey>(isMobile ? SECTOR_KEYS : view.collapsed), [isMobile, view.collapsed]);
+  const hiddenLayers = useMemo(() => new Set<LayerKey>(view.hiddenLayers), [view.hiddenLayers]);
   const today = useToday();
 
   const built = useMemo(
@@ -54,25 +55,27 @@ export function OrbitPage() {
         stored: isMobile ? {} : stored,
         geometry: isMobile ? ORBIT_PORTRAIT : ORBIT_DESKTOP,
         collapsed,
+        hiddenLayers,
+        showClaims: view.showClaims,
         selectedId,
         focus: view.focus,
         query,
         today,
       }),
-    [data, stored, isMobile, collapsed, selectedId, view.focus, query, today],
+    [data, stored, isMobile, collapsed, hiddenLayers, view.showClaims, selectedId, view.focus, query, today],
   );
 
-  const relations = useMemo(() => {
-    const seen = new Set<RelationType>(built.edges.map((e) => e.data!.relation));
-    return (['supports', 'influences', 'conflicts', 'depends_on', 'derived_from', 'causes'] as RelationType[]).filter((r) => seen.has(r));
+  const links = useMemo(() => {
+    const seen = new Set<LinkType>(built.edges.flatMap((e) => (e.data?.linkType ? [e.data.linkType] : [])));
+    return (['aims_at', 'motivates', 'conflicts', 'aligns', 'about', 'part_of'] as LinkType[]).filter((r) => seen.has(r));
   }, [built.edges]);
 
   const onSelect = useCallback((id: ID | null) => (id ? openEntity(refForNode(id)) : closeInspector()), [openEntity, closeInspector]);
 
   const toggleHub = useCallback(
     (id: ID) => {
-      if (!isHubId(id)) return;
-      const key = hubKey(id);
+      if (!isAreaHubId(id)) return;
+      const key = areaHubKey(id);
       const set = new Set(useUI.getState().orbitView.collapsed);
       if (set.has(key)) set.delete(key);
       else set.add(key);
@@ -81,7 +84,7 @@ export function OrbitPage() {
     [setOrbitView],
   );
 
-  const allCollapsed = view.collapsed.length === DOMAIN_KEYS.length;
+  const allCollapsed = view.collapsed.length === SECTOR_KEYS.length;
   const empty = Object.keys(data.entries).length === 0 && Object.keys(data.nodes).length === 0;
   const occluded = inspector.length ? panelWidth : 0;
   const hudVisible = isDesktop && hudOpen;
@@ -92,7 +95,7 @@ export function OrbitPage() {
   const padding = useMemo(
     (): FitViewOptions['padding'] =>
       isMobile
-        ? { top: startCard ? '300px' : '112px', bottom: '24px', left: '20px', right: '20px' }
+        ? { top: startCard ? '300px' : '112px', bottom: '24px', left: '64px', right: '64px' }
         : { top: startCard ? '230px' : '80px', bottom: '32px', left: `${leftInset + 56}px`, right: `${occluded + 96}px` },
     [isMobile, leftInset, occluded, startCard],
   );
@@ -141,20 +144,43 @@ export function OrbitPage() {
             size="sm"
             icon={Plus}
             onClick={() => setAdding(true)}
-            title={t('Add a goal, project, person, skill… to an area of life')}
+            title={t('Add a value, goal, commitment, person… to an area of life')}
             className="bg-surface/95"
           >
-            {t('Add point')}
+            {t('Add')}
           </Button>
           <ViewMenu padding={padding}>
             <MenuItem checked={view.focus} hint={t('Hide what is not linked to the selected item')} onSelect={() => setOrbitView({ focus: !view.focus })}>
               {t('Focus on the selection')}
             </MenuItem>
+            <MenuItem
+              checked={view.showClaims}
+              hint={t('All claims as lines. Without this, only the claims around the selected element show.')}
+              onSelect={() => setOrbitView({ showClaims: !view.showClaims })}
+            >
+              {t('Show claims')}
+            </MenuItem>
+            <MenuSeparator />
+            {LAYERS.map((l) => (
+              <MenuItem
+                key={l.key}
+                checked={!view.hiddenLayers.includes(l.key)}
+                hint={l.description}
+                onSelect={() =>
+                  setOrbitView({
+                    hiddenLayers: view.hiddenLayers.includes(l.key) ? view.hiddenLayers.filter((x) => x !== l.key) : [...view.hiddenLayers, l.key],
+                  })
+                }
+              >
+                {l.label}
+              </MenuItem>
+            ))}
+            <MenuSeparator />
             {!isMobile && (
               <MenuItem
                 icon={allCollapsed ? UnfoldVertical : FoldVertical}
                 hint={t('Double-click one area to fold just that one')}
-                onSelect={() => setOrbitView({ collapsed: allCollapsed ? [] : [...DOMAIN_KEYS] })}
+                onSelect={() => setOrbitView({ collapsed: allCollapsed ? [] : [...SECTOR_KEYS] })}
               >
                 {allCollapsed ? t('Unfold all areas') : t('Fold all areas')}
               </MenuItem>
@@ -188,7 +214,7 @@ export function OrbitPage() {
           >
             <StatusHud
               onClose={() => setHudOpen(false)}
-              start={empty ? { addPoint: () => setAdding(true), identity: () => openEntity({ kind: 'domain', id: 'identity' }) } : undefined}
+              start={empty ? { addPoint: () => setAdding(true), identity: () => openEntity({ kind: 'area', id: 'self' }) } : undefined}
             />
           </div>
         )}
@@ -201,17 +227,19 @@ export function OrbitPage() {
           >
             <div className="label">{t('Start here')}</div>
             <p className="mt-1 text-[13px] leading-snug text-ink-2">
-              {t('Write about something that happened, or add your first points: goals, projects, people, skills. The map fills in from there.')}
+              {t(
+                'Write about something that happened, or add what your life is made of: what you value, what you are working on, the people around you. The map fills in from there.',
+              )}
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2">
               <Button size="sm" variant="primary" icon={Plus} onClick={() => useUI.getState().openCapture('journal')}>
                 {t('Write a note')}
               </Button>
               <Button size="sm" icon={Plus} onClick={() => setAdding(true)}>
-                {t('Add a point')}
+                {t('Add to the map')}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => openEntity({ kind: 'domain', id: 'identity' })}>
-                {t('Describe your identity')}
+              <Button size="sm" variant="ghost" onClick={() => openEntity({ kind: 'area', id: 'self' })}>
+                {t('Describe yourself')}
               </Button>
             </div>
           </div>
@@ -221,12 +249,17 @@ export function OrbitPage() {
         {!isMobile && (
           <div className="absolute bottom-6 z-10 transition-[right] duration-200" style={{ right: occluded + 12 }}>
             <Legend
-              relations={relations}
+              links={links}
+              claims={view.showClaims || Boolean(selectedId)}
               extra={
                 <>
-                  <p className="text-[11.5px] leading-snug text-ink-3">{t('Hub arc: share of entries in the last 60 days.')}</p>
-                  <p className="text-[11.5px] leading-snug text-ink-3">{t('Hub badge: active patterns involving the domain.')}</p>
-                  <p className="text-[11.5px] leading-snug text-ink-3">{t('Rings: self → intent → work → conditions.')}</p>
+                  <p className="text-[11.5px] leading-snug text-ink-3">
+                    {t('Angle: the area of life. Rings, from you outward: what you hold, what you do, what surrounds you.')}
+                  </p>
+                  <p className="text-[11.5px] leading-snug text-ink-3">{t('Second ring around a mark: an outcome you want explained or changed.')}</p>
+                  <p className="text-[11.5px] leading-snug text-ink-3">
+                    {t('Area arc: share of notes in the last 60 days. Dashed marker: nothing written about it lately.')}
+                  </p>
                 </>
               }
             />
@@ -240,7 +273,11 @@ export function OrbitPage() {
         </div>
       )}
       {adding && (
-        <AddNodeModal layer="orbit" onClose={() => setAdding(false)} defaultDomain={selectedId && isHubId(selectedId) ? hubKey(selectedId) : undefined} />
+        <AddNodeModal
+          layer="orbit"
+          onClose={() => setAdding(false)}
+          defaultArea={selectedId && isAreaHubId(selectedId) ? areaHubKey(selectedId) : selectedId ? data.nodes[selectedId]?.area : undefined}
+        />
       )}
     </div>
   );

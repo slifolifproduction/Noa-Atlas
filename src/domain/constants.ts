@@ -1,111 +1,54 @@
 import { t } from '../i18n';
 import type {
+  AreaKey,
   CaptureKind,
-  DomainKey,
+  ClaimStatus,
+  Effect,
+  ElementKind,
+  EvidenceKind,
   ExperimentOutcome,
   ExperimentStatus,
-  MindCategory,
+  Knowledge,
+  LayerKey,
+  LinkType,
+  Mode,
+  OccurrenceKind,
   OutcomeRating,
   PatternKind,
-  PatternStatus,
   QuestionStatus,
-  RelationType,
+  Regularity,
   SkillStatus,
+  View,
 } from './types';
 
 /*
- * Colour is never the only carrier of meaning: every domain and category also
- * has an icon and a text label. The hues were chosen so that neighbours in the
- * spatial layout stay distinguishable under protan/deutan simulation
- * (OKLab ΔE ≥ 8) and for full-colour vision (ΔE ≥ 15).
+ * Colour is never the only carrier of meaning: every area, kind, effect and
+ * status also has an icon, a line style or a text label. Area hues were
+ * chosen so that neighbouring sectors stay distinguishable under protan and
+ * deutan simulation (OKLab ΔE ≥ 8) and for full-colour vision (ΔE ≥ 15).
  */
 
-export type Ring = 0 | 1 | 2 | 3;
+/* ------------------------------------------------------------------ areas */
 
-export interface DomainMeta {
-  key: DomainKey;
+export interface AreaMeta {
+  key: AreaKey;
   label: string;
   color: string;
-  /** 0 = self (centre), 1 = intent, 2 = work, 3 = conditions. */
-  ring: Ring;
-  /** Angle in degrees on its ring; 0 = east, clockwise, -90 = north. */
+  /** Sector angle in degrees; 0 = east, clockwise, -90 = north. The centre (self) has none. */
   angle: number;
   description: string;
 }
 
-export const RING_LABELS: Record<Ring, string> = {
-  get 0() {
-    return t('Self');
-  },
-  get 1() {
-    return t('Intent');
-  },
-  get 2() {
-    return t('Work');
-  },
-  get 3() {
-    return t('Conditions');
-  },
-};
-
-export const RING_RADII: Record<Ring, number> = { 0: 0, 1: 230, 2: 430, 3: 620 };
-/** Orbit rings are true circles; phones use a smaller scale so the whole system fits the width. */
-export interface OrbitGeometry {
-  x: number;
-  y: number;
-  /** Uniform scale applied to ring radii and satellite distance. */
-  scale: number;
-}
-export const ORBIT_DESKTOP: OrbitGeometry = { x: 1, y: 1, scale: 1 };
-export const ORBIT_PORTRAIT: OrbitGeometry = { x: 1, y: 1, scale: 0.66 };
-
-export const DOMAINS: DomainMeta[] = [
+export const AREAS: AreaMeta[] = [
   {
-    key: 'identity',
+    key: 'self',
     get label() {
-      return t('Identity');
+      return t('Self');
     },
     color: '#ece8df',
-    ring: 0,
     angle: 0,
     get description() {
-      return t('Who you take yourself to be, and which of those self-descriptions the evidence supports.');
-    },
-  },
-  {
-    key: 'values',
-    get label() {
-      return t('Values');
-    },
-    color: '#d8b46c',
-    ring: 1,
-    angle: -55,
-    get description() {
-      return t('What you protect when things compete.');
-    },
-  },
-  {
-    key: 'goals',
-    get label() {
-      return t('Goals');
-    },
-    color: '#6cbf9c',
-    ring: 1,
-    angle: -112,
-    get description() {
-      return t('Outcomes you are deliberately working toward.');
-    },
-  },
-  {
-    key: 'career',
-    get label() {
-      return t('Career');
-    },
-    color: '#80a6e2',
-    ring: 2,
-    angle: -10,
-    get description() {
-      return t('How you earn, and the trajectory of your work.');
+      return t('Who you take yourself to be and what matters to you: the centre everything else is read from.');
     },
   },
   {
@@ -114,365 +57,367 @@ export const DOMAINS: DomainMeta[] = [
       return t('Projects');
     },
     color: '#c99d76',
-    ring: 2,
-    angle: -165,
-    get description() {
-      return t('Active commitments with a defined output.');
-    },
-  },
-  {
-    key: 'skills',
-    get label() {
-      return t('Skills');
-    },
-    color: '#a99ee6',
-    ring: 2,
-    angle: 152,
-    get description() {
-      return t('Capabilities you have, are building, or lack.');
-    },
-  },
-  {
-    key: 'finance',
-    get label() {
-      return t('Finance');
-    },
-    color: '#9fc27a',
-    ring: 3,
-    angle: 30,
-    get description() {
-      return t('Runway, income structure, and financial constraints.');
-    },
-  },
-  {
-    key: 'relationships',
-    get label() {
-      return t('Relationships');
-    },
-    color: '#e094b0',
-    ring: 3,
-    angle: 70,
-    get description() {
-      return t('The people who shape and are shaped by your choices.');
-    },
-  },
-  {
-    key: 'environment',
-    get label() {
-      return t('Environment');
-    },
-    color: '#72bccb',
-    ring: 3,
-    angle: 110,
-    get description() {
-      return t('Where and when work happens; the conditions around it.');
-    },
-  },
-  {
-    key: 'habits',
-    get label() {
-      return t('Habits');
-    },
-    color: '#e28a84',
-    ring: 3,
-    angle: 136,
-    get description() {
-      return t('Recurring behaviours that compound, for better or worse.');
-    },
-  },
-];
-
-export const DOMAIN_META = Object.fromEntries(DOMAINS.map((d) => [d.key, d])) as Record<DomainKey, DomainMeta>;
-export const DOMAIN_KEYS = DOMAINS.map((d) => d.key);
-
-export const hubId = (key: DomainKey) => `domain:${key}`;
-export const isHubId = (id: string) => id.startsWith('domain:');
-export const hubKey = (id: string) => id.slice('domain:'.length) as DomainKey;
-
-export interface CategoryMeta {
-  key: MindCategory;
-  label: string;
-  plural: string;
-  color: string;
-  /** Cluster anchor angle for the Mind layout. */
-  angle: number;
-  description: string;
-}
-
-/** Ordered as the clusters sit around the Mind graph. */
-export const CATEGORIES: CategoryMeta[] = [
-  {
-    key: 'value',
-    get label() {
-      return t('Value');
-    },
-    get plural() {
-      return t('Values');
-    },
-    color: '#d8b46c',
     angle: -90,
     get description() {
-      return t('What you protect when things compete.');
+      return t('Your own work: what you make and want to finish.');
     },
   },
   {
-    key: 'question',
+    key: 'work',
     get label() {
-      return t('Question');
-    },
-    get plural() {
-      return t('Questions');
-    },
-    color: '#e094b0',
-    angle: -50,
-    get description() {
-      return t('Open questions you are actively examining.');
-    },
-  },
-  {
-    key: 'assumption',
-    get label() {
-      return t('Assumption');
-    },
-    get plural() {
-      return t('Assumptions');
-    },
-    color: '#72bccb',
-    angle: -10,
-    get description() {
-      return t('Things taken as true that have not been tested.');
-    },
-  },
-  {
-    key: 'fear',
-    get label() {
-      return t('Fear');
-    },
-    get plural() {
-      return t('Fears');
-    },
-    color: '#e28a84',
-    angle: 30,
-    get description() {
-      return t('Outcomes you try to avoid, stated plainly.');
-    },
-  },
-  {
-    key: 'belief',
-    get label() {
-      return t('Belief');
-    },
-    get plural() {
-      return t('Beliefs');
+      return t('Work');
     },
     color: '#80a6e2',
-    angle: 70,
+    angle: -38.6,
     get description() {
-      return t('Working convictions about how things are.');
+      return t('How you earn: clients, roles, the trajectory of your work.');
     },
   },
   {
-    key: 'motivation',
+    key: 'money',
     get label() {
-      return t('Motivation');
-    },
-    get plural() {
-      return t('Motivations');
+      return t('Money');
     },
     color: '#9fc27a',
-    angle: 110,
+    angle: 12.9,
     get description() {
-      return t('What pulls you toward action.');
+      return t('Runway, income and what money makes possible or rules out.');
     },
   },
   {
-    key: 'mental_model',
+    key: 'place',
     get label() {
-      return t('Mental model');
+      return t('Surroundings');
     },
-    get plural() {
-      return t('Mental models');
+    color: '#72bccb',
+    angle: 64.3,
+    get description() {
+      return t('Where and when things happen: home, space, the shape of your days.');
+    },
+  },
+  {
+    key: 'people',
+    get label() {
+      return t('People');
+    },
+    color: '#e094b0',
+    angle: 115.7,
+    get description() {
+      return t('The people who shape your choices and are shaped by them.');
+    },
+  },
+  {
+    key: 'health',
+    get label() {
+      return t('Health & energy');
+    },
+    color: '#e28a84',
+    angle: 167.1,
+    get description() {
+      return t('Body, energy, rest: often the quiet cause of what happens elsewhere.');
+    },
+  },
+  {
+    key: 'growth',
+    get label() {
+      return t('Growth');
     },
     color: '#a99ee6',
-    angle: 150,
+    angle: 218.6,
     get description() {
-      return t('Frameworks you reason with.');
-    },
-  },
-  {
-    key: 'experience',
-    get label() {
-      return t('Experience');
-    },
-    get plural() {
-      return t('Experiences');
-    },
-    color: '#c99d76',
-    angle: 190,
-    get description() {
-      return t('Events that shaped your thinking.');
-    },
-  },
-  {
-    key: 'decision',
-    get label() {
-      return t('Decision');
-    },
-    get plural() {
-      return t('Decisions');
-    },
-    color: '#6cbf9c',
-    angle: 230,
-    get description() {
-      return t('Choices, mirrored from the decision log.');
+      return t('Skills and learning: what you can do, and are learning to do.');
     },
   },
 ];
 
-export const CATEGORY_META = Object.fromEntries(CATEGORIES.map((c) => [c.key, c])) as Record<MindCategory, CategoryMeta>;
-export const CATEGORY_KEYS = CATEGORIES.map((c) => c.key);
+export const AREA_META = Object.fromEntries(AREAS.map((a) => [a.key, a])) as Record<AreaKey, AreaMeta>;
+export const AREA_KEYS = AREAS.map((a) => a.key);
+/** The sectors around the centre. */
+export const SECTOR_KEYS = AREA_KEYS.filter((k) => k !== 'self');
 
-/** Derived pattern nodes in the Mind graph. */
-export const PATTERN_COLOR = '#ece8df';
+export const areaHubId = (key: AreaKey) => `area:${key}`;
+export const isAreaHubId = (id: string) => id.startsWith('area:');
+export const areaHubKey = (id: string) => id.slice('area:'.length) as AreaKey;
+/** The person at the centre of the map. */
+export const YOU_ID = 'you';
 
-export interface RelationMeta {
-  key: RelationType;
-  /** Verb phrase used in sentences: "A causes B". */
-  verb: string;
+/* ------------------------------------------------------------------ layers */
+
+export interface LayerMeta {
+  key: LayerKey;
   label: string;
-  color: string;
-  /** SVG stroke-dasharray, or undefined for solid. */
-  dash?: string;
-  width: number;
-  arrow: boolean;
+  short: string;
   description: string;
 }
 
-export const RELATIONS: RelationMeta[] = [
+export const LAYERS: LayerMeta[] = [
   {
-    key: 'causes',
-    get verb() {
-      return t('causes');
-    },
+    key: 'hold',
     get label() {
-      return t('Causes');
+      return t('What I hold');
     },
-    color: '#cfd5dc',
-    width: 1.6,
-    arrow: true,
+    get short() {
+      return t('Hold');
+    },
     get description() {
-      return t('A directly produces B.');
+      return t('Values, beliefs, fears, goals and open questions.');
     },
   },
   {
-    key: 'influences',
-    get verb() {
-      return t('influences');
-    },
+    key: 'do',
     get label() {
-      return t('Influences');
+      return t('What I do');
     },
-    color: '#8b96a2',
-    width: 1.25,
-    arrow: true,
+    get short() {
+      return t('Do');
+    },
     get description() {
-      return t('A shapes B without fully determining it.');
+      return t('Behaviours, commitments, skills and roles.');
     },
   },
   {
-    key: 'supports',
+    key: 'around',
+    get label() {
+      return t('What surrounds me');
+    },
+    get short() {
+      return t('Around');
+    },
+    get description() {
+      return t('Conditions that change, people, resources and places.');
+    },
+  },
+];
+
+export const LAYER_META = Object.fromEntries(LAYERS.map((l) => [l.key, l])) as Record<LayerKey, LayerMeta>;
+
+/** Orbit geometry: the person at the centre, then one ring per layer, then the area markers. */
+export const CORE_RADIUS = 132;
+export const LAYER_RADII: Record<LayerKey, number> = { hold: 270, do: 460, around: 640 };
+export const AREA_MARKER_RADIUS = 800;
+
+export interface OrbitGeometry {
+  x: number;
+  y: number;
+  /** Uniform scale applied to all radii. */
+  scale: number;
+}
+export const ORBIT_DESKTOP: OrbitGeometry = { x: 1, y: 1, scale: 1 };
+export const ORBIT_PORTRAIT: OrbitGeometry = { x: 1, y: 1, scale: 0.62 };
+
+/* ------------------------------------------------------------------ element kinds */
+
+export interface KindMeta {
+  key: ElementKind;
+  layer: LayerKey;
+  label: string;
+  plural: string;
+  description: string;
+}
+
+const kind = (key: ElementKind, layer: LayerKey, label: () => string, plural: () => string, description: () => string): KindMeta => ({
+  key,
+  layer,
+  get label() {
+    return label();
+  },
+  get plural() {
+    return plural();
+  },
+  get description() {
+    return description();
+  },
+});
+
+export const KINDS: KindMeta[] = [
+  kind(
+    'value',
+    'hold',
+    () => t('Value'),
+    () => t('Values'),
+    () => t('What you protect when things compete.'),
+  ),
+  kind(
+    'belief',
+    'hold',
+    () => t('Belief'),
+    () => t('Beliefs'),
+    () => t('A conviction about yourself, the world, or how things work. It shapes choices whether or not it is true.'),
+  ),
+  kind(
+    'fear',
+    'hold',
+    () => t('Fear'),
+    () => t('Fears'),
+    () => t('Something you try to avoid, stated plainly.'),
+  ),
+  kind(
+    'goal',
+    'hold',
+    () => t('Goal'),
+    () => t('Goals'),
+    () => t('A future state you are working toward.'),
+  ),
+  kind(
+    'question',
+    'hold',
+    () => t('Question'),
+    () => t('Questions'),
+    () => t('Something you are still finding out.'),
+  ),
+  kind(
+    'behaviour',
+    'do',
+    () => t('Behaviour'),
+    () => t('Behaviours'),
+    () => t('A recurring way of acting. Each time it happens is one instance of it.'),
+  ),
+  kind(
+    'commitment',
+    'do',
+    () => t('Commitment'),
+    () => t('Commitments'),
+    () => t('A project or promise with a start and, ideally, an end.'),
+  ),
+  kind(
+    'skill',
+    'do',
+    () => t('Skill'),
+    () => t('Skills'),
+    () => t('Something you can do, or are learning to do.'),
+  ),
+  kind(
+    'role',
+    'do',
+    () => t('Role'),
+    () => t('Roles'),
+    () => t('A position you act from: freelancer, parent, lead.'),
+  ),
+  kind(
+    'state',
+    'around',
+    () => t('State'),
+    () => t('States'),
+    () => t('A condition that goes up and down: energy, load, runway, progress.'),
+  ),
+  kind(
+    'person',
+    'around',
+    () => t('Person'),
+    () => t('People'),
+    () => t('Someone who shapes your choices or is shaped by them.'),
+  ),
+  kind(
+    'resource',
+    'around',
+    () => t('Resource'),
+    () => t('Resources'),
+    () => t('Something you can draw on: money, a network, tools, time.'),
+  ),
+  kind(
+    'place',
+    'around',
+    () => t('Place'),
+    () => t('Places'),
+    () => t('Where things happen, and when.'),
+  ),
+];
+
+export const KIND_META = Object.fromEntries(KINDS.map((k) => [k.key, k])) as Record<ElementKind, KindMeta>;
+export const layerOf = (k: ElementKind): LayerKey => KIND_META[k].layer;
+export const KINDS_BY_LAYER: Record<LayerKey, ElementKind[]> = {
+  hold: KINDS.filter((k) => k.layer === 'hold').map((k) => k.key),
+  do: KINDS.filter((k) => k.layer === 'do').map((k) => k.key),
+  around: KINDS.filter((k) => k.layer === 'around').map((k) => k.key),
+};
+
+/* ------------------------------------------------------------------ links */
+
+export interface LinkMeta {
+  key: LinkType;
+  verb: string;
+  label: string;
+  description: string;
+  color: string;
+  dash?: string;
+  arrow: boolean;
+}
+
+export const LINKS: LinkMeta[] = [
+  {
+    key: 'aims_at',
     get verb() {
-      return t('supports');
+      return t('aims at');
     },
     get label() {
-      return t('Supports');
+      return t('Aims at');
+    },
+    get description() {
+      return t('Declared: A is meant to move B forward. Whether it does is a separate claim.');
     },
     color: '#7fbf8f',
-    width: 1.4,
+    dash: '8 5',
     arrow: true,
-    get description() {
-      return t('A reinforces or enables B.');
+  },
+  {
+    key: 'motivates',
+    get verb() {
+      return t('motivates');
     },
+    get label() {
+      return t('Motivates');
+    },
+    get description() {
+      return t('Declared: A is a reason you give for B.');
+    },
+    color: '#d8b46c',
+    dash: '8 5',
+    arrow: true,
   },
   {
     key: 'conflicts',
     get verb() {
-      return t('conflicts with');
+      return t('is in tension with');
     },
     get label() {
-      return t('Conflicts with');
+      return t('In tension');
+    },
+    get description() {
+      return t('A and B pull in opposite directions or compete for the same time or money.');
     },
     color: '#d9a55a',
-    dash: '6 4',
-    width: 1.4,
+    dash: '3 4',
     arrow: false,
-    get description() {
-      return t('A and B pull in opposite directions.');
-    },
   },
   {
-    key: 'contradicts',
+    key: 'aligns',
     get verb() {
-      return t('contradicts');
+      return t('aligns with');
     },
     get label() {
-      return t('Contradicts');
+      return t('Aligns');
     },
-    color: '#e5827a',
-    dash: '2 3',
-    width: 1.5,
-    arrow: true,
     get description() {
-      return t('A is evidence against B.');
-    },
-  },
-  {
-    key: 'derived_from',
-    get verb() {
-      return t('is derived from');
-    },
-    get label() {
-      return t('Derived from');
+      return t('A and B point the same way.');
     },
     color: '#8fb0e0',
-    dash: '0.5 4',
-    width: 1.8,
-    arrow: true,
-    get description() {
-      return t('A originates in B.');
-    },
+    dash: '3 4',
+    arrow: false,
   },
   {
-    key: 'depends_on',
+    key: 'about',
     get verb() {
-      return t('depends on');
+      return t('is about');
     },
     get label() {
-      return t('Depends on');
+      return t('About');
     },
-    color: '#9aa6b4',
-    dash: '10 4',
-    width: 1.25,
-    arrow: true,
     get description() {
-      return t('A requires B.');
-    },
-  },
-  {
-    key: 'examines',
-    get verb() {
-      return t('examines');
-    },
-    get label() {
-      return t('Examines');
+      return t('A question or belief that concerns B.');
     },
     color: '#d894bd',
     dash: '1 3',
-    width: 1.25,
     arrow: true,
-    get description() {
-      return t('A question that interrogates B.');
-    },
   },
   {
     key: 'part_of',
@@ -482,18 +427,379 @@ export const RELATIONS: RelationMeta[] = [
     get label() {
       return t('Part of');
     },
-    color: 'rgba(200, 210, 222, 0.16)',
-    width: 1,
-    arrow: false,
     get description() {
-      return t('Structural membership in a domain.');
+      return t('A belongs inside B.');
+    },
+    color: 'rgba(200, 210, 222, 0.28)',
+    dash: '1 4',
+    arrow: false,
+  },
+];
+
+export const LINK_META = Object.fromEntries(LINKS.map((l) => [l.key, l])) as Record<LinkType, LinkMeta>;
+
+/* ------------------------------------------------------------------ effects (claims) */
+
+export interface EffectMeta {
+  key: Effect;
+  /** +1: moves B the same way; -1: the opposite way. Used to read loops. */
+  polarity: 1 | -1;
+  label: string;
+  /** Short arrow glyph for compact places. */
+  glyph: string;
+  color: string;
+  description: string;
+}
+
+export const EFFECTS: EffectMeta[] = [
+  {
+    key: 'raises',
+    polarity: 1,
+    get label() {
+      return t('Raises');
+    },
+    glyph: '↑',
+    color: '#e0b27a',
+    get description() {
+      return t('More A tends to mean more B (or makes B more likely).');
+    },
+  },
+  {
+    key: 'lowers',
+    polarity: -1,
+    get label() {
+      return t('Lowers');
+    },
+    glyph: '↓',
+    color: '#8fb0e0',
+    get description() {
+      return t('More A tends to mean less B (or makes B less likely).');
+    },
+  },
+  {
+    key: 'triggers',
+    polarity: 1,
+    get label() {
+      return t('Triggers');
+    },
+    glyph: '⚡',
+    color: '#ece8df',
+    get description() {
+      return t('A sets B off, usually soon after.');
+    },
+  },
+  {
+    key: 'enables',
+    polarity: 1,
+    get label() {
+      return t('Enables');
+    },
+    glyph: '◇',
+    color: '#7fbf8f',
+    get description() {
+      return t('A makes B possible; without A, B is unlikely.');
+    },
+  },
+  {
+    key: 'constrains',
+    polarity: -1,
+    get label() {
+      return t('Limits');
+    },
+    glyph: '⊣',
+    color: '#e5827a',
+    get description() {
+      return t('A limits B or the options around it.');
+    },
+  },
+  {
+    key: 'sustains',
+    polarity: 1,
+    get label() {
+      return t('Sustains');
+    },
+    glyph: '↻',
+    color: '#c7a8e8',
+    get description() {
+      return t('A keeps B going once it has started.');
     },
   },
 ];
 
-export const RELATION_META = Object.fromEntries(RELATIONS.map((r) => [r.key, r])) as Record<RelationType, RelationMeta>;
-/** Relations a user can draw between nodes. */
-export const SEMANTIC_RELATIONS = RELATIONS.filter((r) => r.key !== 'part_of');
+export const EFFECT_META = Object.fromEntries(EFFECTS.map((e) => [e.key, e])) as Record<Effect, EffectMeta>;
+
+/**
+ * How a claim reads in a sentence, hedged by its status: the language scales
+ * with the evidence ("may raise" → "appears to raise" → "raises").
+ */
+export function effectPhrase(effect: Effect, status: ClaimStatus): string {
+  const level = status === 'tested' ? 'tested' : status === 'supported' ? 'supported' : status === 'weakened' || status === 'retired' ? 'weak' : 'tentative';
+  const phrases: Record<Effect, Record<typeof level, () => string>> = {
+    raises: {
+      tentative: () => t('may raise'),
+      supported: () => t('appears to raise'),
+      tested: () => t('raises'),
+      weak: () => t('no longer seems to raise'),
+    },
+    lowers: {
+      tentative: () => t('may lower'),
+      supported: () => t('appears to lower'),
+      tested: () => t('lowers'),
+      weak: () => t('no longer seems to lower'),
+    },
+    triggers: {
+      tentative: () => t('may trigger'),
+      supported: () => t('appears to trigger'),
+      tested: () => t('triggers'),
+      weak: () => t('no longer seems to trigger'),
+    },
+    enables: {
+      tentative: () => t('may make possible'),
+      supported: () => t('appears to make possible'),
+      tested: () => t('makes possible'),
+      weak: () => t('no longer seems to make possible'),
+    },
+    constrains: {
+      tentative: () => t('may limit'),
+      supported: () => t('appears to limit'),
+      tested: () => t('limits'),
+      weak: () => t('no longer seems to limit'),
+    },
+    sustains: {
+      tentative: () => t('may sustain'),
+      supported: () => t('appears to sustain'),
+      tested: () => t('sustains'),
+      weak: () => t('no longer seems to sustain'),
+    },
+  };
+  return phrases[effect][level]();
+}
+
+/* ------------------------------------------------------------------ claim status */
+
+export interface StatusMeta {
+  key: ClaimStatus;
+  /** Position on the ladder, for ordering. */
+  rank: number;
+  label: string;
+  description: string;
+  /** Line style on the maps: tentative claims are dashed. */
+  dash?: string;
+  opacity: number;
+}
+
+export const CLAIM_STATUSES: StatusMeta[] = [
+  {
+    key: 'proposed',
+    rank: 0,
+    get label() {
+      return t('Proposed');
+    },
+    get description() {
+      return t('Stated, with no evidence yet.');
+    },
+    dash: '2 5',
+    opacity: 0.55,
+  },
+  {
+    key: 'plausible',
+    rank: 1,
+    get label() {
+      return t('Plausible');
+    },
+    get description() {
+      return t('At least one instance and a described mechanism.');
+    },
+    dash: '7 5',
+    opacity: 0.75,
+  },
+  {
+    key: 'supported',
+    rank: 2,
+    get label() {
+      return t('Supported');
+    },
+    get description() {
+      return t('Repeated across episodes, with at least one contrast case.');
+    },
+    opacity: 0.9,
+  },
+  {
+    key: 'tested',
+    rank: 3,
+    get label() {
+      return t('Tested');
+    },
+    get description() {
+      return t('A deliberate change produced the predicted difference.');
+    },
+    opacity: 1,
+  },
+  {
+    key: 'weakened',
+    rank: -1,
+    get label() {
+      return t('Weakened');
+    },
+    get description() {
+      return t('Counter-evidence or a failed test outweighs the support.');
+    },
+    dash: '1 4',
+    opacity: 0.45,
+  },
+  {
+    key: 'retired',
+    rank: -2,
+    get label() {
+      return t('No longer holds');
+    },
+    get description() {
+      return t('It held for a while, then stopped.');
+    },
+    dash: '1 6',
+    opacity: 0.3,
+  },
+];
+
+export const STATUS_META = Object.fromEntries(CLAIM_STATUSES.map((s) => [s.key, s])) as Record<ClaimStatus, StatusMeta>;
+/** The ladder a claim climbs, in order. */
+export const STATUS_LADDER: ClaimStatus[] = ['proposed', 'plausible', 'supported', 'tested'];
+
+export const EVIDENCE_KIND_LABEL: Record<EvidenceKind, string> = {
+  get instance() {
+    return t('Instance');
+  },
+  get contrast() {
+    return t('Contrast');
+  },
+  get counter_case() {
+    return t('Counter-case');
+  },
+  get mechanism() {
+    return t('Mechanism');
+  },
+  get intervention() {
+    return t('Test result');
+  },
+};
+
+export const EVIDENCE_KIND_HINT: Record<EvidenceKind, string> = {
+  get instance() {
+    return t('A time A came before B.');
+  },
+  get contrast() {
+    return t('Without A (or with less of it), B did not happen.');
+  },
+  get counter_case() {
+    return t('A without B, or B without A.');
+  },
+  get mechanism() {
+    return t('A passage describing how A leads to B.');
+  },
+  get intervention() {
+    return t('A was changed on purpose and B changed as predicted (or did not).');
+  },
+};
+
+export const VIEW_LABEL: Record<View, string> = {
+  get agree() {
+    return t('Matches my experience');
+  },
+  get unsure() {
+    return t('Not sure');
+  },
+  get disagree() {
+    return t('Does not match');
+  },
+};
+
+/* ------------------------------------------------------------------ knowledge, modes */
+
+export const KNOWLEDGE_LABEL: Record<Knowledge, string> = {
+  get recorded() {
+    return t('Recorded');
+  },
+  get declared() {
+    return t('Declared by you');
+  },
+  get observed() {
+    return t('Observed');
+  },
+  get claimed() {
+    return t('Claimed');
+  },
+  get tested() {
+    return t('Tested');
+  },
+  get imagined() {
+    return t('Imagined');
+  },
+  get suggested() {
+    return t('Suggested by analysis');
+  },
+};
+
+export const KNOWLEDGE_HINT: Record<Knowledge, string> = {
+  get recorded() {
+    return t('In your own words, in a note or decision.');
+  },
+  get declared() {
+    return t('True because you say so; needs no evidence.');
+  },
+  get observed() {
+    return t('Computed from your records: counts, order, dates.');
+  },
+  get claimed() {
+    return t('An explanation. Its status comes from the evidence.');
+  },
+  get tested() {
+    return t('Checked by a deliberate change.');
+  },
+  get imagined() {
+    return t('A possibility. Never evidence for anything.');
+  },
+  get suggested() {
+    return t('Proposed by the analysis. Not on your map until you adopt it.');
+  },
+};
+
+export const MODE_LABEL: Record<Mode, string> = {
+  get actual() {
+    return t('Happened');
+  },
+  get expected() {
+    return t('Expected');
+  },
+  get planned() {
+    return t('Planned');
+  },
+  get possible() {
+    return t('Possible');
+  },
+};
+
+export const OCCURRENCE_KIND_LABEL: Record<OccurrenceKind | 'decision' | 'record', string> = {
+  get event() {
+    return t('Event');
+  },
+  get action() {
+    return t('Action');
+  },
+  get experience() {
+    return t('Experience');
+  },
+  get reading() {
+    return t('Reading');
+  },
+  get decision() {
+    return t('Decision');
+  },
+  get record() {
+    return t('Note');
+  },
+};
+
+/* ------------------------------------------------------------------ capture */
 
 export const CAPTURE_KINDS: { key: CaptureKind; label: string; hint: string }[] = [
   {
@@ -584,13 +890,15 @@ export const CAPTURE_KIND_LABEL = Object.defineProperties(
   Object.fromEntries(CAPTURE_KINDS.map((k) => [k.key, { get: () => k.label, enumerable: true }])),
 ) as Record<CaptureKind, string>;
 
-/** Entry kinds that can optionally also create a node on a map. */
-export const CAPTURE_NODE_TARGET: Partial<Record<CaptureKind, { domain?: DomainKey; category?: MindCategory }>> = {
-  goal: { domain: 'goals' },
-  project: { domain: 'projects' },
-  habit: { domain: 'habits' },
-  experience: { category: 'experience' },
-  decision: { category: 'decision' },
+/**
+ * Some notes can also place something on the map (an element) or in history
+ * (a landmark experience). The note itself always stays the record.
+ */
+export const CAPTURE_TARGET: Partial<Record<CaptureKind, { element?: ElementKind; occurrence?: 'experience' }>> = {
+  goal: { element: 'goal' },
+  project: { element: 'commitment' },
+  habit: { element: 'behaviour' },
+  experience: { occurrence: 'experience' },
 };
 
 export const MOOD_LABELS: Record<string, string> = {
@@ -632,8 +940,8 @@ export const ENERGY_LABELS: Record<string, string> = {
 export const EMOTION_OPTIONS = ['calm', 'excited', 'anxious', 'frustrated', 'proud', 'scattered', 'relieved', 'uncertain', 'tired', 'focused'];
 
 /**
- * Decision drivers. The analysis layer groups them into a time horizon to look
- * for decision patterns; the grouping is shown to the user, not hidden.
+ * Decision drivers: the reasons the person states. The analysis groups them
+ * into a time horizon to look for decision patterns; the grouping is shown.
  */
 export const DRIVERS = [
   'Income',
@@ -662,6 +970,8 @@ export const DRIVER_HORIZON: Record<string, 'immediate' | 'long_term' | 'neutral
   Autonomy: 'long_term',
   'Long-term growth': 'long_term',
 };
+
+/* ------------------------------------------------------------------ labels */
 
 /** How an experiment's result reads in a sentence ("… result recorded (inconclusive)"). */
 export const EXPERIMENT_OUTCOME_LABEL: Record<ExperimentOutcome, string> = {
@@ -703,18 +1013,27 @@ export const PATTERN_KIND_LABEL: Record<PatternKind, string> = {
   },
 };
 
-export const PATTERN_STATUS_LABEL: Record<PatternStatus, string> = {
+export const REGULARITY_LABEL: Record<Regularity, string> = {
   get emerging() {
     return t('Emerging');
   },
-  get active() {
-    return t('Active');
+  get recurring() {
+    return t('Recurring');
   },
-  get weakening() {
-    return t('Weakening');
+  get fading() {
+    return t('Fading');
   },
-  get dismissed() {
-    return t('Dismissed');
+};
+
+export const REGULARITY_HINT: Record<Regularity, string> = {
+  get emerging() {
+    return t('Seen in fewer than three episodes so far.');
+  },
+  get recurring() {
+    return t('Seen in three or more separate episodes.');
+  },
+  get fading() {
+    return t('The latest records count against it, or it has not been seen for three months.');
   },
 };
 
@@ -757,6 +1076,8 @@ export const SKILL_STATUS_LABEL: Record<SkillStatus, string> = {
   },
 };
 
+/* ------------------------------------------------------------------ places and pages */
+
 /** Every page: its short name, the question it answers, and one plain line about it. */
 export const VIEWS = {
   orbit: {
@@ -764,21 +1085,21 @@ export const VIEWS = {
       return t('Orbit');
     },
     get question() {
-      return t('Where am I?');
+      return t('What is my life made of?');
     },
     get blurb() {
-      return t('Your areas of life at a glance.');
+      return t('Everything that exists in your atlas, from you outward.');
     },
   },
-  mind: {
+  timeline: {
     get label() {
-      return t('Mind');
+      return t('Timeline');
     },
     get question() {
-      return t('How am I thinking?');
+      return t('What happened, and when?');
     },
     get blurb() {
-      return t('Your beliefs, fears and questions, and how they connect.');
+      return t('Events, actions, decisions and readings, in order, each traced to its note.');
     },
   },
   journal: {
@@ -786,10 +1107,10 @@ export const VIEWS = {
       return t('Journal');
     },
     get question() {
-      return t('What happened?');
+      return t('What did I write?');
     },
     get blurb() {
-      return t('Everything you have written, newest first.');
+      return t('Your notes: the record everything else is read from.');
     },
   },
   decisions: {
@@ -797,21 +1118,21 @@ export const VIEWS = {
       return t('Decisions');
     },
     get question() {
-      return t('What did I decide?');
+      return t('What did I choose, and what followed?');
     },
     get blurb() {
-      return t('Decisions with what you expected and what actually happened.');
+      return t('Each decision as a branch point: the options seen, the one lived, what followed.');
     },
   },
-  questions: {
+  network: {
     get label() {
-      return t('Questions');
+      return t('Connections');
     },
     get question() {
-      return t('What am I still asking?');
+      return t('What affects what?');
     },
     get blurb() {
-      return t('Questions worth keeping open instead of answering too early.');
+      return t('Every claim about how one thing changes another, with how well it is supported.');
     },
   },
   patterns: {
@@ -822,7 +1143,18 @@ export const VIEWS = {
       return t('What keeps happening?');
     },
     get blurb() {
-      return t('Things that repeat in your notes, with the evidence.');
+      return t('Regularities in your history, with the claims that may explain them.');
+    },
+  },
+  questions: {
+    get label() {
+      return t('Questions');
+    },
+    get question() {
+      return t('What am I trying to find out?');
+    },
+    get blurb() {
+      return t('Why something happened, what would happen if something changed, and what only you can decide.');
     },
   },
   navigation: {
@@ -833,7 +1165,7 @@ export const VIEWS = {
       return t('What do I do next?');
     },
     get blurb() {
-      return t('Your chosen direction as concrete steps.');
+      return t('Your chosen direction as concrete steps, and the tests that check your claims.');
     },
   },
   paths: {
@@ -844,7 +1176,7 @@ export const VIEWS = {
       return t('What are my options?');
     },
     get blurb() {
-      return t('Possible directions, compared side by side.');
+      return t('Possible directions, compared side by side, with the claims each relies on.');
     },
   },
   settings: {
@@ -863,8 +1195,8 @@ export const VIEWS = {
 export type ViewKey = keyof typeof VIEWS;
 
 /**
- * The four places in the top bar. Pages that belong together share one
- * place and switch with tabs, so there is little to learn.
+ * The four places in the top bar, one per layer of the atlas: what exists,
+ * what happened, what is understood, and what is planned or possible.
  */
 export const GROUPS = [
   {
@@ -873,29 +1205,29 @@ export const GROUPS = [
       return t('Map');
     },
     get question() {
-      return t('Where am I, and how am I thinking?');
+      return t('What exists');
     },
-    views: ['orbit', 'mind'],
+    views: ['orbit'],
   },
   {
-    key: 'notes',
+    key: 'history',
     get label() {
-      return t('Notes');
+      return t('History');
     },
     get question() {
-      return t('What happened, what I decided, what I am still asking.');
+      return t('What happened');
     },
-    views: ['journal', 'decisions', 'questions'],
+    views: ['timeline', 'journal', 'decisions'],
   },
   {
-    key: 'patterns',
+    key: 'understanding',
     get label() {
-      return t('Patterns');
+      return t('Understanding');
     },
     get question() {
-      return t('What keeps happening?');
+      return t('How it seems to work');
     },
-    views: ['patterns'],
+    views: ['network', 'patterns', 'questions'],
   },
   {
     key: 'plan',
@@ -903,7 +1235,7 @@ export const GROUPS = [
       return t('Plan');
     },
     get question() {
-      return t('What are my options, and what do I do next?');
+      return t('What could change');
     },
     views: ['navigation', 'paths'],
   },

@@ -1,33 +1,49 @@
 import type { Edge, Node } from '@xyflow/react';
-import type { DomainKey, MindCategory, Origin, PatternStatus, QuestionStatus, RelationType, SkillStatus } from '../domain/types';
+import type { AreaKey, ClaimStatus, Effect, ElementKind, LayerKey, LinkType, Origin, QuestionStatus, SkillStatus } from '../domain/types';
 
+/** The person at the centre, or an area's marker on the outer edge of its sector. */
 export type HubNodeData = {
-  key: DomainKey;
+  area: AreaKey;
+  /** The person at the centre of the map. */
+  center: boolean;
   label: string;
   statement: string;
   color: string;
-  /** Share of recent entries touching this domain, relative to the busiest domain (0–1). */
+  /** Share of recent notes touching this area, relative to the busiest area (0–1). */
   activity: number;
   activityCount: number;
   patternCount: number;
   itemCount: number;
   collapsed: boolean;
-  center: boolean;
   matched: boolean;
-  /** Labels sit on the side facing the centre, away from the satellites. */
+  /** Terra incognita: elements on the map but nothing written about them lately. */
+  quiet: boolean;
+  /** Labels sit on the side facing away from the centre. */
   labelSide: 'top' | 'bottom';
-  /** Small screens: show the domain name only until the hub is selected. */
+  /** Small screens: show the area name only until the hub is selected. */
   compact: boolean;
 };
 
 export type LabelSide = 'top' | 'right' | 'bottom' | 'left';
 
+/** An element of the map, placed by its area (angle) and layer (ring). */
 export type ItemNodeData = {
   label: string;
   color: string;
-  domain: DomainKey;
+  area: AreaKey;
+  kind: ElementKind;
+  layer: LayerKey;
+  /** In the centre, with the person: what defines them. */
+  core: boolean;
   origin: Origin;
-  mark?: SkillStatus;
+  /** An outcome of concern: something the person wants explained or changed. */
+  concern: boolean;
+  /** Outside the person's control. */
+  external: boolean;
+  level?: SkillStatus;
+  status?: QuestionStatus;
+  /** Past its lifespan: kept on the map faintly, as history. */
+  ended: boolean;
   evidenceCount: number;
   labelSide: LabelSide;
   matched: boolean;
@@ -35,36 +51,49 @@ export type ItemNodeData = {
   near: boolean;
 };
 
-export type MindNodeData = {
+/** An element in the Connections network: a card with its kind. */
+export type ElementCardData = {
   label: string;
-  category: MindCategory;
+  kind: ElementKind;
+  area: AreaKey;
   color: string;
   origin: Origin;
-  confidence?: number;
+  adopted: boolean;
+  concern: boolean;
   status?: QuestionStatus;
-  mirror: boolean;
-  evidenceCount: number;
+  /** How many adopted claims go in and out. */
+  inCount: number;
+  outCount: number;
   matched: boolean;
+  /** Part of the highlighted loop. */
+  inLoop: boolean;
 };
 
-export type PatternNodeData = {
-  code: number;
-  title: string;
-  confidence: number;
-  status: PatternStatus;
-  matched: boolean;
+export type RingsNodeData = {
+  radii: number[];
+  labels: string[];
+  stretch: { x: number; y: number };
+  /** Sector boundaries, in degrees, and how far out they reach. */
+  spokes: number[];
+  spokeInner: number;
+  spokeRadius: number;
 };
-
-export type RingsNodeData = { radii: number[]; labels: string[]; stretch: { x: number; y: number } };
 
 export type SemanticEdgeData = {
-  relation: RelationType;
+  /** A claim says one thing changes another; a link only organises the map. */
+  family: 'claim' | 'link';
+  effect?: Effect;
+  status?: ClaimStatus;
+  linkType?: LinkType;
+  claimId?: string;
   active: boolean;
   label: string;
   note?: string;
-  /** Stored edges can be edited; structural and derived ones cannot. */
+  /** Stored links and claims can be opened and edited; derived lines cannot. */
   stored: boolean;
-  /** Secondary links (item to item across domains) stay faint until selected. */
+  /** A proposal from the analysis, not yet adopted. */
+  suggested?: boolean;
+  /** Secondary lines (across areas) stay faint until selected. */
   secondary?: boolean;
   /** Carries animated flow pulses (living graphs). */
   flow?: boolean;
@@ -72,14 +101,15 @@ export type SemanticEdgeData = {
   dim?: boolean;
   /** Under the pointer's hovered node. */
   hover?: boolean;
+  /** Part of the highlighted loop. */
+  loop?: boolean;
 };
 
 export type HubNode = Node<HubNodeData, 'hub'>;
 export type ItemNode = Node<ItemNodeData, 'item'>;
-export type MindNode = Node<MindNodeData, 'mind'>;
-export type PatternNode = Node<PatternNodeData, 'pattern'>;
+export type ElementCardNode = Node<ElementCardData, 'element'>;
 export type RingsNode = Node<RingsNodeData, 'rings'>;
-export type AtlasFlowNode = HubNode | ItemNode | MindNode | PatternNode | RingsNode;
+export type AtlasFlowNode = HubNode | ItemNode | ElementCardNode | RingsNode;
 export type SemanticEdge = Edge<SemanticEdgeData, 'semantic'>;
 
 export const CIRCLE_NODE_TYPES = new Set(['hub', 'item']);

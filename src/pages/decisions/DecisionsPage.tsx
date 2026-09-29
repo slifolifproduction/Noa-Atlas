@@ -2,13 +2,11 @@ import { ArrowRight, Plus, RefreshCw, Split } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import type { PatternCandidate } from '../../ai/types';
 import { hrefFor } from '../../app/router';
-import { ConfidenceMeter, EstimateTag } from '../../components/evidence/Confidence';
 import { StanceMark } from '../../components/evidence/EvidenceRow';
 import { SourceLink } from '../../components/evidence/SourceLink';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/primitives';
-import { computeConfidence } from '../../domain/confidence';
 import { OUTCOME_RATING_LABEL } from '../../domain/constants';
 import { decisionHorizon, patternCode, sortedDecisions } from '../../domain/selectors';
 import { formatDate } from '../../lib/dates';
@@ -43,7 +41,9 @@ export function DecisionsPage() {
       <PageHeader
         view="decisions"
         help="decisions"
-        description={t('Each decision with its options, what you expected and what actually happened. Comparing the two shows how you decide.')}
+        description={t(
+          'Each decision as a branch point: the options you saw, the one you lived, what you expected and what followed. How it turned out and how well it was decided are judged apart.',
+        )}
         actions={
           <Button variant="primary" icon={Plus} onClick={() => openCapture('decision')}>
             {t('Log decision')}
@@ -113,6 +113,12 @@ export function DecisionsPage() {
                         ) : (
                           <span className="text-counter">{t('Awaiting outcome')}</span>
                         )}
+                        {d.enacted && d.enacted !== 'yes' && (
+                          <div className="mt-0.5 text-[11px] text-ink-3">{d.enacted === 'partly' ? t('Partly carried out') : t('Not carried out')}</div>
+                        )}
+                        {d.options.length > 1 && (
+                          <div className="mt-0.5 text-[11px] text-ink-3">{tn(d.options.length - 1, '{n} branch not taken', '{n} branches not taken')}</div>
+                        )}
                       </td>
                     </tr>
                   );
@@ -151,7 +157,7 @@ function DecisionPatterns({ count }: { count: number }) {
             {t('Decision patterns')}
           </h2>
           <p className="mt-0.5 text-[12px] text-ink-3">
-            {t('Proposed from the drivers and outcomes you recorded. Adding one to the model makes it part of the Mind graph.')}
+            {t('Regularities proposed from the drivers and outcomes you recorded. A pattern only says what keeps happening; why is a separate question.')}
           </p>
         </div>
         <Button size="sm" variant="ghost" icon={RefreshCw} loading={busy} onClick={run} disabled={count < MIN_DECISIONS}>
@@ -174,31 +180,21 @@ function DecisionPatterns({ count }: { count: number }) {
       ) : (
         <ul className="divide-y divide-line">
           {visible.map((c) => {
-            const confidence = computeConfidence([
-              ...c.supporting.map(() => ({ stance: 'supports' as const, weight: 1 })),
-              ...c.counter.map(() => ({ stance: 'counters' as const, weight: 1 })),
-            ]);
             const existing = c.existingPatternId ? data.patterns[c.existingPatternId] : undefined;
             return (
               <li key={c.signature} className="px-4 py-4">
                 <div className="label">
-                  {t('Decision pattern')} · {c.chain.join(' → ')}
+                  {t('Decision pattern')} · {c.steps.join(' → ')}
                 </div>
                 <p className="display mt-1.5 text-[17px] leading-[1.2] text-ink">“{c.statement}”</p>
                 <p className="mt-1 text-[12.5px] text-ink-2">{c.observation}</p>
-                <dl className="mt-3 grid grid-cols-3 gap-4 sm:max-w-[560px]">
+                <dl className="mt-3 grid grid-cols-2 gap-4 sm:max-w-[420px]">
                   <div>
-                    <dt className="label">{t('Evidence')}</dt>
+                    <dt className="label">{t('Instances')}</dt>
                     <dd className="num mt-0.5 text-[13.5px] text-ink">{tn(c.supporting.length, '{n} decision', '{n} decisions')}</dd>
                   </div>
                   <div>
-                    <dt className="label">{t('Confidence')}</dt>
-                    <dd className="mt-0.5">
-                      <ConfidenceMeter value={confidence} size="sm" />
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="label">{t('Counter-evidence')}</dt>
+                    <dt className="label">{t('Counter-cases')}</dt>
                     <dd className="num mt-0.5 text-[13.5px] text-ink">{tn(c.counter.length, '{n} decision', '{n} decisions')}</dd>
                   </div>
                 </dl>
@@ -206,11 +202,12 @@ function DecisionPatterns({ count }: { count: number }) {
                   <RefList title={t('Supporting')} stance="supports" items={c.supporting} />
                   <RefList title={t('Counter')} stance="counters" items={c.counter} />
                 </div>
-                <div className="mt-3 flex flex-wrap items-start gap-2 text-[12.5px] text-ink-2">
-                  <span className="text-ink-3">{t('Possible interpretation:')}</span>
-                  <span className="min-w-0 flex-1">{c.interpretation.statement}</span>
-                  <EstimateTag value={c.interpretation.confidence} />
-                </div>
+                {c.explanation && (
+                  <div className="mt-3 flex flex-wrap items-start gap-2 text-[12.5px] text-ink-2">
+                    <span className="text-ink-3">{t('A question to explore:')}</span>
+                    <span className="min-w-0 flex-1">{c.explanation}</span>
+                  </div>
+                )}
                 <div className="mt-3.5 flex flex-wrap gap-2">
                   {existing ? (
                     <a
@@ -227,7 +224,7 @@ function DecisionPatterns({ count }: { count: number }) {
                         onClick={() => {
                           const id = adopt(c);
                           const p = useAtlas.getState().data.patterns[id];
-                          toast(t('Added as {code}. It now appears in Patterns and the Mind graph.', { code: p ? patternCode(p.code) : t('a pattern') }), {
+                          toast(t('Added as {code}. It now appears in Patterns.', { code: p ? patternCode(p.code) : t('a pattern') }), {
                             tone: 'success',
                             action: { label: t('Open'), run: () => (window.location.hash = hrefFor('patterns', id)) },
                           });

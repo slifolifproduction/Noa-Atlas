@@ -92,7 +92,7 @@ export function countsOf(data: AtlasData): VersionMeta['counts'] {
   return {
     records: Object.keys(data.entries).length + Object.keys(data.decisions).length,
     points: Object.keys(data.nodes).length,
-    patterns: Object.values(data.patterns).filter((p) => p.status !== 'dismissed').length,
+    patterns: Object.values(data.patterns).filter((p) => !p.setAside).length,
   };
 }
 

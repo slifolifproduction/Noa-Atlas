@@ -29,8 +29,7 @@ import { FOCUS_REQUEST_TTL, toast, useUI } from '../../state/uiStore';
 import { EdgePopover } from './EdgePopover';
 import { HubNodeView } from './nodes/HubNode';
 import { ItemNodeView } from './nodes/ItemNode';
-import { MindNodeView } from './nodes/MindNode';
-import { PatternNodeView } from './nodes/PatternNode';
+import { ElementNodeView } from './nodes/ElementNode';
 import { RingsNodeView } from './nodes/RingsNode';
 import { RelationPicker } from './RelationPicker';
 import { NodeProbe } from './NodeProbe';
@@ -42,13 +41,15 @@ import { t } from '../../i18n';
 const nodeTypes: NodeTypes = {
   hub: HubNodeView,
   item: ItemNodeView,
-  mind: MindNodeView,
-  pattern: PatternNodeView,
+  element: ElementNodeView,
   rings: RingsNodeView,
 };
 const edgeTypes: EdgeTypes = { semantic: SemanticEdgeView };
 
-const MINIMAP_COLORS: Record<string, string> = { hub: '#5b6572', item: '#3a424c', mind: '#48515c', pattern: '#8a8579' };
+const MINIMAP_COLORS: Record<string, string> = { hub: '#5b6572', item: '#3a424c', element: '#48515c' };
+
+/** Structure, not influence: carries no pulses and does not count as a connection. */
+const isStructural = (e: SemanticEdge) => e.data?.family === 'link' && e.data.linkType === 'part_of';
 
 export interface GraphCanvasProps {
   layer: GraphLayer;
@@ -91,8 +92,7 @@ interface Signal {
   focus: ID | null;
 }
 
-const nodeLabel = (n: AtlasFlowNode | undefined): string =>
-  !n ? '' : n.type === 'pattern' ? t('Pattern {code}', { code: String(n.data.code).padStart(2, '0') }) : 'label' in n.data ? String(n.data.label) : '';
+const nodeLabel = (n: AtlasFlowNode | undefined): string => (!n ? '' : 'label' in n.data ? String(n.data.label) : '');
 
 /** Neighbours pulled along by a drag: offset, velocity and how strongly each follows. */
 interface Spring {
@@ -139,7 +139,7 @@ function Canvas({
   const [initialViewport] = useState<Viewport | undefined>(() => (persistViewport ? useUI.getState().layouts[layer].viewport : undefined));
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const idleShare = Math.min(1, MAX_IDLE_PULSES / Math.max(1, built.edges.filter((e) => !e.data?.secondary && e.data?.relation !== 'part_of').length));
+  const idleShare = Math.min(1, MAX_IDLE_PULSES / Math.max(1, built.edges.filter((e) => !e.data?.secondary && !isStructural(e)).length));
   const activeShare = Math.min(1, MAX_ACTIVE_PULSES / Math.max(1, built.edges.filter((e) => e.data?.active).length));
   const motion = useMemo<MotionSettings>(() => ({ living, reduced, idleShare, activeShare }), [living, reduced, idleShare, activeShare]);
   const [hovered, setHovered] = useState<ID | null>(null);
@@ -416,7 +416,7 @@ function Canvas({
       return;
     }
     if (living && n.type === 'hub') {
-      // Navigating to a region: a gentle glide that brings the domain and its satellites into view.
+      // Navigating to an area: a gentle glide that brings its marker and sector into view.
       const target = Math.min(1.05, Math.max(zoom, 0.78));
       fitted.current = false;
       rf.setCenter(centre(target), n.position.y, { zoom: target, duration: reduced ? 0 : 900, ease: easeInOutCubic });
@@ -484,12 +484,12 @@ function Canvas({
         };
         const degree = new Map<ID, number>();
         for (const e of edges) {
-          const structural = e.data?.relation === 'part_of';
+          const structural = isStructural(e);
           link(e.source, e.target, structural);
           link(e.target, e.source, structural);
           if (!structural) for (const id of [e.source, e.target]) degree.set(id, (degree.get(id) ?? 0) + 1);
         }
-        const origins = [...degree.keys()].filter((id) => (layer === 'orbit' ? id.startsWith('domain:') : degree.get(id)! >= 2));
+        const origins = [...degree.keys()].filter((id) => degree.get(id)! >= 2);
         const pool = selectedRef.current ? origins.filter((h) => edges.some((e) => (e.source === h || e.target === h) && e.data?.active)) : origins;
         const weights = pool.map((id) => 1 + 4 * space.attention(id));
         let r = Math.random() * weights.reduce((a, b) => a + b, 0);
@@ -740,7 +740,7 @@ function Canvas({
             />
           )}
           {probe && !pending && !edgeMenu && <NodeProbe id={probe} occludedRight={occludedRight} hint={t('Click to open · arrow keys travel along links')} />}
-          {signal && isDesktop && labelsFor.has(signal.origin) && built.edges.some((e) => e.data?.relation !== 'part_of') && (
+          {signal && isDesktop && labelsFor.has(signal.origin) && built.edges.some((e) => !isStructural(e)) && (
             <SignalReadout key={signal.cycle} signal={signal} labelOf={(id) => nodeLabel(labelsFor.get(id))} left={occludedLeft} right={occludedRight} />
           )}
           {edgeMenu && <EdgePopover edgeId={edgeMenu.edgeId} x={edgeMenu.x} y={edgeMenu.y} edges={built.edges} onClose={() => setEdgeMenu(null)} />}
@@ -761,7 +761,7 @@ function SignalReadout({ signal, labelOf, left, right }: { signal: Signal; label
     <div
       className="atlas-readout pointer-events-none absolute bottom-3 z-10 max-w-[min(520px,55%)] -translate-x-1/2 animate-fade-in truncate rounded-[2px] bg-canvas/70 px-2 py-1 font-mono text-[10.5px] tracking-wide text-ink-3"
       style={{ left: `calc(${left}px + (100% - ${left + right}px) / 2)` }}
-      title={t('The map links your notes in the background. This shows the connection it is following right now.')}
+      title={t('A pulse travels from one element along your links and claims, to show what it touches. It illustrates connections; it is not a finding.')}
     >
       <span className="atlas-live-dot mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" aria-hidden />
       <span className="text-ink-2">{t('Live')}</span> · {t('following')} <span className="text-ink-2">{labelOf(signal.origin)}</span>

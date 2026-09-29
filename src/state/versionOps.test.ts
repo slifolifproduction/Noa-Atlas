@@ -9,7 +9,7 @@ describe('versions', () => {
   beforeEach(() => {
     setMemoryVersionStore();
     useAtlas.getState().replaceData(createSeedData('2026-09-28'));
-    useUI.setState({ layouts: { orbit: { positions: { n_x: { x: 1, y: 2 } } }, mind: { positions: {} } } });
+    useUI.setState({ layouts: { orbit: { positions: { n_x: { x: 1, y: 2 } } }, network: { positions: {} } } });
   });
 
   it('saves the current atlas with its counts and arrangement', async () => {

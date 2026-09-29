@@ -9,13 +9,19 @@ import { EmptyState } from '../ui/primitives';
 import { DecisionView } from './DecisionView';
 import { EntryView } from './EntryView';
 import { ExperimentView } from './ExperimentView';
+import { AreaView } from './AreaView';
+import { ClaimView } from './ClaimView';
+import { LoopView } from './LoopView';
 import { NodeView } from './NodeView';
+import { OccurrenceView } from './OccurrenceView';
 import { PathView, PatternView } from './SummaryViews';
+import type { AreaKey } from '../../domain/types';
 import { t } from '../../i18n';
 
 /**
  * The contextual panel. It keeps a trail of what was opened, so drilling from
- * a node into its evidence and back never loses the user's place.
+ * an element into a claim, from the claim into its evidence and back never
+ * loses the person's place.
  */
 export function Inspector() {
   const stack = useUI((s) => s.inspector);
@@ -58,8 +64,16 @@ export function Inspector() {
     <div className="p-4">
       <EmptyState title={t('This item no longer exists')}>{t('It may have been deleted. Go back to continue where you were.')}</EmptyState>
     </div>
-  ) : top.kind === 'node' || top.kind === 'domain' ? (
-    <NodeView id={top.kind === 'domain' ? `domain:${top.id}` : top.id} />
+  ) : top.kind === 'node' ? (
+    <NodeView id={top.id} />
+  ) : top.kind === 'area' ? (
+    <AreaView area={top.id as AreaKey} />
+  ) : top.kind === 'claim' ? (
+    <ClaimView id={top.id} />
+  ) : top.kind === 'occurrence' ? (
+    <OccurrenceView id={top.id} />
+  ) : top.kind === 'loop' ? (
+    <LoopView id={top.id} />
   ) : top.kind === 'entry' ? (
     <EntryView id={top.id} />
   ) : top.kind === 'decision' ? (

@@ -25,17 +25,17 @@ const LOOP = [
   },
   {
     get label() {
-      return t('See what repeats');
+      return t('See what keeps happening');
     },
   },
   {
     get label() {
-      return t('Choose a direction');
+      return t('Ask why, and say what you think affects what');
     },
   },
   {
     get label() {
-      return t('Take the next step');
+      return t('Test it, compare, revise');
     },
   },
 ];
@@ -65,7 +65,11 @@ export function Guide() {
       title: t('Welcome to Cognitive Atlas'),
       body: (
         <>
-          <p>{t('A private map of your life and how you think. It learns only from what you write, and everything stays in this browser.')}</p>
+          <p>
+            {t(
+              'A private map of your life and how it works. It learns only from what you write, shows how it knows everything it shows, and keeps it all in this browser.',
+            )}
+          </p>
           <p className="mt-2">{t('It runs on one simple loop:')}</p>
           <ol className="mt-3 grid gap-2 sm:grid-cols-4">
             {LOOP.map((s, n) => (
@@ -108,11 +112,15 @@ export function Guide() {
         <>
           <p>
             <Trans
-              text={t('After you save, the atlas suggests links and {patterns}, each one showing the notes behind it, for and against.')}
-              values={{ patterns: <strong className="text-ink">{t('patterns')}</strong> }}
+              text={t(
+                'After you save, the atlas reads what happened into your {timeline} and notices {patterns}: things that keep happening, with every instance and counter-case.',
+              )}
+              values={{ timeline: <strong className="text-ink">{t('timeline')}</strong>, patterns: <strong className="text-ink">{t('patterns')}</strong> }}
             />
           </p>
-          <p className="mt-2">{t('You accept what fits and reject what does not. Nothing is added to your map without you.')}</p>
+          <p className="mt-2">
+            {t('You accept what fits and reject what does not. Nothing is added without you, and nothing about how you felt is ever guessed.')}
+          </p>
         </>
       ),
       tryIt: {
@@ -124,7 +132,34 @@ export function Guide() {
       },
     },
     {
-      title: t('3 · Choose a direction, then one step'),
+      title: t('3 · Ask why, and make a claim'),
+      body: (
+        <>
+          <p>
+            <Trans
+              text={t(
+                'A {claim} says one thing changes another: “taking on more work lowers my progress”. Drag from one element to another on the map to make one.',
+              )}
+              values={{ claim: <strong className="text-ink">{t('claim')}</strong> }}
+            />
+          </p>
+          <p className="mt-2">
+            {t(
+              'Every claim starts as proposed and climbs to plausible, supported and tested only as your notes back it up. No percentages: the status always says what it rests on.',
+            )}
+          </p>
+        </>
+      ),
+      tryIt: {
+        label: t('Open Connections'),
+        run: () => {
+          close();
+          navigate('network');
+        },
+      },
+    },
+    {
+      title: t('4 · Test it, then choose a direction'),
       body: (
         <>
           <p>
@@ -133,7 +168,11 @@ export function Guide() {
               values={{ plan: <strong className="text-ink">{t('Plan')}</strong> }}
             />
           </p>
-          <p className="mt-2">{t('When you pick one, My plan turns it into a goal, this month’s targets and this week’s next step.')}</p>
+          <p className="mt-2">
+            {t(
+              'Tests change one thing on purpose and compare with what you predicted. When you pick a direction, My plan turns it into a goal and this week’s next step.',
+            )}
+          </p>
         </>
       ),
       tryIt: {
@@ -149,12 +188,13 @@ export function Guide() {
       body: (
         <ul className="space-y-2.5">
           <Where icon={PLACE_ICONS.map} title={t('Map')}>
-            {t(
-              'Orbit shows your areas of life, Mind shows how you think. Click anything to open it; “Add point” adds your own. The Overview on the left always shows one thing to do next.',
-            )}
+            {t('What exists: you at the centre, your areas of life around you, and on each ring what you hold, what you do and what surrounds you.')}
           </Where>
-          <Where icon={PLACE_ICONS.notes} title={t('Notes')}>
-            {t('Everything you have written: notes, decisions and open questions.')}
+          <Where icon={PLACE_ICONS.history} title={t('History')}>
+            {t('What happened: the timeline, your notes and your decisions.')}
+          </Where>
+          <Where icon={PLACE_ICONS.understanding} title={t('Understanding')}>
+            {t('How it seems to work: claims and loops, patterns, and the questions you are investigating.')}
           </Where>
           <Where icon={PLACE_ICONS.plan} title={t('Plan')}>
             {t('Your options side by side, the direction you chose, and this week’s steps.')}

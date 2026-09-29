@@ -1,19 +1,27 @@
 /**
  * Deterministic, transparent heuristics that stand in for a language model.
  *
- * Every output carries its basis (the phrases or metadata that triggered it),
- * so the user can see exactly why something was suggested. The Claude provider
- * returns the same shapes; this module is also the offline fallback.
+ * Reading a note produces:
+ * - observations: neutral descriptions of what it reports, with their basis;
+ * - suggestions the person accepts or dismisses: elements it mentions, the
+ *   life areas it touches, happenings to add to history, instances of a
+ *   pattern, and explanations written in the note itself (which are the
+ *   person's hypotheses, not evidence of the cause).
+ *
+ * Nothing here produces a number standing in for certainty. Every output
+ * carries its basis (the phrases or metadata that triggered it). The Claude
+ * provider returns the same shapes; this module is also the offline fallback.
  */
-import { computeConfidence } from '../domain/confidence';
-import { DOMAIN_KEYS, OUTCOME_RATING_LABEL } from '../domain/constants';
-import { decisionCode, decisionHorizon, patternCode, sortedDecisions } from '../domain/selectors';
+import { claimSentence, claimStatus, evidenceProfile, statusFromProfile } from '../domain/claims';
+import { OUTCOME_RATING_LABEL } from '../domain/constants';
+import { decisionCode, decisionHorizon, displayNode, mapElements, patternCode, patternLive, sortedDecisions } from '../domain/selectors';
 import type {
   AnalysisSuggestion,
+  AreaKey,
   AtlasData,
   AtlasNode,
+  Claim,
   Decision,
-  DomainKey,
   Entry,
   EntryAnalysis,
   Experiment,
@@ -21,7 +29,7 @@ import type {
   ISODateTime,
   NavigationPlan,
   Observation,
-  Pattern,
+  OccurrenceKind,
   StrategicPath,
 } from '../domain/types';
 import { addDays, todayISO, weekStart } from '../lib/dates';
@@ -45,27 +53,34 @@ function has(text: string, phrase: string): boolean {
 
 const quote = (s: string) => `“${s}”`;
 
-/* ------------------------------------------------------------ domains */
+/* ------------------------------------------------------------ life areas */
 
-const DOMAIN_LEXICON: Record<DomainKey, string[]> = {
-  identity: ['identity', 'who i am', 'author', 'myself', 'director', 'the kind of person', 'identitas', 'siapa saya', 'diri saya', 'jati diri'],
-  values: [
+const AREA_LEXICON: Record<AreaKey, string[]> = {
+  self: [
+    'identity',
+    'who i am',
+    'author',
+    'myself',
+    'director',
+    'the kind of person',
     'value',
     'values',
     'autonomy',
     'craft',
-    'depth',
     'integrity',
     'matters most',
     'principle',
+    'identitas',
+    'siapa saya',
+    'diri saya',
+    'jati diri',
     'nilai',
     'prinsip',
     'kebebasan',
     'integritas',
     'paling penting',
   ],
-  goals: ['goal', 'goals', 'target', 'milestone', 'by next', 'aim', 'success means', 'tujuan', 'sasaran', 'capaian', 'impian', 'cita-cita'],
-  career: [
+  work: [
     'career',
     'client',
     'clients',
@@ -76,6 +91,7 @@ const DOMAIN_LEXICON: Record<DomainKey, string[]> = {
     'festival',
     'panel',
     'promotion',
+    'retainer',
     'karier',
     'karir',
     'klien',
@@ -88,23 +104,6 @@ const DOMAIN_LEXICON: Record<DomainKey, string[]> = {
     'portofolio',
     'wawancara',
   ],
-  skills: [
-    'skill',
-    'skills',
-    'learn',
-    'learning',
-    'practice',
-    'technique',
-    'editing',
-    'layout pass',
-    'keterampilan',
-    'keahlian',
-    'belajar',
-    'latihan',
-    'kursus',
-    'teknik',
-    'sertifikasi',
-  ],
   projects: [
     'project',
     'projects',
@@ -116,12 +115,16 @@ const DOMAIN_LEXICON: Record<DomainKey, string[]> = {
     'deadline',
     'deliverable',
     'edit',
+    'goal',
+    'milestone',
     'proyek',
     'projek',
     'tenggat',
     'garapan',
+    'tujuan',
+    'target',
   ],
-  finance: [
+  money: [
     'money',
     'runway',
     'income',
@@ -147,7 +150,7 @@ const DOMAIN_LEXICON: Record<DomainKey, string[]> = {
     'sewa',
     'anggaran',
   ],
-  relationships: [
+  people: [
     'partner',
     'friend',
     'mentor',
@@ -171,7 +174,33 @@ const DOMAIN_LEXICON: Record<DomainKey, string[]> = {
     'ibu',
     'ayah',
   ],
-  environment: [
+  health: [
+    'energy',
+    'tired',
+    'exhausted',
+    'burnout',
+    'sleep',
+    'slept',
+    'running',
+    'exercise',
+    'sick',
+    'stress',
+    'rest',
+    'flat days',
+    'all-nighter',
+    'all-nighters',
+    'energi',
+    'lelah',
+    'capek',
+    'tidur',
+    'olahraga',
+    'lari',
+    'sakit',
+    'stres',
+    'istirahat',
+    'begadang',
+  ],
+  place: [
     'studio',
     'flat',
     'afternoon',
@@ -182,6 +211,11 @@ const DOMAIN_LEXICON: Record<DomainKey, string[]> = {
     'home',
     'office',
     'commute',
+    'morning',
+    'mornings',
+    'review',
+    'schedule',
+    'routine',
     'rumah',
     'kantor',
     'kamar',
@@ -192,27 +226,26 @@ const DOMAIN_LEXICON: Record<DomainKey, string[]> = {
     'perjalanan',
     'kos',
     'siang',
-  ],
-  habits: [
-    'habit',
-    'routine',
-    'morning',
-    'mornings',
-    'review',
-    'sleep',
-    'slept',
-    'running',
-    'every day',
-    'streak',
-    'kebiasaan',
-    'rutinitas',
     'pagi',
-    'tidur',
-    'olahraga',
-    'lari',
-    'setiap hari',
-    'begadang',
     'jadwal',
+    'rutinitas',
+  ],
+  growth: [
+    'skill',
+    'skills',
+    'learn',
+    'learning',
+    'practice',
+    'technique',
+    'layout pass',
+    'course',
+    'keterampilan',
+    'keahlian',
+    'belajar',
+    'latihan',
+    'kursus',
+    'teknik',
+    'sertifikasi',
   ],
 };
 
@@ -221,6 +254,8 @@ const DOMAIN_LEXICON: Record<DomainKey, string[]> = {
 interface ObservationRule {
   statement: string;
   test: (text: string, entry: Entry) => string[] | null;
+  /** A happening this kind of sentence usually reports, for history. `reads` finds the behaviour it is an instance of. */
+  occurrence?: { kind: OccurrenceKind; reads?: string };
 }
 
 /** Phrases preceded by these words describe something that did not happen. */
@@ -231,9 +266,10 @@ function affirmed(text: string, phrase: string): boolean {
   return !NEGATIONS.some((n) => has(text, `${n} ${phrase}`));
 }
 
-function phraseRule(statement: string, phrases: string[]): ObservationRule {
+function phraseRule(statement: string, phrases: string[], occurrence?: ObservationRule['occurrence']): ObservationRule {
   return {
     statement,
+    occurrence,
     test: (text) => {
       const hits = phrases.filter((p) => affirmed(text, p));
       return hits.length ? hits : null;
@@ -242,75 +278,86 @@ function phraseRule(statement: string, phrases: string[]): ObservationRule {
 }
 
 const OBSERVATION_RULES: ObservationRule[] = [
-  phraseRule('Describes accepting a new commitment.', [
-    'said yes',
-    'agreed to',
-    'took on',
-    'signed on',
-    'committing to',
-    'bilang iya',
-    'bilang ya',
-    'setuju untuk',
-    'mengiyakan',
-    'menerima tawaran',
-    'ambil proyek',
-    'mengambil proyek',
-    'menyanggupi',
-  ]),
-  phraseRule('Describes declining, pausing or limiting a commitment.', [
-    'declined',
-    'said no',
-    'turned down',
-    'paused',
-    'commitment cap',
-    'down to three',
-    'menolak',
-    'bilang tidak',
-    'menunda',
-    'membatasi',
-  ]),
-  phraseRule('Describes work compressed against a deadline.', [
-    'last four days',
-    'last minute',
-    'all-nighters',
-    'all-nighter',
-    'minutes before',
-    'deadline',
-    'deadlines',
-    'tenggat',
-    'mepet',
-    'kejar deadline',
-    'menit terakhir',
-    'lembur',
-  ]),
-  phraseRule('Describes a protected or single-focus work period.', [
-    'deep work',
-    'protected',
-    'only project',
-    'mornings only',
-    'phone in another room',
-    'one project per block',
-    'thursday blocks',
-    'fokus penuh',
-    'tanpa gangguan',
-    'satu proyek saja',
-  ]),
-  phraseRule('Reports something finished.', ['finished', 'shipped', 'locked', 'submitted', 'wrapped', 'selesai', 'rampung', 'beres', 'terkirim', 'tuntas']),
-  phraseRule('Reports work slipping or stalling.', [
-    'slipping',
-    'slipped',
-    'jumps ahead',
-    'stalled',
-    "haven't opened",
-    'lost six weeks',
-    'eating',
-    'tertunda',
-    'molor',
-    'terbengkalai',
-    'mandek',
-    'keteteran',
-    'belum sempat',
-  ]),
+  phraseRule(
+    'Describes accepting a new commitment.',
+    [
+      'said yes',
+      'agreed to',
+      'took on',
+      'signed on',
+      'committing to',
+      'bilang iya',
+      'bilang ya',
+      'setuju untuk',
+      'mengiyakan',
+      'menerima tawaran',
+      'ambil proyek',
+      'mengambil proyek',
+      'menyanggupi',
+    ],
+    { kind: 'action', reads: 'accept' },
+  ),
+  phraseRule(
+    'Describes declining, pausing or limiting a commitment.',
+    ['declined', 'said no', 'turned down', 'paused', 'commitment cap', 'down to three', 'menolak', 'bilang tidak', 'menunda', 'membatasi'],
+    { kind: 'action', reads: 'decline' },
+  ),
+  phraseRule(
+    'Describes work compressed against a deadline.',
+    [
+      'last four days',
+      'last minute',
+      'all-nighters',
+      'all-nighter',
+      'minutes before',
+      'deadline',
+      'deadlines',
+      'tenggat',
+      'mepet',
+      'kejar deadline',
+      'menit terakhir',
+      'lembur',
+    ],
+    { kind: 'action', reads: 'deadline' },
+  ),
+  phraseRule(
+    'Describes a protected or single-focus work period.',
+    [
+      'deep work',
+      'protected',
+      'only project',
+      'mornings only',
+      'phone in another room',
+      'one project per block',
+      'thursday blocks',
+      'fokus penuh',
+      'tanpa gangguan',
+      'satu proyek saja',
+    ],
+    { kind: 'action', reads: 'focus' },
+  ),
+  phraseRule('Reports something finished.', ['finished', 'shipped', 'locked', 'submitted', 'wrapped', 'selesai', 'rampung', 'beres', 'terkirim', 'tuntas'], {
+    kind: 'event',
+  }),
+  phraseRule(
+    'Reports work slipping or stalling.',
+    [
+      'slipping',
+      'slipped',
+      'jumps ahead',
+      'stalled',
+      "haven't opened",
+      'lost six weeks',
+      'eating',
+      'tertunda',
+      'molor',
+      'terbengkalai',
+      'mandek',
+      'keteteran',
+      'belum sempat',
+    ],
+    { kind: 'event' },
+  ),
   phraseRule('Describes fragmented or interrupted time.', [
     'calls',
     'interrupted',
@@ -324,16 +371,11 @@ const OBSERVATION_RULES: ObservationRule[] = [
     'terpecah',
     'notifikasi',
   ]),
-  phraseRule('Describes changing or expanding scope.', [
-    'added a second',
-    'rewrote',
-    'added scope',
-    'expanded',
-    'bigger version',
-    'melebar',
-    'menambah lingkup',
-    'versi lebih besar',
-  ]),
+  phraseRule(
+    'Describes changing or expanding scope.',
+    ['added a second', 'rewrote', 'added scope', 'expanded', 'bigger version', 'melebar', 'menambah lingkup', 'versi lebih besar'],
+    { kind: 'action', reads: 'scope' },
+  ),
   phraseRule('Describes a deliberate, intentional choice.', ['deliberately', 'on purpose', 'intentionally', 'sengaja', 'secara sadar']),
   phraseRule('Records a question that was hard to answer.', [
     "couldn't answer",
@@ -370,6 +412,32 @@ const OBSERVATION_RULES: ObservationRule[] = [
   },
 ];
 
+/**
+ * Words that mark an explanation written into the note itself ("…because…",
+ * "…caught up with me"). An explanation in the person's words is their
+ * hypothesis about a cause; people often explain their own behaviour with
+ * reasons that did not actually drive it, so it is never counted as evidence.
+ */
+const ATTRIBUTION_CUES = [
+  'because',
+  'caught up with me',
+  'made it',
+  'led to',
+  'due to',
+  "that's why",
+  'as a result',
+  'honest reason',
+  'what decided it',
+  'collecting its bill',
+  'karena',
+  'gara-gara',
+  'sehingga',
+  'akibatnya',
+  'makanya',
+  'membuat saya',
+  'alasannya',
+];
+
 function contextObservation(entry: Entry): Observation | null {
   const { energy, mood } = entry.context ?? {};
   if (energy === undefined || mood === undefined) return null;
@@ -382,10 +450,10 @@ function contextObservation(entry: Entry): Observation | null {
   return null;
 }
 
-/* ------------------------------------------------------------ node matching */
+/* ------------------------------------------------------------ element matching */
 
 /**
- * Nodes mentioned in the text: full labels first, then distinctive
+ * Elements mentioned in the text: full labels first, then distinctive
  * capitalised words (usually names) that no full match already explains.
  */
 function matchNodes(text: string, nodes: AtlasNode[]): { node: AtlasNode; hit: string }[] {
@@ -414,44 +482,95 @@ function matchNodes(text: string, nodes: AtlasNode[]): { node: AtlasNode; hit: s
 }
 
 const COMMON_CAPITALISED = new Set(
-  'what which would saying good being build building missing financial freedom recognition clients client morning sunday running home afternoons income runway creative independent emerging real-time motion production business ship agency accepted paused declined committed burnout protected stability autonomy craft depth compounding barbell optionality working festival night two-track'.split(
+  'what which would saying good being build building missing financial freedom recognition clients client morning sunday running home afternoons afternoon income runway creative independent emerging real-time motion production business ship agency accepted paused declined committed burnout protected stability autonomy craft depth compounding barbell optionality working festival night two-track active incoming energy feeling fragmented quality outside adding late keep focus commitment declining'.split(
     ' ',
   ),
 );
 
-/* ------------------------------------------------------------ entry analysis */
+/** A short label for a happening, in the note's own words. */
+function shortLabel(sentence: string, max = 72): string {
+  const s = sentence.replace(/\s+/g, ' ').trim().replace(/[.!]$/, '');
+  if (s.length <= max) return s;
+  const cut = s.slice(0, max);
+  return `${cut.slice(0, cut.lastIndexOf(' ') > 40 ? cut.lastIndexOf(' ') : max).trimEnd()}…`;
+}
+
+/* ------------------------------------------------------------ reading a note */
 
 export function analyzeEntryLocally(entry: Entry, data: AtlasData, at: ISODateTime = new Date().toISOString()): EntryAnalysis {
   const text = norm(`${entry.title}. ${entry.content}`);
   const observations: Observation[] = [];
   const suggestions: AnalysisSuggestion[] = [];
+  const elements = mapElements(data);
 
+  const matchedRules: { rule: ObservationRule; hits: string[] }[] = [];
   for (const rule of OBSERVATION_RULES) {
     const hits = rule.test(text, entry);
-    if (hits)
-      observations.push({ id: createId('obs'), statement: t(rule.statement), basis: t('Matched {list}', { list: hits.slice(0, 3).map(quote).join(', ') }) });
+    if (!hits) continue;
+    matchedRules.push({ rule, hits });
+    observations.push({ id: createId('obs'), statement: t(rule.statement), basis: t('Matched {list}', { list: hits.slice(0, 3).map(quote).join(', ') }) });
   }
   const ctx = contextObservation(entry);
   if (ctx) observations.push(ctx);
 
-  // Mentions of several projects at once are a structural signal on their own.
-  // Mirror nodes (a decision or experience) are linked through their record.
-  const mentioned = matchNodes(
-    text,
-    Object.values(data.nodes).filter((n) => !n.source),
-  );
-  const projectHits = mentioned.filter((m) => m.node.domain === 'projects').map((m) => m.node.label);
-  if (projectHits.length >= 2) {
+  // Several commitments named in one note are a structural signal on their own.
+  const mentioned = matchNodes(text, elements);
+  const commitmentHits = mentioned.filter((m) => m.node.kind === 'commitment').map((m) => m.node.label);
+  if (commitmentHits.length >= 2) {
     observations.push({
       id: createId('obs'),
-      statement: t('Mentions {n} projects in the same entry.', { n: projectHits.length }),
-      basis: projectHits.join(', '),
+      statement: t('Mentions {n} commitments in the same note.', { n: commitmentHits.length }),
+      basis: commitmentHits.join(', '),
     });
   }
 
-  // Pattern evidence: cue phrases for and against each live pattern.
+  // Happenings to add to history, in the note's own words.
+  const fromThisNote = Object.values(data.occurrences).filter((o) => o.source?.kind === 'entry' && o.source.id === entry.id);
+  let occurrenceCount = 0;
+  for (const { rule, hits } of matchedRules) {
+    if (!rule.occurrence || occurrenceCount >= 3) continue;
+    const sentence = sentenceContaining(entry.content, hits[0]) ?? firstSentence(entry.content);
+    const behaviour = rule.occurrence.reads ? elements.find((n) => n.kind === 'behaviour' && n.tags.includes(`reads:${rule.occurrence!.reads}`)) : undefined;
+    const about = matchNodes(norm(sentence), elements)
+      .map((m) => m.node.id)
+      .filter((id) => id !== behaviour?.id)
+      .slice(0, 4);
+    const recorded = fromThisNote.some((o) => o.kind === rule.occurrence!.kind && (!behaviour || o.instanceOf === behaviour.id));
+    occurrenceCount++;
+    suggestions.push({
+      id: createId('sug'),
+      type: 'occurrence',
+      kind: rule.occurrence.kind,
+      label: shortLabel(sentence),
+      about,
+      instanceOf: behaviour?.id,
+      excerpt: sentence,
+      reason: behaviour ? t('{what}: one instance of “{behaviour}”.', { what: t(rule.statement), behaviour: behaviour.label }) : t(rule.statement),
+      state: recorded ? 'accepted' : 'pending',
+    });
+  }
+
+  // Explanations written into the note: the person's own hypotheses.
+  const raw = norm(entry.content);
+  const cues = ATTRIBUTION_CUES.filter((c) => has(raw, c));
+  const seen = new Set<string>();
+  for (const cue of cues) {
+    const sentence = sentenceContaining(entry.content, cue);
+    if (!sentence || seen.has(sentence)) continue;
+    seen.add(sentence);
+    if (seen.size > 2) break;
+    suggestions.push({
+      id: createId('sug'),
+      type: 'attribution',
+      excerpt: sentence,
+      reason: t('Explains something in your own words ({cue}). That is your hypothesis about a cause, not evidence of it.', { cue: quote(cue) }),
+      state: 'pending',
+    });
+  }
+
+  // Instances of a pattern: cue phrases for and against each live pattern.
   for (const p of Object.values(data.patterns)) {
-    if (p.status === 'dismissed') continue;
+    if (!patternLive(p)) continue;
     const sup = p.cues.supports.filter((c) => has(text, c));
     const cnt = p.cues.counters.filter((c) => has(text, c));
     if (sup.length === cnt.length) continue;
@@ -469,12 +588,11 @@ export function analyzeEntryLocally(entry: Entry, data: AtlasData, at: ISODateTi
         list: matched.map(quote).join(', '),
         code: patternCode(p.code),
       }),
-      confidence: Math.min(0.9, 0.4 + 0.15 * matched.length),
       state: already ? 'accepted' : 'pending',
     });
   }
 
-  // Node links.
+  // Elements the note mentions.
   for (const { node, hit } of mentioned.slice(0, 6)) {
     suggestions.push({
       id: createId('sug'),
@@ -485,18 +603,19 @@ export function analyzeEntryLocally(entry: Entry, data: AtlasData, at: ISODateTi
     });
   }
 
-  // Domains.
-  const scored = DOMAIN_KEYS.map((key) => ({ key, hits: DOMAIN_LEXICON[key].filter((w) => has(text, w)) }))
+  // Life areas.
+  const scored = (Object.keys(AREA_LEXICON) as AreaKey[])
+    .map((key) => ({ key, hits: AREA_LEXICON[key].filter((w) => has(text, w)) }))
     .filter((d) => d.hits.length > 0)
     .sort((a, b) => b.hits.length - a.hits.length)
     .slice(0, 3);
   for (const d of scored) {
     suggestions.push({
       id: createId('sug'),
-      type: 'domain',
-      domain: d.key,
+      type: 'area',
+      area: d.key,
       reason: t('Matched {list}.', { list: d.hits.slice(0, 3).map(quote).join(', ') }),
-      state: entry.domains.includes(d.key) ? 'accepted' : 'pending',
+      state: entry.areas.includes(d.key) ? 'accepted' : 'pending',
     });
   }
 
@@ -519,6 +638,11 @@ function driverExcerpt(d: Decision): string {
 
 const codes = (ds: Decision[]) => ds.map((d) => decisionCode(d.seq)).join(', ');
 
+/**
+ * Regularities across the decision log, from the reasons the person gave and
+ * how decisions turned out. Offered as candidates with their instances and
+ * counter-cases; a possible explanation comes as a question, not a finding.
+ */
 export function detectDecisionPatternsLocally(data: AtlasData): PatternCandidate[] {
   const decisions = sortedDecisions(data).reverse();
   const bySignature = new Map(
@@ -532,16 +656,12 @@ export function detectDecisionPatternsLocally(data: AtlasData): PatternCandidate
   const longTerm = decisions.filter((d) => decisionHorizon(d) === 'long_term');
 
   if (immediate.length >= 3 && immediate.length > longTerm.length) {
-    const confidence = computeConfidence([
-      ...immediate.map(() => ({ stance: 'supports' as const, weight: 1 })),
-      ...longTerm.map(() => ({ stance: 'counters' as const, weight: 1 })),
-    ]);
     const signature = 'decision:immediate-over-long-term';
     out.push({
       signature,
       kind: 'decision',
       title: t('Immediate opportunity over long-term focus'),
-      chain: [t('Immediate Opportunity'), t('Accept'), t('Long-term Focus Deferred')],
+      steps: [t('Immediate Opportunity'), t('Accept'), t('Long-term Focus Deferred')],
       statement: t('I tend to optimize for immediate opportunity rather than long-term focus.'),
       observation: t(
         'In {n} of {total} decisions with a clear time horizon, the chosen option optimised for income, opportunity or visibility over focus, craft or long-term growth.',
@@ -552,14 +672,10 @@ export function detectDecisionPatternsLocally(data: AtlasData): PatternCandidate
       consequences: [t('Long-horizon work is deferred')],
       supporting: immediate.map((d) => ({ decisionId: d.id, excerpt: driverExcerpt(d) })),
       counter: longTerm.map((d) => ({ decisionId: d.id, excerpt: driverExcerpt(d) })),
-      interpretation: {
-        statement: t('May tend to weight near-term payoffs more heavily than stated long-term priorities.'),
-        confidence: Math.max(0.3, confidence - 0.08),
-        rationale: t('Based on the drivers you recorded for each decision, not on the outcomes.'),
-      },
+      explanation: t('Could near-term payoffs weigh more than the long-term priorities you state?'),
       counterStatement: longTerm.length ? t('{codes} chose long-term focus over an immediate gain.', { codes: codes(longTerm) }) : undefined,
       implication: t('Opportunities that arrive with a short response window may be the ones to slow down.'),
-      domains: ['career', 'projects'],
+      areas: ['work', 'projects'],
       existingPatternId: bySignature.get(signature),
     });
   }
@@ -569,15 +685,11 @@ export function detectDecisionPatternsLocally(data: AtlasData): PatternCandidate
   const fine = rated.filter((d) => d.outcomeRating === 'better' || d.outcomeRating === 'as_expected');
   if (short.length >= 3 && short.length > fine.length) {
     const signature = 'decision:opportunity-cost-underestimated';
-    const confidence = computeConfidence([
-      ...short.map(() => ({ stance: 'supports' as const, weight: 1 })),
-      ...fine.map(() => ({ stance: 'counters' as const, weight: 1 })),
-    ]);
     out.push({
       signature,
       kind: 'decision',
       title: t('Underestimated cost of new commitments'),
-      chain: [t('Opportunity Accepted'), t('Cost Underestimated'), t('Outcome Below Expectation')],
+      steps: [t('Opportunity Accepted'), t('Cost Underestimated'), t('Outcome Below Expectation')],
       statement: t('Opportunity-driven commitments tend to cost more time than I expect.'),
       observation: t('{n} of {total} reviewed opportunity-driven decisions turned out worse than or mixed against what was expected.', {
         n: short.length,
@@ -588,87 +700,96 @@ export function detectDecisionPatternsLocally(data: AtlasData): PatternCandidate
       consequences: [t('Overruns that land on existing work')],
       supporting: short.map((d) => ({ decisionId: d.id, excerpt: `${OUTCOME_RATING_LABEL[d.outcomeRating!]}: ${d.actualOutcome ?? ''}`.trim() })),
       counter: fine.map((d) => ({ decisionId: d.id, excerpt: `${OUTCOME_RATING_LABEL[d.outcomeRating!]}: ${d.actualOutcome ?? ''}`.trim() })),
-      interpretation: {
-        statement: t('Estimates may be made against an empty calendar rather than the real one.'),
-        confidence: Math.max(0.3, confidence - 0.1),
-        rationale: t('Several reviews mention overruns alongside existing commitments.'),
-      },
+      explanation: t('Could estimates be made against an empty calendar rather than the real one?'),
       counterStatement: fine.length ? t('{codes} went as expected or better.', { codes: codes(fine) }) : undefined,
       implication: t('Doubling the first estimate, or estimating against the current week, could be tested.'),
-      domains: ['projects', 'career'],
+      areas: ['projects', 'work'],
       existingPatternId: bySignature.get(signature),
     });
   }
   return out;
 }
 
-/* ------------------------------------------------------------ experiments */
+/* ------------------------------------------------------------ tests */
 
-export function proposeExperimentsLocally(pattern: Pattern): ExperimentDraft[] {
-  const behavior = pattern.behaviors[0] ?? pattern.chain[1] ?? pattern.title;
-  const consequence = pattern.consequences[0] ?? pattern.chain[pattern.chain.length - 1] ?? t('the consequence');
-  const trigger = pattern.triggers[0] ?? pattern.chain[0] ?? t('the trigger');
-  const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+const labelOf = (data: AtlasData, id: string) => displayNode(data, id)?.label ?? '';
+const lower = (s: string) => s.charAt(0).toLowerCase() + s.slice(1);
+
+/** Two ways to test a claim: change the cause on purpose, or look for contrast cases. */
+export function proposeExperimentsLocally(claim: Claim, data: AtlasData): ExperimentDraft[] {
+  const from = labelOf(data, claim.from);
+  const to = labelOf(data, claim.to);
   return [
     {
-      title: t('Interrupt: {trigger}', { trigger: pattern.chain[0] ?? pattern.title }),
-      hypothesis: t('If I interrupt the trigger ({trigger}), {consequence} may happen less often.', {
-        trigger: lower(trigger),
-        consequence: lower(consequence),
+      title: t('Change “{from}” on purpose', { from }),
+      hypothesis: claimSentence(data, claim, 'proposed'),
+      design: t('For 30 days, change “{from}” deliberately and keep everything else as it was. Keep recording “{to}” as usual.', {
+        from: lower(from),
+        to: lower(to),
       }),
-      design: t(
-        'For 30 days, add one deliberate pause between the trigger and the behaviour (“{behavior}”). Log every time the trigger appears and what you did.',
-        { behavior: lower(behavior) },
-      ),
       durationDays: 30,
+      prediction: t('If the claim holds, “{to}” changes in the direction it predicts within the 30 days.', { to: lower(to) }),
+      criteria: t('If “{to}” does not change, the claim is weakened.', { to: lower(to) }),
       measures: [
-        { label: t('Times the trigger appeared'), baseline: '—' },
-        { label: t('Times the behaviour followed'), baseline: '—' },
-        { label: t('Focus hours per week') },
-        { label: t('Stress (1–5)') },
+        { label: from, baseline: '—' },
+        { label: to, baseline: '—' },
       ],
     },
     {
-      title: t('Look for counter-evidence: {code}', { code: patternCode(pattern.code) }),
-      hypothesis: t('{code} holds less often than the current evidence suggests.', { code: patternCode(pattern.code) }),
-      design: t('For 14 days, note every time the trigger appears and the behaviour does not follow. This tests the pattern rather than trying to change it.'),
+      title: t('Look for contrast cases: {to}', { to }),
+      hypothesis: t('“{to}” also changes when “{from}” does not.', { to, from: lower(from) }),
+      design: t(
+        'For 14 days, note each time “{to}” changes and whether “{from}” changed first. This looks for other causes rather than trying to change anything.',
+        {
+          to: lower(to),
+          from: lower(from),
+        },
+      ),
       durationDays: 14,
-      measures: [{ label: t('Trigger without the behaviour') }, { label: t('Trigger followed by the behaviour') }],
+      prediction: t('If the claim holds, most changes in “{to}” follow a change in “{from}”.', { to: lower(to), from: lower(from) }),
+      criteria: t('If “{to}” changes as often without it, another explanation is likely.', { to: lower(to) }),
+      measures: [{ label: t('Changes in “{to}” after “{from}”', { to, from }) }, { label: t('Changes in “{to}” without it', { to }) }],
     },
   ];
 }
 
+/**
+ * A test's result becomes intervention evidence on the claim it tests: the
+ * strongest evidence one person can produce. An inconclusive result changes
+ * nothing.
+ */
 export function evaluateExperimentLocally(experiment: Experiment, result: ExperimentResult, data: AtlasData): ModelUpdateProposal {
-  const changes = experiment.patternLinks
-    .map((link) => {
-      const pattern = data.patterns[link.patternId];
-      if (!pattern || result.outcome === 'inconclusive') return null;
-      const stance = result.outcome === 'supports' ? link.ifSupported : link.ifSupported === 'supports' ? 'counters' : 'supports';
-      const before = computeConfidence(pattern.evidence);
-      const after = computeConfidence([...pattern.evidence, { stance, weight: 2 }]);
-      return {
-        patternId: pattern.id,
-        stance,
-        weight: 2,
-        before,
-        after,
-        excerpt:
-          result.summary ||
-          t(result.outcome === 'supports' ? '{title}: hypothesis supported.' : '{title}: hypothesis not supported.', { title: experiment.title }),
-      };
-    })
-    .filter((c): c is NonNullable<typeof c> => Boolean(c));
+  const claim = experiment.claimId ? data.claims[experiment.claimId] : undefined;
+  const changes =
+    claim && result.outcome !== 'inconclusive'
+      ? (() => {
+          const stance = result.outcome === 'supports' ? ('supports' as const) : ('counters' as const);
+          const p = evidenceProfile(data, claim);
+          const next = stance === 'supports' ? { ...p, testsFor: p.testsFor + 1 } : { ...p, testsAgainst: p.testsAgainst + 1, counter: p.counter + 1 };
+          return [
+            {
+              claimId: claim.id,
+              stance,
+              before: claimStatus(data, claim),
+              after: statusFromProfile(next, Boolean(claim.retired)),
+              excerpt:
+                result.summary ||
+                t(result.outcome === 'supports' ? '{title}: hypothesis supported.' : '{title}: hypothesis not supported.', { title: experiment.title }),
+            },
+          ];
+        })()
+      : [];
 
   const note =
     result.outcome === 'inconclusive'
-      ? t('An inconclusive result does not change pattern confidence. Consider tightening the measures and running it again.')
+      ? t('An inconclusive result changes no claim. Consider tightening the measures and running it again.')
       : t(
           result.outcome === 'supports'
-            ? 'The hypothesis was supported. Linked patterns receive this result as evidence with double weight, because the experiment was designed to test them.'
-            : 'The hypothesis was contradicted. Linked patterns receive this result as evidence with double weight, because the experiment was designed to test them.',
+            ? 'The prediction held. The claim gets a test result as evidence: the strongest kind one person can produce.'
+            : 'The prediction did not hold. The claim gets a failed test as evidence, which weakens it.',
         );
 
-  return { experimentId: experiment.id, changes, learningNote: note, interpretationNotes: [] };
+  return { experimentId: experiment.id, changes, learningNote: note };
 }
 
 /* ------------------------------------------------------------ navigation */
@@ -693,7 +814,7 @@ export function draftNavigationPlanLocally(path: StrategicPath, data: AtlasData,
     objective: { title: path.objective, description: path.summary, targetDate: addDays(today, 365) },
     experimentId: strategic?.id,
     milestone: { title: path.requirements[0] ?? t('First milestone'), due: addDays(today, 60) },
-    targets: targets.map(({ _i, ...t }) => t),
+    targets: targets.map(({ _i, ...rest }) => rest),
     actions,
     currentActionId: actions[0]?.id,
   };

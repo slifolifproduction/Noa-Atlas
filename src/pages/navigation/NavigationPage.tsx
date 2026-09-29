@@ -1,5 +1,6 @@
 import { ArrowRight, Check, Ellipsis, Play, Plus, SkipForward, Trash, X } from 'lucide-react';
-import { DOMAIN_ICONS, PLACE_ICONS } from '../../components/icons';
+import { ExperimentIcon, PLACE_ICONS } from '../../components/icons';
+import { claimCode } from '../../domain/claims';
 import { useState, type ReactNode } from 'react';
 import { hrefFor } from '../../app/router';
 import { ResultModal } from '../../components/experiments/ResultModal';
@@ -456,7 +457,7 @@ function SelectExperiment() {
 /* ------------------------------------------------------------ experiments */
 
 function LoopStrip() {
-  const steps = [t('Hypothesis'), t('Experiment'), t('Result'), t('Learning'), t('Model update')];
+  const steps = [t('Claim'), t('Predict'), t('Test'), t('Compare'), t('Revise')];
   return (
     <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11.5px] text-ink-3" aria-label={t('Feedback loop')}>
       {steps.map((s, i) => (
@@ -485,13 +486,15 @@ function ExperimentsColumn({ onCreate }: { onCreate(): void }) {
           {t('New')}
         </Button>
       </div>
-      <p className="mt-1.5 text-[12.5px] text-ink-2">{t('Test instead of predicting. A recorded result updates the patterns it was designed to test.')}</p>
+      <p className="mt-1.5 text-[12.5px] text-ink-2">
+        {t('Test instead of guessing. A recorded result becomes evidence on the claim it tests, and can move its status either way.')}
+      </p>
       <div className="mt-2.5">
         <LoopStrip />
       </div>
       {all.length === 0 ? (
-        <EmptyState icon={DOMAIN_ICONS.goals} title={t('No experiments yet')} className="mt-4">
-          {t('Suggest experiments from any pattern, or design one from a path’s unknowns.')}
+        <EmptyState icon={ExperimentIcon} title={t('No tests yet')} className="mt-4">
+          {t('Design one from any claim: open it and choose “Design a test”.')}
         </EmptyState>
       ) : (
         groups.map((g) => {
@@ -530,13 +533,14 @@ function ExperimentCard({ experiment: x }: { experiment: Experiment }) {
         </div>
         <p className="mt-1 text-[12.5px] leading-snug text-ink-2">{x.hypothesis}</p>
       </button>
-      {x.patternLinks.length > 0 && (
+      {x.claimId && data.claims[x.claimId] && (
         <p className="mt-1.5 text-[11.5px] text-ink-3">
-          {t('Tests')}{' '}
-          {x.patternLinks
-            .map((l) => (data.patterns[l.patternId] ? patternCode(data.patterns[l.patternId].code) : null))
-            .filter(Boolean)
-            .join(', ')}
+          {t('Tests')} {claimCode(data.claims[x.claimId]!.code)}
+          {x.patternIds.length > 0 &&
+            ` · ${x.patternIds
+              .map((p) => (data.patterns[p] ? patternCode(data.patterns[p].code) : null))
+              .filter(Boolean)
+              .join(', ')}`}
         </p>
       )}
       {x.status === 'running' && (

@@ -1,12 +1,12 @@
 import { useReactFlow, useStoreApi } from '@xyflow/react';
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import { computeConfidence } from '../../domain/confidence';
-import { CATEGORY_META, DOMAIN_META, hubKey, isHubId, PATTERN_COLOR, PATTERN_STATUS_LABEL, RELATION_META } from '../../domain/constants';
-import { evidenceForNode, neighbors, patternsForNode } from '../../domain/selectors';
-import type { AtlasData, ID, RelationType } from '../../domain/types';
+import { claimsInto, claimsOutOf } from '../../domain/claims';
+import { AREA_META, areaHubKey, isAreaHubId, KIND_META, LAYER_META, layerOf, YOU_ID } from '../../domain/constants';
+import { loopsThrough } from '../../domain/loops';
+import { mapElements, patternsForNode, recordsFor } from '../../domain/selectors';
+import type { AtlasData, ID } from '../../domain/types';
 import { useSpace } from '../../graph/space';
 import type { AtlasFlowNode, SemanticEdge } from '../../graph/types';
-import { pad2 } from '../../lib/text';
 import { useAtlas } from '../../state/atlasStore';
 import { t, tn } from '../../i18n';
 
@@ -19,66 +19,52 @@ interface ProbeInfo {
   title: string;
   body?: string;
   facts: string[];
-  links: { relation: RelationType; count: number }[];
+  /** How it connects: what is claimed to act on it and what it is claimed to act on. */
+  links: string[];
 }
 
 function describe(data: AtlasData, id: ID): ProbeInfo | null {
-  const links = (exclude: RelationType[] = ['part_of']) => {
-    const counts = new Map<RelationType, number>();
-    for (const n of neighbors(data, id)) if (!exclude.includes(n.relation)) counts.set(n.relation, (counts.get(n.relation) ?? 0) + 1);
-    return [...counts.entries()]
-      .map(([relation, count]) => ({ relation, count }))
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 3);
+  const recordCount = (x: ID) => {
+    const r = recordsFor(data, x);
+    return tn(r.entries.length + r.decisions.length, '{n} record', '{n} records');
   };
-  const records = (n: number) => tn(n, '{n} record', '{n} records');
   const inPatterns = (n: number) => tn(n, '{n} pattern', '{n} patterns');
 
-  if (isHubId(id)) {
-    const key = hubKey(id);
-    const meta = DOMAIN_META[key];
-    const ev = evidenceForNode(data, id);
-    const satellites = Object.values(data.nodes).filter((n) => n.domain === key).length;
+  if (id === YOU_ID || isAreaHubId(id)) {
+    const key = id === YOU_ID ? 'self' : areaHubKey(id);
+    const meta = AREA_META[key];
+    const elements = mapElements(data).filter((n) => n.area === key).length;
     return {
-      kind: t('Domain · ring {n}', { n: meta.ring }),
+      kind: key === 'self' ? t('You · the centre') : t('Area of life'),
       color: meta.color,
-      title: meta.label,
-      body: data.domains[key]?.statement || meta.description,
-      facts: [
-        tn(satellites, '{n} satellite', '{n} satellites'),
-        records(ev.entries.length + ev.decisions.length),
-        inPatterns(patternsForNode(data, id).length),
-      ],
-      links: links(),
-    };
-  }
-  const pattern = data.patterns[id];
-  if (pattern) {
-    const supports = pattern.evidence.filter((e) => e.stance === 'supports').length;
-    return {
-      kind: `${t('Pattern')} ${pad2(pattern.code)} · ${PATTERN_STATUS_LABEL[pattern.status].toLowerCase()}`,
-      color: PATTERN_COLOR,
-      title: pattern.chain.length ? pattern.chain.join(' → ') : pattern.title,
-      body: pattern.observation,
-      facts: [
-        t('{n} supporting', { n: supports }),
-        t('{n} counter', { n: pattern.evidence.length - supports }),
-        t('confidence {pct}', { pct: `${Math.round(computeConfidence(pattern.evidence) * 100)}%` }),
-      ],
+      title: key === 'self' ? data.profile.name || t('You') : meta.label,
+      body: data.areas[key]?.statement || meta.description,
+      facts: [tn(elements, '{n} element', '{n} elements'), recordCount(id), inPatterns(patternsForNode(data, id).length)],
       links: [],
     };
   }
   const node = data.nodes[id];
   if (!node) return null;
-  const ev = evidenceForNode(data, id);
-  const kind = node.category ? CATEGORY_META[node.category].label : node.domain ? DOMAIN_META[node.domain].label : t('Node');
-  const color = node.category ? CATEGORY_META[node.category].color : node.domain ? DOMAIN_META[node.domain].color : '#aab2bc';
-  const facts = [records(ev.entries.length + ev.decisions.length)];
+  const facts = [recordCount(id)];
   const patternCount = patternsForNode(data, id).length;
   if (patternCount) facts.push(tn(patternCount, 'in {n} pattern', 'in {n} patterns'));
-  if (node.origin === 'inferred')
-    facts.push(node.confidence !== undefined ? t('inferred ~{pct}', { pct: `${Math.round(node.confidence * 100)}%` }) : t('inferred'));
-  return { kind: node.origin === 'inferred' ? `${kind} · ${t('inferred')}` : kind, color, title: node.label, body: node.summary, facts, links: links() };
+  const loops = loopsThrough(data, id).length;
+  if (loops) facts.push(tn(loops, 'in {n} loop', 'in {n} loops'));
+  if (node.origin === 'inferred') facts.push(t('proposed by the analysis'));
+  const into = claimsInto(data, id).length;
+  const out = claimsOutOf(data, id).length;
+  const links: string[] = [];
+  if (into) links.push(tn(into, '{n} claim acts on it', '{n} claims act on it'));
+  if (out) links.push(tn(out, 'it acts on {n}', 'it acts on {n}'));
+  const kind = `${KIND_META[node.kind].label} · ${AREA_META[node.area].label}${node.area === 'self' ? '' : ` · ${LAYER_META[layerOf(node.kind)].short}`}`;
+  return {
+    kind: node.concern ? `${kind} · ${t('concern')}` : kind,
+    color: AREA_META[node.area].color,
+    title: node.label,
+    body: node.summary,
+    facts,
+    links,
+  };
 }
 
 /**
@@ -145,8 +131,8 @@ export function NodeProbe({ id, occludedRight, hint }: { id: ID; occludedRight: 
         {info.links.length > 0 && (
           <div className="num mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 text-[10.5px]">
             {info.links.map((l) => (
-              <span key={l.relation} style={{ color: RELATION_META[l.relation].color }}>
-                {RELATION_META[l.relation].verb} {l.count}
+              <span key={l} className="text-ink-2">
+                {l}
               </span>
             ))}
           </div>

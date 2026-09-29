@@ -8,51 +8,70 @@ import { t } from '../../i18n';
 /** What each page is for and how to use it, in a few plain sentences. */
 const PAGE_HELP: Record<string, () => ReactNode[]> = {
   orbit: () => [
-    <>{t('Each large circle is an area of your life (career, finance, habits…); the small dots are the things in it.')}</>,
-    <>{t('Click anything to open its details on the right. Hover for a quick look.')}</>,
-    <>{t('Drag to rearrange. To connect two things, drag from the small dot on a circle’s edge onto another.')}</>,
     <>
       {t(
-        'Scroll or pinch to zoom; arrow keys hop between connected items. The View menu has focus, folding and reset; the Overview on the left says what to do next.',
+        'You are at the centre. Each sector is an area of your life; the rings, from you outward, hold what you value and believe, what you do, and what surrounds you.',
       )}
     </>,
+    <>{t('Each mark is one element; its icon says what kind of thing it is. A second ring around a mark means an outcome you want explained or changed.')}</>,
+    <>
+      {t(
+        'Lines are either declared links (true because you say so) or claims that one thing changes another (dashed until the record backs them). Drag from one element to another to add either.',
+      )}
+    </>,
+    <>{t('A dashed area marker means nothing was written about it lately: terra incognita. The Overview on the left lists where the map is thin.')}</>,
   ],
-  mind: () => [
-    <>{t('Cards are your beliefs, fears, questions, values and decisions. Lines show how they affect each other.')}</>,
-    <>{t('The six-sided cards are patterns found in your notes, linked to the thoughts they rest on.')}</>,
+  network: () => [
     <>
       {t(
-        'Click a card to see the notes behind it. The list on the left hides kinds you do not need; View can narrow the map to what is near the selected card.',
+        'Every line here is a claim: this raises, lowers, triggers, makes possible, limits or sustains that. Its style shows how well the record supports it.',
       )}
     </>,
-    <>{t('Dashed borders mean untested or suggested by the analysis, not by you.')}</>,
+    <>
+      {t(
+        'A claim climbs from proposed to plausible, supported and tested only with evidence: instances, a mechanism, contrast cases and deliberate tests. Counter-cases weaken it.',
+      )}
+    </>,
+    <>{t('Loops appear by themselves when claims close a circle. Pick one on the left to highlight it; its weakest link is where to look first.')}</>,
+    <>{t('Dashed cards and lines are proposals from the analysis. They stay proposals until you adopt them.')}</>,
+  ],
+  timeline: () => [
+    <>{t('What happened, when: events, actions, experiences, decisions and readings, each traced to the note it came from.')}</>,
+    <>
+      {t(
+        'The chart shows how many commitments were active each week and how your energy was, side by side. Whether one affects the other is a claim, checked elsewhere.',
+      )}
+    </>,
+    <>{t('Planned steps appear apart, as planned. Nothing imagined or expected is ever mixed into what happened.')}</>,
   ],
   patterns: () => [
-    <>{t('A pattern is something that keeps happening, backed by your own notes: green dots support it, orange dots count against it.')}</>,
-    <>{t('When the atlas finds a note that might belong to a pattern, it asks. Accept if it fits, reject if it does not.')}</>,
-    <>{t('If a pattern is simply wrong, mark it as inaccurate. Confidence always comes from the evidence, never a guess.')}</>,
+    <>{t('A pattern is something that keeps happening in your history: green dots are instances, orange dots counter-cases. Nothing is scored.')}</>,
+    <>{t('It is emerging until it shows in three separate weeks, recurring after that, and fading when counter-cases take over or it stops appearing.')}</>,
+    <>{t('Why it happens is a separate question: attach the claims that may explain it, and test those.')}</>,
   ],
   paths: () => [
-    <>{t('Each path is a possible direction, described the same way so you can compare them. They are never ranked.')}</>,
-    <>{t('Keep “You are here” up to date: your situation, constraints and strengths.')}</>,
+    <>{t('Each option is a possible direction, described the same way so you can compare them. They are never ranked.')}</>,
+    <>{t('“Relies on” lists the claims an option needs to hold, with how well each does: that is how solid the option is.')}</>,
     <>{t('When you have decided, press “Choose as direction”. My plan then turns it into concrete steps.')}</>,
   ],
   navigation: () => [
     <>{t('Your chosen direction, from the big goal down to this week’s steps.')}</>,
     <>{t('Tick targets and steps off as you go. The next open step also appears in “Do this next” on the Map.')}</>,
-    <>{t('Experiments test an idea for a few weeks. When one ends, record what happened; the result updates your patterns.')}</>,
+    <>{t('Tests change one thing on purpose and compare with a prediction you wrote first. The result becomes evidence on the claim it tests.')}</>,
   ],
   journal: () => [
-    <>{t('Every note you have written, newest first. Press Capture (or N) to add one.')}</>,
-    <>{t('Open a note to see what the atlas found in it and to accept or dismiss its suggestions.')}</>,
+    <>{t('Every note you have written, newest first. Press Capture (or N) to add one. Notes are the record; nothing rewrites them.')}</>,
+    <>{t('Open a note to see what the analysis read in it: happenings for the timeline, possible instances, and sentences where you explain a cause.')}</>,
   ],
   decisions: () => [
-    <>{t('Log a decision with the options you had and what you expect to happen.')}</>,
-    <>{t('Later, add what actually happened. Comparing the two is how you learn how you decide.')}</>,
+    <>{t('Log a decision with the options you saw and what you expected from each.')}</>,
+    <>{t('Later, add whether you carried it out and what actually happened. Judge the decision by what you knew then, separately from how it turned out.')}</>,
   ],
   questions: () => [
-    <>{t('Open questions you are exploring. Link them to notes and experiments as you find answers.')}</>,
-    <>{t('Mark a question resolved when you have an answer, and write down what it was.')}</>,
+    <>
+      {t('A why-question explains something against what you expected instead. A what-if follows a change forward. A question of value is yours to settle.')}
+    </>,
+    <>{t('Gather the claims that bear on it, then write a provisional answer and what would change it.')}</>,
   ],
 };
 

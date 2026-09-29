@@ -1,7 +1,6 @@
 import { BaseEdge, EdgeLabelRenderer, useInternalNode, type EdgeProps, type InternalNode } from '@xyflow/react';
 import { memo, useEffect, useRef } from 'react';
-import { RELATION_META } from '../../domain/constants';
-import type { RelationType } from '../../domain/types';
+import { EFFECT_META, EFFECTS, LINK_META, LINKS, STATUS_META } from '../../domain/constants';
 import { hash01, HOP_MS, pulseTravel, useMotion, useWave } from '../../graph/motion';
 import { useSpaceEdge } from '../../graph/space';
 import { CIRCLE_NODE_TYPES, type SemanticEdge, type SemanticEdgeData } from '../../graph/types';
@@ -36,33 +35,71 @@ function border(b: Box, tx: number, ty: number, pad = 3) {
   return { x: b.cx + dx * t, y: b.cy + dy * t };
 }
 
+interface EdgeStyle {
+  color: string;
+  width: number;
+  dash?: string;
+  opacity: number;
+  marker?: string;
+  /** Straight line: structure, not influence. */
+  straight: boolean;
+}
+
 /**
- * Floating, gently curved edge. Line style encodes the relationship
- * (solid, dashed, dotted; arrow or not), so meaning never relies on colour.
+ * How a line looks. Claims take their effect's colour and arrowhead, and their
+ * status sets the stroke: tentative claims are dashed and faint, tested ones
+ * solid and strong. Declared links keep their own quieter styles. Meaning
+ * never relies on colour alone: every effect also has its own marker or
+ * label, and every status its own dash.
  */
+function edgeStyle(data: SemanticEdgeData): EdgeStyle {
+  if (data.family === 'claim' && data.effect) {
+    const status = STATUS_META[data.status ?? 'proposed'];
+    const strong = data.status === 'tested' ? 1.7 : data.status === 'supported' ? 1.4 : 1.1;
+    return {
+      color: EFFECT_META[data.effect].color,
+      width: strong,
+      dash: data.suggested ? '2 5' : status.dash,
+      opacity: data.suggested ? 0.45 : status.opacity,
+      marker: `atlas-effect-${data.effect}`,
+      straight: false,
+    };
+  }
+  const meta = LINK_META[data.linkType ?? 'about'];
+  return {
+    color: meta.color,
+    width: 1,
+    dash: meta.dash,
+    opacity: data.linkType === 'part_of' ? 0.8 : 0.7,
+    marker: meta.arrow ? `atlas-link-${meta.key}` : undefined,
+    straight: data.linkType === 'part_of',
+  };
+}
+
+/** Floating, gently curved edge. */
 export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, target, data, selected }: EdgeProps<SemanticEdge>) {
   const s = useInternalNode(source);
   const t = useInternalNode(target);
   // In a 3D graph the engine moves the line and its overlay (pulses, label) with its endpoints.
   const space = useSpaceEdge(id, source, target);
   if (!s || !t || !data) return null;
+  const st = edgeStyle(data);
   const a = box(s);
   const b = box(t);
   const start = border(a, b.cx, b.cy);
-  const end = border(b, a.cx, a.cy, RELATION_META[data.relation].arrow ? 5 : 3);
+  const end = border(b, a.cx, a.cy, st.marker ? 5 : 3);
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const len = Math.hypot(dx, dy) || 1;
-  const bend = data.relation === 'part_of' ? 0 : Math.min(36, len * 0.09);
+  const bend = st.straight ? 0 : Math.min(36, len * 0.09);
   const cx = (start.x + end.x) / 2 - (dy / len) * bend;
   const cy = (start.y + end.y) / 2 + (dx / len) * bend;
   const path = `M ${start.x},${start.y} Q ${cx},${cy} ${end.x},${end.y}`;
   const lx = (start.x + 2 * cx + end.x) / 4;
   const ly = (start.y + 2 * cy + end.y) / 4;
 
-  const meta = RELATION_META[data.relation];
-  const emphasised = data.active || data.hover || selected;
-  const label = emphasised && data.relation !== 'part_of';
+  const emphasised = data.active || data.hover || selected || data.loop;
+  const label = emphasised && !st.straight;
   return (
     <>
       <g ref={space.svg}>
@@ -70,25 +107,34 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
           id={id}
           path={path}
           interactionWidth={14}
-          markerEnd={meta.arrow ? `url(#atlas-arrow-${data.relation})` : undefined}
+          markerEnd={st.marker ? `url(#${st.marker})` : undefined}
           style={{
-            stroke: meta.color,
-            strokeWidth: meta.width * (emphasised ? 1.35 : 1),
-            strokeDasharray: meta.dash,
-            strokeLinecap: data.relation === 'derived_from' ? 'round' : undefined,
-            opacity: data.relation === 'part_of' || emphasised ? 1 : data.secondary ? 0.2 : 0.6,
+            stroke: st.color,
+            strokeWidth: st.width * (emphasised ? 1.35 : 1),
+            strokeDasharray: st.dash,
+            strokeLinecap: 'round',
+            opacity: emphasised ? Math.max(0.85, st.opacity) : data.secondary ? st.opacity * 0.35 : st.opacity * 0.75,
           }}
         />
       </g>
       <EdgeLabelRenderer>
         <div ref={space.html} className="edge-space">
-          <EdgeFlow id={id} curve={{ x0: start.x, y0: start.y, cx, cy, x1: end.x, y1: end.y }} length={len} data={data} source={source} target={target} />
+          <EdgeFlow
+            id={id}
+            curve={{ x0: start.x, y0: start.y, cx, cy, x1: end.x, y1: end.y }}
+            length={len}
+            data={data}
+            color={st.color}
+            source={source}
+            target={target}
+          />
           {label && (
             <div
               className="nodrag nopan pointer-events-none absolute w-max rounded-[2px] border border-line bg-canvas/90 px-1.5 py-px font-mono text-[11px] tracking-wide text-ink-2"
               style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}
             >
-              {meta.verb}
+              {data.family === 'claim' && data.effect ? `${EFFECT_META[data.effect].glyph} ` : ''}
+              {data.label}
             </div>
           )}
         </div>
@@ -100,20 +146,16 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
 /* ------------------------------------------------------------ flow */
 
 /**
- * How influence travels along each relationship. Forward = source → target.
- * Dependencies and derivations flow from what is relied on / originated.
- * Conflicts send a pulse in from both ends that fades where they meet.
+ * How influence travels along a line. Claims carry it forward, from cause to
+ * effect; a tension sends a pulse in from both ends that fades where they
+ * meet. Structure (part of, aligns) carries nothing.
  */
-const FLOW: Partial<Record<RelationType, 'forward' | 'reverse' | 'meet'>> = {
-  causes: 'forward',
-  influences: 'forward',
-  supports: 'forward',
-  contradicts: 'forward',
-  derived_from: 'reverse',
-  depends_on: 'reverse',
-  conflicts: 'meet',
-  part_of: 'forward',
-};
+function flowOf(data: SemanticEdgeData): 'forward' | 'meet' | undefined {
+  if (data.family === 'claim') return 'forward';
+  if (data.linkType === 'conflicts') return 'meet';
+  if (data.linkType === 'aims_at' || data.linkType === 'motivates') return 'forward';
+  return undefined;
+}
 
 const PULSE_COLOR = '#e4ebf2';
 
@@ -189,6 +231,7 @@ function EdgeFlow({
   curve,
   length,
   data,
+  color: lineColor,
   source,
   target,
 }: {
@@ -196,6 +239,7 @@ function EdgeFlow({
   curve: Curve;
   length: number;
   data: SemanticEdgeData;
+  color: string;
   source: string;
   target: string;
 }) {
@@ -204,7 +248,7 @@ function EdgeFlow({
   // Only the links a signal actually travels along light up.
   const wave = useWave(living, (w) => (w.origin === source && w.reached.includes(target)) || (w.origin === target && w.reached.includes(source)));
   if (!living) return null;
-  const mode = FLOW[data.relation];
+  const mode = flowOf(data);
   if (!mode) return null;
 
   // Around a busy node, only a sample of connected edges pulses; hover always shows its own links.
@@ -212,13 +256,13 @@ function EdgeFlow({
   const phase = hash01(id);
   // Idle: only primary relationships carry a slow, occasional pulse. Structure and
   // cross-domain links stay quiet until the user engages with an endpoint.
-  const idle = !engaged && !data.dim && !data.secondary && data.relation !== 'part_of' && hash01(`${id}:idle`) < motion.idleShare;
+  const idle = !engaged && !data.dim && !data.secondary && !data.suggested && hash01(`${id}:idle`) < motion.idleShare;
   const seconds = pulseTravel(length);
   const cycle = seconds + (engaged ? 1.2 + phase * 0.8 : 7 + phase * 6);
   const delay = phase * cycle;
-  const color = engaged ? PULSE_COLOR : RELATION_META[data.relation].color;
+  const color = engaged ? PULSE_COLOR : lineColor;
   const peak = engaged ? 0.95 : 0.6;
-  const r = data.relation === 'part_of' ? 1.3 : 1.7;
+  const r = data.family === 'link' ? 1.3 : 1.7;
   const showWave = wave && !data.dim;
   if (!engaged && !idle && !showWave) return null;
 
@@ -231,7 +275,7 @@ function EdgeFlow({
             <Dot key={`b${engaged}`} curve={curve} cycle={cycle} seconds={seconds} delay={delay} half reverse color={color} r={r} peak={peak} />
           </>
         ) : (
-          <Dot key={`p${engaged}`} curve={curve} cycle={cycle} seconds={seconds} delay={delay} reverse={mode === 'reverse'} color={color} r={r} peak={peak} />
+          <Dot key={`p${engaged}`} curve={curve} cycle={cycle} seconds={seconds} delay={delay} color={color} r={r} peak={peak} />
         ))}
       {showWave && (
         <Dot
@@ -251,28 +295,35 @@ function EdgeFlow({
   );
 }
 
-/** Arrowheads, one per relation colour. Rendered once per canvas. */
+const markerProps = {
+  viewBox: '0 0 10 10',
+  refX: '8.5',
+  refY: '5',
+  markerWidth: '7',
+  markerHeight: '7',
+  markerUnits: 'userSpaceOnUse',
+  orient: 'auto-start-reverse',
+} as const;
+
+/** Line ends, one per effect and per directed link. Rendered once per canvas. "Limits" ends in a bar. */
 export function EdgeMarkers() {
   return (
     <svg className="absolute h-0 w-0" aria-hidden>
       <defs>
-        {Object.values(RELATION_META)
-          .filter((r) => r.arrow)
-          .map((r) => (
-            <marker
-              key={r.key}
-              id={`atlas-arrow-${r.key}`}
-              viewBox="0 0 10 10"
-              refX="8.5"
-              refY="5"
-              markerWidth="7"
-              markerHeight="7"
-              markerUnits="userSpaceOnUse"
-              orient="auto-start-reverse"
-            >
-              <path d="M 1 1.5 L 9 5 L 1 8.5" fill="none" stroke={r.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            </marker>
-          ))}
+        {EFFECTS.map((e) => (
+          <marker key={e.key} id={`atlas-effect-${e.key}`} {...markerProps}>
+            {e.key === 'constrains' ? (
+              <path d="M 8.5 1 L 8.5 9" fill="none" stroke={e.color} strokeWidth="1.8" strokeLinecap="round" />
+            ) : (
+              <path d="M 1 1.5 L 9 5 L 1 8.5" fill="none" stroke={e.color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            )}
+          </marker>
+        ))}
+        {LINKS.filter((l) => l.arrow).map((l) => (
+          <marker key={l.key} id={`atlas-link-${l.key}`} {...markerProps}>
+            <path d="M 1 1.5 L 9 5 L 1 8.5" fill="none" stroke={l.color} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+          </marker>
+        ))}
       </defs>
     </svg>
   );

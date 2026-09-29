@@ -1,7 +1,8 @@
 import { Check, Pencil, Plus, RefreshCw, X } from 'lucide-react';
 import { useState } from 'react';
-import { CAPTURE_KIND_LABEL, DOMAIN_META, ENERGY_LABELS, MOOD_LABELS } from '../../domain/constants';
-import { entryCode, patternCode, usagesOfSource } from '../../domain/selectors';
+import { claimCode, claimSentence } from '../../domain/claims';
+import { AREA_META, CAPTURE_KIND_LABEL, ENERGY_LABELS, MOOD_LABELS, OCCURRENCE_KIND_LABEL } from '../../domain/constants';
+import { entryCode, mapElements, patternCode, patternTitle, usagesOfSource } from '../../domain/selectors';
 import type { AnalysisSuggestion, ID } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
@@ -12,7 +13,10 @@ import { CAPTURE_ICONS } from '../icons';
 import { Button, IconButton } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Chip } from '../ui/primitives';
-import { Muted, NodeChip, PanelSection } from './parts';
+import { ClaimComposer } from './ClaimComposer';
+import { HistoryRow, Muted, NodeChip, PanelSection } from './parts';
+import { KnowledgeTag } from '../evidence/Status';
+import { historyItems } from '../../domain/history';
 import { t } from '../../i18n';
 import { Trans } from '../../i18n/Trans';
 
@@ -33,6 +37,7 @@ export function EntryView({ id }: { id: ID }) {
   const analysis = entry.analysis;
   const pending = analysis?.suggestions.filter((s) => s.state === 'pending') ?? [];
   const resolved = analysis?.suggestions.filter((s) => s.state !== 'pending') ?? [];
+  const happenings = historyItems(data).filter((h) => h.source?.kind === 'entry' && h.source.id === id);
 
   return (
     <div>
@@ -43,13 +48,14 @@ export function EntryView({ id }: { id: ID }) {
             {CAPTURE_KIND_LABEL[entry.kind]} · {entryCode(entry.seq)}
           </span>
           <span className="num ml-auto text-[11.5px] text-ink-3">{formatDate(entry.date, { year: true })}</span>
+          <KnowledgeTag kind="recorded" />
         </div>
         <h2 className="mt-2.5 display text-[21px] leading-[1.2] text-ink">{entry.title}</h2>
         <p className="mt-2 text-[13.5px] leading-relaxed whitespace-pre-wrap text-ink-2">{entry.content}</p>
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {entry.domains.map((d) => (
-            <Chip key={d} color={DOMAIN_META[d].color}>
-              {DOMAIN_META[d].label}
+          {entry.areas.map((d) => (
+            <Chip key={d} color={AREA_META[d].color}>
+              {AREA_META[d].label}
             </Chip>
           ))}
           {entry.tags.map((t) => (
@@ -106,21 +112,21 @@ export function EntryView({ id }: { id: ID }) {
       <PanelSection
         title={t('On the map')}
         count={entry.nodeIds.length}
-        aside={<IconButton icon={linking ? X : Plus} label={linking ? t('Cancel') : t('Link a node')} size="sm" onClick={() => setLinking(!linking)} />}
+        aside={<IconButton icon={linking ? X : Plus} label={linking ? t('Cancel') : t('Link an element')} size="sm" onClick={() => setLinking(!linking)} />}
       >
         {linking && (
           <select
             className="field mb-2"
             autoFocus
             value=""
-            aria-label={t('Link a node')}
+            aria-label={t('Link an element')}
             onChange={(e) => {
               if (e.target.value) updateEntry(id, { nodeIds: [...entry.nodeIds, e.target.value] });
               setLinking(false);
             }}
           >
-            <option value="">{t('Choose a node…')}</option>
-            {Object.values(data.nodes)
+            <option value="">{t('Choose an element…')}</option>
+            {mapElements(data)
               .filter((n) => !entry.nodeIds.includes(n.id))
               .sort((a, b) => a.label.localeCompare(b.label))
               .map((n) => (
@@ -148,33 +154,45 @@ export function EntryView({ id }: { id: ID }) {
             ))}
           </div>
         ) : (
-          <Muted>{t('Not linked to any node. Linked entries count as evidence for those nodes.')}</Muted>
+          <Muted>
+            {t('Not linked to anything on the map. Linking a note says what it is about; it can then be offered as evidence for claims about those things.')}
+          </Muted>
         )}
       </PanelSection>
 
-      <PanelSection title={t('Evidence in')} count={usages.length}>
+      {happenings.length > 0 && (
+        <PanelSection title={t('Read into the timeline')} count={happenings.length}>
+          <ul className="-mx-1.5">
+            {happenings.map((h) => (
+              <HistoryRow key={h.key} item={h} />
+            ))}
+          </ul>
+        </PanelSection>
+      )}
+
+      <PanelSection title={t('Cited as evidence')} count={usages.length}>
         {usages.length ? (
           <ul className="space-y-1.5">
-            {usages.map(({ pattern, evidence }) => (
-              <li key={pattern.id}>
+            {usages.map(({ pattern, claim, evidence }) => (
+              <li key={evidence.id}>
                 <button
                   type="button"
-                  onClick={() => open({ kind: 'pattern', id: pattern.id })}
+                  onClick={() => open(pattern ? { kind: 'pattern', id: pattern.id } : { kind: 'claim', id: claim!.id })}
                   className="flex w-full items-start gap-2 rounded-[2px] px-1 py-1 text-left hover:bg-ink/[0.035]"
                 >
                   <StanceMark stance={evidence.stance} />
                   <span className="min-w-0">
                     <span className="label block">
-                      {patternCode(pattern.code)} · {evidence.stance === 'supports' ? t('supports') : t('counters')}
+                      {pattern ? patternCode(pattern.code) : claimCode(claim!.code)} · {evidence.stance === 'supports' ? t('supports') : t('counters')}
                     </span>
-                    <span className="block text-[13px] text-ink-2">{pattern.chain.join(' → ')}</span>
+                    <span className="block text-[13px] text-ink-2">{pattern ? patternTitle(pattern) : claimSentence(data, claim!)}</span>
                   </span>
                 </button>
               </li>
             ))}
           </ul>
         ) : (
-          <Muted>{t('Not cited by any pattern.')}</Muted>
+          <Muted>{t('Not cited by any claim or pattern.')}</Muted>
         )}
       </PanelSection>
 
@@ -235,40 +253,69 @@ export function EntryView({ id }: { id: ID }) {
 function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: AnalysisSuggestion }) {
   const data = useAtlas((st) => st.data);
   const resolve = useAtlas((st) => st.resolveSuggestion);
+  const [composing, setComposing] = useState(false);
   let title: React.ReactNode;
   if (s.type === 'pattern_evidence') {
     const p = data.patterns[s.patternId];
     title = (
       <>
-        {s.stance === 'supports' ? t('May support') : t('May counter')}{' '}
-        <span className="text-ink">{p ? `${patternCode(p.code)}: ${p.chain.join(' → ')}` : t('a pattern')}</span>
+        {s.stance === 'supports' ? t('May be an instance of') : t('May be a counter-case to')}{' '}
+        <span className="text-ink">{p ? `${patternCode(p.code)}: ${patternTitle(p)}` : t('a pattern')}</span>
       </>
     );
   } else if (s.type === 'link_node') {
+    title = <Trans text={t('About {target}')} values={{ target: <span className="text-ink">{data.nodes[s.nodeId]?.label ?? t('an element')}</span> }} />;
+  } else if (s.type === 'area') {
+    title = <Trans text={t('Also touches {area}')} values={{ area: <span className="text-ink">{AREA_META[s.area].label}</span> }} />;
+  } else if (s.type === 'occurrence') {
     title = (
       <>
-        <Trans text={t('Link to {target}')} values={{ target: <span className="text-ink">{data.nodes[s.nodeId]?.label ?? t('a node')}</span> }} />
+        {t('Add to the timeline')}: <span className="text-ink">{s.label}</span>{' '}
+        <span className="font-mono text-[10.5px] tracking-wide text-ink-3 uppercase">{OCCURRENCE_KIND_LABEL[s.kind]}</span>
       </>
     );
   } else {
-    title = (
-      <>
-        <Trans text={t('Also touches {area}')} values={{ area: <span className="text-ink">{DOMAIN_META[s.domain].label}</span> }} />
-      </>
-    );
+    title = t('Your note explains a cause in its own words');
   }
+  const excerpt = s.type === 'pattern_evidence' || s.type === 'occurrence' || s.type === 'attribution' ? s.excerpt : undefined;
   return (
-    <li className="flex items-start gap-2 px-2.5 py-2">
-      {s.type === 'pattern_evidence' && <StanceMark stance={s.stance} />}
-      <div className="min-w-0 flex-1">
-        <div className="text-[12.5px] leading-snug text-ink-2">{title}</div>
-        {s.type === 'pattern_evidence' && <div className="mt-0.5 text-[12px] text-ink-2">“{s.excerpt}”</div>}
-        <div className="mt-0.5 text-[11.5px] text-ink-3">{s.reason}</div>
+    <li className="px-2.5 py-2">
+      <div className="flex items-start gap-2">
+        {s.type === 'pattern_evidence' && <StanceMark stance={s.stance} />}
+        <div className="min-w-0 flex-1">
+          <div className="text-[12.5px] leading-snug text-ink-2">{title}</div>
+          {excerpt && <div className="mt-0.5 text-[12px] text-ink-2">“{excerpt}”</div>}
+          <div className="mt-0.5 text-[11.5px] text-ink-3">{s.reason}</div>
+        </div>
+        {s.type === 'attribution' ? (
+          <div className="flex shrink-0 gap-0.5">
+            {!composing && (
+              <Button size="sm" variant="ghost" onClick={() => setComposing(true)}>
+                {t('State as a claim')}
+              </Button>
+            )}
+            <IconButton icon={X} label={t('Dismiss')} size="sm" onClick={() => resolve(entryId, s.id, false)} />
+          </div>
+        ) : (
+          <div className="flex shrink-0 gap-0.5">
+            <IconButton icon={Check} label={t('Accept')} size="sm" onClick={() => resolve(entryId, s.id, true)} />
+            <IconButton icon={X} label={t('Dismiss')} size="sm" onClick={() => resolve(entryId, s.id, false)} />
+          </div>
+        )}
       </div>
-      <div className="flex shrink-0 gap-0.5">
-        <IconButton icon={Check} label={t('Accept')} size="sm" onClick={() => resolve(entryId, s.id, true)} />
-        <IconButton icon={X} label={t('Dismiss')} size="sm" onClick={() => resolve(entryId, s.id, false)} />
-      </div>
+      {composing && s.type === 'attribution' && (
+        <div className="mt-2">
+          <ClaimComposer
+            hint={t('Your explanation, as a claim. It starts as proposed: one note saying so is your hypothesis, not yet evidence.')}
+            onCreated={(cid) => {
+              resolve(entryId, s.id, true);
+              setComposing(false);
+              useUI.getState().openEntity({ kind: 'claim', id: cid });
+            }}
+            onCancel={() => setComposing(false)}
+          />
+        </div>
+      )}
     </li>
   );
 }

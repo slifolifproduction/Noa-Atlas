@@ -5,15 +5,19 @@ import { useSpaceNode } from '../../../graph/space';
 import type { HubNode } from '../../../graph/types';
 import { useLabelScale } from '../../../hooks/useZoom';
 import { cn } from '../../../lib/cn';
-import { DomainGlyph } from '../DomainGlyph';
+import { AreaGlyph } from '../AreaGlyph';
 import { NodeHandles } from './Handles';
-import { tn } from '../../../i18n';
+import { t, tn } from '../../../i18n';
 
 /** Dial spacing in the hub's 0–100 viewBox: a mark every 10°, and the four cardinal marks. */
 const DIAL_STEP = (2 * Math.PI * 55.5) / 36;
 const DIAL_QUARTER = (2 * Math.PI * 57) / 4;
 
-/** A life-domain hub. The outer arc shows how much recent writing touched it. */
+/**
+ * The person at the centre, or an area's marker on the rim of its sector. The
+ * outer arc shows how much recent writing touched it. An area with nothing
+ * written about it lately is drawn as uncharted: terra incognita.
+ */
 export const HubNodeView = memo(function HubNodeView({ id, data, selected }: NodeProps<HubNode>) {
   const motion = useMotion();
   const living = motion.living && !motion.reduced;
@@ -60,8 +64,9 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
           r="49"
           fill="var(--color-surface)"
           stroke={data.color}
-          strokeOpacity={selected ? 0.95 : data.matched ? 0.9 : 0.42}
+          strokeOpacity={selected ? 0.95 : data.matched ? 0.9 : data.quiet ? 0.3 : 0.42}
           strokeWidth="1.25"
+          strokeDasharray={data.quiet ? '3 4' : undefined}
           vectorEffect="non-scaling-stroke"
         />
         {/* The dial: a degree scale around the hub, with the four cardinal marks longer. */}
@@ -95,7 +100,7 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
         )}
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <DomainGlyph domain={data.key} size={Math.round(size * (data.center ? 0.36 : 0.44))} color={data.color} strokeWidth={data.center ? 1.1 : 1.25} />
+        <AreaGlyph area={data.area} size={Math.round(size * (data.center ? 0.36 : 0.44))} color={data.color} strokeWidth={data.center ? 1.1 : 1.25} />
       </div>
       {data.patternCount > 0 && (
         <span
@@ -123,6 +128,11 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
         <div className="label text-ink!" style={{ letterSpacing: data.compact ? '0.08em' : '0.16em' }}>
           {data.label}
         </div>
+        {data.quiet && (
+          <div className="mt-0.5 font-mono text-[10.5px] tracking-[0.1em] text-ink-3 uppercase">
+            {data.itemCount === 0 ? t('Uncharted') : t('Quiet lately')}
+          </div>
+        )}
       </div>
       <NodeHandles />
     </div>

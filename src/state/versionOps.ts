@@ -5,6 +5,7 @@
  */
 import type { AtlasData } from '../domain/types';
 import { formatDate, formatTime, todayISO } from '../lib/dates';
+import { toCurrentShape } from '../persistence/migrate';
 import { exportPayload } from '../persistence/storage';
 import { getVersion, putVersion, type SavedLayouts, type VersionMeta, type VersionReason } from '../persistence/versions';
 import { useAtlas } from './atlasStore';
@@ -20,7 +21,7 @@ export function saveCurrentVersion(name: string, reason: VersionReason = 'manual
     name,
     reason,
     data: useAtlas.getState().data,
-    layouts: { orbit: { positions: layouts.orbit.positions }, mind: { positions: layouts.mind.positions } },
+    layouts: { orbit: { positions: layouts.orbit.positions }, network: { positions: layouts.network.positions } },
   });
 }
 
@@ -28,7 +29,7 @@ export function saveCurrentVersion(name: string, reason: VersionReason = 'manual
 function afterSwap(layouts?: SavedLayouts) {
   useUI.getState().closeInspector();
   useUI.setState({
-    layouts: { orbit: { positions: layouts?.orbit?.positions ?? {} }, mind: { positions: layouts?.mind?.positions ?? {} } },
+    layouts: { orbit: { positions: layouts?.orbit?.positions ?? {} }, network: { positions: layouts?.network?.positions ?? {} } },
   });
 }
 
@@ -37,7 +38,8 @@ export async function restoreVersion(id: string, opts: { backup?: boolean } = {}
   const version = await getVersion(id);
   if (!version) throw new Error(t('That version no longer exists.'));
   const backup = opts.backup === false ? undefined : await saveCurrentVersion(t('Before restoring “{name}”', { name: version.name }), 'restore');
-  useAtlas.getState().replaceData(structuredClone(version.data));
+  // Versions saved before the layered model are converted when restored.
+  useAtlas.getState().replaceData(toCurrentShape(structuredClone(version.data)));
   afterSwap(version.layouts);
   return { restored: version, backup };
 }

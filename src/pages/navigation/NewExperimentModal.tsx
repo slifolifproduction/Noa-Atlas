@@ -2,26 +2,35 @@ import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { FieldLabel } from '../../components/ui/primitives';
-import { pathCode, patternCode } from '../../domain/selectors';
-import type { Stance } from '../../domain/types';
+import { activeClaims, claimCode, claimSentence } from '../../domain/claims';
+import { pathCode, patternCode, patternTitle, sortedPatterns } from '../../domain/selectors';
+import type { ID } from '../../domain/types';
 import { lines } from '../../lib/text';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { t } from '../../i18n';
 
-export function NewExperimentModal({ onClose }: { onClose(): void }) {
+/**
+ * A test: change one thing on purpose, keep recording, and compare with a
+ * prediction written down before starting. Its result becomes intervention
+ * evidence on the claim it tests.
+ */
+export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { onClose(): void; claimId?: ID }) {
   const data = useAtlas((s) => s.data);
   const add = useAtlas((s) => s.addExperiment);
   const open = useUI((s) => s.openEntity);
+  const [claimId, setClaimId] = useState<ID>(initialClaim);
   const [title, setTitle] = useState('');
-  const [hypothesis, setHypothesis] = useState('');
+  const [hypothesis, setHypothesis] = useState(() => (initialClaim && data.claims[initialClaim] ? claimSentence(data, data.claims[initialClaim]!) : ''));
   const [design, setDesign] = useState('');
+  const [prediction, setPrediction] = useState('');
+  const [criteria, setCriteria] = useState('');
+  const [baseline, setBaseline] = useState('');
   const [days, setDays] = useState(30);
   const [measures, setMeasures] = useState('');
   const [patternId, setPatternId] = useState('');
-  const [ifSupported, setIfSupported] = useState<Stance>('supports');
   const [pathId, setPathId] = useState('');
-  const valid = title.trim() && hypothesis.trim();
+  const valid = title.trim() && hypothesis.trim() && prediction.trim();
 
   const save = () => {
     if (!valid) return;
@@ -31,8 +40,12 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
       design: design.trim(),
       durationDays: Math.max(1, days),
       status: 'proposed',
+      claimId: claimId || undefined,
+      prediction: prediction.trim(),
+      criteria: criteria.trim() || undefined,
+      baseline: baseline.trim() || undefined,
       measures: lines(measures).map((label, i) => ({ id: `m${i + 1}`, label })),
-      patternLinks: patternId ? [{ patternId, ifSupported }] : [],
+      patternIds: patternId ? [patternId] : [],
       pathIds: pathId ? [pathId] : [],
       questionIds: [],
     });
@@ -44,21 +57,46 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
     <Modal
       open
       onClose={onClose}
-      title={t('New experiment')}
-      description={t('A small, time-boxed test. Phrase the hypothesis so a result could contradict it.')}
-      width="max-w-[600px]"
+      title={t('New test')}
+      description={t('Change one thing on purpose, keep recording, and write down beforehand what should happen if the claim holds.')}
+      width="max-w-[620px]"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
             {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={save} disabled={!valid}>
-            {t('Add experiment')}
+            {t('Add test')}
           </Button>
         </>
       }
     >
       <div className="space-y-3.5">
+        <div>
+          <FieldLabel htmlFor="x-claim" hint="optional">
+            {t('The claim it tests')}
+          </FieldLabel>
+          <select
+            id="x-claim"
+            className="field"
+            value={claimId}
+            onChange={(e) => {
+              setClaimId(e.target.value);
+              const c = data.claims[e.target.value];
+              if (c && !hypothesis.trim()) setHypothesis(claimSentence(data, c));
+            }}
+          >
+            <option value="">{t('None')}</option>
+            {activeClaims(data)
+              .filter((c) => !c.retired)
+              .sort((a, b) => a.code - b.code)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {claimCode(c.code)} · {claimSentence(data, c)}
+                </option>
+              ))}
+          </select>
+        </div>
         <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
           <div>
             <FieldLabel htmlFor="x-title">{t('Title')}</FieldLabel>
@@ -74,13 +112,49 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
           <input id="x-hyp" className="field" value={hypothesis} onChange={(e) => setHypothesis(e.target.value)} placeholder={t('I may… / If I…, then…')} />
         </div>
         <div>
-          <FieldLabel htmlFor="x-design">{t('Experiment')}</FieldLabel>
+          <FieldLabel htmlFor="x-design">{t('What changes on purpose')}</FieldLabel>
           <textarea
             id="x-design"
-            className="field min-h-[64px]"
+            className="field min-h-[56px]"
             value={design}
             onChange={(e) => setDesign(e.target.value)}
-            placeholder={t('What you will do differently, and for how long')}
+            placeholder={t('One thing you will do differently, and for how long. Keep everything else as it is.')}
+          />
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <FieldLabel htmlFor="x-pred">{t('Prediction')}</FieldLabel>
+            <textarea
+              id="x-pred"
+              className="field min-h-[56px]"
+              value={prediction}
+              onChange={(e) => setPrediction(e.target.value)}
+              placeholder={t('If the claim holds, what will you see?')}
+            />
+          </div>
+          <div>
+            <FieldLabel htmlFor="x-crit" hint="optional">
+              {t('It did not work if')}
+            </FieldLabel>
+            <textarea
+              id="x-crit"
+              className="field min-h-[56px]"
+              value={criteria}
+              onChange={(e) => setCriteria(e.target.value)}
+              placeholder={t('The result that would count against the claim')}
+            />
+          </div>
+        </div>
+        <div>
+          <FieldLabel htmlFor="x-base" hint="optional">
+            {t('How things are now')}
+          </FieldLabel>
+          <input
+            id="x-base"
+            className="field"
+            value={baseline}
+            onChange={(e) => setBaseline(e.target.value)}
+            placeholder={t('The baseline to compare against')}
           />
         </div>
         <div>
@@ -89,7 +163,7 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
           </FieldLabel>
           <textarea
             id="x-measures"
-            className="field min-h-[72px]"
+            className="field min-h-[64px]"
             value={measures}
             onChange={(e) => setMeasures(e.target.value)}
             placeholder={t('Completion rate\nFocus hours per week\nStress (1–5)')}
@@ -98,33 +172,20 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <FieldLabel htmlFor="x-pattern" hint="optional">
-              {t('Tests pattern')}
+              {t('Also bears on pattern')}
             </FieldLabel>
             <select id="x-pattern" className="field" value={patternId} onChange={(e) => setPatternId(e.target.value)}>
               <option value="">{t('None')}</option>
-              {Object.values(data.patterns)
-                .filter((p) => p.status !== 'dismissed')
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {patternCode(p.code)} · {p.chain[0]}
-                  </option>
-                ))}
+              {sortedPatterns(data).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {patternCode(p.code)} · {patternTitle(p)}
+                </option>
+              ))}
             </select>
-            {patternId && (
-              <select
-                className="field mt-1.5"
-                value={ifSupported}
-                onChange={(e) => setIfSupported(e.target.value as Stance)}
-                aria-label={t('If the hypothesis holds')}
-              >
-                <option value="supports">{t('A supported hypothesis supports the pattern')}</option>
-                <option value="counters">{t('A supported hypothesis counters the pattern')}</option>
-              </select>
-            )}
           </div>
           <div>
             <FieldLabel htmlFor="x-path" hint="optional">
-              {t('Informs path')}
+              {t('Informs option')}
             </FieldLabel>
             <select id="x-path" className="field" value={pathId} onChange={(e) => setPathId(e.target.value)}>
               <option value="">{t('None')}</option>

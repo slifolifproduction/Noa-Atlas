@@ -7,8 +7,8 @@
  * again here, then checked for referential integrity: any id the model returns
  * that does not exist in the atlas is dropped rather than trusted.
  */
-import { computeConfidence } from '../domain/confidence';
-import { decisionCode, entryCode, patternCode } from '../domain/selectors';
+import { claimSentence, claimStatus } from '../domain/claims';
+import { decisionCode, entryCode, mapElements, patternCode, patternLive, patternTitle } from '../domain/selectors';
 import type { AnalysisSuggestion, AtlasData, Decision, EntryAnalysis, NavigationPlan } from '../domain/types';
 import { addDays, todayISO, weekStart } from '../lib/dates';
 import { createId } from '../lib/ids';
@@ -18,16 +18,14 @@ import { TASKS, type TaskName, type TaskOutput } from './schemas';
 import type { AnalysisProvider, PatternCandidate } from './types';
 import { t, getLang } from '../i18n';
 
-const clamp01 = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
-
-function nodeCatalogue(data: AtlasData) {
-  return Object.values(data.nodes).map((n) => ({ id: n.id, label: n.label, domain: n.domain, category: n.category }));
+function elementCatalogue(data: AtlasData) {
+  return mapElements(data).map((n) => ({ id: n.id, label: n.label, kind: n.kind, area: n.area }));
 }
 
 function patternCatalogue(data: AtlasData) {
   return Object.values(data.patterns)
-    .filter((p) => p.status !== 'dismissed')
-    .map((p) => ({ id: p.id, code: patternCode(p.code), title: p.chain.join(' → '), observation: p.observation, cues: p.cues }));
+    .filter(patternLive)
+    .map((p) => ({ id: p.id, code: patternCode(p.code), title: patternTitle(p), observation: p.observation, cues: p.cues }));
 }
 
 function decisionRecord(d: Decision) {
@@ -37,7 +35,7 @@ function decisionRecord(d: Decision) {
     date: d.date,
     title: d.title,
     context: d.context,
-    options: d.options.map((o) => ({ label: o.label, rationale: o.rationale, chosen: o.id === d.chosenOptionId })),
+    options: d.options.map((o) => ({ label: o.label, rationale: o.rationale, expected: o.expected ?? null, chosen: o.id === d.chosenOptionId })),
     optimizing_for: d.optimizingFor,
     expected: d.expectedOutcome,
     actual: d.actualOutcome ?? null,
@@ -85,7 +83,7 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
           content: entry.content,
           context: entry.context ?? null,
         },
-        nodes: nodeCatalogue(data),
+        elements: elementCatalogue(data),
         patterns: patternCatalogue(data),
       });
       const suggestions: AnalysisSuggestion[] = [];
@@ -111,18 +109,28 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
           excerpt: p.excerpt,
           matched: p.matched,
           reason: p.reason,
-          confidence: clamp01(p.confidence),
           state: already ? 'accepted' : 'pending',
         });
       }
-      for (const d of out.domains) {
+      for (const a of out.areas) {
+        suggestions.push({ id: createId('sug'), type: 'area', area: a.area, reason: a.reason, state: entry.areas.includes(a.area) ? 'accepted' : 'pending' });
+      }
+      for (const o of out.occurrences.slice(0, 3)) {
+        const instanceOf = o.instance_of && data.nodes[o.instance_of]?.kind === 'behaviour' ? o.instance_of : undefined;
         suggestions.push({
           id: createId('sug'),
-          type: 'domain',
-          domain: d.domain,
-          reason: d.reason,
-          state: entry.domains.includes(d.domain) ? 'accepted' : 'pending',
+          type: 'occurrence',
+          kind: o.kind,
+          label: o.label.slice(0, 90),
+          about: o.about.filter((id) => data.nodes[id]),
+          instanceOf,
+          excerpt: o.excerpt,
+          reason: t('Reported in this note.'),
+          state: 'pending',
         });
+      }
+      for (const a of out.attributions.slice(0, 2)) {
+        suggestions.push({ id: createId('sug'), type: 'attribution', excerpt: a.excerpt, reason: a.reason, state: 'pending' });
       }
       return {
         generatedAt: new Date().toISOString(),
@@ -146,7 +154,7 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
             signature: c.signature,
             kind: 'decision' as const,
             title: c.title,
-            chain: c.chain.slice(0, 4),
+            steps: c.steps.slice(0, 4),
             statement: c.statement,
             observation: c.observation,
             triggers: c.triggers,
@@ -154,24 +162,23 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
             consequences: c.consequences,
             supporting,
             counter,
-            interpretation: { statement: c.interpretation.statement, confidence: clamp01(c.interpretation.confidence), rationale: c.interpretation.rationale },
+            explanation: c.explanation || undefined,
             counterStatement: c.counter_statement || undefined,
             implication: c.implication || undefined,
-            domains: c.domains,
+            areas: c.areas,
             existingPatternId: bySig.get(c.signature),
           };
         })
         .filter((c) => c.supporting.length >= 3);
     },
 
-    async proposeExperiments(pattern, data) {
+    async proposeExperiments(claim, data) {
       const out = await call('experiment_proposals', {
-        pattern: {
-          ...patternCatalogue(data).find((p) => p.id === pattern.id),
-          triggers: pattern.triggers,
-          behaviors: pattern.behaviors,
-          consequences: pattern.consequences,
-          confidence: computeConfidence(pattern.evidence),
+        claim: {
+          statement: claimSentence(data, claim),
+          status: claimStatus(data, claim),
+          mechanism: claim.via ?? null,
+          evidence: claim.evidence.map((e) => ({ stance: e.stance, kind: e.kind ?? 'instance', excerpt: e.excerpt })),
         },
       });
       return out.experiments.map((x) => ({
@@ -179,25 +186,22 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
         hypothesis: x.hypothesis,
         design: x.design,
         durationDays: Math.max(7, Math.round(x.duration_days) || 30),
+        prediction: x.prediction,
+        criteria: x.criteria,
         measures: x.measures.map((m) => ({ label: m.label, baseline: m.baseline || undefined, target: m.target || undefined })),
       }));
     },
 
     async evaluateExperiment(experiment, result, data) {
-      // Confidence changes stay deterministic; Claude only contributes the narrative.
+      // Status changes stay deterministic; Claude only contributes the narrative.
       const proposal = evaluateExperimentLocally(experiment, result, data);
+      const claim = experiment.claimId ? data.claims[experiment.claimId] : undefined;
       const out = await call('experiment_review', {
-        experiment: { title: experiment.title, hypothesis: experiment.hypothesis, measures: experiment.measures },
+        experiment: { title: experiment.title, hypothesis: experiment.hypothesis, prediction: experiment.prediction ?? null, measures: experiment.measures },
         result,
-        patterns: experiment.patternLinks.map((l) => patternCatalogue(data).find((p) => p.id === l.patternId)).filter(Boolean),
+        claim: claim ? claimSentence(data, claim) : null,
       });
-      return {
-        ...proposal,
-        learningNote: out.learning_note || proposal.learningNote,
-        interpretationNotes: out.interpretation_notes
-          .filter((n) => data.patterns[n.pattern_id])
-          .map((n) => ({ patternId: n.pattern_id, statement: n.statement })),
-      };
+      return { ...proposal, learningNote: out.learning_note || proposal.learningNote };
     },
 
     async draftNavigationPlan(path, data): Promise<NavigationPlan> {

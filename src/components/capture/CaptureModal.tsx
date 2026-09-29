@@ -1,20 +1,21 @@
 import { ChevronDown, Plus, X } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AREAS,
   CAPTURE_KINDS,
-  CAPTURE_NODE_TARGET,
-  DOMAINS,
+  CAPTURE_TARGET,
   DRIVERS,
   EMOTION_OPTIONS,
   ENERGY_LABELS,
+  KIND_META,
   MOOD_LABELS,
   OUTCOME_RATING_LABEL,
 } from '../../domain/constants';
-import type { CaptureKind, DecisionOption, DomainKey, EntryKind, OutcomeRating } from '../../domain/types';
+import type { AreaKey, CaptureKind, DecisionOption, EntryKind, OutcomeRating } from '../../domain/types';
 import { formatDate, todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { createId } from '../../lib/ids';
-import { nodeTargetLabel, useAtlas } from '../../state/atlasStore';
+import { useAtlas } from '../../state/atlasStore';
 import { captureDecision, captureEntry } from '../../state/operations';
 import { toast, useUI } from '../../state/uiStore';
 import { CAPTURE_ICONS } from '../icons';
@@ -28,7 +29,7 @@ interface Draft {
   title: string;
   content: string;
   date: string;
-  domains: DomainKey[];
+  areas: AreaKey[];
   tags: string;
   energy?: number;
   mood?: number;
@@ -54,7 +55,7 @@ function emptyDraft(kind: CaptureKind): Draft {
     title: '',
     content: '',
     date: todayISO(),
-    domains: [],
+    areas: [],
     tags: '',
     emotions: [],
     setting: '',
@@ -102,7 +103,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           title: e.title,
           content: e.content,
           date: e.date,
-          domains: e.domains,
+          areas: e.areas,
           tags: e.tags.join(', '),
           energy: e.context?.energy,
           mood: e.context?.mood,
@@ -119,7 +120,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           title: d.title,
           content: d.context,
           date: d.date,
-          domains: d.domains,
+          areas: d.areas,
           tags: d.tags.join(', '),
           options: d.options.length ? d.options : [blankOption()],
           chosenOptionId: d.chosenOptionId,
@@ -135,11 +136,11 @@ function CaptureForm({ onClose }: { onClose(): void }) {
     return emptyDraft(request.kind);
   });
   const [showContext, setShowContext] = useState(Boolean(draft.energy !== undefined || draft.mood !== undefined || draft.emotions.length));
-  // Simple by default: one box. Everything else (type, title, date, domains, tags, context) is one click away.
+  // Simple by default: one box. Everything else (type, title, date, areas, tags, context) is one click away.
   const [details, setDetails] = useState(Boolean(editing) || (request.kind !== 'journal' && request.kind !== 'decision'));
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const isDecision = draft.kind === 'decision';
-  const target = CAPTURE_NODE_TARGET[draft.kind];
+  const target = CAPTURE_TARGET[draft.kind];
   const kindMeta = CAPTURE_KINDS.find((k) => k.key === draft.kind)!;
   // Notes do not need a title: the first line is used.
   const title = draft.title.trim() || (isDecision ? '' : firstLine(draft.content));
@@ -169,7 +170,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           chosenAction: draft.chosenAction.trim() || options.find((o) => o.id === draft.chosenOptionId)?.label || '',
           expectedOutcome: draft.expectedOutcome.trim(),
           optimizingFor: draft.optimizingFor,
-          domains: draft.domains,
+          areas: draft.areas,
           tags: parseTags(draft.tags),
         };
         if (editing) {
@@ -181,7 +182,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           });
           toast(t('Decision updated.'), { tone: 'success' });
         } else {
-          captureDecision({ ...payload, nodeIds: [] }, { addToMap: draft.addToMap });
+          captureDecision({ ...payload, nodeIds: [], claimIds: [] });
         }
       } else if (editing) {
         updateEntry(editing.id, {
@@ -189,7 +190,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           title,
           content: draft.content.trim(),
           date: draft.date,
-          domains: draft.domains,
+          areas: draft.areas,
           tags: parseTags(draft.tags),
           context: hasContext ? context : undefined,
         });
@@ -202,7 +203,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
             title,
             content: draft.content.trim(),
             date: draft.date,
-            domains: draft.domains,
+            areas: draft.areas,
             tags: parseTags(draft.tags),
             context: hasContext ? context : undefined,
             nodeIds: [],
@@ -231,7 +232,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
   const summary = [
     isDecision ? null : CAPTURE_KINDS.find((k) => k.key === draft.kind)?.label,
     draft.date === todayISO() ? t('today') : formatDate(draft.date),
-    draft.domains.length ? tn(draft.domains.length, '{n} area', '{n} areas') : null,
+    draft.areas.length ? tn(draft.areas.length, '{n} area', '{n} areas') : null,
     parseTags(draft.tags).length ? tn(parseTags(draft.tags).length, '{n} tag', '{n} tags') : null,
   ]
     .filter(Boolean)
@@ -389,13 +390,13 @@ function CaptureForm({ onClose }: { onClose(): void }) {
               <div>
                 <FieldLabel hint={t('the analysis suggests these too')}>{t('Areas of life')}</FieldLabel>
                 <div className="flex flex-wrap gap-1.5">
-                  {DOMAINS.map((d) => {
-                    const on = draft.domains.includes(d.key);
+                  {AREAS.map((d) => {
+                    const on = draft.areas.includes(d.key);
                     return (
                       <ToggleChip
                         key={d.key}
                         on={on}
-                        onClick={() => set('domains', on ? draft.domains.filter((x) => x !== d.key) : [...draft.domains, d.key])}
+                        onClick={() => set('areas', on ? draft.areas.filter((x) => x !== d.key) : [...draft.areas, d.key])}
                         className="py-1"
                       >
                         <span className="h-1.5 w-1.5 rounded-full" style={{ background: d.color, opacity: on ? 1 : 0.55 }} aria-hidden />
@@ -470,7 +471,9 @@ function CaptureForm({ onClose }: { onClose(): void }) {
                     onChange={(e) => set('addToMap', e.target.checked)}
                     className="accent-[var(--color-accent)]"
                   />
-                  {t('Also add to {target}', { target: nodeTargetLabel(target) })}
+                  {target.element
+                    ? t('Also add it to the map as a {kind}', { kind: KIND_META[target.element].label.toLowerCase() })
+                    : t('Also mark it on the timeline as a landmark')}
                 </label>
               )}
             </div>
@@ -555,6 +558,13 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
                   placeholder={t('Why it was worth considering')}
                   aria-label={t('Why option {n} was considered', { n: i + 1 })}
                 />
+                <input
+                  className="field text-[12.5px]"
+                  value={o.expected ?? ''}
+                  onChange={(e) => updateOption(o.id, { expected: e.target.value || undefined })}
+                  placeholder={t('What you expect it would bring')}
+                  aria-label={t('What option {n} was expected to bring', { n: i + 1 })}
+                />
               </div>
               <button
                 type="button"
@@ -588,7 +598,7 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
           />
         </div>
         <div>
-          <FieldLabel htmlFor="cap-expected">{t('Expected outcome')}</FieldLabel>
+          <FieldLabel htmlFor="cap-expected">{t('Expected overall')}</FieldLabel>
           <input
             id="cap-expected"
             className="field"
@@ -614,7 +624,7 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
       {editing && (
         <div className="space-y-3 rounded-[2px] border border-line p-3">
           <div>
-            <FieldLabel htmlFor="cap-actual">{t('Actual outcome')}</FieldLabel>
+            <FieldLabel htmlFor="cap-actual">{t('What actually happened')}</FieldLabel>
             <textarea id="cap-actual" className="field min-h-[56px]" value={draft.actualOutcome} onChange={(e) => set('actualOutcome', e.target.value)} />
           </div>
           <div className="flex flex-wrap gap-1.5">

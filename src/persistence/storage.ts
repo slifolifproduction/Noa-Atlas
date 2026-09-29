@@ -7,20 +7,22 @@
  */
 import type { AtlasData } from '../domain/types';
 import { t } from '../i18n';
+import { toCurrentShape } from './migrate';
 
 export { safeLocalStorage, STORAGE_KEYS } from './local';
 
 /** Bump when AtlasData changes shape, and add a step to `migrateData`. */
-export const DATA_VERSION = 1;
+export const DATA_VERSION = 2;
 
 /** Step-wise migrations from older persisted versions. */
 export function migrateData(persisted: unknown, fromVersion: number): unknown {
-  // v1 is the first persisted shape; future versions transform `persisted` here.
-  void fromVersion;
-  return persisted;
+  const state = persisted as { data?: unknown } | undefined;
+  if (!state?.data || fromVersion >= 2) return persisted;
+  // v1 → v2: the layered model (areas × layers, links vs claims, history).
+  return { ...state, data: toCurrentShape(state.data) };
 }
 
-const REQUIRED_RECORDS = ['domains', 'nodes', 'edges', 'entries', 'decisions', 'patterns', 'paths', 'experiments'] as const;
+const REQUIRED_RECORDS = ['nodes', 'edges', 'entries', 'decisions', 'patterns', 'paths', 'experiments'] as const;
 
 /** Validate an imported export file. Returns the data or a human-readable error. */
 export function parseImport(text: string): { data: AtlasData } | { error: string } {
@@ -38,7 +40,8 @@ export function parseImport(text: string): { data: AtlasData } | { error: string
   if (!Array.isArray(candidate.modelLog) || !candidate.counters || !candidate.currentState) {
     return { error: t('The file is missing the model log, counters or current state.') };
   }
-  return { data: candidate as unknown as AtlasData };
+  // Files exported before the layered model are converted on the way in.
+  return { data: toCurrentShape(candidate) };
 }
 
 export function exportPayload(data: AtlasData): string {

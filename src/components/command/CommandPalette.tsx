@@ -17,15 +17,17 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { navigate } from '../../app/router';
 import { openOn, showOnMap } from '../../app/showOnMap';
-import { CATEGORY_META, DOMAIN_META, DOMAINS, groupOf, hubId, VIEWS, type ViewKey } from '../../domain/constants';
-import { decisionCode, entryCode, experimentCode, pathCode, patternCode } from '../../domain/selectors';
+import { claimCode, claimSentence } from '../../domain/claims';
+import { AREA_META, AREAS, areaHubId, groupOf, KIND_META, OCCURRENCE_KIND_LABEL, VIEWS, YOU_ID, type ViewKey } from '../../domain/constants';
+import { findLoops } from '../../domain/loops';
+import { decisionCode, entryCode, experimentCode, pathCode, patternCode, patternTitle } from '../../domain/selectors';
 import type { AtlasData } from '../../domain/types';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { scanAllEntries } from '../../state/operations';
 import { saveCurrentVersion, versionStamp } from '../../state/versionOps';
 import { toast, useUI } from '../../state/uiStore';
-import { CAPTURE_ICONS, CATEGORY_ICONS, DOMAIN_ICONS, PatternIcon } from '../icons';
+import { AREA_ICONS, CAPTURE_ICONS, ClaimIcon, HISTORY_ICONS, KIND_ICONS, LoopIcon, PatternIcon } from '../icons';
 import { Kbd } from '../ui/primitives';
 import { t, tn } from '../../i18n';
 
@@ -103,34 +105,67 @@ function buildIndex(data: AtlasData): Item[] {
       run: () => ui.setStartFreshOpen(true),
     },
   ];
-  for (const d of DOMAINS) {
+  for (const d of AREAS) {
     items.push({
-      id: `dom:${d.key}`,
-      group: t('Domains'),
-      label: d.label,
-      detail: data.domains[d.key]?.statement,
-      icon: DOMAIN_ICONS[d.key],
+      id: `area:${d.key}`,
+      group: t('Areas of life'),
+      label: d.key === 'self' ? data.profile.name || t('You') : d.label,
+      detail: data.areas[d.key]?.statement,
+      icon: AREA_ICONS[d.key],
       color: d.color,
-      run: () => showOnMap('orbit', hubId(d.key), { kind: 'domain', id: d.key }),
+      run: () => showOnMap('orbit', d.key === 'self' ? YOU_ID : areaHubId(d.key), { kind: 'area', id: d.key }),
     });
   }
   for (const n of Object.values(data.nodes)) {
-    const inOrbit = Boolean(n.domain);
     items.push({
       id: `node:${n.id}`,
-      group: n.category === 'question' ? t('Questions') : t('Points'),
+      group: n.kind === 'question' ? t('Questions') : n.adopted ? t('On the map') : t('Suggested'),
       label: n.label,
-      detail: n.category ? CATEGORY_META[n.category].label : n.domain ? DOMAIN_META[n.domain].label : undefined,
-      icon: n.category ? CATEGORY_ICONS[n.category] : DOMAIN_ICONS[n.domain ?? 'identity'],
-      color: n.category ? CATEGORY_META[n.category].color : n.domain ? DOMAIN_META[n.domain].color : undefined,
-      run: () => showOnMap(inOrbit ? 'orbit' : 'mind', n.id, { kind: 'node', id: n.id }),
+      detail: `${KIND_META[n.kind].label} · ${AREA_META[n.area].label}`,
+      icon: KIND_ICONS[n.kind],
+      color: AREA_META[n.area].color,
+      run: () => (n.adopted ? showOnMap('orbit', n.id, { kind: 'node', id: n.id }) : ui.openEntity({ kind: 'node', id: n.id })),
+    });
+  }
+  for (const c of Object.values(data.claims)) {
+    if (c.state === 'set_aside') continue;
+    items.push({
+      id: `claim:${c.id}`,
+      group: t('Claims'),
+      label: claimSentence(data, c),
+      detail: claimCode(c.code),
+      icon: ClaimIcon,
+      run: () => openOn('network', { kind: 'claim', id: c.id }),
+    });
+  }
+  for (const l of findLoops(data)) {
+    items.push({
+      id: `loop:${l.id}`,
+      group: t('Loops'),
+      label: l.name ?? (l.type === 'reinforcing' ? t('A reinforcing loop') : t('A balancing loop')),
+      detail: l.nodeIds
+        .map((id) => data.nodes[id]?.label)
+        .filter(Boolean)
+        .join(' → '),
+      icon: LoopIcon,
+      run: () => openOn('network', { kind: 'loop', id: l.id }),
+    });
+  }
+  for (const o of Object.values(data.occurrences)) {
+    items.push({
+      id: `occ:${o.id}`,
+      group: t('Timeline'),
+      label: o.label,
+      detail: OCCURRENCE_KIND_LABEL[o.kind],
+      icon: HISTORY_ICONS[o.kind],
+      run: () => openOn('timeline', { kind: 'occurrence', id: o.id }),
     });
   }
   for (const p of Object.values(data.patterns)) {
     items.push({
       id: `pat:${p.id}`,
       group: t('Patterns'),
-      label: p.chain.join(' → '),
+      label: patternTitle(p),
       detail: patternCode(p.code),
       icon: PatternIcon,
       run: () => navigate('patterns', p.id),
@@ -139,7 +174,7 @@ function buildIndex(data: AtlasData): Item[] {
   for (const p of Object.values(data.paths)) {
     items.push({
       id: `path:${p.id}`,
-      group: t('Paths'),
+      group: t('Options'),
       label: p.title,
       detail: pathCode(p.code),
       icon: ArrowRight,
@@ -149,7 +184,7 @@ function buildIndex(data: AtlasData): Item[] {
   for (const x of Object.values(data.experiments)) {
     items.push({
       id: `exp:${x.id}`,
-      group: t('Experiments'),
+      group: t('Tests'),
       label: x.title,
       detail: `${experimentCode(x.code)} · ${x.hypothesis}`,
       icon: FlaskConical,
@@ -169,7 +204,7 @@ function buildIndex(data: AtlasData): Item[] {
   for (const e of Object.values(data.entries).sort((a, b) => b.date.localeCompare(a.date))) {
     items.push({
       id: `ent:${e.id}`,
-      group: t('Entries'),
+      group: t('Notes'),
       label: e.title,
       detail: `${entryCode(e.seq)} · ${e.content}`,
       icon: CAPTURE_ICONS[e.kind],

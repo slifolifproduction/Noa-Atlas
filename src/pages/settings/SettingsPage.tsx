@@ -4,7 +4,6 @@ import { checkProxyHealth } from '../../ai/health';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { FieldLabel, Kbd, Segmented } from '../../components/ui/primitives';
-import { confidenceExplainer } from '../../domain/confidence';
 import { modelCounts } from '../../domain/selectors';
 import { todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
@@ -248,7 +247,7 @@ export function SettingsPage() {
             variant="ghost"
             icon={RotateCcw}
             className="mt-3"
-            onClick={() => (resetLayout('orbit'), resetLayout('mind'), toast(t('Graph layouts reset.')))}
+            onClick={() => (resetLayout('orbit'), resetLayout('network'), toast(t('Graph layouts reset.')))}
           >
             {t('Reset graph layouts')}
           </Button>
@@ -256,10 +255,29 @@ export function SettingsPage() {
 
         <Block title={t('How the model reasons')}>
           <ul className="space-y-2.5 text-[13px] leading-relaxed text-ink-2">
-            <li>{t('Records become evidence only when you link them or accept a suggestion. Every pattern shows the exact passages it rests on.')}</li>
-            <li>{confidenceExplainer()}</li>
-            <li>{t('Interpretations are offered as possibilities with a separate model estimate. There are no personality types, scores or diagnoses.')}</li>
-            <li>{t('Paths are compared, never ranked. Experiments test claims, and their results update the patterns they were designed to test.')}</li>
+            <li>
+              {t(
+                'Four layers are kept apart: what you wrote (the record), what happened (history), what exists (the map), and what is claimed about how it works (understanding). Options and imagined outcomes are possibilities, and never count as evidence.',
+              )}
+            </li>
+            <li>
+              {t(
+                'Links you declare are true because you say so. Claims that one thing changes another are hypotheses: each starts as proposed and climbs to plausible, supported and tested only with instances, a mechanism, contrast cases and deliberate tests. Counter-cases weaken it.',
+              )}
+            </li>
+            <li>
+              {t('There are no percentages, scores, personality types or diagnoses. Your own view of a claim is kept beside its status and never changes it.')}
+            </li>
+            <li>
+              {t(
+                'The analysis only proposes. Nothing it suggests reaches the map until you adopt it, and inner states (what you felt, wanted or feared) are only ever yours to declare.',
+              )}
+            </li>
+            <li>
+              {t(
+                'The Atlas must always be able to show how it knows what it shows: every claim lists its evidence, and every piece of evidence points back to a note.',
+              )}
+            </li>
           </ul>
         </Block>
 

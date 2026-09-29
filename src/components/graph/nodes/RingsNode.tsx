@@ -7,7 +7,9 @@ import type { RingsNode } from '../../../graph/types';
 const ORBIT_PERIOD = [150, 220, 300];
 
 /**
- * Concentric context rings for Orbit: self → intent → work → conditions.
+ * Concentric rings for Orbit, one per layer: what I hold, what I do, what
+ * surrounds me. Faint spokes mark where one area of life ends and the next
+ * begins; each ring's name sits in the gap on one spoke.
  * Each ring is its own plane so the space engine can set it at its depth. Its
  * scale of degree marks stays still (cheap to composite); a small tracer body
  * travels the orbit instead (a circle turned on the compositor, then stretched
@@ -20,17 +22,45 @@ export const RingsNodeView = memo(function RingsNodeView({ data }: NodeProps<Rin
   return (
     <div className="relative" style={{ width: w, height: h }}>
       {data.radii.map((r, i) => (
-        <Ring key={r} index={i} r={r} w={w} h={h} stretch={data.stretch} label={data.labels[i]} />
+        <Ring
+          key={r}
+          index={i}
+          r={r}
+          w={w}
+          h={h}
+          stretch={data.stretch}
+          label={data.labels[i]}
+          labelAngle={data.spokes[0] ?? -64}
+          spokes={i === data.radii.length - 1 ? { angles: data.spokes, inner: data.spokeInner, outer: data.spokeRadius } : undefined}
+        />
       ))}
     </div>
   );
 });
 
-function Ring({ index, r, w, h, stretch, label }: { index: number; r: number; w: number; h: number; stretch: { x: number; y: number }; label?: string }) {
+const rad = (deg: number) => (deg * Math.PI) / 180;
+
+interface RingProps {
+  index: number;
+  r: number;
+  w: number;
+  h: number;
+  stretch: { x: number; y: number };
+  label?: string;
+  labelAngle: number;
+  spokes?: { angles: number[]; inner: number; outer: number };
+}
+
+function Ring({ index, r, w, h, stretch, label, labelAngle, spokes }: RingProps) {
   const ref = useSpaceRing(index);
   const cx = w / 2;
   const cy = h / 2;
-  const a = (-84 * Math.PI) / 180;
+  // The name follows the ring, just inside it, centred on a sector boundary.
+  const lr = r - 12;
+  const a0 = rad(labelAngle - 14);
+  const a1 = rad(labelAngle + 14);
+  const arc = `M ${r + lr * Math.cos(a0)} ${r + lr * Math.sin(a0)} A ${lr} ${lr} 0 0 1 ${r + lr * Math.cos(a1)} ${r + lr * Math.sin(a1)}`;
+  const arcId = `ring-label-${index}`;
   return (
     <div ref={ref} className="ring-plane pointer-events-none absolute top-0 left-0" style={{ width: w, height: h }} aria-hidden>
       <div className="absolute" style={{ left: cx - r, top: cy - r, width: r * 2, height: r * 2, transform: `scale(${stretch.x}, ${stretch.y})` }}>
@@ -60,20 +90,27 @@ function Ring({ index, r, w, h, stretch, label }: { index: number; r: number; w:
             strokeWidth="10"
             strokeDasharray={`1 ${(2 * Math.PI * (r - 5)) / 12 - 1}`}
           />
+          {spokes?.angles.map((deg) => (
+            <line
+              key={deg}
+              x1={r + spokes.inner * Math.cos(rad(deg))}
+              y1={r + spokes.inner * Math.sin(rad(deg))}
+              x2={r + spokes.outer * Math.cos(rad(deg))}
+              y2={r + spokes.outer * Math.sin(rad(deg))}
+              stroke="rgb(236 232 223 / 0.07)"
+              strokeWidth="1"
+              strokeDasharray="2 6"
+              vectorEffect="non-scaling-stroke"
+            />
+          ))}
+          <path id={arcId} d={arc} fill="none" stroke="none" />
+          <text fill="rgb(142 139 132)" fontFamily="var(--font-mono)" fontSize="13" letterSpacing="2.4">
+            <textPath href={`#${arcId}`} startOffset="50%" textAnchor="middle">
+              {label?.toUpperCase() ?? ''}
+            </textPath>
+          </text>
         </svg>
       </div>
-      <svg width={w} height={h} className="absolute top-0 left-0 overflow-visible">
-        <text
-          x={cx + r * stretch.x * Math.cos(a) + 10}
-          y={cy + r * stretch.y * Math.sin(a) - 8}
-          fill="rgb(142 139 132)"
-          fontFamily="var(--font-mono)"
-          fontSize="14"
-          letterSpacing="2.4"
-        >
-          {`R${index + 1} — ${label?.toUpperCase() ?? ''}`}
-        </text>
-      </svg>
     </div>
   );
 }

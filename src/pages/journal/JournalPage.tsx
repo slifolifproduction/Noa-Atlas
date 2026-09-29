@@ -4,9 +4,10 @@ import { CAPTURE_ICONS, PLACE_ICONS } from '../../components/icons';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/primitives';
-import { CAPTURE_KINDS, DOMAIN_META, DOMAINS } from '../../domain/constants';
+import { AREA_META, AREAS, CAPTURE_KINDS } from '../../domain/constants';
+import { claimCode } from '../../domain/claims';
 import { patternCode, sortedEntries, usagesOfSource } from '../../domain/selectors';
-import type { DomainKey, EntryKind } from '../../domain/types';
+import type { AreaKey, EntryKind } from '../../domain/types';
 import { formatDate, formatMonth } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
@@ -22,7 +23,7 @@ export function JournalPage() {
   const top = useUI((s) => s.inspector[s.inspector.length - 1]);
   const [query, setQuery] = useState('');
   const [kind, setKind] = useState<EntryKind | 'all'>('all');
-  const [domain, setDomain] = useState<DomainKey | 'all'>('all');
+  const [domain, setDomain] = useState<AreaKey | 'all'>('all');
   const [review, setReview] = useState(false);
 
   const all = sortedEntries(data);
@@ -31,7 +32,7 @@ export function JournalPage() {
     return all.filter(
       (e) =>
         (kind === 'all' || e.kind === kind) &&
-        (domain === 'all' || e.domains.includes(domain)) &&
+        (domain === 'all' || e.areas.includes(domain)) &&
         (!review || e.analysis?.suggestions.some((s) => s.state === 'pending')) &&
         (!q || `${e.title} ${e.content} ${e.tags.join(' ')}`.toLowerCase().includes(q)),
     );
@@ -50,7 +51,9 @@ export function JournalPage() {
       <PageHeader
         view="journal"
         help="journal"
-        description={t('Everything you have written. A note becomes evidence once you connect it to something or accept one of its suggestions.')}
+        description={t(
+          'Everything you have written: the record the rest of the Atlas is read from. It is never rewritten; the timeline, claims and patterns all point back here.',
+        )}
         actions={
           <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')} kbd="N">
             {t('Write a note')}
@@ -82,9 +85,9 @@ export function JournalPage() {
             </option>
           ))}
         </select>
-        <select className="field h-8 w-auto py-0" value={domain} onChange={(e) => setDomain(e.target.value as DomainKey | 'all')} aria-label={t('Domain')}>
-          <option value="all">{t('All domains')}</option>
-          {DOMAINS.map((d) => (
+        <select className="field h-8 w-auto py-0" value={domain} onChange={(e) => setDomain(e.target.value as AreaKey | 'all')} aria-label={t('Area of life')}>
+          <option value="all">{t('All areas')}</option>
+          {AREAS.map((d) => (
             <option key={d.key} value={d.key}>
               {d.label}
             </option>
@@ -155,10 +158,10 @@ export function JournalPage() {
                           </div>
                           <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-snug text-ink-2">{e.content}</p>
                           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">
-                            {e.domains.map((d) => (
+                            {e.areas.map((d) => (
                               <span key={d} className="flex items-center gap-1 text-[11px] text-ink-3">
-                                <span className="h-1.5 w-1.5 rounded-full" style={{ background: DOMAIN_META[d].color }} aria-hidden />
-                                {DOMAIN_META[d].label}
+                                <span className="h-1.5 w-1.5 rounded-full" style={{ background: AREA_META[d].color }} aria-hidden />
+                                {AREA_META[d].label}
                               </span>
                             ))}
                             {e.tags.slice(0, 3).map((tag) => (
@@ -169,17 +172,18 @@ export function JournalPage() {
                           </div>
                         </div>
                         <div className="col-span-2 flex flex-wrap items-start gap-1.5 sm:col-span-1 sm:max-w-[190px] sm:justify-end">
-                          {usages.map(({ pattern, evidence }) => (
+                          {usages.map(({ pattern, claim, evidence }) => (
                             <span
-                              key={pattern.id}
+                              key={evidence.id}
                               className="num rounded-[2px] border px-1.5 py-px text-[10.5px]"
                               style={{
                                 borderColor: evidence.stance === 'supports' ? 'rgb(116 198 154 / 0.35)' : 'rgb(232 162 92 / 0.4)',
                                 color: evidence.stance === 'supports' ? 'var(--color-support)' : 'var(--color-counter)',
                               }}
-                              title={`${evidence.stance === 'supports' ? t('Supports') : t('Counters')} ${patternCode(pattern.code)}`}
+                              title={`${evidence.stance === 'supports' ? t('Supports') : t('Counters')} ${pattern ? patternCode(pattern.code) : claimCode(claim!.code)}`}
                             >
-                              {evidence.stance === 'supports' ? '+' : '−'} P{String(pattern.code).padStart(2, '0')}
+                              {evidence.stance === 'supports' ? '+' : '−'} {pattern ? 'P' : 'C'}
+                              {String(pattern ? pattern.code : claim!.code).padStart(2, '0')}
                             </span>
                           ))}
                           {pending > 0 && (

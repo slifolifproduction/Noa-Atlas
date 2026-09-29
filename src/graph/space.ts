@@ -27,8 +27,8 @@
  */
 import type { ReactFlowState } from '@xyflow/react';
 import { createContext, useCallback, useContext, useRef } from 'react';
-import { DOMAIN_META } from '../domain/constants';
-import type { DomainKey, ID } from '../domain/types';
+import { YOU_ID } from '../domain/constants';
+import type { ID, LayerKey } from '../domain/types';
 import { hash01, HOP_MS, waveBus, type Wave } from './motion';
 import type { AtlasFlowNode, SemanticEdge } from './types';
 
@@ -38,14 +38,21 @@ interface FlowStore {
 }
 
 /**
- * Depth of each Orbit ring: self nearest, conditions farthest. Together with the
- * satellites (lifted toward the viewer) this gives three planes: the far rings as
- * background, the hubs as midground, their satellites as foreground; the star
- * field stays behind all of them.
+ * Depth of each Orbit ring: the person and their core nearest, what they hold
+ * next, what they do behind that, and what surrounds them farthest back, with
+ * the area markers on the rim behind everything. The star field stays behind
+ * all of them.
  */
 const RING_DEPTH = [170, 60, -90, -240];
-/** How far a hub's satellites float in front of it: the foreground plane. */
-const SATELLITE_LIFT = 90;
+const LAYER_DEPTH: Record<LayerKey | 'core', number> = { core: 130, hold: 60, do: -90, around: -240 };
+/** Elements float a little in front of their ring's plane. */
+const ELEMENT_LIFT = 24;
+const AREA_MARKER_DEPTH = -270;
+/**
+ * Each ring turns slowly about the centre, all its elements together, inner
+ * rings a little faster: amplitude in degrees, period in seconds.
+ */
+const LAYER_SPIN: Record<LayerKey | 'core', [number, number]> = { core: [3, 38], hold: [2.2, 52], do: [1.6, 68], around: [1.2, 86] };
 /** Focal length at the reference zoom (graph units). */
 const FOCAL = 1500;
 const REF_ZOOM = 0.7;
@@ -70,11 +77,11 @@ const K_Z = 22;
 const C_Z = 6.5;
 const K_LINK_Z = 5;
 
-type Kind = 'hub' | 'item' | 'mind' | 'pattern';
+type Kind = 'hub' | 'item' | 'element';
 
 interface Body {
   kind: Kind;
-  /** Satellites: the hub they swing on. */
+  /** Elements on Orbit: the centre they turn about. */
   hub?: ID;
   base: number;
   /** Time-varying depth: the slow fourth dimension. */
@@ -108,7 +115,7 @@ interface Body {
   /** Boot: held far away until this time. */
   release: number;
   firingUntil: number;
-  /** Hubs: how their satellite system turns (amplitude in radians, period in seconds, phase). */
+  /** Elements on Orbit: how their ring turns (amplitude in radians, period in seconds, phase). */
   spinAmp: number;
   spinPeriod: number;
   spinPhase: number;
@@ -211,7 +218,6 @@ export class SpaceEngine {
 
   private assignBodies(nodes: AtlasFlowNode[], boot: boolean) {
     const q = this.intensity;
-    const hubDepth = (key: DomainKey) => RING_DEPTH[DOMAIN_META[key].ring] * q;
     const now = performance.now();
     const seen = new Set<ID>();
     for (const n of nodes) {
@@ -220,30 +226,29 @@ export class SpaceEngine {
       const h = hash01(n.id);
       const h2 = hash01(`${n.id}:z`);
       const h3 = hash01(`${n.id}:w`);
-      let kind: Kind = 'mind';
+      let kind: Kind = 'element';
       let base = 0;
       let amp = 30;
       let wander = 11;
       let spin = 0;
+      let spinPeriod = 26 + h * 18;
+      let spinPhase = h2 * TAU;
       let hub: ID | undefined;
       if (n.type === 'hub') {
         kind = 'hub';
-        base = hubDepth(n.data.key);
-        amp = 22;
-        wander = 9;
-        // Identity's satellites sit either side of its label, so they turn less.
-        spin = n.data.center ? 12 : 20 + h3 * 10;
+        base = (n.data.center ? RING_DEPTH[0] : AREA_MARKER_DEPTH) * q;
+        amp = n.data.center ? 16 : 22;
+        wander = n.data.center ? 5 : 9;
       } else if (n.type === 'item') {
-        // Satellites float around their hub's depth and drift through it over time.
+        // Elements sit on their ring's plane and turn with it about the centre.
         kind = 'item';
-        hub = `domain:${n.data.domain}`;
-        base = hubDepth(n.data.domain) + (SATELLITE_LIFT + (h2 - 0.5) * 50) * q;
-        amp = 38;
-        wander = 4;
-      } else if (n.type === 'pattern') {
-        kind = 'pattern';
-        base = 60 * q;
-        wander = 8;
+        const ring = n.data.core ? 'core' : n.data.layer;
+        hub = YOU_ID;
+        base = (LAYER_DEPTH[ring] + ELEMENT_LIFT + (h2 - 0.5) * 30) * q;
+        amp = 26;
+        wander = 3;
+        [spin, spinPeriod] = LAYER_SPIN[ring];
+        spinPhase = hash01(`ring:${ring}`) * TAU;
       } else {
         base = (h2 - 0.55) * 110 * q;
       }
@@ -279,8 +284,8 @@ export class SpaceEngine {
         release: boot ? now + reveal : (prev?.release ?? 0),
         firingUntil: prev?.firingUntil ?? 0,
         spinAmp: (spin * Math.PI) / 180,
-        spinPeriod: 26 + h * 18,
-        spinPhase: h2 * TAU,
+        spinPeriod,
+        spinPhase,
       });
     }
     for (const id of [...this.bodies.keys()]) if (!seen.has(id)) this.bodies.delete(id);
@@ -641,16 +646,15 @@ export class SpaceEngine {
       // Organic wander: layered slow waves, never repeating quite the same path.
       let ox = b.wander * (0.6 * Math.sin(b.f1 * t + b.p1) + 0.4 * Math.sin(b.f2 * t + b.p2));
       let oy = b.wander * (0.6 * Math.cos(b.f3 * t + b.p3) + 0.4 * Math.sin(b.f1 * 0.7 * t + b.p2));
-      // Satellites turn with their hub's system (all together, like planets on one plane), with a
-      // little wobble of their own, and breathe in and out from the hub.
+      // Elements turn with their ring about the centre (all together, like planets on one
+      // plane), and breathe very slightly in and out.
       if (b.hub) {
         const c = centre(b.hub);
-        const hub = this.bodies.get(b.hub);
-        if (c && hub) {
+        if (c) {
           const rx = hx - c.x;
           const ry = hy - c.y;
-          const swing = q * (hub.spinAmp * Math.sin((t * TAU) / hub.spinPeriod + hub.spinPhase) + 0.05 * Math.sin(ang * 0.8));
-          const breathe = 1 + 0.06 * q * Math.sin(ang * 1.1 + b.p3);
+          const swing = q * b.spinAmp * Math.sin((t * TAU) / b.spinPeriod + b.spinPhase);
+          const breathe = 1 + 0.015 * q * Math.sin(ang * 1.1 + b.p3);
           const cs = Math.cos(swing);
           const sn = Math.sin(swing);
           ox += (rx * cs - ry * sn) * breathe - rx;

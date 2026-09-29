@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { resolveSource } from '../../domain/selectors';
-import type { Pattern } from '../../domain/types';
+import type { Evidence } from '../../domain/types';
 import { useElementWidth } from '../../hooks/useElementWidth';
 import { addDays, formatDate, formatMonth, parseISODate, useToday } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
@@ -11,18 +11,18 @@ const SUPPORT = 'var(--color-support)';
 const COUNTER = 'var(--color-counter)';
 
 /**
- * When each piece of evidence occurred (two lanes: for and against), and how
- * the derived confidence moved as it accumulated. Two small charts on one
- * shared time axis rather than a dual-axis chart.
+ * When each piece of evidence occurred, on two lanes: instances (for) and
+ * counter-cases (against). Nothing is scored: the spread over time is what
+ * tells an emerging regularity from a recurring or a fading one.
  */
-export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; history: { date: string; value: number; evidenceId: string }[] }) {
+export function EvidenceTimeline({ title, evidence }: { title: string; evidence: Evidence[] }) {
   const today = useToday();
   const data = useAtlas((s) => s.data);
   const open = useUI((s) => s.openEntity);
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const [hover, setHover] = useState<string | null>(null);
 
-  const points = pattern.evidence
+  const points = evidence
     .map((e) => ({ e, src: resolveSource(data, e.source) }))
     .filter((p) => p.src.date)
     .sort((a, b) => a.src.date!.localeCompare(b.src.date!));
@@ -36,13 +36,10 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
   const padR = 12;
   const x = (d: string) => padL + ((parseISODate(d).getTime() - t0) / (t1 - t0)) * (width - padL - padR);
 
-  const confTop = 8;
-  const confH = 56;
-  const laneSup = confTop + confH + 26;
+  const laneSup = 14;
   const laneCnt = laneSup + 26;
   const axisY = laneCnt + 20;
   const height = axisY + 18;
-  const yConf = (v: number) => confTop + (1 - v) * confH;
 
   const months: string[] = [];
   const cursor = parseISODate(start);
@@ -53,33 +50,11 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
   }
   const step = Math.ceil(months.length / Math.max(2, Math.floor((width - padL) / 70)));
 
-  const line = history.map((h, i) => `${i === 0 ? 'M' : 'L'} ${x(h.date).toFixed(1)} ${yConf(h.value).toFixed(1)}`).join(' ');
   const hovered = points.find((p) => p.e.id === hover);
-  const last = history[history.length - 1];
 
   return (
     <div ref={ref} className="relative">
-      <svg
-        width={width}
-        height={height}
-        role="img"
-        aria-label={t('Evidence timeline for {title}: {n} pieces of evidence', { title: pattern.title, n: points.length })}
-      >
-        {/* confidence band */}
-        <line x1={padL} x2={width - padR} y1={yConf(0.5)} y2={yConf(0.5)} stroke="rgb(236 232 223 / 0.12)" strokeDasharray="3 4" />
-        <text x={padL - 6} y={yConf(0.5) + 3} textAnchor="end" className="fill-ink-3 font-mono text-[10.5px]">
-          50%
-        </text>
-        <text x={padL - 6} y={yConf(1) + 7} textAnchor="end" className="fill-ink-3 font-mono text-[10.5px]">
-          100%
-        </text>
-        {history.length > 0 && (
-          <>
-            <path d={`${line} L ${x(end)} ${yConf(last.value)}`} fill="none" stroke="var(--color-ink-2)" strokeWidth="2" strokeLinejoin="round" />
-            <circle cx={x(end)} cy={yConf(last.value)} r="3" fill="var(--color-ink)" />
-          </>
-        )}
-
+      <svg width={width} height={height} role="img" aria-label={t('Evidence timeline for {title}: {n} pieces of evidence', { title, n: points.length })}>
         {/* lanes */}
         <text x={0} y={laneSup + 3.5} className="fill-ink-3 font-mono text-[11px] tracking-wider">
           {t('FOR')}
@@ -92,7 +67,7 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
         {points.map(({ e, src }) => {
           const cx = x(src.date!);
           const cy = e.stance === 'supports' ? laneSup : laneCnt;
-          const r = e.weight > 1 ? 6 : 4.5;
+          const r = e.kind === 'intervention' ? 6 : 4.5;
           return (
             <g
               key={e.id}
@@ -134,7 +109,6 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
         >
           <div className="num text-[11px] text-ink-3">
             {hovered.src.code} · {formatDate(hovered.src.date)} · {hovered.e.stance === 'supports' ? t('supports') : t('counters')}
-            {hovered.e.weight > 1 ? ` · ×${hovered.e.weight}` : ''}
           </div>
           <div className="mt-0.5 text-[12.5px] leading-snug text-ink">“{hovered.e.excerpt}”</div>
         </div>

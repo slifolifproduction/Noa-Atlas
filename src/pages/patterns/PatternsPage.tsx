@@ -1,18 +1,17 @@
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Plus, ScanSearch, X } from 'lucide-react';
-import { ExperimentIcon, PatternIcon } from '../../components/icons';
+import { PatternIcon } from '../../components/icons';
 import { useMemo, useState } from 'react';
-import type { ExperimentDraft } from '../../ai/types';
 import { hrefFor, navigate } from '../../app/router';
-import { ConfidenceMeter, EstimateTag } from '../../components/evidence/Confidence';
+import { KnowledgeTag, RegularityTag } from '../../components/evidence/Status';
 import { EvidenceRow, StanceMark } from '../../components/evidence/EvidenceRow';
 import { EvidenceTimeline } from '../../components/evidence/EvidenceTimeline';
 import { SourceLink } from '../../components/evidence/SourceLink';
-import { NodeChip } from '../../components/inspector/parts';
+import { ClaimRow, NodeChip } from '../../components/inspector/parts';
+import { claimSentence, claimsTouching } from '../../domain/claims';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button, buttonClass, IconButton } from '../../components/ui/Button';
 import { EmptyState, Label, Section, Segmented, ToggleChip } from '../../components/ui/primitives';
-import { confidenceExplainer, pct } from '../../domain/confidence';
-import { EXPERIMENT_STATUS_LABEL, PATTERN_KIND_LABEL, PATTERN_STATUS_LABEL } from '../../domain/constants';
+import { EXPERIMENT_STATUS_LABEL, PATTERN_KIND_LABEL, STATUS_META } from '../../domain/constants';
 import {
   decisionCode,
   entryCode,
@@ -20,17 +19,18 @@ import {
   pathCode,
   patternCode,
   patternStats,
+  patternTitle,
   pendingSuggestions,
   resolveSource,
   sortedPatterns,
 } from '../../domain/selectors';
-import type { ID, Pattern, PatternStatus, PatternVerdict, SourceRef, Stance } from '../../domain/types';
+import type { ClaimStatus, ID, Pattern, PatternVerdict, SourceRef, Stance } from '../../domain/types';
 import { useIsDesktop } from '../../hooks/useMediaQuery';
 import { formatDate } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { excerpt } from '../../lib/text';
 import { useAtlas } from '../../state/atlasStore';
-import { adoptExperimentDraft, proposeExperiments, scanAllEntries } from '../../state/operations';
+import { scanAllEntries } from '../../state/operations';
 import { toast, useUI } from '../../state/uiStore';
 import { DescribePatternModal } from './DescribePatternModal';
 import { t, tn } from '../../i18n';
@@ -40,7 +40,7 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
   const busyScan = useUI((s) => s.busy.scan);
   const isDesktop = useIsDesktop();
   const live = sortedPatterns(data);
-  const dismissed = Object.values(data.patterns).filter((p) => p.status === 'dismissed');
+  const dismissed = Object.values(data.patterns).filter((p) => p.setAside);
   const selected = (patternId && data.patterns[patternId]) || (isDesktop ? live[0] : undefined);
   const pending = pendingSuggestions(data).filter((p) => p.suggestion.type === 'pattern_evidence');
 
@@ -58,7 +58,9 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
       <PageHeader
         view="patterns"
         help="patterns"
-        description={t('Things that keep happening in your notes, each with the evidence for and against it. Observed, never diagnosed.')}
+        description={t(
+          'Things that keep happening in your history, with every instance and counter-case. A pattern describes; why it happens is a separate question, answered by claims.',
+        )}
         actions={
           <>
             <Button variant="ghost" icon={Plus} onClick={() => setDescribing(true)}>
@@ -116,7 +118,7 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
                 {dismissed.length > 0 && (
                   <>
                     <div className="label mt-5 mb-2">
-                      {t('Dismissed by you')} · {dismissed.length}
+                      {t('Set aside by you')} · {dismissed.length}
                     </div>
                     <ul className="space-y-1">
                       {dismissed.map((p) => (
@@ -155,27 +157,22 @@ function PatternListItem({ pattern: p, active, pendingCount }: { pattern: Patter
         className={cn(
           'block rounded-[2px] border px-3 py-2.5 transition-colors',
           active ? 'border-line-strong bg-raised' : 'border-transparent hover:border-line hover:bg-surface',
-          p.status === 'dismissed' && 'opacity-60',
+          p.setAside && 'opacity-60',
         )}
       >
         <div className="flex items-center gap-2">
           <span className="label">{patternCode(p.code)}</span>
-          {p.status !== 'active' && <span className="rounded-[2px] border border-line px-1 text-[11px] text-ink-3">{PATTERN_STATUS_LABEL[p.status]}</span>}
+          <RegularityTag regularity={stats.regularity} />
           {pendingCount > 0 && (
             <span className="ml-auto rounded-full bg-accent-dim px-1.5 text-[10.5px] text-accent" title={t('Evidence suggestions waiting for review')}>
               {t('{n} to review', { n: pendingCount })}
             </span>
           )}
         </div>
-        <div className="mt-1 text-[13px] leading-snug text-ink">{p.chain.join(' → ')}</div>
-        <div className="mt-2 flex items-center gap-2.5">
-          <div className="h-[3px] flex-1 rounded-full bg-ink/[0.07]">
-            <div className="h-full rounded-full bg-ink-2" style={{ width: pct(stats.confidence) }} />
-          </div>
-          <span className="num text-[11.5px] text-ink-2">{pct(stats.confidence)}</span>
-          <span className="num text-[11px] text-ink-3" title={t('{s} supporting, {c} counter', { s: stats.supportCount, c: stats.counterCount })}>
-            {stats.supportCount}/{stats.counterCount}
-          </span>
+        <div className="mt-1 text-[13px] leading-snug text-ink">{patternTitle(p)}</div>
+        <div className="num mt-1.5 text-[11.5px] text-ink-3">
+          {t('{n} in {w} separate weeks', { n: stats.instances, w: stats.episodes })}
+          {stats.counter > 0 && ` · ${t('{c} counter-cases', { c: stats.counter })}`}
         </div>
       </a>
     </li>
@@ -184,8 +181,8 @@ function PatternListItem({ pattern: p, active, pendingCount }: { pattern: Patter
 
 function PatternDetail({ pattern: p }: { pattern: Pattern }) {
   const data = useAtlas((s) => s.data);
-  const setStatus = useAtlas((s) => s.setPatternStatus);
-  const removeEvidence = useAtlas((s) => s.removeEvidence);
+  const setAside = useAtlas((s) => s.setPatternAside);
+  const removeEvidence = useAtlas((s) => s.removePatternEvidence);
   const stats = patternStats(data, p);
   const [filter, setFilter] = useState<'all' | Stance>('all');
   const evidence = [...p.evidence]
@@ -201,25 +198,18 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
       <header>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="label text-ink-2!">
-            {patternCode(p.code)} · {PATTERN_KIND_LABEL[p.kind]} · {t('Observed pattern')}
+            {patternCode(p.code)} · {PATTERN_KIND_LABEL[p.kind]}
           </span>
-          {p.status !== 'dismissed' && (
-            <span className="ml-auto">
-              <Segmented<PatternStatus>
-                label={t('Status')}
-                size="sm"
-                value={p.status}
-                onChange={(s) => setStatus(p.id, s)}
-                options={(['emerging', 'active', 'weakening'] as const).map((s) => ({ value: s, label: PATTERN_STATUS_LABEL[s] }))}
-              />
-            </span>
-          )}
+          <KnowledgeTag kind="observed" />
+          <span className="ml-auto">
+            <RegularityTag regularity={stats.regularity} />
+          </span>
         </div>
         <h2 id="pattern-title" className="display mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[26px] text-ink">
-          {p.chain.map((step, i) => (
-            <span key={step} className="flex items-center gap-3">
+          {p.steps.map((step, i) => (
+            <span key={step.label} className="flex items-center gap-3">
               {i > 0 && <ArrowRight size={18} strokeWidth={1.3} className="text-accent" aria-hidden />}
-              <span>{step}</span>
+              <span>{step.label}</span>
             </span>
           ))}
         </h2>
@@ -227,28 +217,24 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
           <span className="label mr-2">{t('Observation')}</span>
           {p.observation}
         </p>
-        {p.status === 'dismissed' && (
-          <p className="mt-3 rounded-[2px] border border-dashed border-line-strong px-3 py-2 text-[12.5px] text-ink-2">
-            {p.userAssessment?.note
-              ? t('You dismissed this pattern: “{note}” It no longer informs paths or the dashboard, and stays here for reference.', {
-                  note: p.userAssessment.note,
-                })
-              : t('You dismissed this pattern. It no longer informs paths or the dashboard, and stays here for reference.')}
+        {p.setAside && (
+          <p className="mt-3 flex flex-wrap items-center gap-2 rounded-[2px] border border-dashed border-line-strong px-3 py-2 text-[12.5px] text-ink-2">
+            {p.setAside.note
+              ? t('You set this pattern aside: “{note}” It no longer informs options or the overview, and stays here for reference.', { note: p.setAside.note })
+              : t('You set this pattern aside. It no longer informs options or the overview, and stays here for reference.')}
+            <Button size="sm" variant="ghost" onClick={() => setAside(p.id, false)}>
+              {t('Restore pattern')}
+            </Button>
           </p>
         )}
       </header>
 
       <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-[2px] border border-line bg-line sm:grid-cols-5">
         <Stat label={t('Frequency')} value={stats.frequency} />
-        <div className="bg-surface px-3.5 py-3" title={confidenceExplainer()}>
-          <dt className="label">{t('Confidence')}</dt>
-          <dd className="mt-1">
-            <ConfidenceMeter value={stats.confidence} size="sm" />
-          </dd>
-        </div>
-        <Stat label={t('Evidence')} value={t('{s} for · {c} against', { s: stats.supportCount, c: stats.counterCount })} />
-        <Stat label={t('First observed')} value={formatDate(stats.firstObserved, { year: true })} mono />
-        <Stat label={t('Last observed')} value={formatDate(stats.lastObserved, { year: true })} mono className="col-span-2 sm:col-span-1" />
+        <Stat label={t('Separate weeks')} value={String(stats.episodes)} mono />
+        <Stat label={t('Counter-cases')} value={String(stats.counter)} mono />
+        <Stat label={t('First seen')} value={formatDate(stats.firstObserved, { year: true })} mono />
+        <Stat label={t('Last seen')} value={formatDate(stats.lastObserved, { year: true })} mono className="col-span-2 sm:col-span-1" />
       </dl>
 
       <div className="mt-5 rounded-[2px] border border-line bg-surface px-4 pt-3.5 pb-2">
@@ -256,18 +242,14 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
           <Label>{t('Evidence over time')}</Label>
           <span className="flex items-center gap-3 text-[11.5px] text-ink-3">
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-support" aria-hidden /> {t('supports')}
+              <span className="h-2 w-2 rounded-full bg-support" aria-hidden /> {t('instance')}
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full border-[1.5px] border-counter" aria-hidden /> {t('counters')}
+              <span className="h-2 w-2 rounded-full border-[1.5px] border-counter" aria-hidden /> {t('counter-case')}
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-[2px] w-3 bg-ink-2" aria-hidden /> {t('confidence')}
-            </span>
-            <span>{t('larger dot = experiment (×2)')}</span>
           </span>
         </div>
-        <EvidenceTimeline pattern={p} history={stats.history} />
+        <EvidenceTimeline title={patternTitle(p)} evidence={p.evidence} />
       </div>
 
       <div className="mt-6 grid gap-px overflow-hidden rounded-[2px] border border-line bg-line md:grid-cols-[1fr_auto_1fr_auto_1fr]">
@@ -289,8 +271,8 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
               onChange={setFilter}
               options={[
                 { value: 'all', label: t('All') },
-                { value: 'supports', label: t('For {n}', { n: stats.supportCount }) },
-                { value: 'counters', label: t('Against {n}', { n: stats.counterCount }) },
+                { value: 'supports', label: t('Instances {n}', { n: stats.instances }) },
+                { value: 'counters', label: t('Counter-cases {n}', { n: stats.counter }) },
               ]}
             />
           }
@@ -304,48 +286,13 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
           <AddEvidence pattern={p} />
         </Section>
 
-        <Section title={t('Possible interpretations')}>
-          <p className="mb-3 text-[12px] text-ink-3">
-            {t('Readings of the pattern, not conclusions about you. Estimates come from the analysis layer; confidence above comes only from evidence.')}
+        {stats.counter === 0 && (
+          <p className="-mt-4 text-[12.5px] text-ink-3">
+            {t('No counter-cases recorded yet. That usually means none has been looked for, not that none exists.')}
           </p>
-          <ul className="space-y-3">
-            {p.interpretations.map((i) => (
-              <li key={i.id} className="rounded-[2px] border border-line px-3.5 py-3">
-                <div className="flex items-start justify-between gap-3">
-                  <p className="text-[14px] leading-snug text-ink">{i.statement}</p>
-                  <EstimateTag value={i.confidence} />
-                </div>
-                {i.rationale && <p className="mt-1.5 text-[12.5px] text-ink-2">{i.rationale}</p>}
-              </li>
-            ))}
-          </ul>
-        </Section>
+        )}
 
-        <Section title={t('Counter-evidence')}>
-          {p.counterEvidence.length ? (
-            <ul className="space-y-2.5">
-              {p.counterEvidence.map((c) => (
-                <li key={c.id} className="flex gap-2.5">
-                  <StanceMark stance="counters" />
-                  <div>
-                    <p className="text-[13.5px] text-ink">{c.statement}</p>
-                    <div className="mt-0.5 flex flex-wrap gap-2">
-                      {c.sources.map((s) => (
-                        <SourceLink key={`${s.kind}:${s.id}`} source={s} showTitle />
-                      ))}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-[13px] text-ink-3">
-              {t(
-                'No counter-evidence recorded yet. That usually means it has not been looked for, not that none exists. A counter-evidence experiment below can test it.',
-              )}
-            </p>
-          )}
-        </Section>
+        <Explanations pattern={p} />
 
         <Section title={t('Strategic implications')}>
           {p.implications.length ? (
@@ -375,7 +322,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
         <PatternExperiments pattern={p} />
 
         {p.nodeIds.length > 0 && (
-          <Section title={t('In the Mind graph')}>
+          <Section title={t('Involves')}>
             <div className="flex flex-wrap gap-1.5">
               {p.nodeIds.map((n) => (
                 <NodeChip key={n} id={n} />
@@ -394,9 +341,9 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
                   <span className="num text-ink-3">{formatDate(l.at, { year: true })}</span>
                   <span className="text-ink-2">{l.summary}</span>
                   {l.after !== undefined && (
-                    <span className="num text-ink-2">
-                      {l.before !== undefined ? `${pct(l.before)} → ` : ''}
-                      {pct(l.after)}
+                    <span className="text-[11.5px] text-ink-2">
+                      {l.before !== undefined ? `${statusWord(l.before)} → ` : ''}
+                      {statusWord(l.after)}
                     </span>
                   )}
                 </li>
@@ -440,6 +387,67 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
         )}
       </div>
     </article>
+  );
+}
+
+/** Log entries store statuses by key; show them in words. */
+const statusWord = (s: string) => STATUS_META[s as ClaimStatus]?.label ?? s;
+
+/**
+ * Why it may happen: the claims offered as explanations. A pattern only says
+ * what keeps happening; each explanation is a claim with its own evidence.
+ */
+function Explanations({ pattern: p }: { pattern: Pattern }) {
+  const data = useAtlas((s) => s.data);
+  const toggle = useAtlas((s) => s.toggleExplanation);
+  const [adding, setAdding] = useState(false);
+  const candidates = useMemo(() => {
+    const ids = new Set<ID>();
+    const involved = [...p.nodeIds, ...p.steps.flatMap((x) => (x.elementId ? [x.elementId] : []))];
+    for (const n of involved) for (const c of claimsTouching(data, n)) if (c.state === 'adopted' && !p.explainedBy.includes(c.id)) ids.add(c.id);
+    return [...ids];
+  }, [data, p]);
+  return (
+    <Section
+      title={t('Why it may happen')}
+      aside={
+        candidates.length > 0 && (
+          <Button size="sm" variant="ghost" icon={adding ? X : Plus} onClick={() => setAdding(!adding)}>
+            {adding ? t('Done') : t('Add an explanation')}
+          </Button>
+        )
+      }
+    >
+      <p className="mb-2 text-[12px] text-ink-3">
+        {t('Explanations are claims, each with its own evidence and status. More than one can be true; they can also compete.')}
+      </p>
+      {p.explainedBy.length ? (
+        <ul className="-mx-1.5">
+          {p.explainedBy.map((c) => (
+            <li key={c} className="flex items-start">
+              <ul className="min-w-0 flex-1">
+                <ClaimRow id={c} />
+              </ul>
+              <IconButton icon={X} size="sm" label={t('Remove')} onClick={() => toggle(p.id, c)} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-[13px] text-ink-3">{t('No explanation attached yet.')}</p>
+      )}
+      {adding && (
+        <ul className="mt-2 space-y-1">
+          {candidates.map((c) => (
+            <li key={c}>
+              <button type="button" className="flex items-start gap-1.5 text-left text-[12.5px] text-ink-2 hover:text-ink" onClick={() => toggle(p.id, c)}>
+                <Plus size={12} className="mt-[3px] shrink-0" aria-hidden />
+                {claimSentence(data, data.claims[c]!)}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Section>
   );
 }
 
@@ -514,7 +522,7 @@ function PendingEvidence({ patternId }: { patternId: ID }) {
 
 function AddEvidence({ pattern }: { pattern: Pattern }) {
   const data = useAtlas((s) => s.data);
-  const addEvidence = useAtlas((s) => s.addEvidence);
+  const addEvidence = useAtlas((s) => s.addPatternEvidence);
   const [open, setOpen] = useState(false);
   const [source, setSource] = useState('');
   const [stance, setStance] = useState<Stance>('supports');
@@ -576,8 +584,8 @@ function AddEvidence({ pattern }: { pattern: Pattern }) {
           value={stance}
           onChange={setStance}
           options={[
-            { value: 'supports', label: t('Supports') },
-            { value: 'counters', label: t('Counters') },
+            { value: 'supports', label: t('Instance') },
+            { value: 'counters', label: t('Counter-case') },
           ]}
         />
       </div>
@@ -604,24 +612,12 @@ function AddEvidence({ pattern }: { pattern: Pattern }) {
 function PatternExperiments({ pattern }: { pattern: Pattern }) {
   const data = useAtlas((s) => s.data);
   const open = useUI((s) => s.openEntity);
-  const busy = useUI((s) => s.busy[`propose:${pattern.id}`]);
-  const [drafts, setDrafts] = useState<ExperimentDraft[] | null>(null);
   const linked = useMemo(
-    () => Object.values(data.experiments).filter((x) => x.patternLinks.some((l) => l.patternId === pattern.id)),
-    [data.experiments, pattern.id],
+    () => Object.values(data.experiments).filter((x) => x.patternIds.includes(pattern.id) || (x.claimId && pattern.explainedBy.includes(x.claimId))),
+    [data.experiments, pattern.id, pattern.explainedBy],
   );
-
   return (
-    <Section
-      title={t('Experiments')}
-      aside={
-        pattern.status !== 'dismissed' && (
-          <Button size="sm" variant="ghost" icon={ExperimentIcon} loading={busy} onClick={async () => setDrafts(await proposeExperiments(pattern.id))}>
-            {t('Suggest experiments')}
-          </Button>
-        )
-      }
-    >
+    <Section title={t('Tests')}>
       {linked.length ? (
         <ul className="space-y-1.5">
           {linked.map((x) => (
@@ -639,33 +635,9 @@ function PatternExperiments({ pattern }: { pattern: Pattern }) {
           ))}
         </ul>
       ) : (
-        <p className="text-[13px] text-ink-3">{t('No experiment tests this pattern yet.')}</p>
-      )}
-      {drafts && (
-        <div className="mt-3 space-y-2">
-          {drafts.map((d) => (
-            <div key={d.title} className="rounded-[2px] border border-dashed border-line-strong px-3.5 py-3">
-              <div className="label">{t('Draft · {n} days', { n: d.durationDays })}</div>
-              <p className="mt-1 text-[13.5px] text-ink">{d.hypothesis}</p>
-              <p className="mt-1 text-[12.5px] text-ink-2">{d.design}</p>
-              <div className="mt-2 flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={() => {
-                    const id = adoptExperimentDraft(d, { patternId: pattern.id });
-                    setDrafts((ds) => ds?.filter((x) => x !== d) ?? null);
-                    open({ kind: 'experiment', id });
-                  }}
-                >
-                  {t('Add as proposed experiment')}
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setDrafts((ds) => ds?.filter((x) => x !== d) ?? null)}>
-                  {t('Discard')}
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
+        <p className="text-[13px] text-ink-3">
+          {t('Nothing tests this yet. Tests check the claims that explain a pattern: open one of them and choose “Design a test”.')}
+        </p>
       )}
     </Section>
   );
@@ -673,7 +645,7 @@ function PatternExperiments({ pattern }: { pattern: Pattern }) {
 
 function Assessment({ pattern }: { pattern: Pattern }) {
   const assess = useAtlas((s) => s.assessPattern);
-  const setStatus = useAtlas((s) => s.setPatternStatus);
+  const setAside = useAtlas((s) => s.setPatternAside);
   const [note, setNote] = useState(pattern.userAssessment?.note ?? '');
   const current = pattern.userAssessment?.verdict;
   const options: { value: PatternVerdict; label: string }[] = [
@@ -684,7 +656,7 @@ function Assessment({ pattern }: { pattern: Pattern }) {
   return (
     <Section title={t('Your assessment')}>
       <p className="mb-2.5 text-[13px] text-ink-2">
-        {t('Does this match your experience? Your answer is recorded in the model history; “not accurate” dismisses the pattern.')}
+        {t('Does this match your experience? Your view is recorded beside the evidence and never changes it. You can also set the pattern aside.')}
       </p>
       <div className="flex flex-wrap gap-1.5">
         {options.map((o) => (
@@ -692,9 +664,13 @@ function Assessment({ pattern }: { pattern: Pattern }) {
             {o.label}
           </ToggleChip>
         ))}
-        {pattern.status === 'dismissed' && (
-          <Button size="sm" variant="ghost" onClick={() => setStatus(pattern.id, 'emerging')}>
+        {pattern.setAside ? (
+          <Button size="sm" variant="ghost" onClick={() => setAside(pattern.id, false)}>
             {t('Restore pattern')}
+          </Button>
+        ) : (
+          <Button size="sm" variant="ghost" onClick={() => setAside(pattern.id, true, note.trim() || undefined)}>
+            {t('Set aside')}
           </Button>
         )}
       </div>

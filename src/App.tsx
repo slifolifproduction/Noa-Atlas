@@ -20,20 +20,23 @@ import { t } from './i18n';
 
 const DecisionsPage = lazy(() => import('./pages/decisions/DecisionsPage').then((m) => ({ default: m.DecisionsPage })));
 const JournalPage = lazy(() => import('./pages/journal/JournalPage').then((m) => ({ default: m.JournalPage })));
-const MindPage = lazy(() => import('./pages/mind/MindPage').then((m) => ({ default: m.MindPage })));
+const NetworkPage = lazy(() => import('./pages/network/NetworkPage').then((m) => ({ default: m.NetworkPage })));
+const TimelinePage = lazy(() => import('./pages/timeline/TimelinePage').then((m) => ({ default: m.TimelinePage })));
 const NavigationPage = lazy(() => import('./pages/navigation/NavigationPage').then((m) => ({ default: m.NavigationPage })));
 const PathsPage = lazy(() => import('./pages/paths/PathsPage').then((m) => ({ default: m.PathsPage })));
 const PatternsPage = lazy(() => import('./pages/patterns/PatternsPage').then((m) => ({ default: m.PatternsPage })));
 const QuestionsPage = lazy(() => import('./pages/questions/QuestionsPage').then((m) => ({ default: m.QuestionsPage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
-const GRAPH_ROUTES = new Set<RouteKey>(['orbit', 'mind']);
+const GRAPH_ROUTES = new Set<RouteKey>(['orbit', 'network']);
 
 function Page({ route }: { route: ReturnType<typeof useRoute> }): ReactNode {
   switch (route.key) {
     case 'orbit':
       return <OrbitPage />;
-    case 'mind':
-      return <MindPage />;
+    case 'network':
+      return <NetworkPage />;
+    case 'timeline':
+      return <TimelinePage />;
     case 'patterns':
       return <PatternsPage patternId={route.param} />;
     case 'paths':

@@ -1,19 +1,18 @@
-import { DOMAINS } from '../domain/constants';
-import type { AtlasData, Domain, DomainKey } from '../domain/types';
+import { AREA_KEYS } from '../domain/constants';
+import type { Area, AreaKey, AtlasData } from '../domain/types';
 import { todayISO } from '../lib/dates';
 
-/** A blank atlas: the ten domains exist, everything else is for the user to add. */
+/** A blank atlas: the life areas exist, everything else is for the person to add. */
 export function createEmptyData(name = ''): AtlasData {
   const now = new Date().toISOString();
-  const domains = Object.fromEntries(DOMAINS.map((d) => [d.key, { key: d.key, statement: '', summary: '', updatedAt: now } satisfies Domain])) as Record<
-    DomainKey,
-    Domain
-  >;
+  const areas = Object.fromEntries(AREA_KEYS.map((key) => [key, { key, statement: '', summary: '', updatedAt: now } satisfies Area])) as Record<AreaKey, Area>;
   return {
     profile: { name, since: todayISO() },
-    domains,
+    areas,
     nodes: {},
     edges: {},
+    claims: {},
+    occurrences: {},
     entries: {},
     decisions: {},
     patterns: {},
@@ -22,6 +21,7 @@ export function createEmptyData(name = ''): AtlasData {
     currentState: { position: '', summary: '', constraints: [], assets: [], updatedAt: now },
     navigation: null,
     modelLog: [],
-    counters: { entry: 0, decision: 0, pattern: 0, experiment: 0 },
+    counters: { entry: 0, decision: 0, pattern: 0, experiment: 0, claim: 0 },
+    loopNames: {},
   };
 }

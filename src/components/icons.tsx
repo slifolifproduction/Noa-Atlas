@@ -1,6 +1,6 @@
 import { forwardRef, type ReactNode } from 'react';
 import type { LucideIcon, LucideProps } from 'lucide-react';
-import type { CaptureKind, DomainKey, MindCategory } from '../domain/types';
+import type { AreaKey, CaptureKind, ElementKind } from '../domain/types';
 
 /**
  * The atlas's own marks, drawn like the symbols on an astronomical chart:
@@ -125,21 +125,35 @@ const Cycle = (name: string) =>
       <path d="M12.5 5.94h3L14 3.34" />
     </>,
   );
+// Health and energy: a pulse across a level line.
+const Pulse = mark(
+  'health',
+  <>
+    <path d="M3.5 12.5h4l2-5 3.5 10 2.2-5H20.5" />
+  </>,
+);
+// Growth: a stem putting out two leaves.
+const Sprout = mark(
+  'growth',
+  <>
+    <path d="M12 20.5V10" />
+    <path d="M12 13.5c0-3.3-2.4-5.5-6.5-5.5 0 3.3 2.4 5.5 6.5 5.5Z" />
+    <path d="M12 10.5c0-3.6 2.3-6 6.5-6 0 3.6-2.3 6-6.5 6Z" {...faint} />
+  </>,
+);
 
-export const DOMAIN_ICONS: Record<DomainKey, LucideIcon> = {
-  identity: Identity,
-  values: CutStone('values'),
-  goals: Target('goals'),
-  career: Career,
-  skills: Skills,
+export const AREA_ICONS: Record<AreaKey, LucideIcon> = {
+  self: Identity,
+  work: Career,
   projects: Frame('projects'),
-  finance: Finance,
-  relationships: Relationships,
-  environment: Environment,
-  habits: Cycle('habits'),
+  money: Finance,
+  people: Relationships,
+  health: Pulse,
+  place: Environment,
+  growth: Sprout,
 };
 
-/* ---------------------------------------------------------------- kinds of thought */
+/* ---------------------------------------------------------------- kinds of element */
 
 const Decision = mark(
   'decision',
@@ -156,8 +170,20 @@ const Experience = mark(
     <path d="M7 4.5h10l-2.4 3.3L17 11H7" />
   </>,
 );
+// A level on a dial: a state that is read over time.
+const Gauge = (name: string) =>
+  mark(
+    name,
+    <>
+      <path d="M4 16.5a8 8 0 0 1 16 0" />
+      <path d="M12 16.5 15.8 11" />
+      {dot(12, 16.5, 1.3)}
+    </>,
+  );
 
-export const CATEGORY_ICONS: Record<MindCategory, LucideIcon> = {
+/** One mark per kind of element, shared by the map, the panel and search. */
+export const KIND_ICONS: Record<ElementKind, LucideIcon> = {
+  value: CutStone('value'),
   // A working conviction: an anchor, reduced to its lines.
   belief: mark(
     'belief',
@@ -165,13 +191,6 @@ export const CATEGORY_ICONS: Record<MindCategory, LucideIcon> = {
       <circle cx="12" cy="5.5" r="2" />
       <path d="M12 7.5v12.5M8.5 10.5h7M5 13.5a7 7 0 0 0 14 0" />
     </>,
-  ),
-  // Untested: a circle not yet closed.
-  assumption: mark('assumption', <circle cx="12" cy="12" r="7.5" strokeDasharray="2.4 2.6" />),
-  // What pulls you: a flame.
-  motivation: mark(
-    'motivation',
-    <path d="M12 20.5c-3.4 0-6-2.4-6-5.7 0-3.3 2.6-5.1 3.6-9.3 2.1 1.5 3.3 3.5 3.3 5.6.9-.8 1.5-2 1.6-3.2 2 1.8 3.5 4.2 3.5 6.9 0 3.3-2.6 5.7-6 5.7Z" />,
   ),
   // What you guard against: a shield.
   fear: mark(
@@ -181,18 +200,7 @@ export const CATEGORY_ICONS: Record<MindCategory, LucideIcon> = {
       <path d="M12 8.5v4.5" {...faint} />
     </>,
   ),
-  value: CutStone('value'),
-  // A way of reasoning: a lattice of three ideas.
-  mental_model: mark(
-    'mental_model',
-    <>
-      <path d="M12 7.5 7.2 16M12 7.5l4.8 8.5M7.5 17.5h9" {...faint} />
-      <circle cx="12" cy="6" r="2.2" />
-      <circle cx="6.2" cy="17.5" r="2.2" />
-      <circle cx="17.8" cy="17.5" r="2.2" />
-    </>,
-  ),
-  decision: Decision,
+  goal: Target('goal'),
   // Still open: a question set in its circle.
   question: mark(
     'question',
@@ -202,9 +210,92 @@ export const CATEGORY_ICONS: Record<MindCategory, LucideIcon> = {
       {dot(12, 16.8, 1.1)}
     </>,
   ),
-  experience: Experience,
+  behaviour: Cycle('behaviour'),
+  commitment: Frame('commitment'),
+  skill: Skills,
+  // A role: a badge on its clip.
+  role: mark(
+    'role',
+    <>
+      <rect x="5" y="7.5" width="14" height="12" rx="1" />
+      <path d="M9.5 7.5V4.5h5v3" />
+      <circle cx="12" cy="12.5" r="2" />
+      <path d="M8.5 17h7" {...faint} />
+    </>,
+  ),
+  state: Gauge('state'),
+  person: mark(
+    'person',
+    <>
+      <circle cx="12" cy="8" r="3.5" />
+      <path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7" />
+    </>,
+  ),
+  // Something to draw on: a crate.
+  resource: mark(
+    'resource',
+    <>
+      <path d="M4 8 12 4l8 4v8l-8 4-8-4Z" />
+      <path d="M4 8l8 4 8-4M12 12v8" {...faint} />
+    </>,
+  ),
+  place: mark(
+    'place',
+    <>
+      <path d="M12 20.5s-6-5.6-6-10.5a6 6 0 0 1 12 0c0 4.9-6 10.5-6 10.5Z" />
+      <circle cx="12" cy="10" r="2" />
+    </>,
+  ),
 };
 
+/** An assumption: a circle not yet closed. */
+export const AssumptionIcon = mark('assumption', <circle cx="12" cy="12" r="7.5" strokeDasharray="2.4 2.6" />);
+
+/** A claim: one thing acting on another. */
+export const ClaimIcon = mark(
+  'claim',
+  <>
+    <circle cx="5.5" cy="12" r="2.2" />
+    <path d="M8 12h10.5" />
+    <path d="M15.5 8.8 18.8 12l-3.3 3.2" />
+  </>,
+);
+
+/** A loop: effects that come back around. */
+export const LoopIcon = mark(
+  'loop',
+  <>
+    <path d="M17.5 9.5A6.5 6.5 0 1 0 18 14" />
+    <path d="M18.5 5.8v4h-4" />
+    {dot(12, 12, 1.2)}
+  </>,
+);
+
+/** A happening on the timeline: a moment with its rays. */
+const EventMark = mark(
+  'event',
+  <>
+    <circle cx="12" cy="12" r="3" />
+    <path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3" {...faint} />
+  </>,
+);
+const ActionMark = mark(
+  'action',
+  <>
+    <path d="M4 12h14" />
+    <path d="M14 7.5 18.5 12 14 16.5" />
+    {dot(4.5, 12, 1.3)}
+  </>,
+);
+const StepMark = mark(
+  'step',
+  <>
+    <rect x="4.5" y="4.5" width="15" height="15" />
+    <path d="M8.5 12.2 11 14.7l4.5-5" />
+  </>,
+);
+
+/* ---------------------------------------------------------------- patterns and notes */
 /* ---------------------------------------------------------------- patterns and notes */
 
 /** A pattern: the hexagon it wears on the Mind map. */
@@ -267,6 +358,21 @@ export const CAPTURE_ICONS: Record<CaptureKind, LucideIcon> = {
   habit: Cycle('habit'),
 };
 
+/** Every kind of item on the timeline. */
+export const HISTORY_ICONS = {
+  event: EventMark,
+  action: ActionMark,
+  experience: Experience,
+  reading: Gauge('reading'),
+  decision: Decision,
+  record: Journal,
+  test: ExperimentIcon,
+  step: StepMark,
+} satisfies Record<string, LucideIcon>;
+
+export const DecisionIcon = Decision;
+export const JournalIcon = Journal;
+
 /* ---------------------------------------------------------------- the four places */
 
 export const PLACE_ICONS = {
@@ -279,8 +385,27 @@ export const PLACE_ICONS = {
       {dot(18.9, 8, 1.6)}
     </>,
   ),
-  notes: Journal,
-  patterns: PatternIcon,
+  // History: a line of time with moments on it.
+  history: mark(
+    'history',
+    <>
+      <path d="M3.5 12h17" />
+      {dot(7, 12, 1.6)}
+      <circle cx="12.5" cy="12" r="2" />
+      {dot(17.5, 12, 1.6)}
+      <path d="M7 8v-2M12.5 8V5M17.5 8v-2" {...faint} />
+    </>,
+  ),
+  // Understanding: three ideas and what connects them.
+  understanding: mark(
+    'understanding',
+    <>
+      <path d="M12 7.5 7.2 16M12 7.5l4.8 8.5M7.5 17.5h9" {...faint} />
+      <circle cx="12" cy="6" r="2.2" />
+      <circle cx="6.2" cy="17.5" r="2.2" />
+      <circle cx="17.8" cy="17.5" r="2.2" />
+    </>,
+  ),
   // Plan: a heading on a compass.
   plan: mark(
     'plan',
@@ -289,4 +414,6 @@ export const PLACE_ICONS = {
       <path d="M15.2 8.8 13.3 13.3 8.8 15.2l1.9-4.5Z" />
     </>,
   ),
+  notes: Journal,
+  patterns: PatternIcon,
 } satisfies Record<string, LucideIcon>;

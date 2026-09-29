@@ -12,7 +12,8 @@ import { ResultModal } from '../experiments/ResultModal';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Progress } from '../ui/primitives';
-import { NodeChip, PanelSection } from './parts';
+import { ClaimRow, NodeChip, PanelSection } from './parts';
+import { KnowledgeTag } from '../evidence/Status';
 import { t } from '../../i18n';
 
 export function ExperimentView({ id }: { id: ID }) {
@@ -36,6 +37,9 @@ export function ExperimentView({ id }: { id: ID }) {
           <span className="label">
             {experimentCode(x.code)} · {EXPERIMENT_STATUS_LABEL[x.status]}
           </span>
+          <span className="ml-auto">
+            <KnowledgeTag kind={x.status === 'proposed' ? 'imagined' : x.result ? 'tested' : 'recorded'} />
+          </span>
         </div>
         <h2 className="mt-2 display text-[21px] leading-[1.2] text-ink">{x.title}</h2>
         <div className="mt-3 space-y-2.5">
@@ -44,9 +48,27 @@ export function ExperimentView({ id }: { id: ID }) {
             <p className="mt-0.5 text-[13.5px] text-ink">{x.hypothesis}</p>
           </div>
           <div>
-            <div className="label">{t('Experiment')}</div>
+            <div className="label">{t('What changes on purpose')}</div>
             <p className="mt-0.5 text-[13px] text-ink-2">{x.design}</p>
           </div>
+          {x.prediction && (
+            <div>
+              <div className="label">{t('Prediction, written before starting')}</div>
+              <p className="mt-0.5 text-[13px] text-ink-2">{x.prediction}</p>
+            </div>
+          )}
+          {x.criteria && (
+            <div>
+              <div className="label">{t('It did not work if')}</div>
+              <p className="mt-0.5 text-[13px] text-ink-2">{x.criteria}</p>
+            </div>
+          )}
+          {x.baseline && (
+            <div>
+              <div className="label">{t('Before')}</div>
+              <p className="mt-0.5 text-[13px] text-ink-2">{x.baseline}</p>
+            </div>
+          )}
         </div>
         {x.status === 'running' && (
           <div className="mt-3.5">
@@ -122,21 +144,35 @@ export function ExperimentView({ id }: { id: ID }) {
               {x.result.learning}
             </p>
           )}
+          {x.result.sideEffects && (
+            <p className="mt-2 text-[13px] text-ink-2">
+              <span className="text-ink-3">{t('Also changed:')} </span>
+              {x.result.sideEffects}
+            </p>
+          )}
         </PanelSection>
       )}
 
-      {(x.patternLinks.length > 0 || x.pathIds.length > 0 || x.questionIds.length > 0) && (
-        <PanelSection title={t('Tests')}>
+      {x.claimId && (
+        <PanelSection title={t('The claim it tests')}>
+          <ul className="-mx-1.5">
+            <ClaimRow id={x.claimId} />
+          </ul>
+        </PanelSection>
+      )}
+
+      {(x.patternIds.length > 0 || x.pathIds.length > 0 || x.questionIds.length > 0) && (
+        <PanelSection title={t('Also bears on')}>
           <div className="flex flex-wrap gap-1.5">
-            {x.patternLinks.map((l) =>
-              data.patterns[l.patternId] ? (
+            {x.patternIds.map((pid) =>
+              data.patterns[pid] ? (
                 <button
-                  key={l.patternId}
+                  key={pid}
                   type="button"
-                  onClick={() => open({ kind: 'pattern', id: l.patternId })}
+                  onClick={() => open({ kind: 'pattern', id: pid })}
                   className="rounded-[2px] border border-line px-1.5 py-[3px] text-[12.5px] text-ink-2 hover:text-ink"
                 >
-                  {patternCode(data.patterns[l.patternId].code)}
+                  {patternCode(data.patterns[pid].code)}
                 </button>
               ) : null,
             )}

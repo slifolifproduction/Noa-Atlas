@@ -17,7 +17,7 @@ export const localProvider: AnalysisProvider = {
   label: LOCAL_PROVIDER_LABEL,
   analyzeEntry: (entry, data) => settle(analyzeEntryLocally(entry, data)),
   detectDecisionPatterns: (data) => settle(detectDecisionPatternsLocally(data)),
-  proposeExperiments: (pattern) => settle(proposeExperimentsLocally(pattern)),
+  proposeExperiments: (claim, data) => settle(proposeExperimentsLocally(claim, data)),
   evaluateExperiment: (experiment, result, data) => settle(evaluateExperimentLocally(experiment, result, data)),
   draftNavigationPlan: (path, data) => settle(draftNavigationPlanLocally(path, data)),
 };
