@@ -39,16 +39,15 @@ export const RING_LABELS: Record<Ring, string> = {
 };
 
 export const RING_RADII: Record<Ring, number> = { 0: 0, 1: 230, 2: 430, 3: 620 };
-/** Orbit rings are ellipses: wide on desktop, tall and compact on phones. */
+/** Orbit rings are true circles; phones use a smaller scale so the whole system fits the width. */
 export interface OrbitGeometry {
   x: number;
   y: number;
   /** Uniform scale applied to ring radii and satellite distance. */
   scale: number;
 }
-export const ORBIT_DESKTOP: OrbitGeometry = { x: 1.2, y: 0.9, scale: 1 };
-export const ORBIT_PORTRAIT: OrbitGeometry = { x: 0.75, y: 1.5, scale: 0.585 };
-export const RING_STRETCH = ORBIT_DESKTOP;
+export const ORBIT_DESKTOP: OrbitGeometry = { x: 1, y: 1, scale: 1 };
+export const ORBIT_PORTRAIT: OrbitGeometry = { x: 1, y: 1, scale: 0.66 };
 
 export const DOMAINS: DomainMeta[] = [
   {

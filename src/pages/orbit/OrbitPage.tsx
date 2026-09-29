@@ -87,7 +87,7 @@ export function OrbitPage() {
   const padding = useMemo(
     (): FitViewOptions['padding'] =>
       isMobile
-        ? { top: '96px', bottom: '24px', left: '44px', right: '44px' }
+        ? { top: '112px', bottom: '24px', left: '20px', right: '20px' }
         : { top: '80px', bottom: '32px', left: `${leftInset + 56}px`, right: `${occluded + 96}px` },
     [isMobile, leftInset, occluded],
   );

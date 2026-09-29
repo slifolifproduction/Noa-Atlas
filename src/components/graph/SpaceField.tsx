@@ -8,8 +8,7 @@ import { useEffect, useRef } from 'react';
  * them twinkle; two faint hazes and a vignette give depth without adding
  * colour. It answers you rather than performing on its own: the camera's turn
  * (shared with the space engine in graph/space.ts), pans and zooms add
- * parallax, and a soft light follows the pointer, lifting and gently parting
- * the stars around it.
+ * parallax.
  *
  * Two canvases: an opaque backdrop at half resolution (hazes and vignette,
  * repainted only after a half-pixel shift) and a transparent star layer
@@ -45,9 +44,6 @@ const CRUISE = 1 / 30;
 const Z_NEAR = 0.06;
 /** The backdrop is soft, so it is rendered at reduced resolution and scaled up. */
 const HAZE_RES = 0.5;
-/** Radius of the pointer's light, and of the stars it lifts. */
-const LIGHT = 300;
-const REACH = 190;
 const rgba = ([r, g, b]: number[], a: number) => `rgba(${r},${g},${b},${a})`;
 const smooth = (e0: number, e1: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
@@ -80,13 +76,9 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
     let last = performance.now();
     let lastDraw = 0;
     let bgKey = '';
-    let rect = el.getBoundingClientRect();
-    // The pointer, and the light that eases after it.
-    const pointer = { x: 0, y: 0, on: false };
-    const light = { x: 0, y: 0, a: 0 };
 
     const vignette = document.createElement('canvas');
-    // A soft glow sprite for the few bright stars, and the pointer's light.
+    // A soft glow sprite for the few bright stars.
     const glow = document.createElement('canvas');
     glow.width = glow.height = 32;
     const g = glow.getContext('2d')!;
@@ -96,15 +88,6 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
     grad.addColorStop(1, 'rgba(200,218,240,0)');
     g.fillStyle = grad;
     g.fillRect(0, 0, 32, 32);
-    const lamp = document.createElement('canvas');
-    lamp.width = lamp.height = 128;
-    const lc = lamp.getContext('2d')!;
-    const lg = lc.createRadialGradient(64, 64, 0, 64, 64, 64);
-    lg.addColorStop(0, 'rgba(150,178,220,0.11)');
-    lg.addColorStop(0.45, 'rgba(150,178,220,0.04)');
-    lg.addColorStop(1, 'rgba(150,178,220,0)');
-    lc.fillStyle = lg;
-    lc.fillRect(0, 0, 128, 128);
 
     let seed = 23;
     const rand = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
@@ -127,7 +110,6 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
       const dpr = Math.min(2, window.devicePixelRatio || 1);
       w = el.clientWidth;
       h = el.clientHeight;
-      rect = el.getBoundingClientRect();
       if (!w || !h) return;
       el.width = Math.round(w * dpr);
       el.height = Math.round(h * dpr);
@@ -205,18 +187,6 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
 
       ctx.clearRect(0, 0, w, h);
 
-      // The pointer's light eases after it and fades when the pointer leaves.
-      if (!still) {
-        const e = Math.min(1, dt * 7);
-        light.x += (pointer.x - light.x) * e;
-        light.y += (pointer.y - light.y) * e;
-        light.a += ((pointer.on ? 1 : 0) - light.a) * Math.min(1, dt * 3);
-        if (light.a > 0.01) {
-          ctx.globalAlpha = light.a;
-          ctx.drawImage(lamp, light.x - LIGHT, light.y - LIGHT, LIGHT * 2, LIGHT * 2);
-        }
-      }
-
       const speed = still ? 0 : CRUISE * (lite ? 0.75 : 1);
       let fill = '';
       for (const s of stars) {
@@ -225,29 +195,16 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
         // Pan parallax (near stars slide further) and the camera turn (far stars swing further).
         const ox = still ? 0 : -fx * (0.02 + 0.16 * near) + lx * (14 + 30 * s.z);
         const oy = still ? 0 : -fy * (0.02 + 0.16 * near) + ly * (10 + 22 * s.z);
-        let px = cx + ((s.x / s.z) * R * zoom) / 1.6 + ox;
-        let py = cy + ((s.y / s.z) * R * zoom) / 1.6 + oy;
+        const px = cx + ((s.x / s.z) * R * zoom) / 1.6 + ox;
+        const py = cy + ((s.y / s.z) * R * zoom) / 1.6 + oy;
         if (s.z < Z_NEAR || px < -30 || px > w + 30 || py < -30 || py > h + 30) {
           if (!still) spawn(s, false);
           continue;
         }
         // Stars fade in from the distance, grow a little as they pass, and a few twinkle.
         const twinkle = still || !s.tw ? 1 : 1 - s.tw * (0.5 + 0.5 * Math.sin(t * s.tf * TAU + s.tp));
-        let alpha = s.a * smooth(1, 0.8, s.z) * (0.55 + 0.45 * near) * twinkle;
-        let r = s.r * (0.7 + 1.3 * near * near);
-        // Near the pointer, stars brighten and part a little, as if lit and lensed.
-        if (light.a > 0.01) {
-          const dx = px - light.x;
-          const dy = py - light.y;
-          const d = Math.hypot(dx, dy);
-          if (d < REACH && d > 0.001) {
-            const lift = light.a * (1 - d / REACH) ** 2;
-            alpha = Math.min(1, alpha * (1 + 1.6 * lift));
-            r *= 1 + 0.5 * lift;
-            px += (dx / d) * 10 * lift;
-            py += (dy / d) * 10 * lift;
-          }
-        }
+        const alpha = s.a * smooth(1, 0.8, s.z) * (0.55 + 0.45 * near) * twinkle;
+        const r = s.r * (0.7 + 1.3 * near * near);
         if (s.bright) {
           const size = 7 + 10 * near;
           ctx.globalAlpha = alpha * 0.6;
@@ -276,23 +233,6 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
       draw(now, dt);
     };
 
-    const onMove = (e: PointerEvent) => {
-      pointer.x = e.clientX - rect.left;
-      pointer.y = e.clientY - rect.top;
-      const inside = pointer.x >= 0 && pointer.y >= 0 && pointer.x <= w && pointer.y <= h;
-      // First touch: start the light where the finger is, not where it last was.
-      if (inside && !pointer.on && light.a < 0.01) {
-        light.x = pointer.x;
-        light.y = pointer.y;
-      }
-      pointer.on = inside;
-    };
-    const onEnd = (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse') pointer.on = false;
-    };
-    const onLeave = () => void (pointer.on = false);
-    const onResize = () => void (rect = el.getBoundingClientRect());
-
     const ro = new ResizeObserver(() => {
       resize();
       if (reduced) draw(performance.now(), 0);
@@ -301,24 +241,10 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
     resize();
     // With reduced motion space is still: drawn once, redrawn only when the view resizes.
     if (reduced) draw(performance.now(), 0);
-    else {
-      raf = requestAnimationFrame(loop);
-      window.addEventListener('pointermove', onMove, { passive: true });
-      window.addEventListener('pointerup', onEnd, { passive: true });
-      window.addEventListener('pointercancel', onEnd, { passive: true });
-      document.documentElement.addEventListener('pointerleave', onLeave);
-      window.addEventListener('blur', onLeave);
-      window.addEventListener('resize', onResize);
-    }
+    else raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onEnd);
-      window.removeEventListener('pointercancel', onEnd);
-      document.documentElement.removeEventListener('pointerleave', onLeave);
-      window.removeEventListener('blur', onLeave);
-      window.removeEventListener('resize', onResize);
     };
   }, [reduced, store, camera, lite]);
 

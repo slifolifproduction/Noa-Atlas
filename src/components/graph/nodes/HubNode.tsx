@@ -19,7 +19,8 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
   const strength = wave ? (wave.origin === id ? 1 : wave.strength) : 0;
   // Each domain is named by a two-letter symbol, as elements and constellations are.
   const symbol = data.key[0].toUpperCase() + data.key[1];
-  const size = data.center ? 108 : 78;
+  // On phones the system is drawn smaller so it fits the width without crowding.
+  const size = data.compact ? (data.center ? 84 : 58) : data.center ? 108 : 78;
   const r = 46;
   const circ = 2 * Math.PI * r;
   const arc = Math.max(0.04, data.activity) * circ;
@@ -94,7 +95,11 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
         )}
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span className="display select-none italic" style={{ color: data.color, fontSize: data.center ? 34 : 25, lineHeight: 1 }} aria-hidden>
+        <span
+          className="display select-none italic"
+          style={{ color: data.color, fontSize: (data.center ? 34 : 25) * (size / (data.center ? 108 : 78)), lineHeight: 1 }}
+          aria-hidden
+        >
           {symbol}
         </span>
       </div>
@@ -120,15 +125,10 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
             : { bottom: size + 15, transform: `scale(${scale})`, transformOrigin: 'bottom center' }
         }
       >
+        {/* The name only: what an area holds is one click away, so the map stays quiet. */}
         <div className="label text-ink!" style={{ letterSpacing: data.compact ? '0.08em' : '0.16em' }}>
           {data.label}
-          {data.collapsed && data.itemCount > 0 && <span className="text-ink-3"> · +{data.itemCount}</span>}
         </div>
-        {data.statement && (!data.compact || selected) && (
-          <div className={cn('mt-1 line-clamp-2 text-[12px] leading-[1.35] text-ink-2', data.center && 'display text-[19px] leading-[1.1] text-ink')}>
-            {data.statement}
-          </div>
-        )}
       </div>
       <NodeHandles />
     </div>
