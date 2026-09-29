@@ -45,7 +45,7 @@ export function Guide() {
           <ol className="mt-3 grid gap-2 sm:grid-cols-4">
             {LOOP.map((s, n) => (
               <li key={s.label} className="flex items-center gap-3 border-t border-line-strong pt-2.5 sm:flex-col sm:items-start sm:gap-2">
-                <span className="display text-[34px] leading-none text-ink-3 italic">{n + 1}</span>
+                <span className="display text-[26px] leading-[1.2] text-ink-3">{n + 1}</span>
                 <span className="text-[12.5px] leading-snug text-ink">{s.label}</span>
               </li>
             ))}

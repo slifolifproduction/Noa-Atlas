@@ -18,7 +18,7 @@ function Block({ title, description, children }: { title: string; description?: 
   return (
     <section className="grid gap-4 border-t border-line py-6 md:grid-cols-[240px_minmax(0,1fr)]">
       <div>
-        <h2 className="display text-[22px] text-ink">{title}</h2>
+        <h2 className="display text-[17px] text-ink">{title}</h2>
         {description && <p className="mt-1 text-[12.5px] leading-relaxed text-ink-3">{description}</p>}
       </div>
       <div className="min-w-0">{children}</div>

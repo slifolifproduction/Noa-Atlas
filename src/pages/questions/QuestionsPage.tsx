@@ -74,7 +74,7 @@ function QuestionCard({ question: q }: { question: AtlasNode }) {
     <li className={cn('rounded-[2px] border border-line bg-surface px-4 py-3.5', q.status === 'resolved' && 'opacity-75')}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <button type="button" onClick={() => open({ kind: 'node', id: q.id })} className="min-w-0 flex-1 text-left">
-          <p className="display text-[23px] leading-[1.12] text-ink hover:underline">{q.label}</p>
+          <p className="display text-[17px] leading-[1.2] text-ink hover:underline">{q.label}</p>
           {q.summary && <p className="mt-1 text-[12.5px] text-ink-2">{q.summary}</p>}
         </button>
         <Segmented<QuestionStatus>

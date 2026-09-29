@@ -174,7 +174,7 @@ export function VersionsModal() {
                     <div className="mt-0.5 text-[11.5px] text-ink-3">
                       {time(v.createdAt)} · {counts(v.counts)}
                     </div>
-                    {REASON[v.reason] && <div className="mt-0.5 text-[11.5px] text-ink-3 italic">{REASON[v.reason]}</div>}
+                    {REASON[v.reason] && <div className="mt-0.5 text-[11.5px] text-ink-3">{REASON[v.reason]}</div>}
                   </div>
                   {confirm?.id === v.id ? (
                     <div className="flex shrink-0 items-center gap-1">

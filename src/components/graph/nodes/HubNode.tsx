@@ -5,6 +5,7 @@ import { useSpaceNode } from '../../../graph/space';
 import type { HubNode } from '../../../graph/types';
 import { useLabelScale } from '../../../hooks/useZoom';
 import { cn } from '../../../lib/cn';
+import { DomainGlyph } from '../DomainGlyph';
 import { NodeHandles } from './Handles';
 
 /** Dial spacing in the hub's 0–100 viewBox: a mark every 10°, and the four cardinal marks. */
@@ -17,8 +18,6 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
   const living = motion.living && !motion.reduced;
   const wave = useWave(living, (w) => w.origin === id || w.reached.includes(id));
   const strength = wave ? (wave.origin === id ? 1 : wave.strength) : 0;
-  // Each domain is named by a two-letter symbol, as elements and constellations are.
-  const symbol = data.key[0].toUpperCase() + data.key[1];
   // On phones the system is drawn smaller so it fits the width without crowding.
   const size = data.compact ? (data.center ? 84 : 58) : data.center ? 108 : 78;
   const r = 46;
@@ -95,13 +94,7 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
         )}
       </svg>
       <div className="absolute inset-0 flex items-center justify-center">
-        <span
-          className="display select-none italic"
-          style={{ color: data.color, fontSize: (data.center ? 34 : 25) * (size / (data.center ? 108 : 78)), lineHeight: 1 }}
-          aria-hidden
-        >
-          {symbol}
-        </span>
+        <DomainGlyph domain={data.key} size={Math.round(size * (data.center ? 0.36 : 0.44))} color={data.color} strokeWidth={data.center ? 1.1 : 1.25} />
       </div>
       {data.patternCount > 0 && (
         <span

@@ -104,7 +104,7 @@ export function NodeView({ id }: { id: ID }) {
           />
         ) : (
           <>
-            <h2 className="mt-2.5 display text-[28px] leading-[1.04] text-ink">{hub ? DOMAIN_META[key!].label : display.label}</h2>
+            <h2 className="mt-2.5 display text-[21px] leading-[1.2] text-ink">{hub ? DOMAIN_META[key!].label : display.label}</h2>
             {hub ? (
               <>
                 <p className="mt-1 text-[14px] text-ink">

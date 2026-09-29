@@ -57,9 +57,9 @@ Things that keep it easy:
 A deep-field instrument: star atlases, mission telemetry and editorial print rather than app chrome.
 
 - **Colour.** Warm paper-white ink on near-black; hairlines do the separating instead of boxes. One signal colour, International Orange (the aerospace safety orange), marks only what is live, next or selected. Data keeps its own muted, print-like palette.
-- **Type.** Three voices: Instrument Serif for questions and titles, Instrument Sans for reading, IBM Plex Mono for labels, codes and measurements.
+- **Type.** Two voices, chosen to read easily: Instrument Sans for titles and text (no italics, nothing condensed), IBM Plex Mono for labels, codes and measurements.
 - **Geometry.** Square corners, registration marks on panels and dialogs, a viewfinder framing the map.
-- **The map as a chart.** Hubs are dials with a degree scale, named by two-letter symbols (Id, Ca, Fi…) like elements or constellations and labelled with their name only, on the sky with a leader line and no box; orbits are true circles, graduated, with a small tracer body; Mind cards are specimen tags with their kind in the margin colour.
+- **The map as a chart.** Hubs are dials with a degree scale, each marked by its own hairline glyph (a sun sign for identity, a cut stone for values, a target for goals, a rising path for career, stacked coins for finance…) and labelled with their name only, on the sky with a leader line and no box; orbits are true circles, graduated, with a small tracer body; Mind cards are specimen tags with their kind in the margin colour.
 - **Numbers as telemetry.** A T+ clock counts days since your first note; place indices double as their keyboard keys.
 
 ## Evidence-first reasoning

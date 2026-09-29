@@ -34,7 +34,7 @@ export function ExperimentView({ id }: { id: ID }) {
             {experimentCode(x.code)} · {EXPERIMENT_STATUS_LABEL[x.status]}
           </span>
         </div>
-        <h2 className="mt-2 display text-[28px] leading-[1.04] text-ink">{x.title}</h2>
+        <h2 className="mt-2 display text-[21px] leading-[1.2] text-ink">{x.title}</h2>
         <div className="mt-3 space-y-2.5">
           <div>
             <div className="label">Hypothesis</div>

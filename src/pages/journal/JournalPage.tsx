@@ -151,7 +151,7 @@ export function JournalPage() {
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <Icon size={13} className="shrink-0 text-ink-3" aria-hidden />
-                            <span className="display truncate text-[21px] leading-[1.15] text-ink">{e.title}</span>
+                            <span className="display truncate text-[16px] leading-[1.2] text-ink">{e.title}</span>
                           </div>
                           <p className="mt-0.5 line-clamp-2 text-[12.5px] leading-snug text-ink-2">{e.content}</p>
                           <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1">

@@ -23,7 +23,7 @@ export const PatternNodeView = memo(function PatternNodeView({ id, data, selecte
             <span className="label text-ink-2!">Pattern {pad2(data.code)}</span>
             <span className="num ml-auto pl-3 text-[10px] text-ink-2">{pct}%</span>
           </div>
-          <div className="display mt-1 text-[16px] leading-[1.12] text-ink">{data.title}</div>
+          <div className="display mt-1 text-[14px] leading-[1.2] text-ink">{data.title}</div>
           <div className="mt-2 h-px w-full bg-ink/10">
             <div className="h-full bg-ink" style={{ width: `${pct}%` }} />
           </div>

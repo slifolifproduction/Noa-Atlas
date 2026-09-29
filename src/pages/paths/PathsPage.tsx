@@ -83,7 +83,7 @@ function CurrentStateCell({ onEdit, wide }: { onEdit(): void; wide?: boolean }) 
       {state.position ? (
         <div className={cn('mt-1.5 grid gap-x-8 gap-y-3', wide && 'lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)]')}>
           <div>
-            <p className="display text-[23px] leading-[1.12] text-ink">{state.position}</p>
+            <p className="display text-[17px] leading-[1.2] text-ink">{state.position}</p>
             {state.summary && <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{state.summary}</p>}
             <p className="mt-2 text-[11px] text-ink-3">Updated {formatDate(state.updatedAt.slice(0, 10))}</p>
           </div>
@@ -202,7 +202,7 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
                   <Pencil size={13} aria-hidden />
                 </button>
               </div>
-              <h2 className="display mt-2 text-[27px] leading-[1.05] text-ink">{p.title}</h2>
+              <h2 className="display mt-2 text-[20px] leading-[1.2] text-ink">{p.title}</h2>
               <p className="mt-1.5 text-[13px] leading-snug text-ink">{p.objective || <span className="text-ink-3">No objective yet.</span>}</p>
               {p.summary && <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{p.summary}</p>}
               <div className="mt-3">

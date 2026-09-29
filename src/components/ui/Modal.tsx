@@ -81,7 +81,7 @@ export function Modal({
       >
         <header className="flex items-start justify-between gap-4 border-b border-line px-5 pt-5 pb-4">
           <div className="min-w-0">
-            <h2 className="display text-[26px] text-ink">{title}</h2>
+            <h2 className="display text-[20px] text-ink">{title}</h2>
             {description && <p className="mt-1.5 max-w-[60ch] text-[12.5px] leading-relaxed text-ink-2">{description}</p>}
           </div>
           <IconButton icon={X} label="Close" onClick={onClose} data-close size="sm" />

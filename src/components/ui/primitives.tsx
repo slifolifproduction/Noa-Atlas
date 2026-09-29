@@ -112,7 +112,7 @@ export function EmptyState({
   return (
     <div className={cn('flex flex-col items-start gap-2 rounded-[2px] border border-dashed border-line-strong px-4 py-5', className)}>
       {Icon && <Icon size={18} strokeWidth={1.5} className="text-ink-3" aria-hidden />}
-      <div className="display text-[21px] text-ink">{title}</div>
+      <div className="display text-[16px] text-ink">{title}</div>
       {children && <div className="max-w-prose text-[12.5px] leading-relaxed text-ink-2">{children}</div>}
       {action && <div className="mt-1">{action}</div>}
     </div>

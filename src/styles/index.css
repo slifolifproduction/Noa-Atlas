@@ -8,13 +8,12 @@
  * editorial print: warm paper-white ink on near-black, hairlines instead of
  * boxes, square corners, and one signal colour (International Orange, the
  * aerospace safety orange) for what is live, selected or next. Data keeps its
- * own muted, print-like palette. Three voices: a serif for questions and
- * titles, a quiet grotesk for reading, a mono for measurements and labels.
+ * own muted, print-like palette. Two voices: a clear grotesk for titles and reading, a mono for
+ * measurements and labels. No italics, nothing condensed: easy to read first.
  * Text tokens are checked for WCAG AA on every surface.
  */
 @theme {
   --font-sans: 'Instrument Sans Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
   --color-canvas: #07080a;
@@ -159,10 +158,10 @@
   }
   /* Titles and questions: the editorial voice. */
   .display {
-    font-family: var(--font-serif);
-    font-weight: 400;
-    letter-spacing: -0.012em;
-    line-height: 1.02;
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
   }
   .hairline {
     border-color: var(--color-line);

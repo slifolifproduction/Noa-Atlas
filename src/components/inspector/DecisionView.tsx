@@ -33,7 +33,7 @@ export function DecisionView({ id }: { id: ID }) {
           <span className="label">{decisionCode(d.seq)}</span>
           <span className="num ml-auto text-[11.5px] text-ink-3">{formatDate(d.date, { year: true })}</span>
         </div>
-        <h2 className="mt-2 display text-[28px] leading-[1.04] text-ink">{d.title}</h2>
+        <h2 className="mt-2 display text-[21px] leading-[1.2] text-ink">{d.title}</h2>
         {d.context && <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{d.context}</p>}
         <div className="mt-3 flex items-center gap-1.5">
           <Button size="sm" icon={Pencil} onClick={() => openCapture('decision', { kind: 'decision', id })}>

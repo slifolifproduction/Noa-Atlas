@@ -42,7 +42,7 @@ export function EntryView({ id }: { id: ID }) {
           </span>
           <span className="num ml-auto text-[11.5px] text-ink-3">{formatDate(entry.date, { year: true })}</span>
         </div>
-        <h2 className="mt-2.5 display text-[28px] leading-[1.04] text-ink">{entry.title}</h2>
+        <h2 className="mt-2.5 display text-[21px] leading-[1.2] text-ink">{entry.title}</h2>
         <p className="mt-2 text-[13.5px] leading-relaxed whitespace-pre-wrap text-ink-2">{entry.content}</p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {entry.domains.map((d) => (
@@ -257,7 +257,7 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
       {s.type === 'pattern_evidence' && <StanceMark stance={s.stance} />}
       <div className="min-w-0 flex-1">
         <div className="text-[12.5px] leading-snug text-ink-2">{title}</div>
-        {s.type === 'pattern_evidence' && <div className="mt-0.5 text-[12px] text-ink-2 italic">“{s.excerpt}”</div>}
+        {s.type === 'pattern_evidence' && <div className="mt-0.5 text-[12px] text-ink-2">“{s.excerpt}”</div>}
         <div className="mt-0.5 text-[11.5px] text-ink-3">{s.reason}</div>
       </div>
       <div className="flex shrink-0 gap-0.5">

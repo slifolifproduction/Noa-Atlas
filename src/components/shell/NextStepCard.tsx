@@ -33,7 +33,7 @@ export function NextStepCard({ className }: { className?: string }) {
         <span className="atlas-live-dot h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
         Do this next
       </div>
-      <p className="display mt-2 text-[23px] leading-[1.08] text-ink">{step.title}</p>
+      <p className="display mt-2 text-[18px] leading-[1.2] text-ink">{step.title}</p>
       <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{step.detail}</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <Button size="sm" variant="primary" icon={step.action.kind === 'done' ? Check : ArrowRight} onClick={() => run(step.action)}>

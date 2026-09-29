@@ -18,8 +18,8 @@ export function LogoMark({ size = 22 }: { size?: number }) {
 export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={className}>
-      <span className="display text-[19px] tracking-[-0.01em] text-ink">
-        Cognitive <em className="italic">Atlas</em>
+      <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
+        Cognitive <span className="font-normal text-ink-2">Atlas</span>
       </span>
     </span>
   );

@@ -209,7 +209,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
             </span>
           )}
         </div>
-        <h2 id="pattern-title" className="display mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[34px] text-ink">
+        <h2 id="pattern-title" className="display mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[26px] text-ink">
           {p.chain.map((step, i) => (
             <span key={step} className="flex items-center gap-3">
               {i > 0 && <ArrowRight size={18} strokeWidth={1.3} className="text-accent" aria-hidden />}
@@ -437,7 +437,7 @@ function Stat({ label, value, mono, className }: { label: string; value: string;
   return (
     <div className={cn('bg-surface px-3.5 py-3', className)}>
       <dt className="label">{label}</dt>
-      <dd className={cn('mt-1.5 text-ink', mono ? 'num text-[13px]' : 'display text-[22px] leading-[1.1]')}>{value}</dd>
+      <dd className={cn('mt-1.5 text-ink', mono ? 'num text-[13px]' : 'display text-[17px] leading-[1.2]')}>{value}</dd>
     </div>
   );
 }

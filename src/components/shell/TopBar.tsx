@@ -146,7 +146,7 @@ export function SubNav({ active }: { active: RouteKey }) {
           </a>
         ))}
       </div>
-      <span className="display hidden items-center truncate text-[16px] text-ink-3 italic sm:flex">{VIEWS[active].question}</span>
+      <span className="display hidden items-center truncate text-[14px] text-ink-3 sm:flex">{VIEWS[active].question}</span>
     </nav>
   );
 }

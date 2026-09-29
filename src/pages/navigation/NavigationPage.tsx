@@ -114,7 +114,7 @@ function Route() {
         <EditableLine
           value={nav.position}
           onSave={(position) => update({ position })}
-          className="display text-[24px] leading-[1.1] text-ink"
+          className="display text-[18px] leading-[1.2] text-ink"
           placeholder="Where are you on this route?"
         />
         {path && (
@@ -128,7 +128,7 @@ function Route() {
         <EditableLine
           value={nav.objective.title}
           onSave={(title) => update({ objective: { ...nav.objective, title } })}
-          className="display text-[28px] leading-[1.06] text-ink"
+          className="display text-[21px] leading-[1.2] text-ink"
         />
         <EditableLine
           value={nav.objective.description}
@@ -472,7 +472,7 @@ function ExperimentsColumn({ onCreate }: { onCreate(): void }) {
   return (
     <div className="lg:sticky lg:top-0">
       <div className="flex items-center justify-between">
-        <h2 className="display text-[26px] text-ink">Experiments</h2>
+        <h2 className="display text-[20px] text-ink">Experiments</h2>
         <Button size="sm" icon={Plus} onClick={onCreate}>
           New
         </Button>

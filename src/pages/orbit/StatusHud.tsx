@@ -62,7 +62,7 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
         <Block n={1} title="Where I am" href={hrefFor('paths')}>
           {data.currentState.position ? (
             <>
-              <p className="display text-[20px] leading-[1.12] text-ink">{data.currentState.position}</p>
+              <p className="display text-[16px] leading-[1.2] text-ink">{data.currentState.position}</p>
               {data.currentState.constraints.length > 0 && (
                 <p className="mt-1.5 text-[12px] leading-snug text-ink-3">{data.currentState.constraints.slice(0, 2).join(' · ')}</p>
               )}
@@ -75,7 +75,7 @@ export function StatusHud({ onClose }: { onClose?: () => void }) {
         <Block n={2} title="My plan" href={hrefFor('navigation')}>
           {nav && progress ? (
             <>
-              <p className="display text-[18px] leading-[1.15] text-ink">{nav.objective.title}</p>
+              <p className="display text-[15px] leading-[1.2] text-ink">{nav.objective.title}</p>
               <p className="mt-0.5 text-[11.5px] text-ink-3">
                 {path ? `${pathCode(path.code)} · ${path.title}` : 'Direction'} · by {formatDate(nav.objective.targetDate)}
               </p>

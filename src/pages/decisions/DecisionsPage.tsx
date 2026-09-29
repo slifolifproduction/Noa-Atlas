@@ -85,7 +85,7 @@ export function DecisionsPage() {
                       <td className="px-3 py-2.5">
                         <button
                           type="button"
-                          className="display text-left text-[20px] leading-[1.15] text-ink hover:underline"
+                          className="display text-left text-[16px] leading-[1.2] text-ink hover:underline"
                           onClick={(e) => (e.stopPropagation(), openEntity({ kind: 'decision', id: d.id }))}
                         >
                           {d.title}
@@ -167,7 +167,7 @@ function DecisionPatterns({ count }: { count: number }) {
             return (
               <li key={c.signature} className="px-4 py-4">
                 <div className="label">Decision pattern · {c.chain.join(' → ')}</div>
-                <p className="display mt-1.5 text-[22px] leading-[1.15] text-ink">“{c.statement}”</p>
+                <p className="display mt-1.5 text-[17px] leading-[1.2] text-ink">“{c.statement}”</p>
                 <p className="mt-1 text-[12.5px] text-ink-2">{c.observation}</p>
                 <dl className="mt-3 grid grid-cols-3 gap-4 sm:max-w-[560px]">
                   <div>
