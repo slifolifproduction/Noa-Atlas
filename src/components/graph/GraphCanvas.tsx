@@ -20,7 +20,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } fro
 import type { GraphLayer, ID } from '../../domain/types';
 import type { BuiltGraph } from '../../graph/build';
 import type { AtlasFlowNode, SemanticEdge } from '../../graph/types';
-import { MAX_ACTIVE_PULSES, MAX_IDLE_PULSES, MotionContext, waveBus, type MotionSettings } from '../../graph/motion';
+import { HOP_MS, MAX_ACTIVE_PULSES, MAX_IDLE_PULSES, MotionContext, waveBus, type MotionSettings } from '../../graph/motion';
 import { SPACE_MAX_NODES, SpaceContext, SpaceEngine, spaceHealth } from '../../graph/space';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { cn } from '../../lib/cn';
@@ -77,6 +77,19 @@ export interface GraphCanvasProps {
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 const ARROWS: Record<string, [number, number]> = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+
+/** The latest signal the network sent, for the live readout. */
+interface Signal {
+  cycle: number;
+  origin: ID;
+  first: ID[];
+  hops: number;
+  nodes: number;
+  focus: ID | null;
+}
+
+const nodeLabel = (n: AtlasFlowNode | undefined): string =>
+  !n ? '' : n.type === 'pattern' ? `Pattern ${String(n.data.code).padStart(2, '0')}` : 'label' in n.data ? String(n.data.label) : '';
 
 /** Neighbours pulled along by a drag: offset, velocity and how strongly each follows. */
 interface Spring {
@@ -161,12 +174,15 @@ function Canvas({
       camera: spaceOn,
       depth: depthOn,
       nodes: built.nodes,
+      links: built.edges.map((e) => [e.source, e.target] as [ID, ID]),
       occludedLeft,
       occludedRight,
       intensity: isDesktop ? 1 : 0.55,
       adaptive: spaceMode === 'auto',
+      boot: revealing,
     });
-  }, [space, spaceOn, depthOn, built.nodes, occludedLeft, occludedRight, isDesktop, spaceMode]);
+    // `revealing` only matters on the first pass; it must not re-run the configuration when it ends.
+  }, [space, spaceOn, depthOn, built.nodes, built.edges, occludedLeft, occludedRight, isDesktop, spaceMode]);
   useEffect(() => () => space.stop(), [space]);
   useEffect(() => {
     space.setFocus(
@@ -392,35 +408,83 @@ function Canvas({
     }
   }, [selectedId]);
 
-  // Periodic system activity: every so often a soft wave leaves one domain (Orbit) or one
-  // well-connected thought (Mind) along its relationships and faintly reaches the other ends.
+  // The network thinks: every few seconds a signal leaves one node (a domain in Orbit, a
+  // well-connected thought in Mind) and travels up to three links outward, one hop at a time,
+  // firing each node it reaches. Origins are weighted by attention, so the system keeps coming
+  // back to what you have been looking at; with a selection it stays in that neighbourhood.
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
+  const [signal, setSignal] = useState<Signal | null>(null);
   useEffect(() => {
     if (!living || reduced) return;
     let timer = 0;
+    let cycle = 0;
+    const steps = new Set<number>();
     const schedule = () => {
-      timer = window.setTimeout(fire, 9000 + Math.random() * 7000);
+      timer = window.setTimeout(fire, 7000 + Math.random() * 5000);
     };
     const fire = () => {
       if (!document.hidden) {
-        const edges = edgesRef.current.filter((e) => !e.data?.dim && e.data?.relation !== 'part_of');
+        const edges = edgesRef.current.filter((e) => !e.data?.dim);
+        const adj = new Map<ID, { id: ID; structural: boolean }[]>();
+        const link = (a: ID, b: ID, structural: boolean) => {
+          if (!adj.has(a)) adj.set(a, []);
+          adj.get(a)!.push({ id: b, structural });
+        };
         const degree = new Map<ID, number>();
-        for (const e of edges) for (const id of [e.source, e.target]) degree.set(id, (degree.get(id) ?? 0) + 1);
+        for (const e of edges) {
+          const structural = e.data?.relation === 'part_of';
+          link(e.source, e.target, structural);
+          link(e.target, e.source, structural);
+          if (!structural) for (const id of [e.source, e.target]) degree.set(id, (degree.get(id) ?? 0) + 1);
+        }
         const origins = [...degree.keys()].filter((id) => (layer === 'orbit' ? id.startsWith('domain:') : degree.get(id)! >= 2));
-        // While something is selected, activity stays inside its neighbourhood.
         const pool = selectedRef.current ? origins.filter((h) => edges.some((e) => (e.source === h || e.target === h) && e.data?.active)) : origins;
-        const origin = pool[Math.floor(Math.random() * pool.length)];
+        const weights = pool.map((id) => 1 + 4 * space.attention(id));
+        let r = Math.random() * weights.reduce((a, b) => a + b, 0);
+        const origin = pool.find((_, i) => (r -= weights[i]) <= 0) ?? pool[0];
         if (origin) {
-          const reached = edges.filter((e) => e.source === origin || e.target === origin).map((e) => (e.source === origin ? e.target : e.source));
-          waveBus.emit({ origin, reached, at: Date.now(), strength: 0.6 });
+          cycle++;
+          // Breadth-first, a few branches per node, relationships before structure.
+          const visited = new Set<ID>([origin]);
+          const hops: { origin: ID; reached: ID[] }[][] = [];
+          let frontier = [origin];
+          for (let hop = 0; hop < 3 && frontier.length && visited.size < 14; hop++) {
+            const step: { origin: ID; reached: ID[] }[] = [];
+            const next: ID[] = [];
+            for (const from of frontier) {
+              const options = (adj.get(from) ?? [])
+                .filter((o) => !visited.has(o.id))
+                .sort((a, b) => Number(a.structural) - Number(b.structural) || Math.random() - 0.5);
+              const reached = [...new Set(options.slice(0, hop === 0 ? 5 : 2).map((o) => o.id))];
+              reached.forEach((id) => visited.add(id));
+              if (reached.length) {
+                step.push({ origin: from, reached });
+                next.push(...reached);
+              }
+              if (visited.size >= 14) break;
+            }
+            if (step.length) hops.push(step);
+            frontier = next.slice(0, 4);
+          }
+          hops.forEach((step, hop) => {
+            const t = window.setTimeout(() => {
+              steps.delete(t);
+              for (const s of step) waveBus.emit({ ...s, at: Date.now(), strength: 0.8 * 0.72 ** hop, kind: 'cascade', hop });
+            }, hop * HOP_MS);
+            steps.add(t);
+          });
+          setSignal({ cycle, origin, first: hops[0]?.flatMap((s) => s.reached) ?? [], hops: hops.length, nodes: visited.size, focus: space.topAttention() });
         }
       }
       schedule();
     };
     timer = window.setTimeout(fire, 2600);
-    return () => clearTimeout(timer);
-  }, [living, reduced, layer]);
+    return () => {
+      clearTimeout(timer);
+      for (const t of steps) clearTimeout(t);
+    };
+  }, [living, reduced, layer, space]);
 
   // Hovering a node for a moment opens a quick look at it (pointer devices only).
   useEffect(() => {
@@ -534,6 +598,7 @@ function Canvas({
             living && 'atlas-living',
             living && nodes.length > SPACE_MAX_NODES && 'atlas-dense',
             depthOn && 'atlas-3d',
+            depthOn && 'atlas-scanning',
             revealing && 'atlas-reveal',
           )}
           onPointerMove={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
@@ -614,10 +679,46 @@ function Canvas({
             />
           )}
           {probe && !pending && !edgeMenu && <NodeProbe id={probe} occludedRight={occludedRight} hint="Click to open · arrow keys travel along links" />}
+          {signal && isDesktop && (
+            <SignalReadout key={signal.cycle} signal={signal} labelOf={(id) => nodeLabel(labelsFor.get(id))} left={occludedLeft} right={occludedRight} />
+          )}
           {edgeMenu && <EdgePopover edgeId={edgeMenu.edgeId} x={edgeMenu.x} y={edgeMenu.y} edges={built.edges} onClose={() => setEdgeMenu(null)} />}
           {children}
         </div>
       </SpaceContext.Provider>
     </MotionContext.Provider>
+  );
+}
+
+/**
+ * What the network is doing right now, in words: where the last signal left from, what it
+ * reached first, how far it travelled, and where attention has built up.
+ */
+function SignalReadout({ signal, labelOf, left, right }: { signal: Signal; labelOf(id: ID): string; left: number; right: number }) {
+  const first = signal.first.map(labelOf).filter(Boolean);
+  return (
+    <div
+      className="atlas-readout pointer-events-none absolute bottom-3 z-10 animate-fade-in max-w-[min(520px,55%)] -translate-x-1/2 truncate rounded-[6px] bg-canvas/70 px-2 py-1 font-mono text-[10.5px] tracking-wide text-ink-3"
+      style={{ left: `calc(${left}px + (100% - ${left + right}px) / 2)` }}
+      aria-live="off"
+    >
+      <span className="atlas-live-dot mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" aria-hidden />
+      <span className="text-ink-2">LIVE</span> · signal <span className="text-ink-2">{labelOf(signal.origin)}</span>
+      {first.length > 0 && (
+        <>
+          {' '}
+          → {first.slice(0, 3).join(', ')}
+          {first.length > 3 ? ` +${first.length - 3}` : ''}
+        </>
+      )}{' '}
+      · {signal.hops} hop
+      {signal.hops === 1 ? '' : 's'}, {signal.nodes} nodes
+      {signal.focus && (
+        <>
+          {' '}
+          · attention <span className="text-ink-2">{labelOf(signal.focus)}</span>
+        </>
+      )}
+    </div>
   );
 }

@@ -1,11 +1,12 @@
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
-import { useSpaceRing } from '../../../graph/space';
+import { useSpaceRing, useSpaceScan } from '../../../graph/space';
 import type { RingsNode } from '../../../graph/types';
 
 /**
  * Concentric context rings for Orbit: self → intent → work → conditions.
- * Each ring is its own plane so the space engine can set it at its depth.
+ * Each ring is its own plane so the space engine can set it at its depth; a
+ * fourth plane carries the scanner that sweeps the rings.
  */
 export const RingsNodeView = memo(function RingsNodeView({ data }: NodeProps<RingsNode>) {
   const outer = Math.max(...data.radii);
@@ -16,6 +17,7 @@ export const RingsNodeView = memo(function RingsNodeView({ data }: NodeProps<Rin
       {data.radii.map((r, i) => (
         <Ring key={r} index={i} r={r} w={w} h={h} stretch={data.stretch} label={data.labels[i]} />
       ))}
+      <Scanner index={data.radii.length} r={outer} w={w} h={h} stretch={data.stretch} />
     </div>
   );
 });
@@ -39,5 +41,18 @@ function Ring({ index, r, w, h, stretch, label }: { index: number; r: number; w:
         {label?.toUpperCase()}
       </text>
     </svg>
+  );
+}
+
+/** A slow sweep around the rings; the space engine turns it and pings what it passes. */
+function Scanner({ index, r, w, h, stretch }: { index: number; r: number; w: number; h: number; stretch: { x: number; y: number } }) {
+  const plane = useSpaceRing(index);
+  const rotor = useSpaceScan(stretch);
+  return (
+    <div ref={plane} className="ring-plane scan-plane pointer-events-none absolute top-0 left-0" style={{ width: w, height: h }} aria-hidden>
+      <div className="absolute" style={{ left: w / 2 - r, top: h / 2 - r, width: r * 2, height: r * 2, transform: `scale(${stretch.x}, ${stretch.y})` }}>
+        <div ref={rotor} className="scan-rotor absolute inset-0 rounded-full" />
+      </div>
+    </div>
   );
 }

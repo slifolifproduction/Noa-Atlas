@@ -1,6 +1,6 @@
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
-import { hash01, useMotion, useWave } from '../../../graph/motion';
+import { hash01, HOP_MS, useMotion, useWave } from '../../../graph/motion';
 import { useSpaceNode } from '../../../graph/space';
 import type { HubNode } from '../../../graph/types';
 import { useLabelScale } from '../../../hooks/useZoom';
@@ -13,7 +13,8 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
   const motion = useMotion();
   const living = motion.living && !motion.reduced;
   const wave = useWave(living, (w) => w.origin === id || w.reached.includes(id));
-  const strength = wave ? (wave.origin === id ? 1 : wave.strength) : 0;
+  // A scanner pass is a faint ping; a signal leaving or arriving is a clear ring.
+  const strength = wave ? (wave.kind === 'scan' ? 0.4 : wave.origin === id ? 1 : wave.strength) : 0;
   const Icon = DOMAIN_ICONS[data.key];
   const size = data.center ? 108 : 78;
   const r = 46;
@@ -43,7 +44,7 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
                 stroke={data.color}
                 strokeWidth="1.25"
                 vectorEffect="non-scaling-stroke"
-                style={{ ['--ripple' as string]: String(0.55 * strength), animationDelay: wave.origin === id ? '0ms' : '1500ms' }}
+                style={{ ['--ripple' as string]: String(0.55 * strength), animationDelay: wave.origin === id ? '0ms' : `${HOP_MS}ms` }}
               />
             )}
           </>

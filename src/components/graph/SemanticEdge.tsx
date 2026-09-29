@@ -2,7 +2,7 @@ import { BaseEdge, EdgeLabelRenderer, useInternalNode, type EdgeProps, type Inte
 import { memo, useEffect, useRef } from 'react';
 import { RELATION_META } from '../../domain/constants';
 import type { RelationType } from '../../domain/types';
-import { hash01, pulseTravel, useMotion, useWave } from '../../graph/motion';
+import { hash01, HOP_MS, pulseTravel, useMotion, useWave } from '../../graph/motion';
 import { useSpaceEdge } from '../../graph/space';
 import { CIRCLE_NODE_TYPES, type SemanticEdge, type SemanticEdgeData } from '../../graph/types';
 
@@ -201,7 +201,8 @@ function EdgeFlow({
 }) {
   const motion = useMotion();
   const living = motion.living && !motion.reduced && data.flow === true;
-  const wave = useWave(living, (w) => w.origin === source || w.origin === target);
+  // Only the links a signal actually travels along light up.
+  const wave = useWave(living, (w) => (w.origin === source && w.reached.includes(target)) || (w.origin === target && w.reached.includes(source)));
   if (!living) return null;
   const mode = FLOW[data.relation];
   if (!mode) return null;
@@ -237,13 +238,13 @@ function EdgeFlow({
           key={wave.at}
           once
           curve={curve}
-          cycle={Math.min(seconds, 1.6)}
-          seconds={Math.min(seconds, 1.6)}
+          cycle={HOP_MS / 1000}
+          seconds={HOP_MS / 1000}
           delay={0}
           reverse={wave.origin === target}
           color={PULSE_COLOR}
-          r={1.9}
-          peak={0.55 * wave.strength}
+          r={2.1}
+          peak={Math.min(1, 0.95 * wave.strength + 0.2)}
         />
       )}
     </>

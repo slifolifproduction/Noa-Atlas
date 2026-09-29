@@ -38,14 +38,23 @@ export function hash01(s: string): number {
 /* ------------------------------------------------------------ activity waves */
 
 export interface Wave {
-  /** Node the wave starts from: a hub in Orbit, a well-connected node in Mind. */
+  /** Node this step of the wave leaves from. */
   origin: ID;
-  /** Nodes the wave reaches on its second step. */
+  /** Nodes this step reaches (after HOP_MS, when its pulses arrive). */
   reached: ID[];
   at: number;
   /** 1 for the origin, lower for nodes reached by propagation. */
   strength: number;
+  /**
+   * cascade: one step of a multi-hop signal travelling through the network;
+   * scan: the Orbit scanner passing over a node (a faint ping, no pulses).
+   */
+  kind?: 'cascade' | 'scan';
+  hop?: number;
 }
+
+/** Time for a signal to cross one link; the next step leaves when it arrives. */
+export const HOP_MS = 1100;
 
 type Listener = (w: Wave) => void;
 const listeners = new Set<Listener>();
