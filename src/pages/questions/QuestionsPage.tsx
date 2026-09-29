@@ -27,8 +27,7 @@ export function QuestionsPage() {
   return (
     <div className="mx-auto max-w-[900px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
-        eyebrow="Records · Questions"
-        title="Open questions"
+        view="questions"
         help="questions"
         description="Questions worth keeping open instead of answering too early. Each one also appears on the Mind map."
         actions={

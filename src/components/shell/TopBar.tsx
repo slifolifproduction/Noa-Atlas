@@ -1,25 +1,29 @@
-import { BookOpen, CircleQuestionMark, History, LifeBuoy, Menu, Plus, Search, Settings, Split } from 'lucide-react';
-import { useState } from 'react';
-import { hrefFor, type RouteKey } from '../../app/router';
-import { SECTIONS } from '../../domain/constants';
+import { BookOpen, Compass, Ellipsis, History, Keyboard, LifeBuoy, Orbit, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
+import { groupTarget, hrefFor, type RouteKey } from '../../app/router';
+import { GROUPS, groupOf, VIEWS, type GroupKey } from '../../domain/constants';
 import { cn } from '../../lib/cn';
 import { useUI } from '../../state/uiStore';
+import { PatternIcon } from '../icons';
 import { Button, IconButton } from '../ui/Button';
+import { Menu, MenuItem, MenuSeparator } from '../ui/Menu';
 import { Kbd } from '../ui/primitives';
 import { LogoMark } from './Logo';
 
-const UTILITIES = [
-  { key: 'journal', label: 'Journal', icon: BookOpen, kbd: 'J' },
-  { key: 'decisions', label: 'Decisions', icon: Split, kbd: 'D' },
-  { key: 'questions', label: 'Questions', icon: CircleQuestionMark, kbd: 'Q' },
-] as const;
+export const GROUP_ICONS: Record<GroupKey, LucideIcon> = {
+  map: Orbit,
+  notes: BookOpen,
+  patterns: PatternIcon,
+  plan: Compass,
+};
 
+/**
+ * Four places, search, capture, and one "more" menu. Everything else lives
+ * inside those places, so the bar never asks you to choose between a dozen things.
+ */
 export function TopBar({ active }: { active: RouteKey }) {
   const openCapture = useUI((s) => s.openCapture);
   const setPaletteOpen = useUI((s) => s.setPaletteOpen);
-  const setGuideOpen = useUI((s) => s.setGuideOpen);
-  const setVersionsOpen = useUI((s) => s.setVersionsOpen);
-  const [menuOpen, setMenuOpen] = useState(false);
+  const current = groupOf(active)?.key;
 
   return (
     <header className="relative z-30 flex h-12 shrink-0 items-center gap-2 border-b border-line bg-canvas/95 px-3 backdrop-blur md:px-4">
@@ -28,47 +32,30 @@ export function TopBar({ active }: { active: RouteKey }) {
         <span className="hidden text-[13px] font-medium tracking-[-0.01em] text-ink lg:inline">Cognitive Atlas</span>
       </a>
 
-      <nav aria-label="Sections" className="hidden h-full items-stretch md:flex">
-        {SECTIONS.map((s) => {
-          const isActive = active === s.key;
+      <nav aria-label="Main" className="hidden h-full items-stretch md:flex">
+        {GROUPS.map((g, i) => {
+          const isActive = current === g.key;
+          const Icon = GROUP_ICONS[g.key];
           return (
             <a
-              key={s.key}
-              href={hrefFor(s.key)}
+              key={g.key}
+              href={hrefFor(isActive ? active : groupTarget(g.key))}
               aria-current={isActive ? 'page' : undefined}
-              title={`${s.question} (${s.num.slice(1)})`}
+              title={`${g.question} (${i + 1})`}
               className={cn(
-                'relative flex items-center gap-1.5 px-2.5 text-[12.5px] transition-colors lg:px-3',
+                'relative flex items-center gap-2 px-3 text-[13px] transition-colors lg:px-3.5',
                 isActive ? 'text-ink' : 'text-ink-3 hover:text-ink-2',
               )}
             >
-              <span className="num text-[10.5px] text-ink-3">{s.num}</span>
-              <span className="font-medium tracking-[0.01em]">{s.label}</span>
-              {isActive && <span className="absolute inset-x-2.5 -bottom-px h-px bg-accent lg:inset-x-3" aria-hidden />}
+              <Icon size={14} strokeWidth={1.8} className={isActive ? 'text-accent' : undefined} aria-hidden />
+              <span className="font-medium">{g.label}</span>
+              {isActive && <span className="absolute inset-x-3 -bottom-px h-px bg-accent lg:inset-x-3.5" aria-hidden />}
             </a>
           );
         })}
       </nav>
 
-      <div className="ml-auto flex items-center gap-1">
-        <nav aria-label="Records" className="hidden items-center gap-0.5 lg:flex">
-          {UTILITIES.map((u) => (
-            <a
-              key={u.key}
-              href={hrefFor(u.key)}
-              aria-current={active === u.key ? 'page' : undefined}
-              title={`${u.label} (${u.kbd})`}
-              className={cn(
-                'flex h-8 items-center gap-1.5 rounded-[6px] px-2 text-[12.5px] transition-colors',
-                active === u.key ? 'bg-white/[0.06] text-ink' : 'text-ink-3 hover:bg-white/[0.04] hover:text-ink-2',
-              )}
-            >
-              <u.icon size={14} strokeWidth={1.7} aria-hidden />
-              <span className="hidden xl:inline">{u.label}</span>
-            </a>
-          ))}
-        </nav>
-        <span className="mx-1.5 hidden h-5 w-px bg-line lg:block" aria-hidden />
+      <div className="ml-auto flex items-center gap-1.5">
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
@@ -79,109 +66,82 @@ export function TopBar({ active }: { active: RouteKey }) {
           <Kbd>⌘K</Kbd>
         </button>
         <IconButton icon={Search} label="Search" className="sm:hidden" onClick={() => setPaletteOpen(true)} />
-        <span className="ml-1 hidden sm:inline-flex">
+        <span className="hidden sm:inline-flex">
           <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')} kbd="N">
             Capture
           </Button>
         </span>
         <IconButton icon={Plus} label="Capture" className="sm:hidden" onClick={() => openCapture('journal')} />
-        <button
-          type="button"
-          onClick={() => setVersionsOpen(true)}
-          title="Versions: save your atlas, go back to an earlier one, or start fresh"
-          className="hidden h-8 items-center gap-1.5 rounded-[6px] px-2 text-[12.5px] text-ink-3 transition-colors hover:bg-white/[0.04] hover:text-ink-2 lg:flex"
-        >
-          <History size={14} strokeWidth={1.7} aria-hidden />
-          <span className="hidden xl:inline">Versions</span>
-          <span className="sr-only xl:hidden">Versions</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setGuideOpen(true)}
-          title="How Cognitive Atlas works"
-          className="hidden h-8 items-center gap-1.5 rounded-[6px] px-2 text-[12.5px] text-ink-3 transition-colors hover:bg-white/[0.04] hover:text-ink-2 lg:flex"
-        >
-          <LifeBuoy size={14} strokeWidth={1.7} aria-hidden />
-          <span className="hidden xl:inline">Guide</span>
-          <span className="sr-only xl:hidden">Guide</span>
-        </button>
-        <a
-          href={hrefFor('settings')}
-          aria-current={active === 'settings' ? 'page' : undefined}
-          title="Settings"
-          aria-label="Settings"
-          className={cn(
-            'hidden h-8 w-8 items-center justify-center rounded-[6px] lg:flex',
-            active === 'settings' ? 'bg-white/[0.06] text-ink' : 'text-ink-3 hover:text-ink-2',
-          )}
-        >
-          <Settings size={15} strokeWidth={1.7} aria-hidden />
-        </a>
-        <div className="relative lg:hidden">
-          <IconButton icon={Menu} label="More" onClick={() => setMenuOpen(!menuOpen)} aria-expanded={menuOpen} />
-          {menuOpen && (
-            <>
-              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} aria-hidden />
-              <div className="absolute right-0 z-20 mt-1 w-48 animate-rise rounded-[8px] border border-line-strong bg-overlay p-1 shadow-xl">
-                {[...UTILITIES, { key: 'settings', label: 'Settings', icon: Settings, kbd: '' } as const].map((u) => (
-                  <a
-                    key={u.key}
-                    href={hrefFor(u.key)}
-                    onClick={() => setMenuOpen(false)}
-                    className={cn(
-                      'flex items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-[13px]',
-                      active === u.key ? 'bg-white/[0.06] text-ink' : 'text-ink-2 hover:bg-white/[0.04]',
-                    )}
-                  >
-                    <u.icon size={14} aria-hidden />
-                    {u.label}
-                  </a>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setGuideOpen(true);
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] text-ink-2 hover:bg-white/[0.04]"
-                >
-                  <LifeBuoy size={14} aria-hidden />
-                  Guide: how it works
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    setVersionsOpen(true);
-                  }}
-                  className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] text-ink-2 hover:bg-white/[0.04]"
-                >
-                  <History size={14} aria-hidden />
-                  Versions and start fresh
-                </button>
-              </div>
-            </>
-          )}
-        </div>
+        <MoreMenu />
       </div>
     </header>
   );
 }
 
-export function MobileTabBar({ active }: { active: RouteKey }) {
+/** Versions, the guide, shortcuts and settings: needed now and then, so kept together out of the way. */
+function MoreMenu() {
+  const ui = useUI.getState;
   return (
-    <nav aria-label="Sections" className="z-30 flex shrink-0 border-t border-line bg-canvas/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
-      {SECTIONS.map((s) => {
-        const isActive = active === s.key;
+    <Menu label="More: versions, guide, settings" icon={Ellipsis} iconOnly className="border-transparent bg-transparent" width="w-64">
+      <MenuItem icon={History} hint="Save your atlas, go back to an earlier one, or start fresh" onSelect={() => ui().setVersionsOpen(true)}>
+        Versions
+      </MenuItem>
+      <MenuItem icon={LifeBuoy} hint="How Cognitive Atlas works, in five short steps" onSelect={() => ui().setGuideOpen(true)}>
+        Guide
+      </MenuItem>
+      <MenuItem icon={Keyboard} kbd="?" onSelect={() => ui().setShortcutsOpen(true)}>
+        Keyboard shortcuts
+      </MenuItem>
+      <MenuSeparator />
+      <MenuItem icon={Settings} href={hrefFor('settings')}>
+        Settings
+      </MenuItem>
+    </Menu>
+  );
+}
+
+/** Tabs for the pages inside the current place (e.g. Orbit and Mind inside Map). */
+export function SubNav({ active }: { active: RouteKey }) {
+  const group = groupOf(active);
+  if (!group || group.views.length < 2) return null;
+  return (
+    <nav aria-label={group.label} className="relative z-20 flex h-10 shrink-0 items-center gap-3 border-b border-line bg-canvas/95 px-3 backdrop-blur md:px-4">
+      <div className="flex items-center gap-0.5 rounded-[8px] border border-line bg-surface p-0.5">
+        {group.views.map((v) => (
+          <a
+            key={v}
+            href={hrefFor(v)}
+            aria-current={v === active ? 'page' : undefined}
+            className={cn(
+              'rounded-[6px] px-3 py-1 text-[12.5px] font-medium transition-colors',
+              v === active ? 'bg-raised text-ink shadow-sm' : 'text-ink-3 hover:text-ink-2',
+            )}
+          >
+            {VIEWS[v].label}
+          </a>
+        ))}
+      </div>
+      <span className="hidden truncate text-[12.5px] text-ink-3 sm:inline">{VIEWS[active].question}</span>
+    </nav>
+  );
+}
+
+export function MobileTabBar({ active }: { active: RouteKey }) {
+  const current = groupOf(active)?.key;
+  return (
+    <nav aria-label="Main" className="z-30 flex shrink-0 border-t border-line bg-canvas/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden">
+      {GROUPS.map((g) => {
+        const isActive = current === g.key;
+        const Icon = GROUP_ICONS[g.key];
         return (
           <a
-            key={s.key}
-            href={hrefFor(s.key)}
+            key={g.key}
+            href={hrefFor(isActive ? active : groupTarget(g.key))}
             aria-current={isActive ? 'page' : undefined}
-            className={cn('relative flex h-14 flex-1 flex-col items-center justify-center gap-0.5', isActive ? 'text-ink' : 'text-ink-3')}
+            className={cn('relative flex h-14 flex-1 flex-col items-center justify-center gap-1', isActive ? 'text-ink' : 'text-ink-3')}
           >
-            <span className="num text-[10px]">{s.num}</span>
-            <span className="text-[11px] font-medium">{s.label}</span>
+            <Icon size={17} strokeWidth={1.8} className={isActive ? 'text-accent' : undefined} aria-hidden />
+            <span className="text-[11px] font-medium">{g.label}</span>
             {isActive && <span className="absolute inset-x-4 top-0 h-px bg-accent" aria-hidden />}
           </a>
         );

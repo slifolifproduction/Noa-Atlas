@@ -76,7 +76,7 @@ export function ExperimentView({ id }: { id: ID }) {
               navigate('navigation');
             }}
           >
-            Navigation
+            My plan
           </Button>
           <span className="ml-auto">
             <ConfirmButton

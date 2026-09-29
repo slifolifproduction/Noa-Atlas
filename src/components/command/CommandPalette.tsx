@@ -17,7 +17,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { navigate } from '../../app/router';
 import { openOn, showOnMap } from '../../app/showOnMap';
-import { CATEGORY_META, DOMAIN_META, DOMAINS, hubId, SECTIONS } from '../../domain/constants';
+import { CATEGORY_META, DOMAIN_META, DOMAINS, groupOf, hubId, VIEWS, type ViewKey } from '../../domain/constants';
 import { decisionCode, entryCode, experimentCode, pathCode, patternCode } from '../../domain/selectors';
 import type { AtlasData } from '../../domain/types';
 import { cn } from '../../lib/cn';
@@ -41,11 +41,17 @@ interface Item {
 function buildIndex(data: AtlasData): Item[] {
   const ui = useUI.getState();
   const items: Item[] = [
-    ...SECTIONS.map((s) => ({ id: `go:${s.key}`, group: 'Go to', label: `${s.label}`, detail: s.question, icon: ArrowRight, run: () => navigate(s.key) })),
-    { id: 'go:journal', group: 'Go to', label: 'Journal', detail: 'All entries', icon: CAPTURE_ICONS.journal, run: () => navigate('journal') },
-    { id: 'go:decisions', group: 'Go to', label: 'Decision log', icon: Split, run: () => navigate('decisions') },
-    { id: 'go:questions', group: 'Go to', label: 'Open questions', icon: CATEGORY_ICONS.question, run: () => navigate('questions') },
-    { id: 'go:settings', group: 'Go to', label: 'Settings', detail: 'Data, export, analysis provider', icon: ArrowRight, run: () => navigate('settings') },
+    ...(Object.keys(VIEWS) as ViewKey[]).map((key) => {
+      const group = groupOf(key);
+      return {
+        id: `go:${key}`,
+        group: 'Go to',
+        label: group && group.views.length > 1 ? `${group.label} · ${VIEWS[key].label}` : VIEWS[key].label,
+        detail: key === 'settings' ? 'Data, export, the look of the map, analysis' : VIEWS[key].question,
+        icon: ArrowRight,
+        run: () => navigate(key),
+      };
+    }),
     { id: 'act:entry', group: 'Actions', label: 'Capture an entry', icon: Plus, run: () => ui.openCapture('journal') },
     { id: 'act:decision', group: 'Actions', label: 'Log a decision', icon: Split, run: () => ui.openCapture('decision') },
     {
@@ -60,7 +66,7 @@ function buildIndex(data: AtlasData): Item[] {
       },
     },
     { id: 'act:keys', group: 'Actions', label: 'Keyboard shortcuts', icon: Keyboard, run: () => ui.setShortcutsOpen(true) },
-    { id: 'act:guide', group: 'Actions', label: 'Guide: how it works', detail: 'The four-step introduction', icon: LifeBuoy, run: () => ui.setGuideOpen(true) },
+    { id: 'act:guide', group: 'Actions', label: 'Guide: how it works', detail: 'A short introduction', icon: LifeBuoy, run: () => ui.setGuideOpen(true) },
     {
       id: 'act:save-version',
       group: 'Actions',

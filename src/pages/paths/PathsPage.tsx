@@ -42,7 +42,7 @@ export function PathsPage() {
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
-        section="paths"
+        view="paths"
         help="paths"
         description="Your options side by side, described the same way. They are never ranked: the choice is yours."
         actions={
@@ -172,7 +172,7 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
         <div className="col-span-full h-12" aria-hidden />
 
         <div className="sticky left-0 z-10 bg-canvas pt-4 pr-2">
-          <div className="label text-ink-2!">Paths</div>
+          <div className="label text-ink-2!">Options</div>
           <div className="mt-0.5 text-[11.5px] text-ink-3">Alphabetical, not ranked</div>
         </div>
         {paths.map((p, i) => {

@@ -1,4 +1,4 @@
-import { ArrowRight, Brain, Compass, History, Lightbulb, Orbit, PenLine, Repeat, Search, Split } from 'lucide-react';
+import { ArrowRight, BookOpen, Compass, Ellipsis, Orbit, PenLine, Repeat, Search, Split } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { cn } from '../../lib/cn';
@@ -23,7 +23,7 @@ const LOOP = [
 
 /**
  * A short welcome: what this is, the one loop it runs on, and where things are.
- * Opens by itself on the first visit; the Guide button brings it back.
+ * Opens by itself on the first visit; the ⋯ menu brings it back.
  */
 export function Guide() {
   const open = useUI((s) => s.guideOpen);
@@ -101,15 +101,13 @@ export function Guide() {
       body: (
         <>
           <p>
-            <strong className="text-ink">Paths</strong> shows your options side by side, never ranked: the choice is yours.
+            Under <strong className="text-ink">Plan</strong>, Options shows your choices side by side, never ranked: the choice is yours.
           </p>
-          <p className="mt-2">
-            When you pick one, <strong className="text-ink">Navigation</strong> turns it into a goal, this month&apos;s targets and this week&apos;s next step.
-          </p>
+          <p className="mt-2">When you pick one, My plan turns it into a goal, this month&apos;s targets and this week&apos;s next step.</p>
         </>
       ),
       tryIt: {
-        label: 'Open Paths',
+        label: 'See your options',
         run: () => {
           close();
           navigate('paths');
@@ -120,20 +118,21 @@ export function Guide() {
       title: 'Finding your way around',
       body: (
         <ul className="space-y-2.5">
-          <Where icon={Lightbulb} title="Do this next">
-            The card at the top of the left panel always shows one clear thing to do.
+          <Where icon={Orbit} title="Map">
+            Orbit shows your areas of life, Mind shows how you think. Click anything to open it; “Add point” adds your own. The Overview on the left always
+            shows one thing to do next.
           </Where>
-          <Where icon={Orbit} title="Orbit">
-            Your areas of life at a glance. Click any circle or dot to open it; “Add point” adds your own.
+          <Where icon={BookOpen} title="Notes">
+            Everything you have written: notes, decisions and open questions.
           </Where>
-          <Where icon={Brain} title="Mind">
-            Your beliefs, fears and questions, and how they affect each other.
+          <Where icon={Compass} title="Plan">
+            Your options side by side, the direction you chose, and this week&apos;s steps.
           </Where>
-          <Where icon={History} title="Versions">
-            Save your atlas at any moment and go back to it later, or start fresh without losing anything.
+          <Where icon={Ellipsis} title="More (⋯, top right)">
+            Versions (save your atlas and go back to it, or start fresh), this guide, shortcuts and settings.
           </Where>
-          <Where icon={Search} title="Help and search">
-            Every page has a “How this works” note. <Kbd>⌘K</Kbd> finds anything; the Guide button brings this back.
+          <Where icon={Search} title="Search and help">
+            <Kbd>⌘K</Kbd> finds anything. Every page has a “How this page works” note.
           </Where>
         </ul>
       ),

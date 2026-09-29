@@ -26,30 +26,31 @@ You do not need to learn the whole system first. The app runs on one loop:
 
 1. **Write what happens.** Press **Capture** (or `N`) and write a few lines. No title or fields needed: the first line becomes the title, and type, date, areas of life, tags and mood are under "More details" if you want them. Switch to "A decision" to log a choice with its options.
 2. **See what repeats.** The analysis suggests links and pattern evidence, always with the passage behind it. Accept what fits, reject what does not.
-3. **Choose a direction** in Paths, where options are compared side by side and never ranked.
-4. **Take the next step** from Navigation.
+3. **Choose a direction** under Plan → Options, where your choices are compared side by side and never ranked.
+4. **Take the next step** from Plan → My plan.
 
-Three things keep it easy:
+## Finding your way
 
-- **Do this next**, at the top of the left panel on Orbit, always shows one concrete action (write your first note, review suggestions, record a finished experiment's result, mark this week's step done…), worked out from your data.
-- **The Guide** (top bar, or `⌘K` → "Guide") is a four-step introduction. It opens by itself on the first visit.
-- **Versions** (top bar): save the whole atlas as a named version at any moment and go back to any version later; going back first saves what you have now. **Start fresh** begins an empty atlas (or the sample) and saves the current one as a version first, with an Undo right after. Importing a file also saves a version first. Versions live in the browser's IndexedDB (the 30 most recent are kept, your own named ones first) and can be downloaded as JSON.
-- **Add point** on Orbit and Mind adds your own goals, projects, people, beliefs, questions… directly to the map.
-- **How this page works**: every page has a short note, open on the first visit and one click away afterwards; the graph pages have it behind the `?` button in their toolbar.
+The top bar has four places, plus search, Capture and one "⋯" menu. Pages that belong together share a place and switch with tabs just under the bar. Keys `1`–`4` open a place; pressing the same key again moves to its next tab.
 
-## The five sections
-
-Each primary section answers one question. Keys `1`–`5` switch between them.
-
-| Section | Question | What it shows |
+| Place | Tabs | What it answers |
 | --- | --- | --- |
-| **01 Orbit** | Where am I? | Ten life domains as a spatial graph (self → intent → work → conditions). Hub arcs show where recent writing went; badges show active patterns. The status panel on the left is the whole dashboard: current state, active objective and next action, current experiment, recent patterns, open questions, recent decisions, and the model chain. |
-| **02 Mind** | How am I thinking? | Beliefs, assumptions, motivations, fears, values, mental models, decisions, questions and experiences, linked by typed relationships (causes, influences, supports, conflicts with, contradicts, derived from, examines). Detected patterns sit in the middle, linked to the nodes they rest on. |
-| **03 Patterns** | What keeps happening? | Each pattern: trigger → behaviour → consequence, frequency, derived confidence, first and last observed, an evidence timeline, every piece of evidence with its exact passage, possible interpretations, counter-evidence, strategic implications, experiments, your own assessment, and the model history. |
-| **04 Paths** | What are my options? | Scenarios branching from your current state, compared on the same attributes (requirements, dependencies, skills, capital, time, risks, trade-offs, opportunity costs, unknowns, patterns in play, experiments). Listed alphabetically; never ranked. |
-| **05 Navigation** | What do I do next? | The execution route for the direction you chose: position → 12-month objective → 90-day experiment → milestone → 30-day targets → this week → next action. Alongside it, experiments and the result → model-update loop. |
+| **Map** | Orbit · Mind | *Where am I?* Ten life domains as a spatial graph (self → intent → work → conditions); hub arcs show where recent writing went, badges show active patterns. *How am I thinking?* Beliefs, assumptions, motivations, fears, values, mental models, decisions, questions and experiences, linked by typed relationships, with detected patterns in the middle. |
+| **Notes** | Journal · Decisions · Questions | *What happened, what did I decide, what am I still asking?* Every note, each decision with what you expected and what actually happened, and the questions you are keeping open. `J`, `D` and `Q` jump straight to each. |
+| **Patterns** | | *What keeps happening?* Each pattern: trigger → behaviour → consequence, frequency, derived confidence, an evidence timeline with the exact passages, interpretations, counter-evidence, implications, experiments, your own assessment and the model history. |
+| **Plan** | My plan · Options | *What do I do next?* The route for the direction you chose: position → 12-month goal → experiment → milestone → 30-day targets → this week → next step, with experiments alongside. *What are my options?* Scenarios branching from where you are, compared on the same attributes; listed alphabetically, never ranked. |
 
-Records live in the secondary area: **Journal** (`J`), **Decision log** (`D`), **Open questions** (`Q`), and **Settings**. `N` captures anything, `⌘K` searches everything, `?` lists all shortcuts.
+Things that keep it easy:
+
+- **Do this next**, at the top of the Overview on the Map (Orbit), always shows one concrete action (write your first note, review suggestions, record a finished experiment's result, mark this week's step done…), worked out from your data. The Overview holds only four things: do this next, where you are, your plan (goal, next step, running experiment) and your top patterns.
+- **One View menu per graph.** Zoom and fit, focus on the selection, folding areas, the Overview panel, the neighbourhood around a selected Mind card, reset layout and the page's help all sit behind the **View** button. The Mind's side list shows kinds of cards; kinds of link and the rest are under "More filters".
+- **Add point** on Orbit and Mind adds your own goals, projects, people, beliefs, questions… directly to the map.
+- **The ⋯ menu** holds what you need now and then: **Versions**, the **Guide**, keyboard shortcuts and **Settings**.
+  - **Versions**: save the whole atlas as a named version at any moment and go back to any version later; going back first saves what you have now. **Start fresh** begins an empty atlas (or the sample) and saves the current one first, with an Undo right after. Importing a file also saves a version first. Versions live in the browser's IndexedDB (the 30 most recent are kept, your own named ones first) and can be downloaded as JSON.
+  - **The Guide** is a short introduction that opens by itself on the first visit.
+- **How this page works**: every page has a short note, open on the first visit and one click away afterwards (on the graphs, in the View menu).
+
+`N` captures anything, `⌘K` searches everything, `?` lists all shortcuts.
 
 ## Evidence-first reasoning
 
@@ -99,4 +100,4 @@ Then choose **Claude, via your proxy** in Settings. The API key stays on the ser
 
 ## Responsive behaviour
 
-Desktop is the primary experience. On tablets the inspector becomes a bottom sheet and the status panel opens on demand. On phones the Orbit graph switches to a compact portrait layout showing domains only (satellites appear when a domain is selected), the Mind graph opens at a readable zoom with filters in a sheet, and navigation moves to a bottom tab bar. The information architecture stays the same.
+Desktop is the primary experience. On tablets the inspector becomes a bottom sheet and the Overview opens on demand. On phones the Orbit graph switches to a compact portrait layout showing domains only (satellites appear when a domain is selected), the Mind graph opens at a readable zoom with filters in a sheet, and the four places move to a bottom tab bar. The information architecture stays the same.

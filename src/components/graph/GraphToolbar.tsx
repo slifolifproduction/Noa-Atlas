@@ -1,8 +1,7 @@
 import { useReactFlow, type FitViewOptions } from '@xyflow/react';
-import { Maximize2, Minus, Plus, Search, X } from 'lucide-react';
+import { Maximize2, Minus, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
-import { cn } from '../../lib/cn';
-import { IconButton } from '../ui/Button';
+import { Menu, MenuSeparator } from '../ui/Menu';
 
 /** Search within the current graph. Enter cycles through matches. */
 export function GraphSearch({
@@ -59,18 +58,49 @@ export function GraphSearch({
   );
 }
 
-export function ZoomControls({ padding = 0.12 }: { padding?: FitViewOptions['padding'] }) {
+const zoomBtn =
+  'flex h-8 items-center justify-center gap-1.5 rounded-[6px] border border-line bg-surface text-[12.5px] text-ink-2 outline-none hover:border-line-strong hover:text-ink focus-visible:border-accent/60';
+
+/**
+ * Every way of changing how the graph looks, behind one button: zoom, the
+ * page's own options (passed as children), and its help.
+ */
+export function ViewMenu({ padding = 0.12, children }: { padding?: FitViewOptions['padding']; children: ReactNode }) {
   const rf = useReactFlow();
   const fit = () => rf.fitView({ padding, duration: 400, nodes: rf.getNodes().filter((n) => n.type !== 'rings' && !n.hidden) });
   return (
-    <div className="flex items-center rounded-[7px] border border-line bg-surface/95 backdrop-blur">
-      <IconButton icon={Minus} label="Zoom out (−)" size="sm" onClick={() => rf.zoomOut({ duration: 200 })} />
-      <IconButton icon={Plus} label="Zoom in (+)" size="sm" onClick={() => rf.zoomIn({ duration: 200 })} />
-      <IconButton icon={Maximize2} label="Fit to screen (F)" size="sm" onClick={fit} />
-    </div>
+    <Menu label="View" icon={SlidersHorizontal} width="w-[268px]">
+      <div role="group" aria-label="Zoom" className="flex gap-1 px-1 pt-1 pb-1.5">
+        <button
+          type="button"
+          role="menuitem"
+          tabIndex={-1}
+          className={`${zoomBtn} w-9`}
+          aria-label="Zoom out (−)"
+          title="Zoom out (−)"
+          onClick={() => rf.zoomOut({ duration: 200 })}
+        >
+          <Minus size={14} aria-hidden />
+        </button>
+        <button
+          type="button"
+          role="menuitem"
+          tabIndex={-1}
+          className={`${zoomBtn} w-9`}
+          aria-label="Zoom in (+)"
+          title="Zoom in (+)"
+          onClick={() => rf.zoomIn({ duration: 200 })}
+        >
+          <Plus size={14} aria-hidden />
+        </button>
+        <button type="button" role="menuitem" tabIndex={-1} className={`${zoomBtn} flex-1`} onClick={fit}>
+          <Maximize2 size={13} aria-hidden />
+          Fit to screen
+          <kbd className="num text-[10.5px] opacity-60">F</kbd>
+        </button>
+      </div>
+      <MenuSeparator />
+      {children}
+    </Menu>
   );
-}
-
-export function ToolGroup({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('flex items-center rounded-[7px] border border-line bg-surface/95 backdrop-blur', className)}>{children}</div>;
 }

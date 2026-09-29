@@ -93,8 +93,8 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
     return {
       key: 'choose-direction',
       title: 'Choose a direction',
-      detail: 'Compare your options side by side in Paths, then pick one to turn into concrete steps.',
-      cta: 'Open Paths',
+      detail: 'Compare your options side by side, then pick one to turn into concrete steps.',
+      cta: 'See your options',
       action: { kind: 'route', route: 'paths' },
     };
   }
@@ -114,7 +114,7 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
   return {
     key: 'plan-week',
     title: 'Plan this week',
-    detail: 'Every step for this week is done. Add the next one in Navigation.',
+    detail: 'Every step for this week is done. Add the next one to your plan.',
     cta: 'Open the plan',
     action: { kind: 'route', route: 'navigation' },
   };

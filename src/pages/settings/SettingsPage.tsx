@@ -78,11 +78,7 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-[920px] px-4 py-5 md:px-6 md:py-6">
-      <PageHeader
-        eyebrow="Settings"
-        title="Settings"
-        description="Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude."
-      />
+      <PageHeader title="Settings" description="Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude." />
 
       <div className="mt-6">
         <Block title="Profile">

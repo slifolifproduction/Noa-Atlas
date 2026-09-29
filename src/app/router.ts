@@ -1,15 +1,14 @@
 import { useSyncExternalStore } from 'react';
-import { SECTIONS, type SectionKey } from '../domain/constants';
+import { GROUPS, groupOf, VIEWS, type GroupKey, type ViewKey } from '../domain/constants';
 
-export type UtilityKey = 'journal' | 'decisions' | 'questions' | 'settings';
-export type RouteKey = SectionKey | UtilityKey;
+export type RouteKey = ViewKey;
 
 export interface Route {
   key: RouteKey;
   param?: string;
 }
 
-const KEYS = new Set<string>([...SECTIONS.map((s) => s.key), 'journal', 'decisions', 'questions', 'settings']);
+const KEYS = new Set<string>(Object.keys(VIEWS));
 
 export function parseHash(hash: string): Route {
   const [key, param] = hash.replace(/^#\/?/, '').split('/');
@@ -36,3 +35,15 @@ export function navigate(key: RouteKey, param?: string) {
 }
 
 export const hrefFor = (key: RouteKey, param?: string) => `#/${key}${param ? `/${encodeURIComponent(param)}` : ''}`;
+
+/** The page each place was last showing, so going back to it returns you there. */
+const lastView = new Map<GroupKey, RouteKey>();
+export function rememberView(key: RouteKey) {
+  const g = groupOf(key);
+  if (g) lastView.set(g.key, key);
+}
+
+/** Where a place in the top bar leads: the page you were on there, else its first page. */
+export function groupTarget(key: GroupKey): RouteKey {
+  return lastView.get(key) ?? GROUPS.find((g) => g.key === key)!.views[0];
+}

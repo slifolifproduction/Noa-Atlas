@@ -20,7 +20,7 @@ export function NavigationPage() {
   return (
     <div className="mx-auto max-w-[1280px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
-        section="navigation"
+        view="navigation"
         help="navigation"
         description="Your chosen direction, broken down into a goal, this month's targets and this week's steps."
         actions={
@@ -39,12 +39,12 @@ export function NavigationPage() {
             action={
               <a href={hrefFor('paths')} className={buttonClass('primary', 'md', 'gap-2')}>
                 <ArrowRight size={14} aria-hidden />
-                Compare paths
+                See your options
               </a>
             }
           >
-            Navigation starts from a path you choose. Choosing one drafts a 12-month objective, a strategic experiment, 30-day targets and this week’s actions,
-            all of which you can edit.
+            Your plan starts from an option you choose. Choosing one drafts a 12-month goal, an experiment, 30-day targets and this week’s steps, all of which
+            you can edit.
           </EmptyState>
         )}
         <aside aria-label="Experiments">

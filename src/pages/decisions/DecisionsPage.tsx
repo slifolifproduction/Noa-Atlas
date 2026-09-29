@@ -30,8 +30,7 @@ export function DecisionsPage() {
   return (
     <div className="mx-auto max-w-[1100px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
-        eyebrow="Records · Decisions"
-        title="Decision log"
+        view="decisions"
         help="decisions"
         description="Each decision with its options, what you expected and what actually happened. Comparing the two shows how you decide."
         actions={

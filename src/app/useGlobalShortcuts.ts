@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
-import { SECTIONS } from '../domain/constants';
+import { GROUPS, groupOf } from '../domain/constants';
 import { isTyping } from '../lib/dom';
 import { useUI } from '../state/uiStore';
-import { navigate } from './router';
+import { groupTarget, navigate, parseHash, type RouteKey } from './router';
 
 /**
  * Desktop-style shortcuts. Single keys only fire when nothing is being typed
@@ -28,8 +28,7 @@ export function useGlobalShortcuts() {
         if (e.key === 'ArrowLeft') ui.back();
         return;
       }
-      const section = SECTIONS.find((s) => s.num.endsWith(e.key));
-      if (section && /^[1-5]$/.test(e.key)) return navigate(section.key);
+      if (/^[1-4]$/.test(e.key)) return navigate(nextInGroup(Number(e.key) - 1));
       switch (e.key) {
         case 'n':
         case 'c':
@@ -55,12 +54,21 @@ export function useGlobalShortcuts() {
   }, []);
 }
 
+/** A place's number takes you there; pressed again, it switches to the next page inside it. */
+function nextInGroup(index: number): RouteKey {
+  const group = GROUPS[index];
+  const here = parseHash(window.location.hash).key;
+  if (groupOf(here)?.key !== group.key) return groupTarget(group.key);
+  const views: readonly RouteKey[] = group.views;
+  return views[(views.indexOf(here) + 1) % views.length];
+}
+
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
-  { keys: ['1', '–', '5'], label: 'Orbit, Mind, Patterns, Paths, Navigation' },
+  { keys: ['1', '–', '4'], label: 'Map, Notes, Patterns, Plan (again: next tab)' },
   { keys: ['J'], label: 'Journal' },
-  { keys: ['D'], label: 'Decision log' },
-  { keys: ['Q'], label: 'Open questions' },
-  { keys: ['N'], label: 'Capture an entry' },
+  { keys: ['D'], label: 'Decisions' },
+  { keys: ['Q'], label: 'Questions' },
+  { keys: ['N'], label: 'Write a note' },
   { keys: ['⌘', 'K'], label: 'Search and commands (also /)' },
   { keys: ['Esc'], label: 'Close the panel' },
   { keys: ['['], label: 'Back in the panel (also Alt + ←)' },

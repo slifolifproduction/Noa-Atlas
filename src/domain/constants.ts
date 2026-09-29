@@ -306,13 +306,31 @@ export const SKILL_STATUS_LABEL: Record<SkillStatus, string> = {
   gap: 'Gap',
 };
 
-/** The five questions the interface keeps answering, one per primary section. */
-export const SECTIONS = [
-  { key: 'orbit', num: '01', label: 'Orbit', question: 'Where am I?', blurb: 'Your areas of life at a glance.' },
-  { key: 'mind', num: '02', label: 'Mind', question: 'How am I thinking?', blurb: 'Your beliefs, fears and questions, and how they connect.' },
-  { key: 'patterns', num: '03', label: 'Patterns', question: 'What keeps happening?', blurb: 'Things that repeat in your notes, with the evidence.' },
-  { key: 'paths', num: '04', label: 'Paths', question: 'What are my options?', blurb: 'Possible directions, compared side by side.' },
-  { key: 'navigation', num: '05', label: 'Navigation', question: 'What do I do next?', blurb: 'Your chosen direction as concrete steps.' },
-] as const;
+/** Every page: its short name, the question it answers, and one plain line about it. */
+export const VIEWS = {
+  orbit: { label: 'Orbit', question: 'Where am I?', blurb: 'Your areas of life at a glance.' },
+  mind: { label: 'Mind', question: 'How am I thinking?', blurb: 'Your beliefs, fears and questions, and how they connect.' },
+  journal: { label: 'Journal', question: 'What happened?', blurb: 'Everything you have written, newest first.' },
+  decisions: { label: 'Decisions', question: 'What did I decide?', blurb: 'Decisions with what you expected and what actually happened.' },
+  questions: { label: 'Questions', question: 'What am I still asking?', blurb: 'Questions worth keeping open instead of answering too early.' },
+  patterns: { label: 'Patterns', question: 'What keeps happening?', blurb: 'Things that repeat in your notes, with the evidence.' },
+  navigation: { label: 'My plan', question: 'What do I do next?', blurb: 'Your chosen direction as concrete steps.' },
+  paths: { label: 'Options', question: 'What are my options?', blurb: 'Possible directions, compared side by side.' },
+  settings: { label: 'Settings', question: 'Settings', blurb: 'Your data, the look of the map, and the analysis.' },
+} as const;
 
-export type SectionKey = (typeof SECTIONS)[number]['key'];
+export type ViewKey = keyof typeof VIEWS;
+
+/**
+ * The four places in the top bar. Pages that belong together share one
+ * place and switch with tabs, so there is little to learn.
+ */
+export const GROUPS = [
+  { key: 'map', label: 'Map', question: 'Where am I, and how am I thinking?', views: ['orbit', 'mind'] },
+  { key: 'notes', label: 'Notes', question: 'What happened, what I decided, what I am still asking.', views: ['journal', 'decisions', 'questions'] },
+  { key: 'patterns', label: 'Patterns', question: 'What keeps happening?', views: ['patterns'] },
+  { key: 'plan', label: 'Plan', question: 'What are my options, and what do I do next?', views: ['navigation', 'paths'] },
+] as const satisfies readonly { key: string; label: string; question: string; views: readonly ViewKey[] }[];
+
+export type GroupKey = (typeof GROUPS)[number]['key'];
+export const groupOf = (view: ViewKey) => GROUPS.find((g) => (g.views as readonly ViewKey[]).includes(view));

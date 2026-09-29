@@ -54,7 +54,7 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
   return (
     <div className="mx-auto max-w-[1320px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
-        section="patterns"
+        view="patterns"
         help="patterns"
         description="Things that keep happening in your notes, each with the evidence for and against it. Observed, never diagnosed."
         actions={

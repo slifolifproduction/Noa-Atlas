@@ -1,16 +1,16 @@
 import { lazy, Suspense, useEffect, type ReactNode } from 'react';
-import { useRoute, type RouteKey } from './app/router';
+import { rememberView, useRoute, type RouteKey } from './app/router';
 import { useGlobalShortcuts } from './app/useGlobalShortcuts';
 import { CaptureModal } from './components/capture/CaptureModal';
 import { CommandPalette } from './components/command/CommandPalette';
 import { Inspector } from './components/inspector/Inspector';
 import { Guide } from './components/shell/Guide';
 import { ShortcutsDialog } from './components/shell/ShortcutsDialog';
-import { MobileTabBar, TopBar } from './components/shell/TopBar';
+import { MobileTabBar, SubNav, TopBar } from './components/shell/TopBar';
 import { Toasts } from './components/ui/Toasts';
 import { StartFreshModal } from './components/versions/StartFreshModal';
 import { VersionsModal } from './components/versions/VersionsModal';
-import { SECTIONS } from './domain/constants';
+import { VIEWS } from './domain/constants';
 import { useInspectorWidth } from './hooks/useMediaQuery';
 import { cn } from './lib/cn';
 import { OrbitPage } from './pages/orbit/OrbitPage';
@@ -25,14 +25,6 @@ const PatternsPage = lazy(() => import('./pages/patterns/PatternsPage').then((m)
 const QuestionsPage = lazy(() => import('./pages/questions/QuestionsPage').then((m) => ({ default: m.QuestionsPage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const GRAPH_ROUTES = new Set<RouteKey>(['orbit', 'mind']);
-
-const TITLES: Record<RouteKey, string> = {
-  ...(Object.fromEntries(SECTIONS.map((s) => [s.key, s.label])) as Record<(typeof SECTIONS)[number]['key'], string>),
-  journal: 'Journal',
-  decisions: 'Decisions',
-  questions: 'Questions',
-  settings: 'Settings',
-};
 
 function Page({ route }: { route: ReturnType<typeof useRoute> }): ReactNode {
   switch (route.key) {
@@ -64,7 +56,8 @@ export function App() {
   useGlobalShortcuts();
 
   useEffect(() => {
-    document.title = `${TITLES[route.key]} · Cognitive Atlas`;
+    document.title = `${VIEWS[route.key].label} · Cognitive Atlas`;
+    rememberView(route.key);
   }, [route.key]);
 
   const isGraph = GRAPH_ROUTES.has(route.key);
@@ -77,6 +70,7 @@ export function App() {
         Skip to content
       </a>
       <TopBar active={route.key} />
+      <SubNav active={route.key} />
       <main id="main" className="relative min-h-0 flex-1">
         <div
           className={cn('h-full transition-[padding] duration-200', isGraph ? 'overflow-hidden' : 'overflow-y-auto')}

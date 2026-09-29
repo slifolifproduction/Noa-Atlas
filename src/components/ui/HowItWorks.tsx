@@ -10,12 +10,15 @@ export const PAGE_HELP: Record<string, ReactNode[]> = {
     <>Each large circle is an area of your life (career, finance, habits…); the small dots are the things in it.</>,
     <>Click anything to open its details on the right. Hover for a quick look.</>,
     <>Drag to rearrange. To connect two things, drag from the small dot on a circle&apos;s edge onto another.</>,
-    <>Scroll or pinch to zoom; arrow keys hop between connected items. The panel on the left tells you what to do next.</>,
+    <>
+      Scroll or pinch to zoom; arrow keys hop between connected items. The View menu has focus, folding and reset; the Overview on the left says what to do
+      next.
+    </>,
   ],
   mind: [
     <>Cards are your beliefs, fears, questions, values and decisions. Lines show how they affect each other.</>,
     <>The six-sided cards are patterns found in your notes, linked to the thoughts they rest on.</>,
-    <>Click a card to see the notes behind it. Use the list on the left to hide kinds you do not need right now.</>,
+    <>Click a card to see the notes behind it. The list on the left hides kinds you do not need; View can narrow the map to what is near the selected card.</>,
     <>Dashed borders mean untested or suggested by the analysis, not by you.</>,
   ],
   patterns: [
@@ -26,11 +29,11 @@ export const PAGE_HELP: Record<string, ReactNode[]> = {
   paths: [
     <>Each path is a possible direction, described the same way so you can compare them. They are never ranked.</>,
     <>Keep “You are here” up to date: your situation, constraints and strengths.</>,
-    <>When you have decided, press “Choose as direction”. Navigation then turns it into concrete steps.</>,
+    <>When you have decided, press “Choose as direction”. My plan then turns it into concrete steps.</>,
   ],
   navigation: [
     <>Your chosen direction, from the big goal down to this week&apos;s steps.</>,
-    <>Tick targets and steps off as you go. The next open step also appears in “Do this next” on the Orbit page.</>,
+    <>Tick targets and steps off as you go. The next open step also appears in “Do this next” on the Map.</>,
     <>Experiments test an idea for a few weeks. When one ends, record what happened; the result updates your patterns.</>,
   ],
   journal: [

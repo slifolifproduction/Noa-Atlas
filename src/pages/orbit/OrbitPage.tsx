@@ -1,12 +1,13 @@
-import { CircleHelp, Crosshair, FoldVertical, PanelLeftOpen, Plus, RotateCcw, UnfoldVertical } from 'lucide-react';
+import { CircleHelp, FoldVertical, Plus, RotateCcw, UnfoldVertical } from 'lucide-react';
 import type { FitViewOptions } from '@xyflow/react';
 import { useCallback, useMemo, useState } from 'react';
 import { AddNodeModal } from '../../components/graph/AddNodeModal';
 import { GraphCanvas } from '../../components/graph/GraphCanvas';
-import { GraphSearch, ToolGroup, ZoomControls } from '../../components/graph/GraphToolbar';
+import { GraphSearch, ViewMenu } from '../../components/graph/GraphToolbar';
 import { Legend } from '../../components/graph/Legend';
 import { refForNode } from '../../components/inspector/parts';
-import { Button, IconButton } from '../../components/ui/Button';
+import { Button } from '../../components/ui/Button';
+import { MenuItem, MenuSeparator } from '../../components/ui/Menu';
 import { HelpCard, PAGE_HELP, useGraphHelp } from '../../components/ui/HowItWorks';
 import { DOMAIN_KEYS, hubKey, isHubId, ORBIT_DESKTOP, ORBIT_PORTRAIT } from '../../domain/constants';
 import type { DomainKey, ID, RelationType } from '../../domain/types';
@@ -107,12 +108,6 @@ export function OrbitPage() {
         occludedLeft={hudVisible ? leftInset : 0}
         living
       >
-        {/* Title */}
-        <div className="pointer-events-none absolute top-2 z-10 hidden rounded-[6px] bg-canvas/80 px-2 py-1 lg:block" style={{ left: leftInset + 4 }}>
-          <div className="label">01 · Orbit</div>
-          <div className="mt-0.5 text-[15px] font-medium tracking-[-0.01em] text-ink">Where am I?</div>
-        </div>
-
         {/* Toolbar */}
         <div
           className="absolute top-3 z-10 flex flex-wrap items-center justify-end gap-1.5 transition-[right] duration-200"
@@ -124,7 +119,7 @@ export function OrbitPage() {
               onClick={() => setMobileHud(true)}
               className="mr-auto h-8 rounded-[7px] border border-line bg-surface/95 px-2.5 text-[12px] text-ink-2"
             >
-              Status
+              Overview
             </button>
           )}
           <GraphSearch
@@ -145,26 +140,32 @@ export function OrbitPage() {
           >
             Add point
           </Button>
-          <ToolGroup>
-            <IconButton
-              icon={Crosshair}
-              size="sm"
-              label={view.focus ? 'Show everything' : 'Focus: hide what is unrelated to the selection'}
-              active={view.focus}
-              onClick={() => setOrbitView({ focus: !view.focus })}
-            />
+          <ViewMenu padding={padding}>
+            <MenuItem checked={view.focus} hint="Hide what is not linked to the selected item" onSelect={() => setOrbitView({ focus: !view.focus })}>
+              Focus on the selection
+            </MenuItem>
             {!isMobile && (
-              <IconButton
+              <MenuItem
                 icon={allCollapsed ? UnfoldVertical : FoldVertical}
-                size="sm"
-                label={allCollapsed ? 'Expand all domains' : 'Collapse all domains (double-click a hub to toggle one)'}
-                onClick={() => setOrbitView({ collapsed: allCollapsed ? [] : [...DOMAIN_KEYS] })}
-              />
+                hint="Double-click one area to fold just that one"
+                onSelect={() => setOrbitView({ collapsed: allCollapsed ? [] : [...DOMAIN_KEYS] })}
+              >
+                {allCollapsed ? 'Unfold all areas' : 'Fold all areas'}
+              </MenuItem>
             )}
-            <IconButton icon={RotateCcw} size="sm" label="Reset layout" onClick={() => resetLayout('orbit')} />
-            <IconButton icon={CircleHelp} size="sm" label="How this page works" active={help.shown} onClick={help.toggle} />
-          </ToolGroup>
-          {!isMobile && <ZoomControls padding={padding} />}
+            {isDesktop && (
+              <MenuItem checked={hudOpen} hint="Do this next, where you are, your plan" onSelect={() => setHudOpen(!hudOpen)}>
+                Overview panel
+              </MenuItem>
+            )}
+            <MenuSeparator />
+            <MenuItem icon={RotateCcw} hint="Put everything back where it started" onSelect={() => resetLayout('orbit')}>
+              Reset layout
+            </MenuItem>
+            <MenuItem icon={CircleHelp} onSelect={help.toggle}>
+              {help.shown ? 'Hide how this page works' : 'How this page works'}
+            </MenuItem>
+          </ViewMenu>
         </div>
 
         {help.shown && (
@@ -173,20 +174,14 @@ export function OrbitPage() {
           </div>
         )}
 
-        {/* Status panel (dashboard) */}
-        {hudVisible ? (
+        {/* Overview panel */}
+        {hudVisible && (
           <div
             className="absolute top-3 bottom-3 left-3 z-10 animate-fade-in overflow-hidden rounded-[10px] border border-line bg-surface/[0.96] shadow-2xl backdrop-blur-md"
             style={{ width: HUD_WIDTH }}
           >
             <StatusHud onClose={() => setHudOpen(false)} />
           </div>
-        ) : (
-          isDesktop && (
-            <div className="absolute bottom-3 left-3 z-10">
-              <IconButton icon={PanelLeftOpen} label="Show status panel" onClick={() => setHudOpen(true)} className="border-line! bg-surface/95" />
-            </div>
-          )
         )}
 
         {/* First step, only on an empty atlas */}
