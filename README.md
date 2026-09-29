@@ -33,6 +33,8 @@ Three things keep it easy:
 
 - **Do this next**, at the top of the left panel on Orbit, always shows one concrete action (write your first note, review suggestions, record a finished experiment's result, mark this week's step done…), worked out from your data.
 - **The Guide** (top bar, or `⌘K` → "Guide") is a four-step introduction. It opens by itself on the first visit.
+- **Versions** (top bar): save the whole atlas as a named version at any moment and go back to any version later; going back first saves what you have now. **Start fresh** begins an empty atlas (or the sample) and saves the current one as a version first, with an Undo right after. Importing a file also saves a version first. Versions live in the browser's IndexedDB (the 30 most recent are kept, your own named ones first) and can be downloaded as JSON.
+- **Add point** on Orbit and Mind adds your own goals, projects, people, beliefs, questions… directly to the map.
 - **How this page works**: every page has a short note, open on the first visit and one click away afterwards; the graph pages have it behind the `?` button in their toolbar.
 
 ## The five sections

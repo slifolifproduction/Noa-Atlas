@@ -77,6 +77,8 @@ interface UIState {
   /** The welcome guide has been seen (it opens by itself once). */
   guideSeen: boolean;
   guideOpen: boolean;
+  versionsOpen: boolean;
+  startFreshOpen: boolean;
   /** Pages whose "how this works" tip has been read and folded away. */
   tipsSeen: string[];
   busy: Record<string, boolean>;
@@ -101,6 +103,8 @@ interface UIState {
   setSettings(patch: Partial<ProviderSettings>): void;
   setSpaceMode(mode: SpaceMode): void;
   setGuideOpen(open: boolean): void;
+  setVersionsOpen(open: boolean): void;
+  setStartFreshOpen(open: boolean): void;
   setTipSeen(page: string, seen: boolean): void;
   setBusy(key: string, busy: boolean): void;
 }
@@ -124,6 +128,8 @@ export const useUI = create<UIState>()(
       spaceMode: 'auto',
       guideSeen: false,
       guideOpen: false,
+      versionsOpen: false,
+      startFreshOpen: false,
       tipsSeen: [],
       busy: {},
 
@@ -160,6 +166,8 @@ export const useUI = create<UIState>()(
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
       setSpaceMode: (spaceMode) => set({ spaceMode }),
       setGuideOpen: (guideOpen) => set((s) => ({ guideOpen, guideSeen: s.guideSeen || !guideOpen })),
+      setVersionsOpen: (versionsOpen) => set({ versionsOpen }),
+      setStartFreshOpen: (startFreshOpen) => set({ startFreshOpen, versionsOpen: false }),
       setTipSeen: (page, seen) => set((s) => ({ tipsSeen: seen ? [...new Set([...s.tipsSeen, page])] : s.tipsSeen.filter((p) => p !== page) })),
       setBusy: (key, busy) => set((s) => ({ busy: { ...s.busy, [key]: busy } })),
     }),

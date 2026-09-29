@@ -8,6 +8,8 @@ import { Guide } from './components/shell/Guide';
 import { ShortcutsDialog } from './components/shell/ShortcutsDialog';
 import { MobileTabBar, TopBar } from './components/shell/TopBar';
 import { Toasts } from './components/ui/Toasts';
+import { StartFreshModal } from './components/versions/StartFreshModal';
+import { VersionsModal } from './components/versions/VersionsModal';
 import { SECTIONS } from './domain/constants';
 import { useInspectorWidth } from './hooks/useMediaQuery';
 import { cn } from './lib/cn';
@@ -90,6 +92,8 @@ export function App() {
       <CaptureModal />
       <CommandPalette />
       <Guide />
+      <VersionsModal />
+      <StartFreshModal />
       <ShortcutsDialog />
       <Toasts />
     </div>

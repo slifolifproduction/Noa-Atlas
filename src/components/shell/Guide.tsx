@@ -1,4 +1,4 @@
-import { ArrowRight, Brain, Compass, Lightbulb, Orbit, PenLine, Repeat, Search, Split } from 'lucide-react';
+import { ArrowRight, Brain, Compass, History, Lightbulb, Orbit, PenLine, Repeat, Search, Split } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { cn } from '../../lib/cn';
@@ -124,10 +124,13 @@ export function Guide() {
             The card at the top of the left panel always shows one clear thing to do.
           </Where>
           <Where icon={Orbit} title="Orbit">
-            Your areas of life at a glance. Click any circle or dot to open it.
+            Your areas of life at a glance. Click any circle or dot to open it; “Add point” adds your own.
           </Where>
           <Where icon={Brain} title="Mind">
             Your beliefs, fears and questions, and how they affect each other.
+          </Where>
+          <Where icon={History} title="Versions">
+            Save your atlas at any moment and go back to it later, or start fresh without losing anything.
           </Where>
           <Where icon={Search} title="Help and search">
             Every page has a “How this works” note. <Kbd>⌘K</Kbd> finds anything; the Guide button brings this back.

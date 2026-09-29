@@ -1,4 +1,18 @@
-import { ArrowRight, CornerDownLeft, FlaskConical, Keyboard, LifeBuoy, Plus, ScanSearch, Search, Split, type LucideIcon } from 'lucide-react';
+import {
+  ArrowRight,
+  CornerDownLeft,
+  FlaskConical,
+  History,
+  Keyboard,
+  LifeBuoy,
+  Plus,
+  RotateCcw,
+  Save,
+  ScanSearch,
+  Search,
+  Split,
+  type LucideIcon,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { navigate } from '../../app/router';
@@ -9,6 +23,7 @@ import type { AtlasData } from '../../domain/types';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { scanAllEntries } from '../../state/operations';
+import { saveCurrentVersion, versionStamp } from '../../state/versionOps';
 import { toast, useUI } from '../../state/uiStore';
 import { CAPTURE_ICONS, CATEGORY_ICONS, DOMAIN_ICONS, PatternIcon } from '../icons';
 import { Kbd } from '../ui/primitives';
@@ -46,6 +61,26 @@ function buildIndex(data: AtlasData): Item[] {
     },
     { id: 'act:keys', group: 'Actions', label: 'Keyboard shortcuts', icon: Keyboard, run: () => ui.setShortcutsOpen(true) },
     { id: 'act:guide', group: 'Actions', label: 'Guide: how it works', detail: 'The four-step introduction', icon: LifeBuoy, run: () => ui.setGuideOpen(true) },
+    {
+      id: 'act:save-version',
+      group: 'Actions',
+      label: 'Save a version',
+      detail: 'A save point of the whole atlas you can go back to',
+      icon: Save,
+      run: async () => {
+        const v = await saveCurrentVersion(`Saved · ${versionStamp()}`);
+        toast(`Saved “${v.name}”.`, { tone: 'success', action: { label: 'Versions', run: () => ui.setVersionsOpen(true) } });
+      },
+    },
+    { id: 'act:versions', group: 'Actions', label: 'Versions', detail: 'Go back to a saved version', icon: History, run: () => ui.setVersionsOpen(true) },
+    {
+      id: 'act:fresh',
+      group: 'Actions',
+      label: 'Start fresh…',
+      detail: 'A new atlas; the current one is saved first',
+      icon: RotateCcw,
+      run: () => ui.setStartFreshOpen(true),
+    },
   ];
   for (const d of DOMAINS) {
     items.push({

@@ -136,6 +136,15 @@ export function OrbitPage() {
               requestFocus('orbit', id);
             }}
           />
+          <Button
+            size="sm"
+            icon={Plus}
+            onClick={() => setAdding(true)}
+            title="Add a goal, project, person, skill… to an area of life"
+            className="bg-surface/95"
+          >
+            Add point
+          </Button>
           <ToolGroup>
             <IconButton
               icon={Crosshair}
@@ -153,7 +162,6 @@ export function OrbitPage() {
               />
             )}
             <IconButton icon={RotateCcw} size="sm" label="Reset layout" onClick={() => resetLayout('orbit')} />
-            <IconButton icon={Plus} size="sm" label="Add to Orbit" onClick={() => setAdding(true)} />
             <IconButton icon={CircleHelp} size="sm" label="How this page works" active={help.shown} onClick={help.toggle} />
           </ToolGroup>
           {!isMobile && <ZoomControls padding={padding} />}
@@ -184,16 +192,19 @@ export function OrbitPage() {
         {/* First step, only on an empty atlas */}
         {Object.keys(data.entries).length === 0 && Object.keys(data.nodes).length === 0 && (
           <div
-            className="absolute bottom-6 z-10 w-[min(420px,calc(100%-24px))] -translate-x-1/2 rounded-[10px] border border-line-strong bg-surface/95 px-4 py-3.5 backdrop-blur"
+            className="absolute bottom-12 z-10 w-[min(440px,calc(100%-24px))] -translate-x-1/2 rounded-[10px] border border-line-strong bg-surface/95 px-4 py-3.5 backdrop-blur"
             style={{ left: isDesktop ? `calc(${leftInset}px + (100% - ${leftInset + occluded}px) / 2)` : '50%' }}
           >
             <div className="label">Start here</div>
             <p className="mt-1 text-[13px] leading-snug text-ink-2">
-              Select a domain and write one line about where you stand in it. Then capture something that happened this week; the map fills in from there.
+              Write about something that happened, or add your first points: goals, projects, people, skills. The map fills in from there.
             </p>
-            <div className="mt-2.5 flex gap-2">
+            <div className="mt-2.5 flex flex-wrap gap-2">
               <Button size="sm" variant="primary" icon={Plus} onClick={() => useUI.getState().openCapture('journal')}>
-                Capture an entry
+                Write a note
+              </Button>
+              <Button size="sm" icon={Plus} onClick={() => setAdding(true)}>
+                Add a point
               </Button>
               <Button size="sm" variant="ghost" onClick={() => openEntity({ kind: 'domain', id: 'identity' })}>
                 Describe your identity

@@ -131,9 +131,11 @@ export function MindPage() {
               ]}
             />
           </div>
+          <Button size="sm" icon={Plus} onClick={() => setAdding(true)} title="Add a belief, fear, question, value or decision" className="bg-surface/95">
+            Add point
+          </Button>
           <ToolGroup>
             <IconButton icon={RotateCcw} size="sm" label="Reset layout" onClick={() => resetLayout('mind')} />
-            <IconButton icon={Plus} size="sm" label="Add to Mind" onClick={() => setAdding(true)} />
             <IconButton icon={CircleHelp} size="sm" label="How this page works" active={help.shown} onClick={help.toggle} />
           </ToolGroup>
           {!isMobile && <ZoomControls padding={padding} />}

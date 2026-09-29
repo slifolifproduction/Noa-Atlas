@@ -1,9 +1,8 @@
-import { Download, RotateCcw, Upload } from 'lucide-react';
+import { Download, History, RotateCcw, Upload } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { checkProxyHealth } from '../../ai/health';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
-import { ConfirmButton } from '../../components/ui/ConfirmButton';
 import { FieldLabel, Kbd, Segmented } from '../../components/ui/primitives';
 import { CONFIDENCE_EXPLAINER } from '../../domain/confidence';
 import { modelCounts } from '../../domain/selectors';
@@ -13,6 +12,7 @@ import { useAtlas } from '../../state/atlasStore';
 import { exportPayload, parseImport, STORAGE_KEYS } from '../../persistence/storage';
 import { spaceHealth } from '../../graph/space';
 import { toast, useUI, type SpaceMode } from '../../state/uiStore';
+import { importWithBackup, restoreVersion } from '../../state/versionOps';
 
 function Block({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
   return (
@@ -29,16 +29,14 @@ function Block({ title, description, children }: { title: string; description?: 
 export function SettingsPage() {
   const data = useAtlas((s) => s.data);
   const setName = useAtlas((s) => s.setProfileName);
-  const resetToSample = useAtlas((s) => s.resetToSample);
-  const clearAll = useAtlas((s) => s.clearAll);
-  const replaceData = useAtlas((s) => s.replaceData);
   const settings = useUI((s) => s.settings);
   const setSettings = useUI((s) => s.setSettings);
   const resetLayout = useUI((s) => s.resetLayout);
-  const closeInspector = useUI((s) => s.closeInspector);
   const setShortcutsOpen = useUI((s) => s.setShortcutsOpen);
   const spaceMode = useUI((s) => s.spaceMode);
   const setSpaceMode = useUI((s) => s.setSpaceMode);
+  const setVersionsOpen = useUI((s) => s.setVersionsOpen);
+  const setStartFreshOpen = useUI((s) => s.setStartFreshOpen);
   const [health, setHealth] = useState<{ ok: boolean; message: string } | null>(null);
   const [checking, setChecking] = useState(false);
   const file = useRef<HTMLInputElement>(null);
@@ -50,12 +48,6 @@ export function SettingsPage() {
       return 0;
     }
   })();
-
-  const afterDataSwap = () => {
-    closeInspector();
-    resetLayout('orbit');
-    resetLayout('mind');
-  };
 
   const exportData = () => {
     const blob = new Blob([exportPayload(data)], { type: 'application/json' });
@@ -73,9 +65,15 @@ export function SettingsPage() {
       toast(result.error, { tone: 'warning' });
       return;
     }
-    replaceData(result.data);
-    afterDataSwap();
-    toast('Atlas imported.', { tone: 'success' });
+    try {
+      const saved = await importWithBackup(result.data);
+      toast('Atlas imported. What you had before is saved in Versions.', {
+        tone: 'success',
+        action: { label: 'Undo', run: () => void restoreVersion(saved.id, { backup: false }) },
+      });
+    } catch {
+      toast('Could not save a version first, so the import was not applied. Export a copy, then try again.', { tone: 'warning' });
+    }
   };
 
   return (
@@ -200,37 +198,21 @@ export function SettingsPage() {
             </Button>
             <input ref={file} type="file" accept="application/json,.json" hidden onChange={(e) => e.target.files?.[0] && importData(e.target.files[0])} />
           </div>
-          <p className="mt-2 text-[12px] text-ink-3">Importing replaces everything currently in this browser. Export first if you want a copy.</p>
-          <div className="mt-5 space-y-3 rounded-[8px] border border-line p-3.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <div className="text-[13px] text-ink">Reload the sample atlas</div>
-                <div className="text-[12px] text-ink-3">Replaces your data with the fictional example (Noa, a freelance producer).</div>
+          <p className="mt-2 text-[12px] text-ink-3">Importing replaces the atlas in this browser; the current one is saved as a version first.</p>
+          <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-line p-3.5">
+            <div className="min-w-0">
+              <div className="text-[13px] text-ink">Versions and starting over</div>
+              <div className="text-[12px] leading-snug text-ink-3">
+                Save your atlas as a version, go back to an earlier one, or start fresh (empty or with the sample). The current atlas is always saved first.
               </div>
-              <ConfirmButton
-                label="Reset"
-                confirmLabel="Replace with sample"
-                onConfirm={() => {
-                  resetToSample();
-                  afterDataSwap();
-                  toast('Sample atlas loaded.', { tone: 'success' });
-                }}
-              />
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3">
-              <div>
-                <div className="text-[13px] text-ink">Start empty</div>
-                <div className="text-[12px] text-ink-3">Clears everything and keeps only the ten life domains.</div>
-              </div>
-              <ConfirmButton
-                label="Clear"
-                confirmLabel="Delete all data"
-                onConfirm={() => {
-                  clearAll(data.profile.name === 'Noa Varela' ? '' : data.profile.name);
-                  afterDataSwap();
-                  toast('Atlas cleared. Capture a first entry with N.', { tone: 'success' });
-                }}
-              />
+            <div className="flex shrink-0 gap-2">
+              <Button icon={History} onClick={() => setVersionsOpen(true)}>
+                Versions
+              </Button>
+              <Button icon={RotateCcw} onClick={() => setStartFreshOpen(true)}>
+                Start fresh…
+              </Button>
             </div>
           </div>
           <Button variant="ghost" icon={RotateCcw} className="mt-3" onClick={() => (resetLayout('orbit'), resetLayout('mind'), toast('Graph layouts reset.'))}>

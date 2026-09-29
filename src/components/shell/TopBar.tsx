@@ -1,4 +1,4 @@
-import { BookOpen, CircleQuestionMark, LifeBuoy, Menu, Plus, Search, Settings, Split } from 'lucide-react';
+import { BookOpen, CircleQuestionMark, History, LifeBuoy, Menu, Plus, Search, Settings, Split } from 'lucide-react';
 import { useState } from 'react';
 import { hrefFor, type RouteKey } from '../../app/router';
 import { SECTIONS } from '../../domain/constants';
@@ -18,6 +18,7 @@ export function TopBar({ active }: { active: RouteKey }) {
   const openCapture = useUI((s) => s.openCapture);
   const setPaletteOpen = useUI((s) => s.setPaletteOpen);
   const setGuideOpen = useUI((s) => s.setGuideOpen);
+  const setVersionsOpen = useUI((s) => s.setVersionsOpen);
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -86,6 +87,16 @@ export function TopBar({ active }: { active: RouteKey }) {
         <IconButton icon={Plus} label="Capture" className="sm:hidden" onClick={() => openCapture('journal')} />
         <button
           type="button"
+          onClick={() => setVersionsOpen(true)}
+          title="Versions: save your atlas, go back to an earlier one, or start fresh"
+          className="hidden h-8 items-center gap-1.5 rounded-[6px] px-2 text-[12.5px] text-ink-3 transition-colors hover:bg-white/[0.04] hover:text-ink-2 lg:flex"
+        >
+          <History size={14} strokeWidth={1.7} aria-hidden />
+          <span className="hidden xl:inline">Versions</span>
+          <span className="sr-only xl:hidden">Versions</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setGuideOpen(true)}
           title="How Cognitive Atlas works"
           className="hidden h-8 items-center gap-1.5 rounded-[6px] px-2 text-[12.5px] text-ink-3 transition-colors hover:bg-white/[0.04] hover:text-ink-2 lg:flex"
@@ -136,6 +147,17 @@ export function TopBar({ active }: { active: RouteKey }) {
                 >
                   <LifeBuoy size={14} aria-hidden />
                   Guide: how it works
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setVersionsOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-[6px] px-2.5 py-2 text-left text-[13px] text-ink-2 hover:bg-white/[0.04]"
+                >
+                  <History size={14} aria-hidden />
+                  Versions and start fresh
                 </button>
               </div>
             </>

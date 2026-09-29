@@ -678,7 +678,7 @@ function Canvas({
             />
           )}
           {probe && !pending && !edgeMenu && <NodeProbe id={probe} occludedRight={occludedRight} hint="Click to open · arrow keys travel along links" />}
-          {signal && isDesktop && (
+          {signal && isDesktop && labelsFor.has(signal.origin) && built.edges.some((e) => e.data?.relation !== 'part_of') && (
             <SignalReadout key={signal.cycle} signal={signal} labelOf={(id) => nodeLabel(labelsFor.get(id))} left={occludedLeft} right={occludedRight} />
           )}
           {edgeMenu && <EdgePopover edgeId={edgeMenu.edgeId} x={edgeMenu.x} y={edgeMenu.y} edges={built.edges} onClose={() => setEdgeMenu(null)} />}
