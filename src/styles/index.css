@@ -307,9 +307,71 @@
     opacity: 0;
   }
 }
+@keyframes atlas-ripple-card {
+  0% {
+    opacity: var(--ripple, 0.5);
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.05, 1.35);
+  }
+}
+@keyframes atlas-ripple-dot {
+  0% {
+    opacity: var(--ripple, 0.5);
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+@keyframes atlas-lock {
+  0% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+  60% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes atlas-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes atlas-probe-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
 
-.atlas-stars {
-  animation: atlas-fade-in 900ms var(--ease-out-quint) both;
+/* Deep space: two canvases behind the graph (an opaque nebula backdrop, then the
+ * stars) and a little dust in front of it, positioned by script with compositor transforms.
+ * Fades use `backwards` fill so nothing stays translucent (and costly) afterwards. */
+.atlas-space {
+  animation: atlas-fade-in 1200ms var(--ease-out-quint) backwards;
+}
+/* Above the graph's own stacking context (z-index 0), below every overlay. */
+.atlas-front {
+  z-index: 1;
+}
+.atlas-mote {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 20px;
+  height: 20px;
+  border-radius: 9999px;
+  transform-origin: 0 0;
+  will-change: transform;
+  animation: atlas-fade-in 1600ms ease-out 700ms backwards;
 }
 
 .hub-breath {
@@ -340,7 +402,7 @@
 .atlas-dense .sat-drift {
   animation: none;
 }
-/* Flow pulses: positioned along the edge path by offset-path (set in script). */
+/* Flow pulses: moved along the edge curve by transform keyframes (set in script). */
 .atlas-dot {
   position: absolute;
   left: 0;
@@ -349,6 +411,58 @@
   pointer-events: none;
   opacity: 0;
   will-change: transform, opacity;
+}
+
+/* Ripples for satellites, mind nodes and patterns (hubs draw theirs in SVG). */
+.node-ripple {
+  position: absolute;
+  inset: -3px;
+  border: 1.25px solid;
+  border-radius: 9px;
+  pointer-events: none;
+  opacity: 0;
+  animation: atlas-ripple-card 1.8s var(--ease-out-quint) forwards;
+}
+.node-ripple.is-circle {
+  border-radius: 9999px;
+  animation-name: atlas-ripple-dot;
+}
+
+/* Target lock on the selection: brackets or a slowly turning segmented ring. */
+.atlas-lock {
+  position: relative;
+  animation: atlas-lock 480ms var(--ease-out-quint) both;
+}
+.atlas-reticle-spin {
+  transform-origin: 50% 50%;
+  animation: atlas-spin 48s linear infinite;
+}
+
+/* Quick look on hover. */
+.atlas-probe-card {
+  animation: atlas-probe-in 160ms var(--ease-out-quint) both;
+}
+
+/* Mind cards: a soft glow in their own colour on hover and around the selection. */
+.mind-glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  box-shadow:
+    0 0 0 1px var(--glow),
+    0 0 22px -4px var(--glow);
+  transition: opacity 200ms ease;
+}
+.atlas-living .react-flow__node-mind:hover .mind-glow {
+  opacity: 0.6;
+}
+.atlas-living .react-flow__node-mind.is-near .mind-glow {
+  opacity: 0.28;
+}
+.atlas-living .react-flow__node-pattern:hover .pattern-body {
+  filter: drop-shadow(0 0 7px rgb(230 224 208 / 0.22));
 }
 
 /* Hover: a precise local lift, never a jump in size or position. */

@@ -45,9 +45,6 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
             )}
           </>
         )}
-        {selected && (
-          <circle cx="50" cy="50" r="56" fill="none" stroke="var(--color-accent)" strokeOpacity="0.5" strokeWidth="1" vectorEffect="non-scaling-stroke" />
-        )}
         <circle
           className="hub-ring"
           cx="50"

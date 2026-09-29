@@ -240,10 +240,13 @@ export function buildMind(data: AtlasData, opts: MindOptions): BuiltGraph {
     const n = data.nodes[id]!;
     const matched = matchesQuery(q, n.label, n.summary);
     if (matched) matches.push(id);
+    const position = opts.positions[id] ?? { x: 0, y: 0 };
     nodes.push({
       id,
       type: 'mind',
-      position: opts.positions[id] ?? { x: 0, y: 0 },
+      // Staged reveal: thought appears outward from the centre.
+      style: { '--reveal': `${240 + Math.round(Math.min(640, Math.hypot(position.x, position.y) * 0.7))}ms` } as CSSProperties,
+      position,
       data: {
         label: n.label,
         category: n.category!,
@@ -262,10 +265,13 @@ export function buildMind(data: AtlasData, opts: MindOptions): BuiltGraph {
     const p = data.patterns[id]!;
     const matched = matchesQuery(q, p.title, p.observation, p.chain.join(' '));
     if (matched) matches.push(id);
+    const position = opts.positions[id] ?? { x: 0, y: 0 };
     nodes.push({
       id,
       type: 'pattern',
-      position: opts.positions[id] ?? { x: 0, y: 0 },
+      // Patterns sit near the middle and come first: they are what the rest is read through.
+      style: { '--reveal': `${100 + Math.round(Math.min(300, Math.hypot(position.x, position.y) * 0.4))}ms` } as CSSProperties,
+      position,
       data: { code: p.code, title: p.chain.length ? p.chain.join(' → ') : p.title, confidence: computeConfidence(p.evidence), status: p.status, matched },
     });
   }
@@ -284,6 +290,8 @@ export function buildMind(data: AtlasData, opts: MindOptions): BuiltGraph {
       }
     }
   }
+
+  for (const e of edges) e.data!.flow = true;
 
   const matchSet = new Set(matches);
   applyEmphasis(nodes, edges, data, opts.selectedId, q, matchSet);

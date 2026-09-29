@@ -5,6 +5,7 @@ import type { ItemNode } from '../../../graph/types';
 import { useLabelScale, useZoomLevel } from '../../../hooks/useZoom';
 import { cn } from '../../../lib/cn';
 import { NodeHandles } from './Handles';
+import { NodeRipple } from './NodeRipple';
 
 const ORIGIN = { bottom: 'top center', top: 'bottom center', right: 'left center', left: 'right center' } as const;
 
@@ -38,7 +39,7 @@ export const ItemNodeView = memo(function ItemNodeView({ id, data, selected }: N
           className={cn('sat-core absolute inset-0 rounded-full border bg-surface transition-shadow', data.origin === 'inferred' && 'border-dashed')}
           style={{
             borderColor: data.color,
-            boxShadow: selected ? '0 0 0 3px var(--color-canvas), 0 0 0 4.5px var(--color-accent)' : data.matched ? `0 0 0 3px ${data.color}40` : undefined,
+            boxShadow: selected ? `0 0 12px 1px ${data.color}66` : data.matched ? `0 0 0 3px ${data.color}40` : undefined,
           }}
         />
         <div
@@ -46,6 +47,7 @@ export const ItemNodeView = memo(function ItemNodeView({ id, data, selected }: N
           style={{ background: fill, border: data.mark === 'gap' ? `1px solid ${data.color}` : undefined, opacity: 0.9 }}
         />
       </div>
+      <NodeRipple id={id} color={data.color} shape="circle" />
       <div
         className={cn(
           'node-label pointer-events-none absolute w-max max-w-[150px] text-[12px] leading-[1.3] transition-opacity',

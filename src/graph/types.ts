@@ -66,7 +66,7 @@ export type SemanticEdgeData = {
   stored: boolean;
   /** Secondary links (item to item across domains) stay faint until selected. */
   secondary?: boolean;
-  /** Carries animated flow pulses (the living Orbit). */
+  /** Carries animated flow pulses (living graphs). */
   flow?: boolean;
   /** Dimmed because something else is selected: no pulses. */
   dim?: boolean;

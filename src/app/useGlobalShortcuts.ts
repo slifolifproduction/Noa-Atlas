@@ -67,5 +67,6 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['F'], label: 'Fit the graph to the screen' },
   { keys: ['+', '−'], label: 'Zoom the graph' },
   { keys: ['Tab', '↵'], label: 'Move between graph nodes, open one' },
+  { keys: ['←', '↑', '→', '↓'], label: 'Travel along a graph connection in that direction' },
   { keys: ['?'], label: 'This list' },
 ];

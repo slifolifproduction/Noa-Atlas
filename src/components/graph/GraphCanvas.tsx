@@ -7,6 +7,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  ViewportPortal,
   type Connection,
   type NodeChange,
   type NodeTypes,
@@ -30,8 +31,10 @@ import { MindNodeView } from './nodes/MindNode';
 import { PatternNodeView } from './nodes/PatternNode';
 import { RingsNodeView } from './nodes/RingsNode';
 import { RelationPicker } from './RelationPicker';
+import { NodeProbe } from './NodeProbe';
+import { Reticle } from './Reticle';
 import { EdgeMarkers, SemanticEdgeView } from './SemanticEdge';
-import { StarField } from './StarField';
+import { SpaceField } from './SpaceField';
 
 const nodeTypes: NodeTypes = {
   hub: HubNodeView,
@@ -62,14 +65,26 @@ export interface GraphCanvasProps {
   /** Left-edge space covered by an overlay panel. */
   occludedLeft?: number;
   /**
-   * The living graph: starfield, breathing, flow pulses, periodic activity,
-   * staged reveal and camera glides to selected hubs.
+   * The living graph: deep-space parallax, breathing, flow pulses, periodic
+   * activity, staged reveal, elastic neighbours and camera glides.
    */
   living?: boolean;
   children?: ReactNode;
 }
 
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
+const ARROWS: Record<string, [number, number]> = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+
+/** Neighbours pulled along by a drag: offset, velocity and how strongly each follows. */
+interface Spring {
+  dragId: ID | null;
+  origin: { x: number; y: number };
+  dx: number;
+  dy: number;
+  items: Map<ID, { bx: number; by: number; w: number; ox: number; oy: number; vx: number; vy: number }>;
+  raf: number;
+}
 
 export function GraphCanvas(props: GraphCanvasProps) {
   return (
@@ -108,6 +123,9 @@ function Canvas({
   const activeShare = Math.min(1, MAX_ACTIVE_PULSES / Math.max(1, built.edges.filter((e) => e.data?.active).length));
   const motion = useMemo<MotionSettings>(() => ({ living, reduced, idleShare, activeShare }), [living, reduced, idleShare, activeShare]);
   const [hovered, setHovered] = useState<ID | null>(null);
+  const [probe, setProbe] = useState<ID | null>(null);
+  const [dragging, setDragging] = useState(false);
+  const canHover = useMediaQuery('(hover: hover) and (pointer: fine)');
   // The staged reveal runs once per mount, then the class is removed so later changes appear immediately.
   const [revealing, setRevealing] = useState(living && !reduced);
   useEffect(() => {
@@ -117,6 +135,10 @@ function Canvas({
   }, [revealing]);
 
   const [nodes, setNodes] = useState<AtlasFlowNode[]>(built.nodes);
+  const nodesRef = useRef(nodes);
+  nodesRef.current = nodes;
+  /** Set by keyboard travel so the camera follows the next selection. */
+  const travelled = useRef<ID | null>(null);
   const fitOptionsRef = useRef<FitViewOptions>({ padding: fitPadding });
   const [pending, setPending] = useState<{ source: ID; target: ID; x: number; y: number } | null>(null);
   const [edgeMenu, setEdgeMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
@@ -134,8 +156,86 @@ function Canvas({
     if (relevant.length) setNodes((nds) => applyNodeChanges(relevant, nds));
   }, []);
 
+  // Elastic neighbours: while a node is dragged, the nodes it connects to lean after it on
+  // springs, then settle back to their own places. Only the dragged node's position is saved.
+  const spring = useRef<Spring>({ dragId: null, origin: { x: 0, y: 0 }, dx: 0, dy: 0, items: new Map(), raf: 0 });
+  const edgesRef = useRef(built.edges);
+  edgesRef.current = built.edges;
+  const runSpring = useCallback(() => {
+    const s = spring.current;
+    if (s.raf) return;
+    let last = performance.now();
+    const step = (now: number) => {
+      const dt = Math.min(0.032, (now - last) / 1000);
+      last = now;
+      let moving = s.dragId !== null;
+      for (const it of s.items.values()) {
+        const tx = s.dragId ? s.dx * it.w : 0;
+        const ty = s.dragId ? s.dy * it.w : 0;
+        it.vx += ((tx - it.ox) * 170 - it.vx * 17) * dt;
+        it.vy += ((ty - it.oy) * 170 - it.vy * 17) * dt;
+        it.ox += it.vx * dt;
+        it.oy += it.vy * dt;
+        if (Math.abs(it.ox - tx) + Math.abs(it.oy - ty) > 0.25 || Math.abs(it.vx) + Math.abs(it.vy) > 0.5) moving = true;
+      }
+      if (!moving) for (const it of s.items.values()) it.ox = it.oy = 0;
+      const items = s.items;
+      setNodes((nds) =>
+        nds.map((n) => {
+          const it = items.get(n.id);
+          return it ? { ...n, position: { x: it.bx + it.ox, y: it.by + it.oy } } : n;
+        }),
+      );
+      if (moving) s.raf = requestAnimationFrame(step);
+      else {
+        s.raf = 0;
+        s.items = new Map();
+      }
+    };
+    s.raf = requestAnimationFrame(step);
+  }, []);
+  useEffect(() => () => cancelAnimationFrame(spring.current.raf), []);
+
+  const onNodeDragStart = useCallback(
+    (_: unknown, node: AtlasFlowNode) => {
+      setDragging(true);
+      setProbe(null);
+      if (!living || reduced) return;
+      const s = spring.current;
+      // A new drag while the last one is still settling: those neighbours go straight home,
+      // and their home (not their current, displaced position) is what the new drag starts from.
+      const settling = s.items;
+      if (settling.size)
+        setNodes((nds) => nds.map((n) => (settling.has(n.id) ? { ...n, position: { x: settling.get(n.id)!.bx, y: settling.get(n.id)!.by } } : n)));
+      const byId = new Map(nodesRef.current.map((n) => [n.id, n]));
+      s.items = new Map();
+      for (const e of edgesRef.current) {
+        const other = e.source === node.id ? e.target : e.target === node.id ? e.source : null;
+        const n = other ? byId.get(other) : undefined;
+        // Hubs are anchors: they never lean toward a dragged satellite.
+        if (!n || n.type === 'hub' || n.type === 'rings' || s.items.has(n.id)) continue;
+        const home = settling.get(n.id);
+        s.items.set(n.id, { bx: home?.bx ?? n.position.x, by: home?.by ?? n.position.y, w: node.type === 'hub' ? 0.32 : 0.2, ox: 0, oy: 0, vx: 0, vy: 0 });
+      }
+      s.dragId = node.id;
+      s.origin = { ...node.position };
+      s.dx = s.dy = 0;
+      if (s.items.size) runSpring();
+    },
+    [living, reduced, runSpring],
+  );
+
+  const onNodeDrag = useCallback((_: unknown, node: AtlasFlowNode) => {
+    const s = spring.current;
+    if (s.dragId !== node.id) return;
+    s.dx = node.position.x - s.origin.x;
+    s.dy = node.position.y - s.origin.y;
+  }, []);
+
   const onNodeDragStop = useCallback(
     (_: unknown, __: AtlasFlowNode, dragged: AtlasFlowNode[]) => {
+      setDragging(false);
+      spring.current.dragId = null;
       setPositions(layer, Object.fromEntries(dragged.map((n) => [n.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) }])));
     },
     [layer, setPositions],
@@ -175,6 +275,12 @@ function Canvas({
     const rect = wrapper.current.getBoundingClientRect();
     // Centre within the visible area between any side panels.
     const centre = (z: number) => n.position.x + (occludedRight - occludedLeft) / 2 / z;
+    if (travelled.current === selectedId) {
+      // Keyboard travel: the camera flies to each node in turn.
+      travelled.current = null;
+      rf.setCenter(centre(zoom), n.position.y, { zoom, duration: reduced ? 0 : 560, ease: easeInOutCubic });
+      return;
+    }
     if (living && n.type === 'hub') {
       // Navigating to a region: a gentle glide that brings the domain and its satellites into view.
       const target = Math.min(1.05, Math.max(zoom, 0.78));
@@ -189,10 +295,8 @@ function Canvas({
     }
   }, [selectedId]);
 
-  // Periodic system activity: every so often a soft wave leaves one domain along its
-  // relationships and faintly reaches the domains at the other end.
-  const edgesRef = useRef(built.edges);
-  edgesRef.current = built.edges;
+  // Periodic system activity: every so often a soft wave leaves one domain (Orbit) or one
+  // well-connected thought (Mind) along its relationships and faintly reaches the other ends.
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
   useEffect(() => {
@@ -204,9 +308,11 @@ function Canvas({
     const fire = () => {
       if (!document.hidden) {
         const edges = edgesRef.current.filter((e) => !e.data?.dim && e.data?.relation !== 'part_of');
-        const hubs = [...new Set(edges.flatMap((e) => [e.source, e.target]).filter((id) => id.startsWith('domain:')))];
+        const degree = new Map<ID, number>();
+        for (const e of edges) for (const id of [e.source, e.target]) degree.set(id, (degree.get(id) ?? 0) + 1);
+        const origins = [...degree.keys()].filter((id) => (layer === 'orbit' ? id.startsWith('domain:') : degree.get(id)! >= 2));
         // While something is selected, activity stays inside its neighbourhood.
-        const pool = selectedRef.current ? hubs.filter((h) => edges.some((e) => (e.source === h || e.target === h) && e.data?.active)) : hubs;
+        const pool = selectedRef.current ? origins.filter((h) => edges.some((e) => (e.source === h || e.target === h) && e.data?.active)) : origins;
         const origin = pool[Math.floor(Math.random() * pool.length)];
         if (origin) {
           const reached = edges.filter((e) => e.source === origin || e.target === origin).map((e) => (e.source === origin ? e.target : e.source));
@@ -217,7 +323,61 @@ function Canvas({
     };
     timer = window.setTimeout(fire, 2600);
     return () => clearTimeout(timer);
-  }, [living, reduced]);
+  }, [living, reduced, layer]);
+
+  // Hovering a node for a moment opens a quick look at it (pointer devices only).
+  useEffect(() => {
+    if (!hovered || hovered === selectedId || dragging || !canHover) {
+      setProbe(null);
+      return;
+    }
+    const t = setTimeout(() => setProbe(hovered), 380);
+    return () => clearTimeout(t);
+  }, [hovered, selectedId, dragging, canHover]);
+
+  // Arrow keys travel along connections: to the linked node that lies most nearly in that
+  // direction, or failing that the nearest node that way. With nothing selected, start near the middle.
+  const travel = useCallback(
+    (dx: number, dy: number) => {
+      const all = nodesRef.current.filter((n) => n.type !== 'rings');
+      const current = all.find((n) => n.id === selectedRef.current);
+      let next: AtlasFlowNode | undefined;
+      if (!current) {
+        const rect = wrapper.current?.getBoundingClientRect();
+        if (!rect) return;
+        const { x, y, zoom } = rf.getViewport();
+        const cx = (rect.width / 2 + (occludedLeft - occludedRight) / 2 - x) / zoom;
+        const cy = (rect.height / 2 - y) / zoom;
+        let best = Infinity;
+        for (const n of all) {
+          const d = Math.hypot(n.position.x - cx, n.position.y - cy);
+          if (d < best) [best, next] = [d, n];
+        }
+      } else {
+        const pick = (pool: AtlasFlowNode[]) => {
+          let best = Infinity;
+          let found: AtlasFlowNode | undefined;
+          for (const n of pool) {
+            const vx = n.position.x - current.position.x;
+            const vy = n.position.y - current.position.y;
+            const dist = Math.hypot(vx, vy) || 1;
+            const cos = (vx * dx + vy * dy) / dist;
+            if (cos < 0.35) continue;
+            const score = dist * (1 + 1.6 * (1 - cos));
+            if (score < best) [best, found] = [score, n];
+          }
+          return found;
+        };
+        const linked = new Set(edgesRef.current.flatMap((e) => (e.source === current.id ? [e.target] : e.target === current.id ? [e.source] : [])));
+        next = pick(all.filter((n) => linked.has(n.id))) ?? pick(all.filter((n) => n.id !== current.id));
+      }
+      if (!next) return;
+      travelled.current = next.id;
+      setProbe(null);
+      onSelect(next.id);
+    },
+    [rf, onSelect, occludedLeft, occludedRight],
+  );
 
   // Hover highlights a node's direct connections without rebuilding the graph.
   const edges = useMemo(() => {
@@ -238,9 +398,26 @@ function Canvas({
         if (id && id !== '__rings') onSelect(id);
       }
     };
+    // Arrows are taken in the capture phase so React Flow's own "nudge the focused node" never runs.
+    const onArrow = (e: KeyboardEvent) => {
+      const dir = ARROWS[e.key];
+      if (!dir || isTyping(e.target) || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey) return;
+      const active = document.activeElement;
+      if (active && active !== document.body && !active.closest('.react-flow')) return;
+      if (!wrapper.current?.isConnected) return;
+      e.preventDefault();
+      e.stopPropagation();
+      travel(dir[0], dir[1]);
+    };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [rf, onSelect]);
+    window.addEventListener('keydown', onArrow, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('keydown', onArrow, true);
+    };
+  }, [rf, onSelect, travel]);
+
+  const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : undefined;
 
   const labelsFor = useMemo(() => new Map(built.nodes.map((n) => [n.id, n])), [built.nodes]);
   // Fit to the content, not to decorative backdrops such as the orbit rings.
@@ -259,7 +436,7 @@ function Canvas({
         onPointerUp={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
       >
         <EdgeMarkers />
-        {living && <StarField reduced={reduced} />}
+        {living && <SpaceField reduced={reduced} />}
         <ReactFlow<AtlasFlowNode, SemanticEdge>
           nodes={nodes}
           edges={edges}
@@ -267,6 +444,8 @@ function Canvas({
           edgeTypes={edgeTypes}
           nodeOrigin={[0.5, 0.5]}
           onNodesChange={onNodesChange}
+          onNodeDragStart={onNodeDragStart}
+          onNodeDrag={onNodeDrag}
           onNodeDragStop={onNodeDragStop}
           onNodeClick={(_, n) => n.id !== '__rings' && onSelect(n.id)}
           onNodeDoubleClick={(_, n) => onNodeDoubleClick?.(n.id)}
@@ -299,6 +478,11 @@ function Canvas({
           onlyRenderVisibleElements={nodes.length > 160}
         >
           {!living && <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgb(255 255 255 / 0.07)" />}
+          {selectedNode && (
+            <ViewportPortal>
+              <Reticle key={selectedNode.id} node={selectedNode} />
+            </ViewportPortal>
+          )}
           {minimap && isDesktop && (
             <MiniMap
               pannable
@@ -323,6 +507,7 @@ function Canvas({
             onClose={() => setPending(null)}
           />
         )}
+        {probe && !pending && !edgeMenu && <NodeProbe id={probe} occludedRight={occludedRight} hint="Click to open · arrow keys travel along links" />}
         {edgeMenu && <EdgePopover edgeId={edgeMenu.edgeId} x={edgeMenu.x} y={edgeMenu.y} edges={built.edges} onClose={() => setEdgeMenu(null)} />}
         {children}
       </div>

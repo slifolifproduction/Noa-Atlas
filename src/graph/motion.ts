@@ -1,8 +1,8 @@
 /**
- * Motion for the living Orbit.
+ * Motion for the living graphs (Orbit and Mind).
  *
- * Everything here runs outside React's render loop: CSS animations, SVG
- * (SMIL) animations along real edge paths, a canvas starfield on
+ * Everything here runs outside React's render loop: CSS animations, WAAPI
+ * transform keyframes along real edge curves, a parallax space field on
  * requestAnimationFrame, and a tiny event bus for occasional activity waves.
  * No component re-renders per frame.
  */
@@ -10,7 +10,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import type { ID } from '../domain/types';
 
 export interface MotionSettings {
-  /** The graph animates (Orbit). Other graphs stay still. */
+  /** The graph animates. Off, it stays still. */
   living: boolean;
   /** The user asked the OS for reduced motion. */
   reduced: boolean;
@@ -38,7 +38,7 @@ export function hash01(s: string): number {
 /* ------------------------------------------------------------ activity waves */
 
 export interface Wave {
-  /** Hub the wave starts from. */
+  /** Node the wave starts from: a hub in Orbit, a well-connected node in Mind. */
   origin: ID;
   /** Nodes the wave reaches on its second step. */
   reached: ID[];

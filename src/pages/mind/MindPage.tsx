@@ -83,7 +83,9 @@ export function MindPage() {
         persistViewport={!isMobile}
         fitPadding={padding}
         fitMinZoom={isMobile ? 0.6 : undefined}
+        occludedLeft={railVisible ? RAIL_WIDTH + 24 : 0}
         minimap
+        living
       >
         {railVisible && (
           <div
