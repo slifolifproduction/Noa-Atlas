@@ -342,26 +342,10 @@
   }
 }
 
-/* Deep space: two canvases behind the graph (an opaque nebula backdrop, then the
- * stars) and a little dust in front of it, positioned by script with compositor transforms.
- * Fades use `backwards` fill so nothing stays translucent (and costly) afterwards. */
+/* Deep space: two canvases behind the graph (an opaque haze backdrop, then the stars).
+ * The fade uses `backwards` fill so nothing stays translucent (and costly) afterwards. */
 .atlas-space {
   animation: atlas-fade-in 1200ms var(--ease-out-quint) backwards;
-}
-/* Above the graph's own stacking context (z-index 0), below every overlay. */
-.atlas-front {
-  z-index: 1;
-}
-.atlas-mote {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: 20px;
-  height: 20px;
-  border-radius: 9999px;
-  transform-origin: 0 0;
-  will-change: transform;
-  animation: atlas-fade-in 1600ms ease-out 700ms backwards;
 }
 
 .hub-breath {
