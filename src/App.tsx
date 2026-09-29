@@ -12,9 +12,11 @@ import { StartFreshModal } from './components/versions/StartFreshModal';
 import { VersionsModal } from './components/versions/VersionsModal';
 import { VIEWS } from './domain/constants';
 import { useInspectorWidth } from './hooks/useMediaQuery';
+import { useToday } from './lib/dates';
 import { cn } from './lib/cn';
 import { OrbitPage } from './pages/orbit/OrbitPage';
 import { useUI } from './state/uiStore';
+import { t } from './i18n';
 
 const DecisionsPage = lazy(() => import('./pages/decisions/DecisionsPage').then((m) => ({ default: m.DecisionsPage })));
 const JournalPage = lazy(() => import('./pages/journal/JournalPage').then((m) => ({ default: m.JournalPage })));
@@ -51,6 +53,8 @@ function Page({ route }: { route: ReturnType<typeof useRoute> }): ReactNode {
 
 export function App() {
   const route = useRoute();
+  // Re-render everything when the date turns over in the chosen zone, or the zone itself changes.
+  useToday();
   const inspectorOpen = useUI((s) => s.inspector.length > 0);
   const panelWidth = useInspectorWidth();
   useGlobalShortcuts();
@@ -67,7 +71,7 @@ export function App() {
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-[2px] focus:bg-overlay focus:px-3 focus:py-2"
       >
-        Skip to content
+        {t('Skip to content')}
       </a>
       <TopBar active={route.key} />
       <SubNav active={route.key} />
@@ -76,7 +80,7 @@ export function App() {
           className={cn('h-full transition-[padding] duration-200', isGraph ? 'overflow-hidden' : 'overflow-y-auto')}
           style={{ paddingRight: !isGraph && inspectorOpen ? panelWidth : 0 }}
         >
-          <Suspense fallback={<div className="p-6 text-[13px] text-ink-3">Loading…</div>}>
+          <Suspense fallback={<div className="p-6 text-[13px] text-ink-3">{t('Loading…')}</div>}>
             <Page route={route} />
           </Suspense>
         </div>

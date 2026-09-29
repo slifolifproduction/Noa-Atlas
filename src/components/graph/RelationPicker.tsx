@@ -6,6 +6,7 @@ import type { AtlasFlowNode } from '../../graph/types';
 import { useAtlas } from '../../state/atlasStore';
 import { toast } from '../../state/uiStore';
 import { RelationSwatch } from './Legend';
+import { t } from '../../i18n';
 
 /** Shown after dragging a connection: the user names the relationship. */
 export function RelationPicker({
@@ -38,7 +39,9 @@ export function RelationPicker({
 
   const pick = (relation: RelationType) => {
     addEdge(sourceId, targetId, relation);
-    toast(`Connected: ${a?.label} ${SEMANTIC_RELATIONS.find((r) => r.key === relation)?.verb} ${b?.label}.`, { tone: 'success' });
+    toast(t('Connected: {a} {verb} {b}.', { a: a?.label ?? '', verb: SEMANTIC_RELATIONS.find((r) => r.key === relation)?.verb ?? '', b: b?.label ?? '' }), {
+      tone: 'success',
+    });
     onClose();
   };
 
@@ -49,7 +52,7 @@ export function RelationPicker({
     <div
       ref={ref}
       role="dialog"
-      aria-label="Choose a relationship"
+      aria-label={t('Choose a relationship')}
       className="absolute z-20 w-[284px] animate-rise rounded-[2px] border border-line-strong bg-overlay p-1.5 shadow-2xl"
       style={{ left, top }}
       onKeyDown={(e) => {

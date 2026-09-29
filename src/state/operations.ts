@@ -12,6 +12,7 @@ import { decisionCode, entryCode, experimentCode, pathCode } from '../domain/sel
 import type { CaptureKind, Entry, EntryAnalysis, Experiment, ExperimentResult, ID } from '../domain/types';
 import { useAtlas, type NewDecision, type NewEntry } from './atlasStore';
 import { toast, useUI } from './uiStore';
+import { t, tn } from '../i18n';
 
 let warnedFallback = false;
 
@@ -19,8 +20,8 @@ export function provider(): AnalysisProvider {
   return resolveProvider(useUI.getState().settings, (error) => {
     if (warnedFallback) return;
     warnedFallback = true;
-    const reason = error instanceof AnalysisError ? error.message : 'The Claude proxy is unavailable.';
-    toast(`${reason} Using local heuristics instead.`, { tone: 'warning' });
+    const reason = error instanceof AnalysisError ? error.message : t('The Claude proxy is unavailable.');
+    toast(t('{reason} Using local heuristics instead.', { reason }), { tone: 'warning' });
     setTimeout(() => (warnedFallback = false), 30_000);
   });
 }
@@ -65,10 +66,13 @@ export async function captureEntry(input: NewEntry, opts: { addToMap?: boolean }
   const ui = useUI.getState();
   const analysis = await analyzeEntry(entry.id);
   const pending = analysis ? countPending(analysis) : 0;
-  ui.toast(`Saved ${entryCode(entry.seq)}.${pending ? ` Analysis has ${pending} suggestion${pending === 1 ? '' : 's'} to review.` : ''}`, {
-    tone: 'success',
-    action: { label: 'Review', run: () => useUI.getState().openEntity({ kind: 'entry', id: entry.id }) },
-  });
+  ui.toast(
+    `${t('Saved {code}.', { code: entryCode(entry.seq) })}${pending ? ` ${tn(pending, 'Analysis has {n} suggestion to review.', 'Analysis has {n} suggestions to review.')}` : ''}`,
+    {
+      tone: 'success',
+      action: { label: t('Review'), run: () => useUI.getState().openEntity({ kind: 'entry', id: entry.id }) },
+    },
+  );
   return useAtlas.getState().data.entries[entry.id];
 }
 
@@ -78,9 +82,9 @@ export function captureDecision(input: NewDecision, opts: { addToMap?: boolean }
   if (opts.addToMap) {
     atlas.addNode({ label: input.title, summary: '', category: 'decision', source: { kind: 'decision', id: decision.id } });
   }
-  toast(`Logged ${decisionCode(decision.seq)}.`, {
+  toast(t('Logged {code}.', { code: decisionCode(decision.seq) }), {
     tone: 'success',
-    action: { label: 'Open', run: () => useUI.getState().openEntity({ kind: 'decision', id: decision.id }) },
+    action: { label: t('Open'), run: () => useUI.getState().openEntity({ kind: 'decision', id: decision.id }) },
   });
   return decision;
 }
@@ -123,7 +127,7 @@ export function adoptExperimentDraft(draft: ExperimentDraft, links: { patternId?
     questionIds: links.questionId ? [links.questionId] : [],
   });
   const x = useAtlas.getState().data.experiments[id];
-  toast(`${experimentCode(x.code)} added as a proposed experiment.`, { tone: 'success' });
+  toast(t('{code} added as a proposed experiment.', { code: experimentCode(x.code) }), { tone: 'success' });
   return id;
 }
 
@@ -138,5 +142,5 @@ export async function commitDirection(pathId: ID) {
     const plan = await provider().draftNavigationPlan(path, useAtlas.getState().data);
     useAtlas.getState().setNavigation(plan);
   });
-  toast(`${pathCode(path.code)} is now your direction. A draft plan is ready to edit.`, { tone: 'success' });
+  toast(t('{code} is now your direction. A draft plan is ready to edit.', { code: pathCode(path.code) }), { tone: 'success' });
 }

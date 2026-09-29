@@ -16,8 +16,19 @@ import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { detectDecisionPatterns } from '../../state/operations';
 import { toast, useUI } from '../../state/uiStore';
+import { t, tn } from '../../i18n';
 
-const HORIZON = { immediate: 'Near-term', long_term: 'Long-term', neutral: 'Mixed' } as const;
+const HORIZON = {
+  get immediate() {
+    return t('Near-term');
+  },
+  get long_term() {
+    return t('Long-term');
+  },
+  get neutral() {
+    return t('Mixed');
+  },
+};
 const MIN_DECISIONS = 5;
 
 export function DecisionsPage() {
@@ -32,10 +43,10 @@ export function DecisionsPage() {
       <PageHeader
         view="decisions"
         help="decisions"
-        description="Each decision with its options, what you expected and what actually happened. Comparing the two shows how you decide."
+        description={t('Each decision with its options, what you expected and what actually happened. Comparing the two shows how you decide.')}
         actions={
           <Button variant="primary" icon={Plus} onClick={() => openCapture('decision')}>
-            Log decision
+            {t('Log decision')}
           </Button>
         }
       />
@@ -44,19 +55,19 @@ export function DecisionsPage() {
 
       <section className="mt-8" aria-labelledby="log-title">
         <h2 id="log-title" className="label mb-2">
-          Log · {decisions.length}
+          {t('Log')} · {decisions.length}
         </h2>
         {decisions.length === 0 ? (
           <EmptyState
             icon={Split}
-            title="No decisions logged"
+            title={t('No decisions logged')}
             action={
               <Button variant="primary" icon={Plus} onClick={() => openCapture('decision')}>
-                Log a decision
+                {t('Log a decision')}
               </Button>
             }
           >
-            Log decisions as you make them, with the options you weighed. Come back later to record what happened.
+            {t('Log decisions as you make them, with the options you weighed. Come back later to record what happened.')}
           </EmptyState>
         ) : (
           <div className="overflow-x-auto rounded-[2px] border border-line">
@@ -64,10 +75,10 @@ export function DecisionsPage() {
               <thead className="border-b border-line bg-surface">
                 <tr className="text-[11px] tracking-[0.06em] text-ink-3 uppercase">
                   <th className="px-3 py-2 font-mono font-normal">#</th>
-                  <th className="px-3 py-2 font-mono font-normal">Date</th>
-                  <th className="px-3 py-2 font-mono font-normal">Decision</th>
-                  <th className="px-3 py-2 font-mono font-normal">Drivers</th>
-                  <th className="px-3 py-2 font-mono font-normal">Outcome</th>
+                  <th className="px-3 py-2 font-mono font-normal">{t('Date')}</th>
+                  <th className="px-3 py-2 font-mono font-normal">{t('Decision')}</th>
+                  <th className="px-3 py-2 font-mono font-normal">{t('Drivers')}</th>
+                  <th className="px-3 py-2 font-mono font-normal">{t('Outcome')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -90,17 +101,17 @@ export function DecisionsPage() {
                         >
                           {d.title}
                         </button>
-                        <div className="mt-0.5 line-clamp-1 text-[12px] text-ink-3">Chose: {d.chosenAction || '—'}</div>
+                        <div className="mt-0.5 line-clamp-1 text-[12px] text-ink-3">{t('Chose: {option}', { option: d.chosenAction || '—' })}</div>
                       </td>
                       <td className="px-3 py-2.5">
-                        <div className="text-[12px] text-ink-2">{d.optimizingFor.join(', ') || '—'}</div>
+                        <div className="text-[12px] text-ink-2">{d.optimizingFor.map((x) => t(x)).join(', ') || '—'}</div>
                         {d.optimizingFor.length > 0 && <div className="mt-0.5 text-[11px] text-ink-3">{HORIZON[h]}</div>}
                       </td>
                       <td className="px-3 py-2.5 text-[12px]">
                         {d.actualOutcome ? (
-                          <span className="text-ink-2">{d.outcomeRating ? OUTCOME_RATING_LABEL[d.outcomeRating] : 'Reviewed'}</span>
+                          <span className="text-ink-2">{d.outcomeRating ? OUTCOME_RATING_LABEL[d.outcomeRating] : t('Reviewed')}</span>
                         ) : (
-                          <span className="text-counter">Awaiting outcome</span>
+                          <span className="text-counter">{t('Awaiting outcome')}</span>
                         )}
                       </td>
                     </tr>
@@ -137,25 +148,29 @@ function DecisionPatterns({ count }: { count: number }) {
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-3">
         <div>
           <h2 id="dp-title" className="label text-ink-2!">
-            Decision patterns
+            {t('Decision patterns')}
           </h2>
           <p className="mt-0.5 text-[12px] text-ink-3">
-            Proposed from the drivers and outcomes you recorded. Adding one to the model makes it part of the Mind graph.
+            {t('Proposed from the drivers and outcomes you recorded. Adding one to the model makes it part of the Mind graph.')}
           </p>
         </div>
         <Button size="sm" variant="ghost" icon={RefreshCw} loading={busy} onClick={run} disabled={count < MIN_DECISIONS}>
-          Re-analyse
+          {t('Re-analyse')}
         </Button>
       </header>
       {count < MIN_DECISIONS ? (
         <p className="px-4 py-4 text-[13px] text-ink-3">
-          Decision patterns need at least {MIN_DECISIONS} logged decisions; there {count === 1 ? 'is' : 'are'} {count}. Record the drivers for each so there is
-          something to compare.
+          {tn(
+            count,
+            'Decision patterns need at least {min} logged decisions; there is {n}. Record the drivers for each so there is something to compare.',
+            'Decision patterns need at least {min} logged decisions; there are {n}. Record the drivers for each so there is something to compare.',
+            { min: MIN_DECISIONS },
+          )}
         </p>
       ) : candidates === null ? (
-        <p className="px-4 py-4 text-[13px] text-ink-3">Analysing decisions…</p>
+        <p className="px-4 py-4 text-[13px] text-ink-3">{t('Analysing decisions…')}</p>
       ) : visible.length === 0 ? (
-        <p className="px-4 py-4 text-[13px] text-ink-3">No recurring decision pattern with enough evidence. That is a result too.</p>
+        <p className="px-4 py-4 text-[13px] text-ink-3">{t('No recurring decision pattern with enough evidence. That is a result too.')}</p>
       ) : (
         <ul className="divide-y divide-line">
           {visible.map((c) => {
@@ -166,31 +181,33 @@ function DecisionPatterns({ count }: { count: number }) {
             const existing = c.existingPatternId ? data.patterns[c.existingPatternId] : undefined;
             return (
               <li key={c.signature} className="px-4 py-4">
-                <div className="label">Decision pattern · {c.chain.join(' → ')}</div>
+                <div className="label">
+                  {t('Decision pattern')} · {c.chain.join(' → ')}
+                </div>
                 <p className="display mt-1.5 text-[17px] leading-[1.2] text-ink">“{c.statement}”</p>
                 <p className="mt-1 text-[12.5px] text-ink-2">{c.observation}</p>
                 <dl className="mt-3 grid grid-cols-3 gap-4 sm:max-w-[560px]">
                   <div>
-                    <dt className="label">Evidence</dt>
-                    <dd className="num mt-0.5 text-[13.5px] text-ink">{c.supporting.length} decisions</dd>
+                    <dt className="label">{t('Evidence')}</dt>
+                    <dd className="num mt-0.5 text-[13.5px] text-ink">{tn(c.supporting.length, '{n} decision', '{n} decisions')}</dd>
                   </div>
                   <div>
-                    <dt className="label">Confidence</dt>
+                    <dt className="label">{t('Confidence')}</dt>
                     <dd className="mt-0.5">
                       <ConfidenceMeter value={confidence} size="sm" />
                     </dd>
                   </div>
                   <div>
-                    <dt className="label">Counter-evidence</dt>
-                    <dd className="num mt-0.5 text-[13.5px] text-ink">{c.counter.length} decisions</dd>
+                    <dt className="label">{t('Counter-evidence')}</dt>
+                    <dd className="num mt-0.5 text-[13.5px] text-ink">{tn(c.counter.length, '{n} decision', '{n} decisions')}</dd>
                   </div>
                 </dl>
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <RefList title="Supporting" stance="supports" items={c.supporting} />
-                  <RefList title="Counter" stance="counters" items={c.counter} />
+                  <RefList title={t('Supporting')} stance="supports" items={c.supporting} />
+                  <RefList title={t('Counter')} stance="counters" items={c.counter} />
                 </div>
                 <div className="mt-3 flex flex-wrap items-start gap-2 text-[12.5px] text-ink-2">
-                  <span className="text-ink-3">Possible interpretation:</span>
+                  <span className="text-ink-3">{t('Possible interpretation:')}</span>
                   <span className="min-w-0 flex-1">{c.interpretation.statement}</span>
                   <EstimateTag value={c.interpretation.confidence} />
                 </div>
@@ -200,7 +217,7 @@ function DecisionPatterns({ count }: { count: number }) {
                       href={hrefFor('patterns', existing.id)}
                       className="inline-flex items-center gap-1.5 text-[12.5px] text-ink underline decoration-ink-3/50 underline-offset-[3px] hover:decoration-ink"
                     >
-                      In the model as {patternCode(existing.code)} <ArrowRight size={12} aria-hidden />
+                      {t('In the model as {code}', { code: patternCode(existing.code) })} <ArrowRight size={12} aria-hidden />
                     </a>
                   ) : (
                     <>
@@ -210,17 +227,17 @@ function DecisionPatterns({ count }: { count: number }) {
                         onClick={() => {
                           const id = adopt(c);
                           const p = useAtlas.getState().data.patterns[id];
-                          toast(`Added as ${p ? patternCode(p.code) : 'a pattern'}. It now appears in Patterns and the Mind graph.`, {
+                          toast(t('Added as {code}. It now appears in Patterns and the Mind graph.', { code: p ? patternCode(p.code) : t('a pattern') }), {
                             tone: 'success',
-                            action: { label: 'Open', run: () => (window.location.hash = hrefFor('patterns', id)) },
+                            action: { label: t('Open'), run: () => (window.location.hash = hrefFor('patterns', id)) },
                           });
                           void run();
                         }}
                       >
-                        Add to model
+                        {t('Add to model')}
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => setHidden([...hidden, c.signature])}>
-                        Not now
+                        {t('Not now')}
                       </Button>
                     </>
                   )}

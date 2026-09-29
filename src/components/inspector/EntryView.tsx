@@ -13,6 +13,8 @@ import { Button, IconButton } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Chip } from '../ui/primitives';
 import { Muted, NodeChip, PanelSection } from './parts';
+import { t } from '../../i18n';
+import { Trans } from '../../i18n/Trans';
 
 export function EntryView({ id }: { id: ID }) {
   const data = useAtlas((s) => s.data);
@@ -60,7 +62,7 @@ export function EntryView({ id }: { id: ID }) {
           <dl className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-[12px]">
             {ctx.energy !== undefined && (
               <>
-                <dt className="text-ink-3">Energy</dt>
+                <dt className="text-ink-3">{t('Energy')}</dt>
                 <dd className="text-ink-2">
                   {ENERGY_LABELS[String(ctx.energy)]} <span className="num text-ink-3">({ctx.energy}/5)</span>
                 </dd>
@@ -68,19 +70,19 @@ export function EntryView({ id }: { id: ID }) {
             )}
             {ctx.mood !== undefined && (
               <>
-                <dt className="text-ink-3">Mood</dt>
+                <dt className="text-ink-3">{t('Mood')}</dt>
                 <dd className="text-ink-2">{MOOD_LABELS[String(ctx.mood)]}</dd>
               </>
             )}
             {ctx.emotions?.length ? (
               <>
-                <dt className="text-ink-3">Felt</dt>
-                <dd className="text-ink-2">{ctx.emotions.join(', ')}</dd>
+                <dt className="text-ink-3">{t('Felt')}</dt>
+                <dd className="text-ink-2">{ctx.emotions.map((e) => t(e)).join(', ')}</dd>
               </>
             ) : null}
             {ctx.setting && (
               <>
-                <dt className="text-ink-3">Setting</dt>
+                <dt className="text-ink-3">{t('Setting')}</dt>
                 <dd className="text-ink-2">{ctx.setting}</dd>
               </>
             )}
@@ -88,7 +90,7 @@ export function EntryView({ id }: { id: ID }) {
         )}
         <div className="mt-3.5 flex items-center gap-1.5">
           <Button size="sm" icon={Pencil} onClick={() => openCapture(entry.kind, { kind: 'entry', id })}>
-            Edit
+            {t('Edit')}
           </Button>
           <span className="ml-auto">
             <ConfirmButton
@@ -102,22 +104,22 @@ export function EntryView({ id }: { id: ID }) {
       </div>
 
       <PanelSection
-        title="On the map"
+        title={t('On the map')}
         count={entry.nodeIds.length}
-        aside={<IconButton icon={linking ? X : Plus} label={linking ? 'Cancel' : 'Link a node'} size="sm" onClick={() => setLinking(!linking)} />}
+        aside={<IconButton icon={linking ? X : Plus} label={linking ? t('Cancel') : t('Link a node')} size="sm" onClick={() => setLinking(!linking)} />}
       >
         {linking && (
           <select
             className="field mb-2"
             autoFocus
             value=""
-            aria-label="Link a node"
+            aria-label={t('Link a node')}
             onChange={(e) => {
               if (e.target.value) updateEntry(id, { nodeIds: [...entry.nodeIds, e.target.value] });
               setLinking(false);
             }}
           >
-            <option value="">Choose a node…</option>
+            <option value="">{t('Choose a node…')}</option>
             {Object.values(data.nodes)
               .filter((n) => !entry.nodeIds.includes(n.id))
               .sort((a, b) => a.label.localeCompare(b.label))
@@ -136,8 +138,8 @@ export function EntryView({ id }: { id: ID }) {
                 <button
                   type="button"
                   className="ml-0.5 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
-                  aria-label="Unlink"
-                  title="Unlink"
+                  aria-label={t('Unlink')}
+                  title={t('Unlink')}
                   onClick={() => updateEntry(id, { nodeIds: entry.nodeIds.filter((x) => x !== n) })}
                 >
                   <X size={11} aria-hidden />
@@ -146,11 +148,11 @@ export function EntryView({ id }: { id: ID }) {
             ))}
           </div>
         ) : (
-          <Muted>Not linked to any node. Linked entries count as evidence for those nodes.</Muted>
+          <Muted>{t('Not linked to any node. Linked entries count as evidence for those nodes.')}</Muted>
         )}
       </PanelSection>
 
-      <PanelSection title="Evidence in" count={usages.length}>
+      <PanelSection title={t('Evidence in')} count={usages.length}>
         {usages.length ? (
           <ul className="space-y-1.5">
             {usages.map(({ pattern, evidence }) => (
@@ -163,7 +165,7 @@ export function EntryView({ id }: { id: ID }) {
                   <StanceMark stance={evidence.stance} />
                   <span className="min-w-0">
                     <span className="label block">
-                      {patternCode(pattern.code)} · {evidence.stance === 'supports' ? 'supports' : 'counters'}
+                      {patternCode(pattern.code)} · {evidence.stance === 'supports' ? t('supports') : t('counters')}
                     </span>
                     <span className="block text-[13px] text-ink-2">{pattern.chain.join(' → ')}</span>
                   </span>
@@ -172,25 +174,25 @@ export function EntryView({ id }: { id: ID }) {
             ))}
           </ul>
         ) : (
-          <Muted>Not cited by any pattern.</Muted>
+          <Muted>{t('Not cited by any pattern.')}</Muted>
         )}
       </PanelSection>
 
       <PanelSection
-        title="Analysis"
+        title={t('Analysis')}
         aside={
           <Button size="sm" variant="ghost" icon={RefreshCw} loading={busy} onClick={() => analyzeEntry(id)}>
-            {analysis ? 'Re-run' : 'Analyse'}
+            {analysis ? t('Re-run') : t('Analyse')}
           </Button>
         }
       >
         {!analysis ? (
-          <Muted>Not analysed yet.</Muted>
+          <Muted>{t('Not analysed yet.')}</Muted>
         ) : (
           <div className="space-y-3">
             <div>
               <div className="mb-1 text-[11.5px] text-ink-3">
-                Observations · {analysis.provider} · {formatDate(analysis.generatedAt.slice(0, 10))}
+                {t('Observations · {provider} · {date}', { provider: t(analysis.provider), date: formatDate(analysis.generatedAt) })}
               </div>
               {analysis.observations.length ? (
                 <ul className="space-y-1.5">
@@ -202,12 +204,12 @@ export function EntryView({ id }: { id: ID }) {
                   ))}
                 </ul>
               ) : (
-                <Muted>Nothing specific enough to note.</Muted>
+                <Muted>{t('Nothing specific enough to note.')}</Muted>
               )}
             </div>
             {pending.length > 0 && (
               <div>
-                <div className="mb-1 text-[11.5px] text-ink-3">Suggestions for you to review</div>
+                <div className="mb-1 text-[11.5px] text-ink-3">{t('Suggestions for you to review')}</div>
                 <ul className="divide-y divide-line rounded-[2px] border border-line">
                   {pending.map((s) => (
                     <SuggestionRow key={s.id} entryId={id} suggestion={s} />
@@ -217,7 +219,10 @@ export function EntryView({ id }: { id: ID }) {
             )}
             {resolved.length > 0 && (
               <p className="text-[11.5px] text-ink-3">
-                {resolved.filter((s) => s.state === 'accepted').length} accepted · {resolved.filter((s) => s.state === 'dismissed').length} dismissed
+                {t('{a} accepted · {d} dismissed', {
+                  a: resolved.filter((s) => s.state === 'accepted').length,
+                  d: resolved.filter((s) => s.state === 'dismissed').length,
+                })}
               </p>
             )}
           </div>
@@ -235,20 +240,20 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
     const p = data.patterns[s.patternId];
     title = (
       <>
-        {s.stance === 'supports' ? 'May support' : 'May counter'}{' '}
-        <span className="text-ink">{p ? `${patternCode(p.code)}: ${p.chain.join(' → ')}` : 'a pattern'}</span>
+        {s.stance === 'supports' ? t('May support') : t('May counter')}{' '}
+        <span className="text-ink">{p ? `${patternCode(p.code)}: ${p.chain.join(' → ')}` : t('a pattern')}</span>
       </>
     );
   } else if (s.type === 'link_node') {
     title = (
       <>
-        Link to <span className="text-ink">{data.nodes[s.nodeId]?.label ?? 'a node'}</span>
+        <Trans text={t('Link to {target}')} values={{ target: <span className="text-ink">{data.nodes[s.nodeId]?.label ?? t('a node')}</span> }} />
       </>
     );
   } else {
     title = (
       <>
-        Also touches <span className="text-ink">{DOMAIN_META[s.domain].label}</span>
+        <Trans text={t('Also touches {area}')} values={{ area: <span className="text-ink">{DOMAIN_META[s.domain].label}</span> }} />
       </>
     );
   }
@@ -261,8 +266,8 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
         <div className="mt-0.5 text-[11.5px] text-ink-3">{s.reason}</div>
       </div>
       <div className="flex shrink-0 gap-0.5">
-        <IconButton icon={Check} label="Accept" size="sm" onClick={() => resolve(entryId, s.id, true)} />
-        <IconButton icon={X} label="Dismiss" size="sm" onClick={() => resolve(entryId, s.id, false)} />
+        <IconButton icon={Check} label={t('Accept')} size="sm" onClick={() => resolve(entryId, s.id, true)} />
+        <IconButton icon={X} label={t('Dismiss')} size="sm" onClick={() => resolve(entryId, s.id, false)} />
       </div>
     </li>
   );

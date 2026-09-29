@@ -7,6 +7,7 @@ import type { SemanticEdge } from '../../graph/types';
 import { useAtlas } from '../../state/atlasStore';
 import { Button } from '../ui/Button';
 import { RelationSwatch } from './Legend';
+import { t } from '../../i18n';
 
 /** Inspect or edit one relationship. Structural and derived links are read-only. */
 export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; x: number; y: number; edges: SemanticEdge[]; onClose(): void }) {
@@ -28,7 +29,7 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
   return (
     <div
       role="dialog"
-      aria-label="Relationship"
+      aria-label={t('Relationship')}
       className="absolute z-20 w-[300px] animate-rise rounded-[2px] border border-line-strong bg-overlay p-3 shadow-2xl"
       style={{ left: Math.max(12, x + 10), top: Math.max(12, y - 10) }}
     >
@@ -43,7 +44,7 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
       {e.data.stored ? (
         <>
           <label className="mt-3 block">
-            <span className="label">Relationship</span>
+            <span className="label">{t('Relationship')}</span>
             <select className="field mt-1" value={e.data.relation} onChange={(ev) => updateEdge(edgeId, { relation: ev.target.value as RelationType })}>
               {SEMANTIC_RELATIONS.map((r) => (
                 <option key={r.key} value={r.key}>
@@ -54,18 +55,18 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
           </label>
           <div className="mt-3 flex justify-between">
             <Button size="sm" variant="danger" icon={Trash} onClick={() => (deleteEdge(edgeId), onClose())}>
-              Remove link
+              {t('Remove link')}
             </Button>
             <Button size="sm" variant="ghost" onClick={onClose}>
-              Done
+              {t('Done')}
             </Button>
           </div>
         </>
       ) : (
         <p className="mt-2 text-[12px] text-ink-3">
           {e.data.relation === 'part_of'
-            ? 'Structural link: this node belongs to the domain.'
-            : 'Derived link: the pattern rests on this node. Edit it from the pattern.'}
+            ? t('Structural link: this node belongs to the domain.')
+            : t('Derived link: the pattern rests on this node. Edit it from the pattern.')}
         </p>
       )}
     </div>

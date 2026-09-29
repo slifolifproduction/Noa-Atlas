@@ -1,4 +1,5 @@
 import type { Evidence, ISODate } from './types';
+import { t } from '../i18n';
 
 /**
  * Pattern confidence is derived from evidence, never typed in.
@@ -33,14 +34,24 @@ export function confidenceBand(value: number): ConfidenceBand {
 }
 
 export const CONFIDENCE_BAND_LABEL: Record<ConfidenceBand, string> = {
-  weak: 'Weak signal',
-  tentative: 'Tentative',
-  moderate: 'Moderate',
-  strong: 'Consistent',
+  get weak() {
+    return t('Weak signal');
+  },
+  get tentative() {
+    return t('Tentative');
+  },
+  get moderate() {
+    return t('Moderate');
+  },
+  get strong() {
+    return t('Consistent');
+  },
 };
 
-export const CONFIDENCE_EXPLAINER =
-  'Confidence = (supporting + 2) ÷ (all evidence + 4). It starts at 50% and moves only as evidence accumulates; experiment results count double. It measures how consistently your data points one way — not whether a claim about you is true.';
+export const confidenceExplainer = () =>
+  t(
+    'Confidence = (supporting + 2) ÷ (all evidence + 4). It starts at 50% and moves only as evidence accumulates; experiment results count double. It measures how consistently your data points one way — not whether a claim about you is true.',
+  );
 
 export function pct(value: number): string {
   return `${Math.round(value * 100)}%`;

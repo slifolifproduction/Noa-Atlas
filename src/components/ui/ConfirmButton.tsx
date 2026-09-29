@@ -1,11 +1,12 @@
 import { Trash } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './Button';
+import { t } from '../../i18n';
 
 /** Two-step destructive action, inline rather than a blocking dialog. */
 export function ConfirmButton({
-  label = 'Delete',
-  confirmLabel = 'Delete permanently',
+  label = t('Delete'),
+  confirmLabel = t('Delete permanently'),
   onConfirm,
   size = 'sm',
 }: {
@@ -27,7 +28,7 @@ export function ConfirmButton({
         {confirmLabel}
       </Button>
       <Button variant="ghost" size={size} onClick={() => setArmed(false)}>
-        Cancel
+        {t('Cancel')}
       </Button>
     </span>
   );

@@ -1,5 +1,6 @@
 import { localProvider } from './localProvider';
 import type { AnalysisProvider, ProviderId } from './types';
+import { t } from '../i18n';
 
 export interface ProviderSettings {
   provider: ProviderId;
@@ -30,7 +31,7 @@ export function resolveProvider(settings: ProviderSettings, onFallback?: (error:
     }) as AnalysisProvider[K];
   return {
     id: 'claude',
-    label: 'Claude',
+    label: t('Claude'),
     analyzeEntry: withFallback('analyzeEntry'),
     detectDecisionPatterns: withFallback('detectDecisionPatterns'),
     proposeExperiments: withFallback('proposeExperiments'),

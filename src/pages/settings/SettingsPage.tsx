@@ -4,7 +4,7 @@ import { checkProxyHealth } from '../../ai/health';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { FieldLabel, Kbd, Segmented } from '../../components/ui/primitives';
-import { CONFIDENCE_EXPLAINER } from '../../domain/confidence';
+import { confidenceExplainer } from '../../domain/confidence';
 import { modelCounts } from '../../domain/selectors';
 import { todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
@@ -13,6 +13,9 @@ import { exportPayload, parseImport, STORAGE_KEYS } from '../../persistence/stor
 import { spaceHealth } from '../../graph/space';
 import { toast, useUI, type SpaceMode } from '../../state/uiStore';
 import { importWithBackup, restoreVersion } from '../../state/versionOps';
+import { t, LANGUAGES, setLang, type Lang, useLang } from '../../i18n';
+import { ZonePicker } from '../../components/shell/LocaleControls';
+import { Trans } from '../../i18n/Trans';
 
 function Block({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
   return (
@@ -40,6 +43,7 @@ export function SettingsPage() {
   const [health, setHealth] = useState<{ ok: boolean; message: string } | null>(null);
   const [checking, setChecking] = useState(false);
   const file = useRef<HTMLInputElement>(null);
+  const lang = useLang();
   const counts = modelCounts(data);
   const bytes = (() => {
     try {
@@ -67,64 +71,84 @@ export function SettingsPage() {
     }
     try {
       const saved = await importWithBackup(result.data);
-      toast('Atlas imported. What you had before is saved in Versions.', {
+      toast(t('Atlas imported. What you had before is saved in Versions.'), {
         tone: 'success',
-        action: { label: 'Undo', run: () => void restoreVersion(saved.id, { backup: false }) },
+        action: { label: t('Undo'), run: () => void restoreVersion(saved.id, { backup: false }) },
       });
     } catch {
-      toast('Could not save a version first, so the import was not applied. Export a copy, then try again.', { tone: 'warning' });
+      toast(t('Could not save a version first, so the import was not applied. Export a copy, then try again.'), { tone: 'warning' });
     }
   };
 
   return (
     <div className="mx-auto max-w-[920px] px-4 py-5 md:px-6 md:py-6">
-      <PageHeader title="Settings" description="Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude." />
+      <PageHeader
+        title={t('Settings')}
+        description={t('Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude.')}
+      />
 
       <div className="mt-6">
-        <Block title="Profile">
-          <FieldLabel htmlFor="s-name">Name</FieldLabel>
-          <input id="s-name" className="field max-w-[320px]" value={data.profile.name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+        <Block
+          title={t('Language and time')}
+          description={t('The language of the interface, and the clock the atlas keeps. What you write is never translated.')}
+        >
+          <Segmented<Lang> label={t('Language')} value={lang} onChange={setLang} options={LANGUAGES.map((l) => ({ value: l.key, label: l.name }))} />
+          <div className="mt-5">
+            <FieldLabel hint={t('today, note dates, weeks and experiment days follow it')}>{t('Time zone')}</FieldLabel>
+            <ZonePicker />
+          </div>
+        </Block>
+
+        <Block title={t('Profile')}>
+          <FieldLabel htmlFor="s-name">{t('Name')}</FieldLabel>
+          <input id="s-name" className="field max-w-[320px]" value={data.profile.name} onChange={(e) => setName(e.target.value)} placeholder={t('Your name')} />
         </Block>
 
         <Block
-          title="Space"
-          description="Orbit and Mind are drawn as a 3D space: nodes sit at different depths and the view turns with your pointer (or the tilt of a phone). Reduced-motion settings on your device always keep it still."
+          title={t('Space')}
+          description={t(
+            'Orbit and Mind are drawn as a 3D space: nodes sit at different depths and the view turns with your pointer (or the tilt of a phone). Reduced-motion settings on your device always keep it still.',
+          )}
         >
           <Segmented<SpaceMode>
-            label="Depth"
+            label={t('Depth')}
             value={spaceMode}
             onChange={setSpaceMode}
             options={[
-              { value: 'auto', label: 'Automatic', title: 'Depth on; switches to flat if this device cannot keep motion smooth' },
-              { value: 'on', label: 'Always 3D' },
-              { value: 'off', label: 'Flat' },
+              { value: 'auto', label: t('Automatic'), title: t('Depth on; switches to flat if this device cannot keep motion smooth') },
+              { value: 'on', label: t('Always 3D') },
+              { value: 'off', label: t('Flat') },
             ]}
           />
           <p className="mt-2 text-[12.5px] leading-snug text-ink-3">
             {spaceMode === 'auto' && spaceHealth.degraded
-              ? 'Automatic switched to flat on this device for this visit, to keep motion smooth.'
+              ? t('Automatic switched to flat on this device for this visit, to keep motion smooth.')
               : spaceMode === 'off'
-                ? 'Flat: stars still drift, the graph itself stays in one plane.'
-                : 'Pan, zoom, move the pointer or select a node to see depth.'}
+                ? t('Flat: stars still drift, the graph itself stays in one plane.')
+                : t('Pan, zoom, move the pointer or select a node to see depth.')}
           </p>
         </Block>
 
         <Block
-          title="Analysis provider"
-          description="Every provider returns the same structured objects: observations, evidence suggestions, pattern candidates, experiment drafts. Nothing is applied without your review."
+          title={t('Analysis provider')}
+          description={t(
+            'Every provider returns the same structured objects: observations, evidence suggestions, pattern candidates, experiment drafts. Nothing is applied without your review.',
+          )}
         >
-          <div role="radiogroup" aria-label="Analysis provider" className="space-y-2">
+          <div role="radiogroup" aria-label={t('Analysis provider')} className="space-y-2">
             {(
               [
                 {
                   id: 'local',
-                  title: 'Local heuristics',
-                  body: 'Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.',
+                  title: t('Local heuristics'),
+                  body: t('Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.'),
                 },
                 {
                   id: 'claude',
-                  title: 'Claude, via your proxy',
-                  body: 'Sends the entry being analysed plus node and pattern names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.',
+                  title: t('Claude, via your proxy'),
+                  body: t(
+                    'Sends the entry being analysed plus node and pattern names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.',
+                  ),
                 },
               ] as const
             ).map((o) => (
@@ -151,8 +175,8 @@ export function SettingsPage() {
           </div>
           {settings.provider === 'claude' && (
             <div className="mt-3.5 space-y-2">
-              <FieldLabel htmlFor="s-endpoint" hint="dev server forwards /api/analysis to localhost:8787">
-                Proxy endpoint
+              <FieldLabel htmlFor="s-endpoint" hint={t('dev server forwards /api/analysis to localhost:8787')}>
+                {t('Proxy endpoint')}
               </FieldLabel>
               <div className="flex flex-wrap gap-2">
                 <input
@@ -169,67 +193,81 @@ export function SettingsPage() {
                     setChecking(false);
                   }}
                 >
-                  Test connection
+                  {t('Test connection')}
                 </Button>
               </div>
               {health && <p className={cn('text-[12.5px]', health.ok ? 'text-support' : 'text-counter')}>{health.message}</p>}
               <p className="text-[12px] text-ink-3">
-                Start it with <code className="rounded-[2px] bg-ink/[0.06] px-1 font-mono text-[11.5px]">ANTHROPIC_API_KEY=… npm run proxy</code>. The key stays
-                on the server.
+                <Trans
+                  text={t('Start it with {command}. The key stays on the server.')}
+                  values={{ command: <code className="rounded-[2px] bg-ink/[0.06] px-1 font-mono text-[11.5px]">ANTHROPIC_API_KEY=… npm run proxy</code> }}
+                />
               </p>
             </div>
           )}
         </Block>
 
         <Block
-          title="Your data"
-          description={`Stored locally (${(bytes / 1024).toFixed(1)} KB). ${counts.records} records, ${counts.nodes} nodes, ${counts.patterns} patterns.`}
+          title={t('Your data')}
+          description={t('Stored locally ({size} KB). {records} records, {nodes} points, {patterns} patterns.', {
+            size: (bytes / 1024).toFixed(1),
+            records: counts.records,
+            nodes: counts.nodes,
+            patterns: counts.patterns,
+          })}
         >
           <div className="flex flex-wrap gap-2">
             <Button icon={Download} onClick={exportData}>
-              Export JSON
+              {t('Export JSON')}
             </Button>
             <Button icon={Upload} onClick={() => file.current?.click()}>
-              Import JSON
+              {t('Import JSON')}
             </Button>
             <input ref={file} type="file" accept="application/json,.json" hidden onChange={(e) => e.target.files?.[0] && importData(e.target.files[0])} />
           </div>
-          <p className="mt-2 text-[12px] text-ink-3">Importing replaces the atlas in this browser; the current one is saved as a version first.</p>
+          <p className="mt-2 text-[12px] text-ink-3">{t('Importing replaces the atlas in this browser; the current one is saved as a version first.')}</p>
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[2px] border border-line p-3.5">
             <div className="min-w-0">
-              <div className="text-[13px] text-ink">Versions and starting over</div>
+              <div className="text-[13px] text-ink">{t('Versions and starting over')}</div>
               <div className="text-[12px] leading-snug text-ink-3">
-                Save your atlas as a version, go back to an earlier one, or start fresh (empty or with the sample). The current atlas is always saved first.
+                {t(
+                  'Save your atlas as a version, go back to an earlier one, or start fresh (empty or with the sample). The current atlas is always saved first.',
+                )}
               </div>
             </div>
             <div className="flex shrink-0 gap-2">
               <Button icon={History} onClick={() => setVersionsOpen(true)}>
-                Versions
+                {t('Versions')}
               </Button>
               <Button icon={RotateCcw} onClick={() => setStartFreshOpen(true)}>
-                Start fresh…
+                {t('Start fresh…')}
               </Button>
             </div>
           </div>
-          <Button variant="ghost" icon={RotateCcw} className="mt-3" onClick={() => (resetLayout('orbit'), resetLayout('mind'), toast('Graph layouts reset.'))}>
-            Reset graph layouts
+          <Button
+            variant="ghost"
+            icon={RotateCcw}
+            className="mt-3"
+            onClick={() => (resetLayout('orbit'), resetLayout('mind'), toast(t('Graph layouts reset.')))}
+          >
+            {t('Reset graph layouts')}
           </Button>
         </Block>
 
-        <Block title="How the model reasons">
+        <Block title={t('How the model reasons')}>
           <ul className="space-y-2.5 text-[13px] leading-relaxed text-ink-2">
-            <li>Records become evidence only when you link them or accept a suggestion. Every pattern shows the exact passages it rests on.</li>
-            <li>{CONFIDENCE_EXPLAINER}</li>
-            <li>Interpretations are offered as possibilities with a separate model estimate. There are no personality types, scores or diagnoses.</li>
-            <li>Paths are compared, never ranked. Experiments test claims, and their results update the patterns they were designed to test.</li>
+            <li>{t('Records become evidence only when you link them or accept a suggestion. Every pattern shows the exact passages it rests on.')}</li>
+            <li>{confidenceExplainer()}</li>
+            <li>{t('Interpretations are offered as possibilities with a separate model estimate. There are no personality types, scores or diagnoses.')}</li>
+            <li>{t('Paths are compared, never ranked. Experiments test claims, and their results update the patterns they were designed to test.')}</li>
           </ul>
         </Block>
 
-        <Block title="Keyboard">
+        <Block title={t('Keyboard')}>
           <p className="text-[13px] text-ink-2">
-            Press <Kbd>?</Kbd> anywhere for the full list.{' '}
+            <Trans text={t('Press {key} anywhere for the full list.')} values={{ key: <Kbd>?</Kbd> }} />{' '}
             <button type="button" className="text-accent hover:underline" onClick={() => setShortcutsOpen(true)}>
-              Show shortcuts
+              {t('Show shortcuts')}
             </button>
           </p>
         </Block>

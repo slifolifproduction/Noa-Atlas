@@ -3,52 +3,60 @@ import { useState, type ReactNode } from 'react';
 import { cn } from '../../lib/cn';
 import { useUI } from '../../state/uiStore';
 import { Button } from './Button';
+import { t } from '../../i18n';
 
 /** What each page is for and how to use it, in a few plain sentences. */
-export const PAGE_HELP: Record<string, ReactNode[]> = {
-  orbit: [
-    <>Each large circle is an area of your life (career, finance, habits…); the small dots are the things in it.</>,
-    <>Click anything to open its details on the right. Hover for a quick look.</>,
-    <>Drag to rearrange. To connect two things, drag from the small dot on a circle&apos;s edge onto another.</>,
+const PAGE_HELP: Record<string, () => ReactNode[]> = {
+  orbit: () => [
+    <>{t('Each large circle is an area of your life (career, finance, habits…); the small dots are the things in it.')}</>,
+    <>{t('Click anything to open its details on the right. Hover for a quick look.')}</>,
+    <>{t('Drag to rearrange. To connect two things, drag from the small dot on a circle’s edge onto another.')}</>,
     <>
-      Scroll or pinch to zoom; arrow keys hop between connected items. The View menu has focus, folding and reset; the Overview on the left says what to do
-      next.
+      {t(
+        'Scroll or pinch to zoom; arrow keys hop between connected items. The View menu has focus, folding and reset; the Overview on the left says what to do next.',
+      )}
     </>,
   ],
-  mind: [
-    <>Cards are your beliefs, fears, questions, values and decisions. Lines show how they affect each other.</>,
-    <>The six-sided cards are patterns found in your notes, linked to the thoughts they rest on.</>,
-    <>Click a card to see the notes behind it. The list on the left hides kinds you do not need; View can narrow the map to what is near the selected card.</>,
-    <>Dashed borders mean untested or suggested by the analysis, not by you.</>,
+  mind: () => [
+    <>{t('Cards are your beliefs, fears, questions, values and decisions. Lines show how they affect each other.')}</>,
+    <>{t('The six-sided cards are patterns found in your notes, linked to the thoughts they rest on.')}</>,
+    <>
+      {t(
+        'Click a card to see the notes behind it. The list on the left hides kinds you do not need; View can narrow the map to what is near the selected card.',
+      )}
+    </>,
+    <>{t('Dashed borders mean untested or suggested by the analysis, not by you.')}</>,
   ],
-  patterns: [
-    <>A pattern is something that keeps happening, backed by your own notes: green dots support it, orange dots count against it.</>,
-    <>When the atlas finds a note that might belong to a pattern, it asks. Accept if it fits, reject if it does not.</>,
-    <>If a pattern is simply wrong, mark it as inaccurate. Confidence always comes from the evidence, never a guess.</>,
+  patterns: () => [
+    <>{t('A pattern is something that keeps happening, backed by your own notes: green dots support it, orange dots count against it.')}</>,
+    <>{t('When the atlas finds a note that might belong to a pattern, it asks. Accept if it fits, reject if it does not.')}</>,
+    <>{t('If a pattern is simply wrong, mark it as inaccurate. Confidence always comes from the evidence, never a guess.')}</>,
   ],
-  paths: [
-    <>Each path is a possible direction, described the same way so you can compare them. They are never ranked.</>,
-    <>Keep “You are here” up to date: your situation, constraints and strengths.</>,
-    <>When you have decided, press “Choose as direction”. My plan then turns it into concrete steps.</>,
+  paths: () => [
+    <>{t('Each path is a possible direction, described the same way so you can compare them. They are never ranked.')}</>,
+    <>{t('Keep “You are here” up to date: your situation, constraints and strengths.')}</>,
+    <>{t('When you have decided, press “Choose as direction”. My plan then turns it into concrete steps.')}</>,
   ],
-  navigation: [
-    <>Your chosen direction, from the big goal down to this week&apos;s steps.</>,
-    <>Tick targets and steps off as you go. The next open step also appears in “Do this next” on the Map.</>,
-    <>Experiments test an idea for a few weeks. When one ends, record what happened; the result updates your patterns.</>,
+  navigation: () => [
+    <>{t('Your chosen direction, from the big goal down to this week’s steps.')}</>,
+    <>{t('Tick targets and steps off as you go. The next open step also appears in “Do this next” on the Map.')}</>,
+    <>{t('Experiments test an idea for a few weeks. When one ends, record what happened; the result updates your patterns.')}</>,
   ],
-  journal: [
-    <>Every note you have written, newest first. Press Capture (or N) to add one.</>,
-    <>Open a note to see what the atlas found in it and to accept or dismiss its suggestions.</>,
+  journal: () => [
+    <>{t('Every note you have written, newest first. Press Capture (or N) to add one.')}</>,
+    <>{t('Open a note to see what the atlas found in it and to accept or dismiss its suggestions.')}</>,
   ],
-  decisions: [
-    <>Log a decision with the options you had and what you expect to happen.</>,
-    <>Later, add what actually happened. Comparing the two is how you learn how you decide.</>,
+  decisions: () => [
+    <>{t('Log a decision with the options you had and what you expect to happen.')}</>,
+    <>{t('Later, add what actually happened. Comparing the two is how you learn how you decide.')}</>,
   ],
-  questions: [
-    <>Open questions you are exploring. Link them to notes and experiments as you find answers.</>,
-    <>Mark a question resolved when you have an answer, and write down what it was.</>,
+  questions: () => [
+    <>{t('Open questions you are exploring. Link them to notes and experiments as you find answers.')}</>,
+    <>{t('Mark a question resolved when you have an answer, and write down what it was.')}</>,
   ],
 };
+
+export const pageHelp = (page: string): ReactNode[] | undefined => PAGE_HELP[page]?.();
 
 /**
  * A page's "how this works" note: open on the first visit, then folded into
@@ -58,13 +66,13 @@ export function HowItWorks({ page, className }: { page: string; className?: stri
   const seen = useUI((s) => s.tipsSeen.includes(page));
   const setSeen = useUI((s) => s.setTipSeen);
   const [open, setOpen] = useState(!seen);
-  const items = PAGE_HELP[page];
+  const items = pageHelp(page);
   if (!items) return null;
   if (!open) {
     return (
       <button type="button" onClick={() => setOpen(true)} className={cn('inline-flex items-center gap-1.5 text-[12px] text-ink-3 hover:text-ink-2', className)}>
         <CircleHelp size={13} aria-hidden />
-        How this page works
+        {t('How this page works')}
       </button>
     );
   }
@@ -84,14 +92,14 @@ export function HelpCard({ items, onDone, className, floating }: { items: ReactN
   return (
     <section
       className={cn('rounded-[2px] border border-line-strong px-4 py-3', floating ? 'bg-overlay/95 shadow-2xl backdrop-blur-md' : 'bg-surface', className)}
-      aria-label="How this page works"
+      aria-label={t('How this page works')}
     >
       <div className="flex items-center justify-between gap-3">
         <span className="label flex items-center gap-1.5 text-ink-2!">
-          <CircleHelp size={12} aria-hidden /> How this page works
+          <CircleHelp size={12} aria-hidden /> {t('How this page works')}
         </span>
         {floating && (
-          <button type="button" onClick={onDone} className="rounded-[2px] p-0.5 text-ink-3 hover:text-ink" aria-label="Close">
+          <button type="button" onClick={onDone} className="rounded-[2px] p-0.5 text-ink-3 hover:text-ink" aria-label={t('Close')}>
             <X size={14} aria-hidden />
           </button>
         )}
@@ -105,7 +113,7 @@ export function HelpCard({ items, onDone, className, floating }: { items: ReactN
         ))}
       </ul>
       <Button size="sm" className="mt-3" onClick={onDone}>
-        Got it
+        {t('Got it')}
       </Button>
     </section>
   );

@@ -7,6 +7,7 @@ import { restoreVersion, startFresh, versionStamp } from '../../state/versionOps
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { FieldLabel } from '../ui/primitives';
+import { t } from '../../i18n';
 
 /**
  * Begin a new atlas. The current one is saved as a version first (unless you
@@ -24,7 +25,7 @@ export function StartFreshModal() {
   useEffect(() => {
     if (open) {
       setSave(true);
-      setName(`Before restart · ${versionStamp()}`);
+      setName(t('Before restart · {when}', { when: versionStamp() }));
       setMode('empty');
       setProfile('');
     }
@@ -36,12 +37,12 @@ export function StartFreshModal() {
       const saved = await startFresh({ save, name, mode, profileName: profile });
       setOpen(false);
       navigate('orbit');
-      toast(saved ? 'Started fresh. Your previous atlas is saved in Versions.' : 'Started fresh.', {
+      toast(saved ? t('Started fresh. Your previous atlas is saved in Versions.') : t('Started fresh.'), {
         tone: 'success',
-        action: saved ? { label: 'Undo', run: () => void restoreVersion(saved.id, { backup: false }) } : undefined,
+        action: saved ? { label: t('Undo'), run: () => void restoreVersion(saved.id, { backup: false }) } : undefined,
       });
     } catch {
-      toast('Could not save a version in this browser, so nothing was changed. Use Export in Settings first.', { tone: 'warning' });
+      toast(t('Could not save a version in this browser, so nothing was changed. Use Export in Settings first.'), { tone: 'warning' });
     } finally {
       setBusy(false);
     }
@@ -66,16 +67,16 @@ export function StartFreshModal() {
     <Modal
       open={open}
       onClose={() => setOpen(false)}
-      title="Start fresh"
-      description="Begin a new atlas. Save the current one as a version first and you can come back to it at any time."
+      title={t('Start fresh')}
+      description={t('Begin a new atlas. Save the current one as a version first and you can come back to it at any time.')}
       width="max-w-[520px]"
       footer={
         <>
           <Button variant="ghost" onClick={() => setOpen(false)}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button variant={save ? 'primary' : 'danger'} icon={RotateCcw} loading={busy} onClick={() => void go()}>
-            Start fresh
+            {t('Start fresh')}
           </Button>
         </>
       }
@@ -84,27 +85,33 @@ export function StartFreshModal() {
         <div className="rounded-[2px] border border-line px-3.5 py-3">
           <label className="flex items-center gap-2 text-[13px] text-ink">
             <input type="checkbox" checked={save} onChange={(e) => setSave(e.target.checked)} className="accent-[var(--color-accent)]" />
-            Save the current atlas as a version first
+            {t('Save the current atlas as a version first')}
           </label>
           {save ? (
-            <input className="field mt-2.5" value={name} onChange={(e) => setName(e.target.value)} aria-label="Version name" />
+            <input className="field mt-2.5" value={name} onChange={(e) => setName(e.target.value)} aria-label={t('Version name')} />
           ) : (
-            <p className="mt-2 text-[12.5px] text-counter">Without a saved version, the current atlas cannot be brought back.</p>
+            <p className="mt-2 text-[12.5px] text-counter">{t('Without a saved version, the current atlas cannot be brought back.')}</p>
           )}
         </div>
 
-        <div className="space-y-2" role="radiogroup" aria-label="Start with">
-          <div className="label">Start with</div>
-          {option('empty', 'An empty atlas', 'Just the ten areas of life, ready for your own notes and points.')}
-          {option('sample', 'The sample atlas', 'Noa’s fictional example, to explore how everything works.')}
+        <div className="space-y-2" role="radiogroup" aria-label={t('Start with')}>
+          <div className="label">{t('Start with')}</div>
+          {option('empty', t('An empty atlas'), t('Just the ten areas of life, ready for your own notes and points.'))}
+          {option('sample', t('The sample atlas'), t('Noa’s fictional example, to explore how everything works.'))}
         </div>
 
         {mode === 'empty' && (
           <div>
             <FieldLabel htmlFor="fresh-name" hint="optional">
-              Your name
+              {t('Your name')}
             </FieldLabel>
-            <input id="fresh-name" className="field" value={profile} onChange={(e) => setProfile(e.target.value)} placeholder="How the atlas addresses you" />
+            <input
+              id="fresh-name"
+              className="field"
+              value={profile}
+              onChange={(e) => setProfile(e.target.value)}
+              placeholder={t('How the atlas addresses you')}
+            />
           </div>
         )}
       </div>

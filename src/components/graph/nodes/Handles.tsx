@@ -1,4 +1,5 @@
 import { Handle, Position, useConnection } from '@xyflow/react';
+import { t } from '../../../i18n';
 
 /**
  * One visible source handle for drawing a connection, plus a target handle
@@ -9,7 +10,7 @@ export function NodeHandles({ side = Position.Right }: { side?: Position }) {
   const connection = useConnection();
   return (
     <>
-      <Handle type="source" position={side} className="source-handle" aria-label="Drag to connect" />
+      <Handle type="source" position={side} className="source-handle" aria-label={t('Drag to connect')} />
       <Handle
         type="target"
         position={Position.Left}

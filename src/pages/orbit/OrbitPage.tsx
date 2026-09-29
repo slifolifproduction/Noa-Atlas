@@ -8,16 +8,17 @@ import { Legend } from '../../components/graph/Legend';
 import { refForNode } from '../../components/inspector/parts';
 import { Button } from '../../components/ui/Button';
 import { MenuItem, MenuSeparator } from '../../components/ui/Menu';
-import { HelpCard, PAGE_HELP, useGraphHelp } from '../../components/ui/HowItWorks';
+import { HelpCard, pageHelp, useGraphHelp } from '../../components/ui/HowItWorks';
 import { DOMAIN_KEYS, hubKey, isHubId, ORBIT_DESKTOP, ORBIT_PORTRAIT } from '../../domain/constants';
 import type { DomainKey, ID, RelationType } from '../../domain/types';
 import { buildOrbit } from '../../graph/build';
 import { selectionFor } from '../../graph/selection';
 import { useInspectorWidth, useIsDesktop, useIsMobile } from '../../hooks/useMediaQuery';
-import { todayISO } from '../../lib/dates';
+import { useToday } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { StatusHud } from './StatusHud';
+import { t } from '../../i18n';
 
 const HUD_WIDTH = 304;
 
@@ -44,7 +45,7 @@ export function OrbitPage() {
   const selectedId = selectionFor(inspector, 'orbit', data);
   // On phones the map starts simplified: hubs only, a hub's satellites appear when it is selected.
   const collapsed = useMemo(() => new Set<DomainKey>(isMobile ? DOMAIN_KEYS : view.collapsed), [isMobile, view.collapsed]);
-  const today = todayISO();
+  const today = useToday();
 
   const built = useMemo(
     () =>
@@ -124,7 +125,7 @@ export function OrbitPage() {
               onClick={() => setMobileHud(true)}
               className="mr-auto h-8 rounded-[2px] border border-line bg-surface/95 px-2.5 text-[12px] text-ink-2"
             >
-              Overview
+              {t('Overview')}
             </button>
           )}
           <GraphSearch
@@ -140,42 +141,42 @@ export function OrbitPage() {
             size="sm"
             icon={Plus}
             onClick={() => setAdding(true)}
-            title="Add a goal, project, person, skill… to an area of life"
+            title={t('Add a goal, project, person, skill… to an area of life')}
             className="bg-surface/95"
           >
-            Add point
+            {t('Add point')}
           </Button>
           <ViewMenu padding={padding}>
-            <MenuItem checked={view.focus} hint="Hide what is not linked to the selected item" onSelect={() => setOrbitView({ focus: !view.focus })}>
-              Focus on the selection
+            <MenuItem checked={view.focus} hint={t('Hide what is not linked to the selected item')} onSelect={() => setOrbitView({ focus: !view.focus })}>
+              {t('Focus on the selection')}
             </MenuItem>
             {!isMobile && (
               <MenuItem
                 icon={allCollapsed ? UnfoldVertical : FoldVertical}
-                hint="Double-click one area to fold just that one"
+                hint={t('Double-click one area to fold just that one')}
                 onSelect={() => setOrbitView({ collapsed: allCollapsed ? [] : [...DOMAIN_KEYS] })}
               >
-                {allCollapsed ? 'Unfold all areas' : 'Fold all areas'}
+                {allCollapsed ? t('Unfold all areas') : t('Fold all areas')}
               </MenuItem>
             )}
             {isDesktop && (
-              <MenuItem checked={hudOpen} hint="Do this next, where you are, your plan" onSelect={() => setHudOpen(!hudOpen)}>
-                Overview panel
+              <MenuItem checked={hudOpen} hint={t('Do this next, where you are, your plan')} onSelect={() => setHudOpen(!hudOpen)}>
+                {t('Overview panel')}
               </MenuItem>
             )}
             <MenuSeparator />
-            <MenuItem icon={RotateCcw} hint="Put everything back where it started" onSelect={() => resetLayout('orbit')}>
-              Reset layout
+            <MenuItem icon={RotateCcw} hint={t('Put everything back where it started')} onSelect={() => resetLayout('orbit')}>
+              {t('Reset layout')}
             </MenuItem>
             <MenuItem icon={CircleHelp} onSelect={help.toggle}>
-              {help.shown ? 'Hide how this page works' : 'How this page works'}
+              {help.shown ? t('Hide how this page works') : t('How this page works')}
             </MenuItem>
           </ViewMenu>
         </div>
 
         {help.shown && (
           <div className="absolute top-14 z-20 w-[min(360px,calc(100%-24px))] animate-rise" style={{ right: occluded + 12 }}>
-            <HelpCard floating items={PAGE_HELP.orbit} onDone={help.close} />
+            <HelpCard floating items={pageHelp('orbit') ?? []} onDone={help.close} />
           </div>
         )}
 
@@ -198,19 +199,19 @@ export function OrbitPage() {
             className="absolute top-[64px] z-10 max-md:top-[108px] w-[min(440px,calc(100%-24px))] -translate-x-1/2 rounded-[2px] border border-line-strong bg-surface/95 px-4 py-3.5 backdrop-blur"
             style={{ left: isDesktop ? `calc(${leftInset}px + (100% - ${leftInset + occluded}px) / 2)` : '50%' }}
           >
-            <div className="label">Start here</div>
+            <div className="label">{t('Start here')}</div>
             <p className="mt-1 text-[13px] leading-snug text-ink-2">
-              Write about something that happened, or add your first points: goals, projects, people, skills. The map fills in from there.
+              {t('Write about something that happened, or add your first points: goals, projects, people, skills. The map fills in from there.')}
             </p>
             <div className="mt-2.5 flex flex-wrap gap-2">
               <Button size="sm" variant="primary" icon={Plus} onClick={() => useUI.getState().openCapture('journal')}>
-                Write a note
+                {t('Write a note')}
               </Button>
               <Button size="sm" icon={Plus} onClick={() => setAdding(true)}>
-                Add a point
+                {t('Add a point')}
               </Button>
               <Button size="sm" variant="ghost" onClick={() => openEntity({ kind: 'domain', id: 'identity' })}>
-                Describe your identity
+                {t('Describe your identity')}
               </Button>
             </div>
           </div>
@@ -223,9 +224,9 @@ export function OrbitPage() {
               relations={relations}
               extra={
                 <>
-                  <p className="text-[11.5px] leading-snug text-ink-3">Hub arc: share of entries in the last 60 days.</p>
-                  <p className="text-[11.5px] leading-snug text-ink-3">Hub badge: active patterns involving the domain.</p>
-                  <p className="text-[11.5px] leading-snug text-ink-3">Rings: self → intent → work → conditions.</p>
+                  <p className="text-[11.5px] leading-snug text-ink-3">{t('Hub arc: share of entries in the last 60 days.')}</p>
+                  <p className="text-[11.5px] leading-snug text-ink-3">{t('Hub badge: active patterns involving the domain.')}</p>
+                  <p className="text-[11.5px] leading-snug text-ink-3">{t('Rings: self → intent → work → conditions.')}</p>
                 </>
               }
             />

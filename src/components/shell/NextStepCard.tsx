@@ -3,8 +3,10 @@ import { navigate } from '../../app/router';
 import { nextStep, type NextStepAction } from '../../domain/nextStep';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
+import { useToday } from '../../lib/dates';
 import { toast, useUI } from '../../state/uiStore';
 import { Button } from '../ui/Button';
+import { t } from '../../i18n';
 
 /** One clear thing to do now. Recomputed from the data, so it moves on as you do. */
 export function NextStepCard({ className }: { className?: string }) {
@@ -12,6 +14,7 @@ export function NextStepCard({ className }: { className?: string }) {
   const setActionStatus = useAtlas((s) => s.setActionStatus);
   const openCapture = useUI((s) => s.openCapture);
   const openEntity = useUI((s) => s.openEntity);
+  useToday();
   const step = nextStep(data);
 
   const run = (a: NextStepAction) => {
@@ -20,18 +23,18 @@ export function NextStepCard({ className }: { className?: string }) {
     else if (a.kind === 'route') navigate(a.route);
     else {
       setActionStatus(a.actionId, 'done');
-      toast('Done. Here is what comes next.', { tone: 'success' });
+      toast(t('Done. Here is what comes next.'), { tone: 'success' });
     }
   };
 
   return (
     <section
       className={cn('ticks relative border border-line-strong bg-ink/[0.02] px-3.5 pt-3 pb-3.5 [--tick-color:var(--color-accent)]', className)}
-      aria-label="Do this next"
+      aria-label={t('Do this next')}
     >
       <div className="label flex items-center gap-2 text-accent!">
         <span className="atlas-live-dot h-1.5 w-1.5 rounded-full bg-accent" aria-hidden />
-        Do this next
+        {t('Do this next')}
       </div>
       <p className="display mt-2 text-[18px] leading-[1.2] text-ink">{step.title}</p>
       <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{step.detail}</p>

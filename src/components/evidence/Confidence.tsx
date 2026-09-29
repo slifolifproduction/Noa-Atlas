@@ -1,5 +1,6 @@
-import { CONFIDENCE_BAND_LABEL, CONFIDENCE_EXPLAINER, confidenceBand } from '../../domain/confidence';
+import { CONFIDENCE_BAND_LABEL, confidenceExplainer, confidenceBand } from '../../domain/confidence';
 import { cn } from '../../lib/cn';
+import { t } from '../../i18n';
 
 /**
  * Confidence is shown as a number, a qualitative band and a bar with a tick at
@@ -20,7 +21,7 @@ export function ConfidenceMeter({
   const pct = Math.round(value * 100);
   const band = CONFIDENCE_BAND_LABEL[confidenceBand(value)];
   return (
-    <div className={cn('min-w-0', className)} title={CONFIDENCE_EXPLAINER}>
+    <div className={cn('min-w-0', className)} title={confidenceExplainer()}>
       <div className="flex items-baseline gap-2">
         <span className={cn('num text-ink', size === 'lg' ? 'text-[22px] leading-none' : size === 'md' ? 'text-[14px]' : 'text-[12px]')}>{pct}%</span>
         {showBand && <span className={cn('text-ink-3', size === 'sm' ? 'text-[11px]' : 'text-[12px]')}>{band}</span>}
@@ -38,9 +39,9 @@ export function EstimateTag({ value }: { value: number }) {
   return (
     <span
       className="num inline-flex items-center rounded-[2px] border border-dashed border-line-strong px-1.5 text-[11px] text-ink-2"
-      title="Model estimate for this interpretation. Not derived from evidence counts."
+      title={t('Model estimate for this interpretation. Not derived from evidence counts.')}
     >
-      est. {Math.round(value * 100)}%
+      {t('est. {pct}', { pct: `${Math.round(value * 100)}%` })}
     </span>
   );
 }

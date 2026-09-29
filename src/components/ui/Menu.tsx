@@ -11,6 +11,7 @@ const CloseContext = createContext<() => void>(() => {});
  */
 export function Menu({
   label,
+  display,
   icon: Icon,
   iconOnly,
   chevron = !iconOnly,
@@ -21,6 +22,8 @@ export function Menu({
   children,
 }: {
   label: string;
+  /** What the button shows instead of the label (the label still names it for assistive tech). */
+  display?: ReactNode;
   icon?: LucideIcon;
   /** Show only the icon; the label becomes its tooltip. */
   iconOnly?: boolean;
@@ -78,8 +81,8 @@ export function Menu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-controls={open ? id : undefined}
-        aria-label={iconOnly ? label : undefined}
-        title={iconOnly ? label : undefined}
+        aria-label={iconOnly || display ? label : undefined}
+        title={iconOnly || display ? label : undefined}
         onClick={() => setOpen(!open)}
         onKeyDown={(e) => {
           if (!open && e.key === 'ArrowDown') {
@@ -89,13 +92,13 @@ export function Menu({
         }}
         className={cn(
           'inline-flex h-8 shrink-0 items-center justify-center gap-1.5 rounded-[2px] border text-[12.5px] transition-colors',
-          iconOnly ? 'w-8' : 'px-2.5',
+          iconOnly ? 'w-8' : display ? 'px-2' : 'px-2.5',
           open ? 'border-line-strong bg-raised text-ink' : 'border-line bg-surface/95 text-ink-2 hover:border-line-strong hover:text-ink',
           className,
         )}
       >
         {Icon && <Icon size={14} strokeWidth={1.8} aria-hidden />}
-        {!iconOnly && <span className="font-medium">{label}</span>}
+        {display ?? (!iconOnly && <span className="font-medium">{label}</span>)}
         {chevron && <ChevronDown size={12} className={cn('-mr-0.5 text-ink-3 transition-transform', open && 'rotate-180')} aria-hidden />}
       </button>
       {open && (

@@ -16,19 +16,108 @@ import { adoptExperimentDraft, commitDirection } from '../../state/operations';
 import { useUI } from '../../state/uiStore';
 import { CurrentStateEditor } from './CurrentStateEditor';
 import { PathEditor } from './PathEditor';
+import { t } from '../../i18n';
 
 const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns'; label: string; hint: string }[] = [
-  { key: 'requirements', label: 'Requirements', hint: 'What must be true' },
-  { key: 'dependencies', label: 'Dependencies', hint: 'What it relies on' },
-  { key: 'skills', label: 'Skills', hint: 'Have · developing · gap' },
-  { key: 'capital', label: 'Capital', hint: 'Money needed' },
-  { key: 'time', label: 'Time', hint: 'Horizon and load' },
-  { key: 'risks', label: 'Risks', hint: 'What could go wrong' },
-  { key: 'tradeoffs', label: 'Trade-offs', hint: 'What you get, what you give' },
-  { key: 'opportunityCosts', label: 'Opportunity costs', hint: 'What it rules out' },
-  { key: 'unknowns', label: 'Unknowns', hint: 'Untested beliefs' },
-  { key: 'patterns', label: 'Patterns in play', hint: 'From your evidence' },
-  { key: 'experiments', label: 'Experiments', hint: 'Ways to find out' },
+  {
+    key: 'requirements',
+    get label() {
+      return t('Requirements');
+    },
+    get hint() {
+      return t('What must be true');
+    },
+  },
+  {
+    key: 'dependencies',
+    get label() {
+      return t('Dependencies');
+    },
+    get hint() {
+      return t('What it relies on');
+    },
+  },
+  {
+    key: 'skills',
+    get label() {
+      return t('Skills');
+    },
+    get hint() {
+      return t('Have · developing · gap');
+    },
+  },
+  {
+    key: 'capital',
+    get label() {
+      return t('Capital');
+    },
+    get hint() {
+      return t('Money needed');
+    },
+  },
+  {
+    key: 'time',
+    get label() {
+      return t('Time');
+    },
+    get hint() {
+      return t('Horizon and load');
+    },
+  },
+  {
+    key: 'risks',
+    get label() {
+      return t('Risks');
+    },
+    get hint() {
+      return t('What could go wrong');
+    },
+  },
+  {
+    key: 'tradeoffs',
+    get label() {
+      return t('Trade-offs');
+    },
+    get hint() {
+      return t('What you get, what you give');
+    },
+  },
+  {
+    key: 'opportunityCosts',
+    get label() {
+      return t('Opportunity costs');
+    },
+    get hint() {
+      return t('What it rules out');
+    },
+  },
+  {
+    key: 'unknowns',
+    get label() {
+      return t('Unknowns');
+    },
+    get hint() {
+      return t('Untested beliefs');
+    },
+  },
+  {
+    key: 'patterns',
+    get label() {
+      return t('Patterns in play');
+    },
+    get hint() {
+      return t('From your evidence');
+    },
+  },
+  {
+    key: 'experiments',
+    get label() {
+      return t('Experiments');
+    },
+    get hint() {
+      return t('Ways to find out');
+    },
+  },
 ];
 
 const SKILL_MARK: Record<SkillStatus, string> = { have: '●', developing: '◐', gap: '○' };
@@ -45,10 +134,10 @@ export function PathsPage() {
       <PageHeader
         view="paths"
         help="paths"
-        description="Your options side by side, described the same way. They are never ranked: the choice is yours."
+        description={t('Your options side by side, described the same way. They are never ranked: the choice is yours.')}
         actions={
           <Button icon={Plus} onClick={() => setEditing(addPath())}>
-            New path
+            {t('New path')}
           </Button>
         }
       />
@@ -56,9 +145,10 @@ export function PathsPage() {
       {paths.length === 0 ? (
         <div className="mt-6 grid gap-6 md:grid-cols-[280px_1fr]">
           <CurrentStateCell onEdit={() => setEditingState(true)} />
-          <EmptyState icon={PLACE_ICONS.plan} title="No paths yet">
-            Describe two or three genuinely different directions. The same questions are asked of each (requirements, capital, time, risks, unknowns) so they
-            can be compared without a verdict.
+          <EmptyState icon={PLACE_ICONS.plan} title={t('No paths yet')}>
+            {t(
+              'Describe two or three genuinely different directions. The same questions are asked of each (requirements, capital, time, risks, unknowns) so they can be compared without a verdict.',
+            )}
           </EmptyState>
         </div>
       ) : (
@@ -76,8 +166,8 @@ function CurrentStateCell({ onEdit, wide }: { onEdit(): void; wide?: boolean }) 
   return (
     <div className="rounded-[2px] border border-line-strong bg-raised px-4 py-3.5">
       <div className="flex items-center justify-between">
-        <span className="label text-ink-2!">Current state · you are here</span>
-        <button type="button" onClick={onEdit} className="rounded-[2px] p-1 text-ink-3 hover:text-ink" aria-label="Edit current state">
+        <span className="label text-ink-2!">{t('Current state · you are here')}</span>
+        <button type="button" onClick={onEdit} className="rounded-[2px] p-1 text-ink-3 hover:text-ink" aria-label={t('Edit current state')}>
           <Pencil size={13} aria-hidden />
         </button>
       </div>
@@ -86,23 +176,23 @@ function CurrentStateCell({ onEdit, wide }: { onEdit(): void; wide?: boolean }) 
           <div>
             <p className="display text-[17px] leading-[1.2] text-ink">{state.position}</p>
             {state.summary && <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{state.summary}</p>}
-            <p className="mt-2 text-[11px] text-ink-3">Updated {formatDate(state.updatedAt.slice(0, 10))}</p>
+            <p className="mt-2 text-[11px] text-ink-3">{t('Updated {date}', { date: formatDate(state.updatedAt) })}</p>
           </div>
           {state.constraints.length > 0 && (
             <div>
-              <div className="label mb-1">Constraints</div>
+              <div className="label mb-1">{t('Constraints')}</div>
               <List items={state.constraints} />
             </div>
           )}
           {state.assets.length > 0 && (
             <div>
-              <div className="label mb-1">Assets</div>
+              <div className="label mb-1">{t('Assets')}</div>
               <List items={state.assets} />
             </div>
           )}
         </div>
       ) : (
-        <p className="mt-2 text-[12.5px] text-ink-3">Where are you starting from? Describe your position, constraints and assets.</p>
+        <p className="mt-2 text-[12.5px] text-ink-3">{t('Where are you starting from? Describe your position, constraints and assets.')}</p>
       )}
     </div>
   );
@@ -165,7 +255,7 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
         </svg>
 
         <div className="sticky left-0 z-10 bg-canvas pt-3.5 pr-2">
-          <div className="label text-ink-2!">From here</div>
+          <div className="label text-ink-2!">{t('From here')}</div>
         </div>
         <div ref={origin} className="relative z-[1]" style={{ gridColumn: '2 / -1' }}>
           <CurrentStateCell onEdit={onEditState} wide />
@@ -173,8 +263,8 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
         <div className="col-span-full h-12" aria-hidden />
 
         <div className="sticky left-0 z-10 bg-canvas pt-4 pr-2">
-          <div className="label text-ink-2!">Options</div>
-          <div className="mt-0.5 text-[11.5px] text-ink-3">Alphabetical, not ranked</div>
+          <div className="label text-ink-2!">{t('Options')}</div>
+          <div className="mt-0.5 text-[11.5px] text-ink-3">{t('Alphabetical, not ranked')}</div>
         </div>
         {paths.map((p, i) => {
           const isDirection = nav?.pathId === p.id;
@@ -189,34 +279,34 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
                 {isDirection && (
                   <span
                     className="rounded-[2px] border border-accent/40 px-1.5 text-[10.5px] text-accent"
-                    title="You chose this direction; it is not a ranking"
+                    title={t('You chose this direction; it is not a ranking')}
                   >
-                    Your current direction · since {formatDate(nav!.committedAt)}
+                    {t('Your current direction · since {date}', { date: formatDate(nav!.committedAt) })}
                   </span>
                 )}
                 <button
                   type="button"
                   onClick={() => onEdit(p.id)}
                   className="ml-auto rounded-[2px] p-1 text-ink-3 hover:text-ink"
-                  aria-label={`Edit ${p.title}`}
+                  aria-label={t('Edit {name}', { name: p.title })}
                 >
                   <Pencil size={13} aria-hidden />
                 </button>
               </div>
               <h2 className="display mt-2 text-[20px] leading-[1.2] text-ink">{p.title}</h2>
-              <p className="mt-1.5 text-[13px] leading-snug text-ink">{p.objective || <span className="text-ink-3">No objective yet.</span>}</p>
+              <p className="mt-1.5 text-[13px] leading-snug text-ink">{p.objective || <span className="text-ink-3">{t('No objective yet.')}</span>}</p>
               {p.summary && <p className="mt-1.5 text-[12.5px] leading-snug text-ink-2">{p.summary}</p>}
               <div className="mt-3">
                 {isDirection ? (
                   <Button size="sm" onClick={() => navigate('navigation')}>
-                    Open my plan
+                    {t('Open my plan')}
                   </Button>
                 ) : confirm === p.id ? (
                   <div className="space-y-2">
                     <p className="text-[12px] text-ink-2">
                       {nav
-                        ? 'This replaces your current navigation plan with a draft for this path.'
-                        : 'A draft navigation plan will be created for you to edit.'}
+                        ? t('This replaces your current navigation plan with a draft for this path.')
+                        : t('A draft navigation plan will be created for you to edit.')}
                     </p>
                     <div className="flex gap-1.5">
                       <Button
@@ -229,16 +319,16 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
                           navigate('navigation');
                         }}
                       >
-                        Choose {pathCode(p.code)}
+                        {t('Choose {code}', { code: pathCode(p.code) })}
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => setConfirm(null)}>
-                        Cancel
+                        {t('Cancel')}
                       </Button>
                     </div>
                   </div>
                 ) : (
                   <Button size="sm" variant="ghost" icon={Check} onClick={() => setConfirm(p.id)}>
-                    Choose as direction
+                    {t('Choose as direction')}
                   </Button>
                 )}
               </div>
@@ -357,7 +447,7 @@ function Cell({
           })}
         </ul>
       ) : (
-        <span className="text-ink-3">None linked</span>
+        <span className="text-ink-3">{t('None linked')}</span>
       );
     case 'experiments':
       return (
@@ -384,7 +474,7 @@ function Cell({
                   const id = adoptExperimentDraft(
                     {
                       title: idea,
-                      hypothesis: `Trying “${idea.toLowerCase()}” will reduce an unknown in ${pathCode(p.code)}.`,
+                      hypothesis: t('Trying “{idea}” will reduce an unknown in {path}.', { idea: idea.toLowerCase(), path: pathCode(p.code) }),
                       design: idea,
                       durationDays: 30,
                       measures: [],
@@ -395,7 +485,7 @@ function Cell({
                   onOpenExperiment(id);
                 }}
               >
-                Design it
+                {t('Design it')}
               </button>
             </div>
           ))}

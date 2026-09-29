@@ -6,6 +6,7 @@ import { FieldLabel, Segmented } from '../../components/ui/primitives';
 import type { PatternKind } from '../../domain/types';
 import { lines } from '../../lib/text';
 import { useAtlas } from '../../state/atlasStore';
+import { t } from '../../i18n';
 
 const splitPhrases = (s: string) =>
   s
@@ -46,91 +47,91 @@ export function DescribePatternModal({ onClose }: { onClose(): void }) {
     <Modal
       open
       onClose={onClose}
-      title="Describe a pattern"
-      description="Something you suspect recurs. It enters the model with no evidence; confidence moves only as you attach entries and decisions to it."
+      title={t('Describe a pattern')}
+      description={t('Something you suspect recurs. It enters the model with no evidence; confidence moves only as you attach entries and decisions to it.')}
       width="max-w-[640px]"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={save} disabled={!valid}>
-            Add pattern
+            {t('Add pattern')}
           </Button>
         </>
       }
     >
       <div className="space-y-4">
         <Segmented<PatternKind>
-          label="Kind"
+          label={t('Kind')}
           value={kind}
           onChange={setKind}
           options={[
-            { value: 'behavioral', label: 'Behavioural' },
-            { value: 'cognitive', label: 'Cognitive' },
-            { value: 'decision', label: 'Decision' },
+            { value: 'behavioral', label: t('Behavioural') },
+            { value: 'cognitive', label: t('Cognitive') },
+            { value: 'decision', label: t('Decision') },
           ]}
         />
         <div>
-          <FieldLabel hint="short names">Trigger → behaviour → consequence</FieldLabel>
+          <FieldLabel hint={t('short names')}>{t('Trigger → behaviour → consequence')}</FieldLabel>
           <div className="grid gap-2 sm:grid-cols-3">
-            {['e.g. New request', 'e.g. Immediate yes', 'e.g. Overload'].map((ph, i) => (
+            {[t('e.g. New request'), t('e.g. Immediate yes'), t('e.g. Overload')].map((ph, i) => (
               <input
                 key={ph}
                 className="field"
                 value={steps[i]}
                 placeholder={ph}
-                aria-label={['Trigger', 'Behaviour', 'Consequence'][i]}
+                aria-label={[t('Trigger'), t('Behaviour'), t('Consequence')][i]}
                 onChange={(e) => setSteps(steps.map((x, j) => (j === i ? e.target.value : x)))}
               />
             ))}
           </div>
         </div>
         <div>
-          <FieldLabel htmlFor="dp-obs">What you have noticed</FieldLabel>
+          <FieldLabel htmlFor="dp-obs">{t('What you have noticed')}</FieldLabel>
           <textarea
             id="dp-obs"
             className="field min-h-[64px]"
             value={observation}
             onChange={(e) => setObservation(e.target.value)}
-            placeholder="Describe the behaviour, not a trait: “I tend to…”, “When X happens, I…”"
+            placeholder={t('Describe the behaviour, not a trait: “I tend to…”, “When X happens, I…”')}
           />
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <div>
-            <FieldLabel htmlFor="dp-tr" hint="one per line">
-              Triggers
+            <FieldLabel htmlFor="dp-tr" hint={t('one per line')}>
+              {t('Triggers')}
             </FieldLabel>
             <textarea id="dp-tr" className="field min-h-[72px] text-[12.5px]" value={triggers} onChange={(e) => setTriggers(e.target.value)} />
           </div>
           <div>
-            <FieldLabel htmlFor="dp-be" hint="one per line">
-              Behaviour
+            <FieldLabel htmlFor="dp-be" hint={t('one per line')}>
+              {t('Behaviour')}
             </FieldLabel>
             <textarea id="dp-be" className="field min-h-[72px] text-[12.5px]" value={behaviors} onChange={(e) => setBehaviors(e.target.value)} />
           </div>
           <div>
-            <FieldLabel htmlFor="dp-co" hint="one per line">
-              Consequences
+            <FieldLabel htmlFor="dp-co" hint={t('one per line')}>
+              {t('Consequences')}
             </FieldLabel>
             <textarea id="dp-co" className="field min-h-[72px] text-[12.5px]" value={consequences} onChange={(e) => setConsequences(e.target.value)} />
           </div>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <FieldLabel htmlFor="dp-sup" hint="comma separated">
-              Phrases that would support it
+            <FieldLabel htmlFor="dp-sup" hint={t('comma separated')}>
+              {t('Phrases that would support it')}
             </FieldLabel>
-            <input id="dp-sup" className="field" value={supports} onChange={(e) => setSupports(e.target.value)} placeholder="said yes, took on" />
+            <input id="dp-sup" className="field" value={supports} onChange={(e) => setSupports(e.target.value)} placeholder={t('said yes, took on')} />
           </div>
           <div>
-            <FieldLabel htmlFor="dp-cnt" hint="comma separated">
-              Phrases that would count against it
+            <FieldLabel htmlFor="dp-cnt" hint={t('comma separated')}>
+              {t('Phrases that would count against it')}
             </FieldLabel>
-            <input id="dp-cnt" className="field" value={counters} onChange={(e) => setCounters(e.target.value)} placeholder="declined, said no" />
+            <input id="dp-cnt" className="field" value={counters} onChange={(e) => setCounters(e.target.value)} placeholder={t('declined, said no')} />
           </div>
         </div>
-        <p className="text-[12px] text-ink-3">The analysis layer uses these phrases to propose evidence from your entries. You review every proposal.</p>
+        <p className="text-[12px] text-ink-3">{t('The analysis layer uses these phrases to propose evidence from your entries. You review every proposal.')}</p>
       </div>
     </Modal>
   );

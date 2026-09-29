@@ -9,6 +9,7 @@ import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { CATEGORY_ICONS, DOMAIN_ICONS, PatternIcon } from '../icons';
+import { t } from '../../i18n';
 
 export function refForNode(id: ID): EntityRef {
   if (isHubId(id)) return { kind: 'domain', id: hubKey(id) };
@@ -113,7 +114,7 @@ export function PanelSection({ title, count, children, aside }: { title: string;
 
 export function KindEyebrow({ id }: { id: ID }) {
   const data = useAtlas((s) => s.data);
-  if (isHubId(id)) return <span className="label">Domain</span>;
+  if (isHubId(id)) return <span className="label">{t('Domain')}</span>;
   const n = data.nodes[id];
   if (!n) return null;
   const parts = [n.domain ? DOMAIN_META[n.domain].label : null, n.category ? CATEGORY_META[n.category].label : null].filter(Boolean);

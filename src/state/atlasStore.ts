@@ -12,8 +12,8 @@ import type { ModelUpdateProposal, PatternCandidate } from '../ai/types';
 import { createEmptyData } from '../data/empty';
 import { createSeedData } from '../data/seed';
 import { computeConfidence } from '../domain/confidence';
-import { CATEGORY_META, DOMAIN_META } from '../domain/constants';
-import { decisionCode, entryCode, experimentCode, patternCode, resolveSource, sameRef } from '../domain/selectors';
+import { CATEGORY_META, DOMAIN_META, EXPERIMENT_OUTCOME_LABEL, PATTERN_STATUS_LABEL } from '../domain/constants';
+import { decisionCode, entryCode, experimentCode, pathCode, patternCode, resolveSource, sameRef } from '../domain/selectors';
 import type {
   AnalysisSuggestion,
   AtlasData,
@@ -42,6 +42,7 @@ import type {
 import { todayISO, weekStart } from '../lib/dates';
 import { createId } from '../lib/ids';
 import { DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
+import { t } from '../i18n';
 
 const now = () => new Date().toISOString();
 
@@ -234,7 +235,7 @@ export const useAtlas = create<AtlasState>()(
             p.counterEvidence.forEach((c) => (c.sources = c.sources.filter((r) => !sameRef(r, ref))));
             logUpdate(d, {
               kind: 'evidence_removed',
-              summary: `${entryCode(entry.seq)} was deleted and removed from ${patternCode(p.code)}.`,
+              summary: t('{code} was deleted and removed from {pattern}.', { code: entryCode(entry.seq), pattern: patternCode(p.code) }),
               patternId: p.id,
               before,
               after: computeConfidence(p.evidence),
@@ -309,7 +310,7 @@ export const useAtlas = create<AtlasState>()(
             p.counterEvidence.forEach((c) => (c.sources = c.sources.filter((r) => !sameRef(r, ref))));
             logUpdate(d, {
               kind: 'evidence_removed',
-              summary: `${decisionCode(dec.seq)} was deleted and removed from ${patternCode(p.code)}.`,
+              summary: t('{code} was deleted and removed from {pattern}.', { code: decisionCode(dec.seq), pattern: patternCode(p.code) }),
               patternId: p.id,
               before,
               after: computeConfidence(p.evidence),
@@ -340,7 +341,10 @@ export const useAtlas = create<AtlasState>()(
           const code = resolveSource(d, input.source).code;
           logUpdate(d, {
             kind: 'evidence_added',
-            summary: `${code} added as ${input.stance === 'supports' ? 'supporting evidence' : 'counter-evidence'} to ${patternCode(p.code)}.`,
+            summary:
+              input.stance === 'supports'
+                ? t('{code} added as supporting evidence to {pattern}.', { code, pattern: patternCode(p.code) })
+                : t('{code} added as counter-evidence to {pattern}.', { code, pattern: patternCode(p.code) }),
             patternId,
             before,
             after: computeConfidence(p.evidence),
@@ -359,7 +363,7 @@ export const useAtlas = create<AtlasState>()(
           p.evidence = p.evidence.filter((e) => e.id !== evidenceId);
           logUpdate(d, {
             kind: 'evidence_removed',
-            summary: `You removed ${resolveSource(d, ev.source).code} from ${patternCode(p.code)}.`,
+            summary: t('You removed {code} from {pattern}.', { code: resolveSource(d, ev.source).code, pattern: patternCode(p.code) }),
             patternId,
             before,
             after: computeConfidence(p.evidence),
@@ -374,7 +378,11 @@ export const useAtlas = create<AtlasState>()(
           if (!p || p.status === status) return;
           p.status = status;
           p.updatedAt = now();
-          logUpdate(s.data, { kind: 'pattern_status', summary: `You set ${patternCode(p.code)} to ${status}.`, patternId: id });
+          logUpdate(s.data, {
+            kind: 'pattern_status',
+            summary: t('You set {pattern} to {status}.', { pattern: patternCode(p.code), status: PATTERN_STATUS_LABEL[status].toLowerCase() }),
+            patternId: id,
+          });
         });
       },
 
@@ -383,11 +391,16 @@ export const useAtlas = create<AtlasState>()(
           const p = s.data.patterns[id];
           if (!p) return;
           p.userAssessment = { verdict, note: note?.trim() || undefined, at: now() };
-          const label = verdict === 'resonates' ? 'matches your experience' : verdict === 'partial' ? 'partly matches your experience' : 'is not accurate';
+          const said =
+            verdict === 'resonates'
+              ? t('You said {pattern} matches your experience.', { pattern: patternCode(p.code) })
+              : verdict === 'partial'
+                ? t('You said {pattern} partly matches your experience.', { pattern: patternCode(p.code) })
+                : t('You said {pattern} is not accurate.', { pattern: patternCode(p.code) });
           if (verdict === 'inaccurate' && p.status !== 'dismissed') p.status = 'dismissed';
           logUpdate(s.data, {
             kind: 'pattern_assessed',
-            summary: `You said ${patternCode(p.code)} ${label}.${verdict === 'inaccurate' ? ' It was dismissed and no longer informs paths.' : ''}`,
+            summary: `${said}${verdict === 'inaccurate' ? ` ${t('It was dismissed and no longer informs paths.')}` : ''}`,
             patternId: id,
           });
         });
@@ -451,7 +464,11 @@ export const useAtlas = create<AtlasState>()(
           };
           logUpdate(d, {
             kind: 'pattern_created',
-            summary: `${patternCode(code)} added to the model from ${candidate.supporting.length} supporting and ${candidate.counter.length} counter decisions.`,
+            summary: t('{pattern} added to the model from {support} supporting and {counter} counter decisions.', {
+              pattern: patternCode(code),
+              support: candidate.supporting.length,
+              counter: candidate.counter.length,
+            }),
             patternId: id,
             after: computeConfidence(evidence),
           });
@@ -469,7 +486,7 @@ export const useAtlas = create<AtlasState>()(
             ...input,
             id,
             code,
-            title: input.chain[0] ?? 'Untitled pattern',
+            title: input.chain[0] ?? t('Untitled pattern'),
             status: 'emerging',
             evidence: [],
             interpretations: [],
@@ -482,7 +499,7 @@ export const useAtlas = create<AtlasState>()(
           };
           logUpdate(d, {
             kind: 'pattern_created',
-            summary: `You described ${patternCode(code)}. It has no evidence yet, so it starts at the 50% prior.`,
+            summary: t('You described {pattern}. It has no evidence yet, so it starts at the 50% prior.', { pattern: patternCode(code) }),
             patternId: id,
             after: computeConfidence([]),
           });
@@ -507,7 +524,7 @@ export const useAtlas = create<AtlasState>()(
           s.data.paths[id] = {
             id,
             code,
-            title: 'Untitled path',
+            title: t('Untitled path'),
             objective: '',
             summary: '',
             requirements: [],
@@ -598,7 +615,14 @@ export const useAtlas = create<AtlasState>()(
             });
             logUpdate(d, {
               kind: 'experiment_result',
-              summary: `${experimentCode(x.code)} result applied: ${change.stance === 'supports' ? 'supports' : 'counters'} ${patternCode(p.code)} (weight ${change.weight}).`,
+              summary:
+                change.stance === 'supports'
+                  ? t('{exp} result applied: supports {pattern} (weight {w}).', { exp: experimentCode(x.code), pattern: patternCode(p.code), w: change.weight })
+                  : t('{exp} result applied: counters {pattern} (weight {w}).', {
+                      exp: experimentCode(x.code),
+                      pattern: patternCode(p.code),
+                      w: change.weight,
+                    }),
               patternId: p.id,
               before,
               after: computeConfidence(p.evidence),
@@ -612,13 +636,16 @@ export const useAtlas = create<AtlasState>()(
                 id: createId('int'),
                 statement: note.statement,
                 confidence: 0.5,
-                rationale: `Suggested after ${experimentCode(x.code)}.`,
+                rationale: t('Suggested after {exp}.', { exp: experimentCode(x.code) }),
               });
           }
           if (!proposal.changes.length) {
             logUpdate(d, {
               kind: 'experiment_result',
-              summary: `${experimentCode(x.code)} result recorded (${result.outcome}); no pattern confidence changed.`,
+              summary: t('{exp} result recorded ({outcome}); no pattern confidence changed.', {
+                exp: experimentCode(x.code),
+                outcome: EXPERIMENT_OUTCOME_LABEL[result.outcome],
+              }),
               source: ref,
             });
           }
@@ -631,7 +658,12 @@ export const useAtlas = create<AtlasState>()(
         set((s) => {
           s.data.navigation = plan;
           const path = s.data.paths[plan.pathId];
-          logUpdate(s.data, { kind: 'direction_set', summary: `You chose ${path ? `Path ${path.code} (${path.title})` : 'a path'} as your direction.` });
+          logUpdate(s.data, {
+            kind: 'direction_set',
+            summary: path
+              ? t('You chose {path} ({title}) as your direction.', { path: pathCode(path.code), title: path.title })
+              : t('You chose a path as your direction.'),
+          });
         });
       },
 

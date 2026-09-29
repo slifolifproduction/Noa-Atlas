@@ -25,6 +25,7 @@ import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
 import { KindEyebrow, Muted, NodeChip, PanelSection, PatternRow, RecordRow } from './parts';
+import { t } from '../../i18n';
 
 /** Everything known about one node, organised around its relationships and evidence. */
 export function NodeView({ id }: { id: ID }) {
@@ -85,9 +86,10 @@ export function NodeView({ id }: { id: ID }) {
           {node?.origin === 'inferred' && (
             <span
               className="num ml-auto rounded-[2px] border border-dashed border-line-strong px-1.5 text-[10.5px] text-ink-2"
-              title="Proposed by the analysis layer from your entries"
+              title={t('Proposed by the analysis layer from your entries')}
             >
-              inferred{node.confidence !== undefined ? ` · ${Math.round(node.confidence * 100)}%` : ''}
+              {t('inferred')}
+              {node.confidence !== undefined ? ` · ${Math.round(node.confidence * 100)}%` : ''}
             </span>
           )}
         </div>
@@ -108,7 +110,11 @@ export function NodeView({ id }: { id: ID }) {
             {hub ? (
               <>
                 <p className="mt-1 text-[14px] text-ink">
-                  {data.domains[key!].statement ? `“${data.domains[key!].statement}”` : <span className="text-ink-3">No current-state statement yet.</span>}
+                  {data.domains[key!].statement ? (
+                    `“${data.domains[key!].statement}”`
+                  ) : (
+                    <span className="text-ink-3">{t('No current-state statement yet.')}</span>
+                  )}
                 </p>
                 <p className="mt-1.5 text-[13px] leading-relaxed text-ink-2">{data.domains[key!].summary || DOMAIN_META[key!].description}</p>
               </>
@@ -120,7 +126,7 @@ export function NodeView({ id }: { id: ID }) {
 
         {node?.source && (
           <p className="mt-2 text-[12px] text-ink-3">
-            Mirrors{' '}
+            {t('Mirrors')}{' '}
             <button
               type="button"
               className="num text-accent underline decoration-accent/30 underline-offset-2"
@@ -128,20 +134,20 @@ export function NodeView({ id }: { id: ID }) {
             >
               {resolveSource(data, node.source).code}
             </button>{' '}
-            in your records.
+            {t('in your records.')}
           </p>
         )}
 
         {!editing && (
           <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
             <Button size="sm" icon={Crosshair} onClick={focus}>
-              Show on map
+              {t('Show on map')}
             </Button>
             <Button size="sm" variant="ghost" icon={Pencil} onClick={() => setEditing(true)}>
-              Edit
+              {t('Edit')}
             </Button>
             <Button size="sm" variant="ghost" icon={Link2} onClick={() => setConnecting((c) => !c)} aria-expanded={connecting}>
-              Connect
+              {t('Connect')}
             </Button>
             {!hub && (
               <span className="ml-auto">
@@ -160,13 +166,13 @@ export function NodeView({ id }: { id: ID }) {
 
       {node?.category === 'question' && <QuestionStatusSection id={id} />}
 
-      <PanelSection title="Connected to" count={semantic.length + (hub ? 0 : structural.length)}>
+      <PanelSection title={t('Connected to')} count={semantic.length + (hub ? 0 : structural.length)}>
         {semantic.length === 0 && structural.length === 0 ? (
-          <Muted>No connections yet. Use Connect, or drag from the dot on a node in the graph.</Muted>
+          <Muted>{t('No connections yet. Use Connect, or drag from the dot on a node in the graph.')}</Muted>
         ) : (
           <div className="space-y-2.5">
             {!hub && structural.length > 0 && (
-              <RelationGroup label="Part of" relation="part_of">
+              <RelationGroup label={t('Part of')} relation="part_of">
                 {structural.map((l) => (
                   <NodeChip key={l.otherId} id={l.otherId} />
                 ))}
@@ -189,7 +195,7 @@ export function NodeView({ id }: { id: ID }) {
       </PanelSection>
 
       {hub && (
-        <PanelSection title="In this domain" count={structural.length}>
+        <PanelSection title={t('In this domain')} count={structural.length}>
           {structural.length ? (
             <div className="flex flex-wrap gap-1.5">
               {structural.map((l) => (
@@ -198,19 +204,26 @@ export function NodeView({ id }: { id: ID }) {
             </div>
           ) : (
             <Muted>
-              Nothing here yet. Capture a {key === 'goals' ? 'goal' : key === 'projects' ? 'project' : key === 'habits' ? 'habit' : 'note'} or add an item from
-              the Orbit toolbar.
+              {t(
+                key === 'goals'
+                  ? 'Nothing here yet. Capture a goal or add an item from the Orbit toolbar.'
+                  : key === 'projects'
+                    ? 'Nothing here yet. Capture a project or add an item from the Orbit toolbar.'
+                    : key === 'habits'
+                      ? 'Nothing here yet. Capture a habit or add an item from the Orbit toolbar.'
+                      : 'Nothing here yet. Capture a note or add an item from the Orbit toolbar.',
+              )}
             </Muted>
           )}
         </PanelSection>
       )}
 
-      <PanelSection title="Evidence" count={records.length + experiences.length + evidence.decisions.length}>
+      <PanelSection title={t('Evidence')} count={records.length + experiences.length + evidence.decisions.length}>
         {records.length === 0 ? (
           <Muted>
             {hub
-              ? 'No entries touch this domain yet.'
-              : 'No entries are linked to this node yet. Link one from an entry’s panel, or accept an analysis suggestion.'}
+              ? t('No entries touch this domain yet.')
+              : t('No entries are linked to this node yet. Link one from an entry’s panel, or accept an analysis suggestion.')}
           </Muted>
         ) : (
           <ul className="-mx-1.5">
@@ -219,10 +232,10 @@ export function NodeView({ id }: { id: ID }) {
             ))}
           </ul>
         )}
-        {records.length > 6 && <p className="mt-1 text-[11.5px] text-ink-3">+{records.length - 6} more in the Journal</p>}
+        {records.length > 6 && <p className="mt-1 text-[11.5px] text-ink-3">{t('+{n} more in the Journal', { n: records.length - 6 })}</p>}
       </PanelSection>
 
-      <PanelSection title="Patterns" count={patterns.length}>
+      <PanelSection title={t('Patterns')} count={patterns.length}>
         {patterns.length ? (
           <ul className="-mx-1.5">
             {patterns.map((p) => (
@@ -230,12 +243,12 @@ export function NodeView({ id }: { id: ID }) {
             ))}
           </ul>
         ) : (
-          <Muted>No active pattern involves this {hub ? 'domain' : 'node'}.</Muted>
+          <Muted>{t(hub ? 'No active pattern involves this area.' : 'No active pattern involves this point.')}</Muted>
         )}
       </PanelSection>
 
       {goals.length > 0 && (
-        <PanelSection title="Goals" count={goals.length}>
+        <PanelSection title={t('Goals')} count={goals.length}>
           <div className="flex flex-wrap gap-1.5">
             {goals.map((g) => (
               <NodeChip key={g} id={g} />
@@ -245,7 +258,7 @@ export function NodeView({ id }: { id: ID }) {
       )}
 
       {decisions.length > 0 && (
-        <PanelSection title="Recent decisions" count={decisions.length}>
+        <PanelSection title={t('Recent decisions')} count={decisions.length}>
           <ul className="-mx-1.5">
             {decisions.slice(0, 4).map((d) => (
               <RecordRow key={d.id} kind="decision" id={d.id} />
@@ -255,7 +268,7 @@ export function NodeView({ id }: { id: ID }) {
       )}
 
       {experiences.length > 0 && (
-        <PanelSection title="Related experiences" count={experiences.length}>
+        <PanelSection title={t('Related experiences')} count={experiences.length}>
           <ul className="-mx-1.5">
             {experiences.slice(0, 4).map((e) => (
               <RecordRow key={e.id} kind="entry" id={e.id} />
@@ -265,7 +278,7 @@ export function NodeView({ id }: { id: ID }) {
       )}
 
       {questions.length > 0 && (
-        <PanelSection title="Open questions" count={questions.length}>
+        <PanelSection title={t('Open questions')} count={questions.length}>
           <div className="flex flex-col items-start gap-1.5">
             {questions.map((q) => (
               <NodeChip key={q} id={q} />
@@ -276,7 +289,8 @@ export function NodeView({ id }: { id: ID }) {
 
       {node && (
         <div className="border-t border-line px-4 py-3 text-[11.5px] text-ink-3">
-          Added {formatDate(node.createdAt.slice(0, 10), { year: true })} · {node.origin === 'inferred' ? 'proposed by analysis' : 'written by you'}
+          {t('Added {date}', { date: formatDate(node.createdAt, { year: true }) })} ·{' '}
+          {node.origin === 'inferred' ? t('proposed by analysis') : t('written by you')}
         </div>
       )}
     </div>
@@ -333,19 +347,19 @@ function EditForm({ id, onSave, onDone }: { id: ID; onSave(label: string, summar
       }}
     >
       <label className="block">
-        <span className="label">{hub ? 'Current state, one line' : 'Label'}</span>
+        <span className="label">{hub ? t('Current state, one line') : t('Label')}</span>
         <input className="field mt-1" value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
       </label>
       <label className="block">
-        <span className="label">{hub ? 'Summary' : 'Description'}</span>
+        <span className="label">{hub ? t('Summary') : t('Description')}</span>
         <textarea className="field mt-1 min-h-[72px] resize-y" value={summary} onChange={(e) => setSummary(e.target.value)} />
       </label>
       <div className="flex gap-2">
         <Button size="sm" variant="primary" type="submit" icon={Check}>
-          Save
+          {t('Save')}
         </Button>
         <Button size="sm" variant="ghost" onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </Button>
       </div>
     </form>
@@ -371,18 +385,18 @@ function ConnectForm({ id, onDone }: { id: ID; onDone(): void }) {
       }}
     >
       <div className="grid grid-cols-[auto_1fr] items-center gap-2">
-        <span className="text-[12px] text-ink-3">This</span>
-        <select className="field" value={relation} onChange={(e) => setRelation(e.target.value as RelationType)} aria-label="Relationship">
+        <span className="text-[12px] text-ink-3">{t('This')}</span>
+        <select className="field" value={relation} onChange={(e) => setRelation(e.target.value as RelationType)} aria-label={t('Relationship')}>
           {SEMANTIC_RELATIONS.map((r) => (
             <option key={r.key} value={r.key}>
               {r.verb}
             </option>
           ))}
         </select>
-        <span className="text-[12px] text-ink-3">node</span>
-        <select className="field" value={target} onChange={(e) => setTarget(e.target.value)} aria-label="Target node" required>
-          <option value="">Choose…</option>
-          <optgroup label="Domains">
+        <span className="text-[12px] text-ink-3">{t('node')}</span>
+        <select className="field" value={target} onChange={(e) => setTarget(e.target.value)} aria-label={t('Target node')} required>
+          <option value="">{t('Choose…')}</option>
+          <optgroup label={t('Domains')}>
             {DOMAINS.filter((d) => hubId(d.key) !== id).map((d) => (
               <option key={d.key} value={hubId(d.key)}>
                 {d.label}
@@ -417,10 +431,10 @@ function ConnectForm({ id, onDone }: { id: ID; onDone(): void }) {
       </div>
       <div className="flex gap-2">
         <Button size="sm" variant="primary" type="submit" icon={Plus} disabled={!target}>
-          Add connection
+          {t('Add connection')}
         </Button>
         <Button size="sm" variant="ghost" onClick={onDone}>
-          Cancel
+          {t('Cancel')}
         </Button>
       </div>
     </form>
@@ -433,9 +447,9 @@ function QuestionStatusSection({ id }: { id: ID }) {
   const [draft, setDraft] = useState(node?.resolution ?? '');
   if (!node) return null;
   return (
-    <PanelSection title="Status">
+    <PanelSection title={t('Status')}>
       <Segmented<QuestionStatus>
-        label="Question status"
+        label={t('Question status')}
         size="sm"
         value={node.status ?? 'open'}
         onChange={(status) => updateNode(id, { status })}
@@ -443,13 +457,13 @@ function QuestionStatusSection({ id }: { id: ID }) {
       />
       {(node.status === 'resolved' || node.resolution) && (
         <label className="mt-2.5 block">
-          <span className="label">What you concluded</span>
+          <span className="label">{t('What you concluded')}</span>
           <textarea
             className="field mt-1 min-h-[64px]"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onBlur={() => draft !== (node.resolution ?? '') && updateNode(id, { resolution: draft.trim() || undefined })}
-            placeholder="A provisional answer, and what would change it."
+            placeholder={t('A provisional answer, and what would change it.')}
           />
         </label>
       )}

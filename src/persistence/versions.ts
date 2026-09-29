@@ -6,6 +6,7 @@
  * IndexedDB is unavailable (private windows in some browsers, tests).
  */
 import type { AtlasData, GraphLayer } from '../domain/types';
+import { t } from '../i18n';
 
 export type VersionReason = 'manual' | 'restart' | 'import' | 'restore';
 
@@ -108,7 +109,7 @@ export async function getVersion(id: string): Promise<AtlasVersion | undefined> 
 export async function putVersion(input: { name: string; reason: VersionReason; data: AtlasData; layouts?: SavedLayouts }): Promise<VersionMeta> {
   const version: AtlasVersion = {
     id: `ver_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
-    name: input.name.trim() || 'Untitled version',
+    name: input.name.trim() || t('Untitled version'),
     createdAt: new Date().toISOString(),
     reason: input.reason,
     profile: input.data.profile.name,

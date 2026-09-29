@@ -3,6 +3,7 @@ import { GROUPS, groupOf } from '../domain/constants';
 import { isTyping } from '../lib/dom';
 import { useUI } from '../state/uiStore';
 import { groupTarget, navigate, parseHash, type RouteKey } from './router';
+import { t } from '../i18n';
 
 /**
  * Desktop-style shortcuts. Single keys only fire when nothing is being typed
@@ -64,17 +65,82 @@ function nextInGroup(index: number): RouteKey {
 }
 
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
-  { keys: ['1', '–', '4'], label: 'Map, Notes, Patterns, Plan (again: next tab)' },
-  { keys: ['J'], label: 'Journal' },
-  { keys: ['D'], label: 'Decisions' },
-  { keys: ['Q'], label: 'Questions' },
-  { keys: ['N'], label: 'Write a note' },
-  { keys: ['⌘', 'K'], label: 'Search and commands (also /)' },
-  { keys: ['Esc'], label: 'Close the panel' },
-  { keys: ['['], label: 'Back in the panel (also Alt + ←)' },
-  { keys: ['F'], label: 'Fit the graph to the screen' },
-  { keys: ['+', '−'], label: 'Zoom the graph' },
-  { keys: ['Tab', '↵'], label: 'Move between graph nodes, open one' },
-  { keys: ['←', '↑', '→', '↓'], label: 'Travel along a graph connection in that direction' },
-  { keys: ['?'], label: 'This list' },
+  {
+    keys: ['1', '–', '4'],
+    get label() {
+      return t('Map, Notes, Patterns, Plan (again: next tab)');
+    },
+  },
+  {
+    keys: ['J'],
+    get label() {
+      return t('Journal');
+    },
+  },
+  {
+    keys: ['D'],
+    get label() {
+      return t('Decisions');
+    },
+  },
+  {
+    keys: ['Q'],
+    get label() {
+      return t('Questions');
+    },
+  },
+  {
+    keys: ['N'],
+    get label() {
+      return t('Write a note');
+    },
+  },
+  {
+    keys: ['⌘', 'K'],
+    get label() {
+      return t('Search and commands (also /)');
+    },
+  },
+  {
+    keys: ['Esc'],
+    get label() {
+      return t('Close the panel');
+    },
+  },
+  {
+    keys: ['['],
+    get label() {
+      return t('Back in the panel (also Alt + ←)');
+    },
+  },
+  {
+    keys: ['F'],
+    get label() {
+      return t('Fit the graph to the screen');
+    },
+  },
+  {
+    keys: ['+', '−'],
+    get label() {
+      return t('Zoom the graph');
+    },
+  },
+  {
+    keys: ['Tab', '↵'],
+    get label() {
+      return t('Move between graph nodes, open one');
+    },
+  },
+  {
+    keys: ['←', '↑', '→', '↓'],
+    get label() {
+      return t('Travel along a graph connection in that direction');
+    },
+  },
+  {
+    keys: ['?'],
+    get label() {
+      return t('This list');
+    },
+  },
 ];

@@ -7,6 +7,7 @@ import { pad2 } from '../../../lib/text';
 import { PatternIcon } from '../../icons';
 import { NodeHandles } from './Handles';
 import { NodeRipple } from './NodeRipple';
+import { t } from '../../../i18n';
 
 const CLIP = 'polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%, 0 50%)';
 
@@ -20,7 +21,7 @@ export const PatternNodeView = memo(function PatternNodeView({ id, data, selecte
         <div className="max-w-[250px] bg-canvas px-5 py-2" style={{ clipPath: CLIP }}>
           <div className="flex items-center gap-1.5">
             <PatternIcon size={11} strokeWidth={2} className="text-ink-2" aria-hidden />
-            <span className="label text-ink-2!">Pattern {pad2(data.code)}</span>
+            <span className="label text-ink-2!">{t('Pattern {code}', { code: pad2(data.code) })}</span>
             <span className="num ml-auto pl-3 text-[11px] text-ink-2">{pct}%</span>
           </div>
           <div className="display mt-1 text-[14px] leading-[1.2] text-ink">{data.title}</div>

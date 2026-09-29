@@ -11,11 +11,27 @@ import { StanceMark } from '../evidence/EvidenceRow';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { FieldLabel, Segmented } from '../ui/primitives';
+import { t } from '../../i18n';
 
 const OUTCOMES: { value: ExperimentOutcome; label: string }[] = [
-  { value: 'supports', label: 'Supported' },
-  { value: 'contradicts', label: 'Contradicted' },
-  { value: 'inconclusive', label: 'Inconclusive' },
+  {
+    value: 'supports',
+    get label() {
+      return t('Supported');
+    },
+  },
+  {
+    value: 'contradicts',
+    get label() {
+      return t('Contradicted');
+    },
+  },
+  {
+    value: 'inconclusive',
+    get label() {
+      return t('Inconclusive');
+    },
+  },
 ];
 
 /**
@@ -43,7 +59,12 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
   const confirm = () => {
     if (!proposal) return;
     apply(experiment.id, result(), proposal);
-    toast(`${experimentCode(experiment.code)} completed. ${proposal.changes.length ? 'The model was updated.' : 'No pattern changed.'}`, { tone: 'success' });
+    toast(
+      t(proposal.changes.length ? '{code} completed. The model was updated.' : '{code} completed. No pattern changed.', {
+        code: experimentCode(experiment.code),
+      }),
+      { tone: 'success' },
+    );
     onClose();
   };
 
@@ -51,25 +72,25 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
     <Modal
       open
       onClose={onClose}
-      title={`Record result · ${experimentCode(experiment.code)}`}
+      title={t('Record result · {code}', { code: experimentCode(experiment.code) })}
       description={experiment.hypothesis}
       footer={
         proposal ? (
           <>
             <Button variant="ghost" onClick={() => setProposal(null)}>
-              Back
+              {t('Back')}
             </Button>
             <Button variant="primary" onClick={confirm}>
-              Apply update
+              {t('Apply update')}
             </Button>
           </>
         ) : (
           <>
             <Button variant="ghost" onClick={onClose}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <Button variant="primary" onClick={preview} loading={busy} disabled={!summary.trim()} icon={ArrowRight}>
-              Preview model update
+              {t('Preview model update')}
             </Button>
           </>
         )
@@ -78,12 +99,12 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
       {!proposal ? (
         <div className="space-y-4">
           <div>
-            <FieldLabel>Was the hypothesis supported?</FieldLabel>
-            <Segmented label="Outcome" value={outcome} onChange={setOutcome} options={OUTCOMES} />
+            <FieldLabel>{t('Was the hypothesis supported?')}</FieldLabel>
+            <Segmented label={t('Outcome')} value={outcome} onChange={setOutcome} options={OUTCOMES} />
           </div>
           {experiment.measures.length > 0 && (
             <div>
-              <FieldLabel>Measures</FieldLabel>
+              <FieldLabel>{t('Measures')}</FieldLabel>
               <div className="divide-y divide-line rounded-[2px] border border-line">
                 {experiment.measures.map((m) => (
                   <label key={m.id} className="grid grid-cols-[1fr_auto_120px] items-center gap-3 px-3 py-2">
@@ -96,7 +117,7 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
                       className="field py-1"
                       value={measures[m.id]}
                       onChange={(e) => setMeasures({ ...measures, [m.id]: e.target.value })}
-                      placeholder="Result"
+                      placeholder={t('Result')}
                     />
                   </label>
                 ))}
@@ -104,23 +125,23 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
             </div>
           )}
           <div>
-            <FieldLabel htmlFor="res-summary">What happened</FieldLabel>
+            <FieldLabel htmlFor="res-summary">{t('What happened')}</FieldLabel>
             <textarea
               id="res-summary"
               className="field min-h-[72px]"
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
-              placeholder="The facts, briefly. This text becomes the evidence excerpt."
+              placeholder={t('The facts, briefly. This text becomes the evidence excerpt.')}
             />
           </div>
           <div>
-            <FieldLabel htmlFor="res-learning">What you learned</FieldLabel>
+            <FieldLabel htmlFor="res-learning">{t('What you learned')}</FieldLabel>
             <textarea
               id="res-learning"
               className="field min-h-[56px]"
               value={learning}
               onChange={(e) => setLearning(e.target.value)}
-              placeholder="What would you do differently, or keep doing?"
+              placeholder={t('What would you do differently, or keep doing?')}
             />
           </div>
         </div>
@@ -135,10 +156,10 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
                   <li key={c.patternId} className="flex items-start gap-3 px-3 py-2.5">
                     <StanceMark stance={c.stance} />
                     <div className="min-w-0 flex-1">
-                      <div className="label">{p ? patternCode(p.code) : 'Pattern'}</div>
+                      <div className="label">{p ? patternCode(p.code) : t('Pattern')}</div>
                       <div className="text-[13px] text-ink">{p?.chain.join(' → ')}</div>
                       <div className="mt-0.5 text-[12px] text-ink-3">
-                        Added as {c.stance === 'supports' ? 'supporting evidence' : 'counter-evidence'}, weight {c.weight}
+                        {t(c.stance === 'supports' ? 'Added as supporting evidence, weight {w}' : 'Added as counter-evidence, weight {w}', { w: c.weight })}
                       </div>
                     </div>
                     <div className="num shrink-0 text-right text-[13px] text-ink">
@@ -149,11 +170,13 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
               })}
             </ul>
           ) : (
-            <p className="rounded-[2px] border border-dashed border-line-strong px-3 py-2.5 text-[12.5px] text-ink-3">No pattern confidence will change.</p>
+            <p className="rounded-[2px] border border-dashed border-line-strong px-3 py-2.5 text-[12.5px] text-ink-3">
+              {t('No pattern confidence will change.')}
+            </p>
           )}
           {proposal.interpretationNotes.length > 0 && (
             <div>
-              <FieldLabel>Suggested interpretation notes</FieldLabel>
+              <FieldLabel>{t('Suggested interpretation notes')}</FieldLabel>
               <ul className="space-y-1 text-[12.5px] text-ink-2">
                 {proposal.interpretationNotes.map((n) => (
                   <li key={n.patternId}>{n.statement}</li>

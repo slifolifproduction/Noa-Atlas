@@ -7,6 +7,7 @@ import type { Stance } from '../../domain/types';
 import { lines } from '../../lib/text';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
+import { t } from '../../i18n';
 
 export function NewExperimentModal({ onClose }: { onClose(): void }) {
   const data = useAtlas((s) => s.data);
@@ -43,16 +44,16 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
     <Modal
       open
       onClose={onClose}
-      title="New experiment"
-      description="A small, time-boxed test. Phrase the hypothesis so a result could contradict it."
+      title={t('New experiment')}
+      description={t('A small, time-boxed test. Phrase the hypothesis so a result could contradict it.')}
       width="max-w-[600px]"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={save} disabled={!valid}>
-            Add experiment
+            {t('Add experiment')}
           </Button>
         </>
       }
@@ -60,47 +61,47 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
       <div className="space-y-3.5">
         <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
           <div>
-            <FieldLabel htmlFor="x-title">Title</FieldLabel>
-            <input id="x-title" className="field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Commitment cap" />
+            <FieldLabel htmlFor="x-title">{t('Title')}</FieldLabel>
+            <input id="x-title" className="field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('e.g. Commitment cap')} />
           </div>
           <div>
-            <FieldLabel htmlFor="x-days">Days</FieldLabel>
+            <FieldLabel htmlFor="x-days">{t('Days')}</FieldLabel>
             <input id="x-days" type="number" min={1} className="field num" value={days} onChange={(e) => setDays(Number(e.target.value))} />
           </div>
         </div>
         <div>
-          <FieldLabel htmlFor="x-hyp">Hypothesis</FieldLabel>
-          <input id="x-hyp" className="field" value={hypothesis} onChange={(e) => setHypothesis(e.target.value)} placeholder="I may… / If I…, then…" />
+          <FieldLabel htmlFor="x-hyp">{t('Hypothesis')}</FieldLabel>
+          <input id="x-hyp" className="field" value={hypothesis} onChange={(e) => setHypothesis(e.target.value)} placeholder={t('I may… / If I…, then…')} />
         </div>
         <div>
-          <FieldLabel htmlFor="x-design">Experiment</FieldLabel>
+          <FieldLabel htmlFor="x-design">{t('Experiment')}</FieldLabel>
           <textarea
             id="x-design"
             className="field min-h-[64px]"
             value={design}
             onChange={(e) => setDesign(e.target.value)}
-            placeholder="What you will do differently, and for how long"
+            placeholder={t('What you will do differently, and for how long')}
           />
         </div>
         <div>
-          <FieldLabel htmlFor="x-measures" hint="one per line">
-            Measures
+          <FieldLabel htmlFor="x-measures" hint={t('one per line')}>
+            {t('Measures')}
           </FieldLabel>
           <textarea
             id="x-measures"
             className="field min-h-[72px]"
             value={measures}
             onChange={(e) => setMeasures(e.target.value)}
-            placeholder={'Completion rate\nFocus hours per week\nStress (1–5)'}
+            placeholder={t('Completion rate\nFocus hours per week\nStress (1–5)')}
           />
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <FieldLabel htmlFor="x-pattern" hint="optional">
-              Tests pattern
+              {t('Tests pattern')}
             </FieldLabel>
             <select id="x-pattern" className="field" value={patternId} onChange={(e) => setPatternId(e.target.value)}>
-              <option value="">None</option>
+              <option value="">{t('None')}</option>
               {Object.values(data.patterns)
                 .filter((p) => p.status !== 'dismissed')
                 .map((p) => (
@@ -114,19 +115,19 @@ export function NewExperimentModal({ onClose }: { onClose(): void }) {
                 className="field mt-1.5"
                 value={ifSupported}
                 onChange={(e) => setIfSupported(e.target.value as Stance)}
-                aria-label="If the hypothesis holds"
+                aria-label={t('If the hypothesis holds')}
               >
-                <option value="supports">A supported hypothesis supports the pattern</option>
-                <option value="counters">A supported hypothesis counters the pattern</option>
+                <option value="supports">{t('A supported hypothesis supports the pattern')}</option>
+                <option value="counters">{t('A supported hypothesis counters the pattern')}</option>
               </select>
             )}
           </div>
           <div>
             <FieldLabel htmlFor="x-path" hint="optional">
-              Informs path
+              {t('Informs path')}
             </FieldLabel>
             <select id="x-path" className="field" value={pathId} onChange={(e) => setPathId(e.target.value)}>
-              <option value="">None</option>
+              <option value="">{t('None')}</option>
               {Object.values(data.paths).map((p) => (
                 <option key={p.id} value={p.id}>
                   {pathCode(p.code)} · {p.title}

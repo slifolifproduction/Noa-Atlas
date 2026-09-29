@@ -7,6 +7,7 @@ import { useLabelScale } from '../../../hooks/useZoom';
 import { cn } from '../../../lib/cn';
 import { DomainGlyph } from '../DomainGlyph';
 import { NodeHandles } from './Handles';
+import { tn } from '../../../i18n';
 
 /** Dial spacing in the hub's 0–100 viewBox: a mark every 10°, and the four cardinal marks. */
 const DIAL_STEP = (2 * Math.PI * 55.5) / 36;
@@ -99,7 +100,7 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
       {data.patternCount > 0 && (
         <span
           className="num absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-line-strong bg-raised px-1 text-[11px] text-ink"
-          title={`${data.patternCount} active pattern${data.patternCount === 1 ? '' : 's'} involve this domain`}
+          title={tn(data.patternCount, '{n} active pattern involves this area', '{n} active patterns involve this area')}
         >
           {data.patternCount}
         </span>

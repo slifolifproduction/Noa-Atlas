@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { resolveSource } from '../../domain/selectors';
 import type { Pattern } from '../../domain/types';
 import { useElementWidth } from '../../hooks/useElementWidth';
-import { addDays, formatDate, formatMonth, parseISODate, todayISO } from '../../lib/dates';
+import { addDays, formatDate, formatMonth, parseISODate, useToday } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
+import { t } from '../../i18n';
 
 const SUPPORT = 'var(--color-support)';
 const COUNTER = 'var(--color-counter)';
@@ -15,6 +16,7 @@ const COUNTER = 'var(--color-counter)';
  * shared time axis rather than a dual-axis chart.
  */
 export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; history: { date: string; value: number; evidenceId: string }[] }) {
+  const today = useToday();
   const data = useAtlas((s) => s.data);
   const open = useUI((s) => s.openEntity);
   const [ref, width] = useElementWidth<HTMLDivElement>();
@@ -24,10 +26,10 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
     .map((e) => ({ e, src: resolveSource(data, e.source) }))
     .filter((p) => p.src.date)
     .sort((a, b) => a.src.date!.localeCompare(b.src.date!));
-  if (!points.length) return <p className="text-[12.5px] text-ink-3">No dated evidence yet.</p>;
+  if (!points.length) return <p className="text-[12.5px] text-ink-3">{t('No dated evidence yet.')}</p>;
 
   const start = addDays(points[0].src.date!.slice(0, 8) + '01', -1);
-  const end = todayISO();
+  const end = today;
   const t0 = parseISODate(start).getTime();
   const t1 = Math.max(parseISODate(end).getTime(), t0 + 86_400_000 * 30);
   const padL = 64;
@@ -44,10 +46,10 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
 
   const months: string[] = [];
   const cursor = parseISODate(start);
-  cursor.setDate(1);
+  cursor.setUTCDate(1);
   while (cursor.getTime() <= t1) {
-    months.push(`${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-01`);
-    cursor.setMonth(cursor.getMonth() + 1);
+    months.push(`${cursor.getUTCFullYear()}-${String(cursor.getUTCMonth() + 1).padStart(2, '0')}-01`);
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
   }
   const step = Math.ceil(months.length / Math.max(2, Math.floor((width - padL) / 70)));
 
@@ -57,7 +59,12 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
 
   return (
     <div ref={ref} className="relative">
-      <svg width={width} height={height} role="img" aria-label={`Evidence timeline for ${pattern.title}: ${points.length} pieces of evidence`}>
+      <svg
+        width={width}
+        height={height}
+        role="img"
+        aria-label={t('Evidence timeline for {title}: {n} pieces of evidence', { title: pattern.title, n: points.length })}
+      >
         {/* confidence band */}
         <line x1={padL} x2={width - padR} y1={yConf(0.5)} y2={yConf(0.5)} stroke="rgb(236 232 223 / 0.12)" strokeDasharray="3 4" />
         <text x={padL - 6} y={yConf(0.5) + 3} textAnchor="end" className="fill-ink-3 font-mono text-[10.5px]">
@@ -75,10 +82,10 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
 
         {/* lanes */}
         <text x={0} y={laneSup + 3.5} className="fill-ink-3 font-mono text-[11px] tracking-wider">
-          FOR
+          {t('FOR')}
         </text>
         <text x={0} y={laneCnt + 3.5} className="fill-ink-3 font-mono text-[11px] tracking-wider">
-          AGAINST
+          {t('AGAINST')}
         </text>
         <line x1={padL} x2={width - padR} y1={laneSup} y2={laneSup} stroke="rgb(236 232 223 / 0.06)" />
         <line x1={padL} x2={width - padR} y1={laneCnt} y2={laneCnt} stroke="rgb(236 232 223 / 0.06)" />
@@ -126,7 +133,7 @@ export function EvidenceTimeline({ pattern, history }: { pattern: Pattern; histo
           style={{ left: Math.min(width - 270, Math.max(0, x(hovered.src.date!) - 130)), top: (hovered.e.stance === 'supports' ? laneSup : laneCnt) + 14 }}
         >
           <div className="num text-[11px] text-ink-3">
-            {hovered.src.code} · {formatDate(hovered.src.date)} · {hovered.e.stance === 'supports' ? 'supports' : 'counters'}
+            {hovered.src.code} · {formatDate(hovered.src.date)} · {hovered.e.stance === 'supports' ? t('supports') : t('counters')}
             {hovered.e.weight > 1 ? ` · ×${hovered.e.weight}` : ''}
           </div>
           <div className="mt-0.5 text-[12.5px] leading-snug text-ink">“{hovered.e.excerpt}”</div>

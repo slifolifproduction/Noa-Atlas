@@ -7,17 +7,74 @@ import { pathCode } from '../../domain/selectors';
 import type { SkillRequirement, SkillStatus, StrategicPath } from '../../domain/types';
 import { lines } from '../../lib/text';
 import { useAtlas } from '../../state/atlasStore';
+import { t } from '../../i18n';
 
 type ListKey = 'requirements' | 'dependencies' | 'risks' | 'tradeoffs' | 'opportunityCosts' | 'unknowns' | 'proposedExperiments';
 
 const LIST_FIELDS: { key: ListKey; label: string; placeholder: string }[] = [
-  { key: 'requirements', label: 'Requirements', placeholder: 'What must be true for this path to work' },
-  { key: 'dependencies', label: 'Dependencies', placeholder: 'People, money or conditions it relies on' },
-  { key: 'risks', label: 'Risks', placeholder: 'What could go wrong' },
-  { key: 'tradeoffs', label: 'Trade-offs', placeholder: 'What you gain and what you give up' },
-  { key: 'opportunityCosts', label: 'Opportunity costs', placeholder: 'What this path rules out' },
-  { key: 'unknowns', label: 'Unknowns', placeholder: 'Beliefs that have not been tested' },
-  { key: 'proposedExperiments', label: 'Experiment ideas', placeholder: 'Cheap ways to reduce an unknown' },
+  {
+    key: 'requirements',
+    get label() {
+      return t('Requirements');
+    },
+    get placeholder() {
+      return t('What must be true for this path to work');
+    },
+  },
+  {
+    key: 'dependencies',
+    get label() {
+      return t('Dependencies');
+    },
+    get placeholder() {
+      return t('People, money or conditions it relies on');
+    },
+  },
+  {
+    key: 'risks',
+    get label() {
+      return t('Risks');
+    },
+    get placeholder() {
+      return t('What could go wrong');
+    },
+  },
+  {
+    key: 'tradeoffs',
+    get label() {
+      return t('Trade-offs');
+    },
+    get placeholder() {
+      return t('What you gain and what you give up');
+    },
+  },
+  {
+    key: 'opportunityCosts',
+    get label() {
+      return t('Opportunity costs');
+    },
+    get placeholder() {
+      return t('What this path rules out');
+    },
+  },
+  {
+    key: 'unknowns',
+    get label() {
+      return t('Unknowns');
+    },
+    get placeholder() {
+      return t('Beliefs that have not been tested');
+    },
+  },
+  {
+    key: 'proposedExperiments',
+    get label() {
+      return t('Experiment ideas');
+    },
+    get placeholder() {
+      return t('Cheap ways to reduce an unknown');
+    },
+  },
 ];
 
 const skillsToText = (s: SkillRequirement[]) => s.map((x) => `${x.label} | ${x.status}`).join('\n');
@@ -43,7 +100,7 @@ export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): 
 
   const save = () => {
     update(path.id, {
-      title: title.trim() || 'Untitled path',
+      title: title.trim() || t('Untitled path'),
       objective: objective.trim(),
       summary: summary.trim(),
       capital: capital.trim(),
@@ -58,14 +115,14 @@ export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): 
     <Modal
       open
       onClose={onClose}
-      title={`Edit ${pathCode(path.code)}`}
-      description="One item per line. Keep the language descriptive rather than persuasive."
+      title={t('Edit {code}', { code: pathCode(path.code) })}
+      description={t('One item per line. Keep the language descriptive rather than persuasive.')}
       width="max-w-[720px]"
       footer={
         <>
           <span className="mr-auto">
             <ConfirmButton
-              label="Delete path"
+              label={t('Delete path')}
               onConfirm={() => {
                 remove(path.id);
                 onClose();
@@ -73,40 +130,40 @@ export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): 
             />
           </span>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={save}>
-            Save path
+            {t('Save path')}
           </Button>
         </>
       }
     >
       <div className="grid gap-3.5 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <FieldLabel htmlFor="p-title">Title</FieldLabel>
+          <FieldLabel htmlFor="p-title">{t('Title')}</FieldLabel>
           <input id="p-title" className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div className="sm:col-span-2">
-          <FieldLabel htmlFor="p-obj">Objective</FieldLabel>
+          <FieldLabel htmlFor="p-obj">{t('Objective')}</FieldLabel>
           <textarea id="p-obj" className="field min-h-[56px]" value={objective} onChange={(e) => setObjective(e.target.value)} />
         </div>
         <div className="sm:col-span-2">
           <FieldLabel htmlFor="p-sum" hint="optional">
-            Summary
+            {t('Summary')}
           </FieldLabel>
           <input id="p-sum" className="field" value={summary} onChange={(e) => setSummary(e.target.value)} />
         </div>
         <div>
-          <FieldLabel htmlFor="p-cap">Capital</FieldLabel>
+          <FieldLabel htmlFor="p-cap">{t('Capital')}</FieldLabel>
           <input id="p-cap" className="field" value={capital} onChange={(e) => setCapital(e.target.value)} />
         </div>
         <div>
-          <FieldLabel htmlFor="p-time">Time</FieldLabel>
+          <FieldLabel htmlFor="p-time">{t('Time')}</FieldLabel>
           <input id="p-time" className="field" value={time} onChange={(e) => setTime(e.target.value)} />
         </div>
         <div className="sm:col-span-2">
-          <FieldLabel htmlFor="p-skills" hint="label | have, developing or gap">
-            Skills
+          <FieldLabel htmlFor="p-skills" hint={t('label | have, developing or gap')}>
+            {t('Skills')}
           </FieldLabel>
           <textarea id="p-skills" className="field num min-h-[88px] text-[12.5px]" value={skills} onChange={(e) => setSkills(e.target.value)} />
         </div>

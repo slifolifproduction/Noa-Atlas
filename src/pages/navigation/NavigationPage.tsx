@@ -6,14 +6,15 @@ import { ResultModal } from '../../components/experiments/ResultModal';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button, buttonClass, IconButton } from '../../components/ui/Button';
 import { EmptyState, Progress } from '../../components/ui/primitives';
-import { EXPERIMENT_STATUS_LABEL } from '../../domain/constants';
+import { EXPERIMENT_OUTCOME_LABEL, EXPERIMENT_STATUS_LABEL } from '../../domain/constants';
 import { currentAction, experimentCode, experimentProgress, navigationProgress, pathCode, patternCode } from '../../domain/selectors';
 import type { Experiment, NavAction, NavActionStatus } from '../../domain/types';
-import { addDays, formatDate, relativeDays, todayISO } from '../../lib/dates';
+import { addDays, formatDate, relativeDays, todayISO, useToday } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { NewExperimentModal } from './NewExperimentModal';
+import { t } from '../../i18n';
 
 export function NavigationPage() {
   const nav = useAtlas((s) => s.data.navigation);
@@ -23,11 +24,11 @@ export function NavigationPage() {
       <PageHeader
         view="navigation"
         help="navigation"
-        description="Your chosen direction, broken down into a goal, this month's targets and this week's steps."
+        description={t("Your chosen direction, broken down into a goal, this month's targets and this week's steps.")}
         actions={
           nav && (
             <a href={hrefFor('paths')} className="text-[12.5px] text-ink-2 hover:text-ink">
-              Change direction →
+              {t('Change direction →')}
             </a>
           )
         }
@@ -38,19 +39,20 @@ export function NavigationPage() {
         ) : (
           <EmptyState
             icon={PLACE_ICONS.plan}
-            title="No direction chosen"
+            title={t('No direction chosen')}
             action={
               <a href={hrefFor('paths')} className={buttonClass('primary', 'md', 'gap-2')}>
                 <ArrowRight size={14} aria-hidden />
-                See your options
+                {t('See your options')}
               </a>
             }
           >
-            Your plan starts from an option you choose. Choosing one drafts a 12-month goal, an experiment, 30-day targets and this week’s steps, all of which
-            you can edit.
+            {t(
+              'Your plan starts from an option you choose. Choosing one drafts a 12-month goal, an experiment, 30-day targets and this week’s steps, all of which you can edit.',
+            )}
           </EmptyState>
         )}
-        <aside aria-label="Experiments">
+        <aside aria-label={t('Experiments')}>
           <ExperimentsColumn onCreate={() => setCreating(true)} />
         </aside>
       </div>
@@ -102,6 +104,7 @@ function Route() {
   const addTarget = useAtlas((s) => s.addTarget);
   const deleteTarget = useAtlas((s) => s.deleteTarget);
   const open = useUI((s) => s.openEntity);
+  useToday();
   const progress = navigationProgress(nav);
   const path = data.paths[nav.pathId];
   const exp = nav.experimentId ? data.experiments[nav.experimentId] : undefined;
@@ -112,22 +115,22 @@ function Route() {
   const monthNow = Math.min(monthsTotal, Math.max(1, Math.ceil(progress.objectiveRatio * monthsTotal)));
 
   return (
-    <ol aria-label="Route" className="min-w-0">
-      <Waypoint label="Current position" progress={1}>
+    <ol aria-label={t('Route')} className="min-w-0">
+      <Waypoint label={t('Current position')} progress={1}>
         <EditableLine
           value={nav.position}
           onSave={(position) => update({ position })}
           className="display text-[18px] leading-[1.2] text-ink"
-          placeholder="Where are you on this route?"
+          placeholder={t('Where are you on this route?')}
         />
         {path && (
           <p className="mt-1 text-[12px] text-ink-3">
-            Direction: {pathCode(path.code)} · {path.title} · chosen {formatDate(nav.committedAt, { year: true })}
+            {t('Direction: {path} · chosen {date}', { path: `${pathCode(path.code)} · ${path.title}`, date: formatDate(nav.committedAt, { year: true }) })}
           </p>
         )}
       </Waypoint>
 
-      <Waypoint label="12-month objective" progress={progress.objectiveRatio}>
+      <Waypoint label={t('12-month objective')} progress={progress.objectiveRatio}>
         <EditableLine
           value={nav.objective.title}
           onSave={(title) => update({ objective: { ...nav.objective, title } })}
@@ -142,12 +145,12 @@ function Route() {
         <div className="mt-2 flex max-w-[420px] items-center gap-3">
           <Progress value={progress.objectiveRatio} />
           <span className="num shrink-0 text-[11.5px] text-ink-3">
-            month {monthNow} of {monthsTotal} · by {formatDate(nav.objective.targetDate, { year: true })}
+            {t('month {n} of {total} · by {date}', { n: monthNow, total: monthsTotal, date: formatDate(nav.objective.targetDate, { year: true }) })}
           </span>
         </div>
       </Waypoint>
 
-      <Waypoint label="90-day strategic experiment" progress={expProgress?.ratio}>
+      <Waypoint label={t('90-day strategic experiment')} progress={expProgress?.ratio}>
         {exp && expProgress ? (
           <button
             type="button"
@@ -163,9 +166,7 @@ function Route() {
             {exp.status === 'running' && (
               <div className="mt-2 flex items-center gap-3">
                 <Progress value={expProgress.ratio} color="var(--color-ink)" />
-                <span className="num shrink-0 text-[11.5px] text-ink-3">
-                  day {expProgress.day} of {expProgress.total}
-                </span>
+                <span className="num shrink-0 text-[11.5px] text-ink-3">{t('day {d} of {total}', { d: expProgress.day, total: expProgress.total })}</span>
               </div>
             )}
           </button>
@@ -174,7 +175,7 @@ function Route() {
         )}
       </Waypoint>
 
-      <Waypoint label="Next milestone" progress={Math.max(0, 1 - progress.daysToMilestone / 60)}>
+      <Waypoint label={t('Next milestone')} progress={Math.max(0, 1 - progress.daysToMilestone / 60)}>
         <EditableLine value={nav.milestone.title} onSave={(title) => update({ milestone: { ...nav.milestone, title } })} className="text-[14px] text-ink" />
         <p className="num mt-0.5 text-[12px] text-ink-3">
           {formatDate(nav.milestone.due, { year: true })} · {relativeDays(nav.milestone.due)}
@@ -182,32 +183,32 @@ function Route() {
       </Waypoint>
 
       <Waypoint
-        label={`30-day targets · ${progress.targetsDone} of ${progress.targetsTotal}`}
+        label={t('30-day targets · {done} of {total}', { done: progress.targetsDone, total: progress.targetsTotal })}
         progress={progress.targetsTotal ? progress.targetsDone / progress.targetsTotal : 0}
       >
         <ul className="space-y-1">
-          {nav.targets.map((t) => (
-            <li key={t.id} className="group flex items-center gap-2.5">
+          {nav.targets.map((tg) => (
+            <li key={tg.id} className="group flex items-center gap-2.5">
               <button
                 type="button"
                 role="checkbox"
-                aria-checked={t.done}
-                onClick={() => toggleTarget(t.id)}
+                aria-checked={tg.done}
+                onClick={() => toggleTarget(tg.id)}
                 className={cn(
                   'flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border',
-                  t.done ? 'border-ink-2 bg-ink-2 text-canvas' : 'border-line-strong hover:border-ink-3',
+                  tg.done ? 'border-ink-2 bg-ink-2 text-canvas' : 'border-line-strong hover:border-ink-3',
                 )}
-                aria-label={t.title}
+                aria-label={tg.title}
               >
-                {t.done && <Check size={11} strokeWidth={3} aria-hidden />}
+                {tg.done && <Check size={11} strokeWidth={3} aria-hidden />}
               </button>
-              <span className={cn('min-w-0 flex-1 text-[13.5px]', t.done ? 'text-ink-3 line-through decoration-ink-3/50' : 'text-ink')}>{t.title}</span>
-              <span className="num shrink-0 text-[11.5px] text-ink-3">{formatDate(t.due)}</span>
+              <span className={cn('min-w-0 flex-1 text-[13.5px]', tg.done ? 'text-ink-3 line-through decoration-ink-3/50' : 'text-ink')}>{tg.title}</span>
+              <span className="num shrink-0 text-[11.5px] text-ink-3">{formatDate(tg.due)}</span>
               <button
                 type="button"
                 className="shrink-0 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
-                aria-label={`Remove ${t.title}`}
-                onClick={() => deleteTarget(t.id)}
+                aria-label={t('Remove {name}', { name: tg.title })}
+                onClick={() => deleteTarget(tg.id)}
               >
                 <X size={12} aria-hidden />
               </button>
@@ -227,22 +228,26 @@ function Route() {
             className="field py-1 text-[12.5px]"
             value={newTarget}
             onChange={(e) => setNewTarget(e.target.value)}
-            placeholder="Add a 30-day target"
-            aria-label="New target"
+            placeholder={t('Add a 30-day target')}
+            aria-label={t('New target')}
           />
-          <IconButton icon={Plus} label="Add target" type="submit" />
+          <IconButton icon={Plus} label={t('Add target')} type="submit" />
         </form>
       </Waypoint>
 
       <Waypoint
-        label={`This week · ${progress.weekDone} of ${progress.weekActions.length} done`}
+        label={t('This week · {done} of {total} done', { done: progress.weekDone, total: progress.weekActions.length })}
         progress={progress.weekActions.length ? progress.weekDone / progress.weekActions.length : 0}
       >
         <WeeklyActions week={progress.week} actions={progress.weekActions} />
       </Waypoint>
 
-      <Waypoint label="Next action" current last>
-        {action ? <NextAction action={action} /> : <p className="text-[13px] text-ink-3">Nothing left this week. Add an action above, or review the week.</p>}
+      <Waypoint label={t('Next action')} current last>
+        {action ? (
+          <NextAction action={action} />
+        ) : (
+          <p className="text-[13px] text-ink-3">{t('Nothing left this week. Add an action above, or review the week.')}</p>
+        )}
       </Waypoint>
     </ol>
   );
@@ -250,17 +255,17 @@ function Route() {
 
 function NextAction({ action }: { action: NavAction }) {
   const setStatus = useAtlas((s) => s.setActionStatus);
-  const target = useAtlas((s) => s.data.navigation?.targets.find((t) => t.id === action.targetId));
+  const target = useAtlas((s) => s.data.navigation?.targets.find((x) => x.id === action.targetId));
   return (
     <div className="rounded-[2px] border border-accent/35 bg-accent-dim/40 px-4 py-3.5">
       <p className="text-[17px] leading-snug font-medium text-ink">{action.title}</p>
-      {target && <p className="mt-1 text-[12.5px] text-ink-2">Toward: {target.title}</p>}
+      {target && <p className="mt-1 text-[12.5px] text-ink-2">{t('Toward: {target}', { target: target.title })}</p>}
       <div className="mt-3 flex gap-2">
         <Button size="sm" variant="primary" icon={Check} onClick={() => setStatus(action.id, 'done')}>
-          Done
+          {t('Done')}
         </Button>
         <Button size="sm" variant="ghost" icon={SkipForward} onClick={() => setStatus(action.id, 'skipped')}>
-          Skip
+          {t('Skip')}
         </Button>
       </div>
     </div>
@@ -279,7 +284,7 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
   const next: Record<NavActionStatus, NavActionStatus> = { todo: 'done', done: 'todo', skipped: 'todo' };
   return (
     <div>
-      <p className="mb-1.5 text-[11.5px] text-ink-3">Week of {formatDate(week)}</p>
+      <p className="mb-1.5 text-[11.5px] text-ink-3">{t('Week of {date}', { date: formatDate(week) })}</p>
       <ul className="space-y-1">
         {actions.map((a) => (
           <li key={a.id} className="group relative flex items-center gap-2.5">
@@ -309,13 +314,13 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
               )}
             >
               {a.title}
-              {a.status === 'skipped' && <span className="ml-1.5 text-[11px]">skipped</span>}
+              {a.status === 'skipped' && <span className="ml-1.5 text-[11px]">{t('skipped')}</span>}
             </span>
-            {current?.id === a.id && <span className="shrink-0 rounded-[2px] border border-accent/40 px-1 text-[10.5px] text-accent">next</span>}
+            {current?.id === a.id && <span className="shrink-0 rounded-[2px] border border-accent/40 px-1 text-[10.5px] text-accent">{t('next')}</span>}
             <button
               type="button"
               className="shrink-0 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
-              aria-label="More"
+              aria-label={t('More')}
               onClick={() => setMenu(menu === a.id ? null : a.id)}
             >
               <Ellipsis size={14} aria-hidden />
@@ -324,16 +329,16 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
               <div className="absolute top-6 right-0 z-10 w-44 rounded-[2px] border border-line-strong bg-overlay p-1 shadow-xl">
                 {a.status === 'todo' && (
                   <MenuItem icon={Play} onClick={() => (setCurrent(a.id), setMenu(null))}>
-                    Make it the next action
+                    {t('Make it the next action')}
                   </MenuItem>
                 )}
                 {a.status === 'todo' && (
                   <MenuItem icon={SkipForward} onClick={() => (setStatus(a.id, 'skipped'), setMenu(null))}>
-                    Skip this week
+                    {t('Skip this week')}
                   </MenuItem>
                 )}
                 <MenuItem icon={Trash} onClick={() => (deleteAction(a.id), setMenu(null))}>
-                  Remove
+                  {t('Remove')}
                 </MenuItem>
               </div>
             )}
@@ -353,10 +358,10 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
           className="field py-1 text-[12.5px]"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="Add an action for this week"
-          aria-label="New action"
+          placeholder={t('Add an action for this week')}
+          aria-label={t('New action')}
         />
-        <IconButton icon={Plus} label="Add action" type="submit" />
+        <IconButton icon={Plus} label={t('Add action')} type="submit" />
       </form>
     </div>
   );
@@ -396,9 +401,9 @@ function EditableLine({
         type="button"
         className={cn('block w-full rounded-[2px] text-left hover:bg-ink/[0.03]', className)}
         onClick={() => (setDraft(value), setEditing(true))}
-        title="Click to edit"
+        title={t('Click to edit')}
       >
-        {value || <span className="text-ink-3">{placeholder ?? 'Add…'}</span>}
+        {value || <span className="text-ink-3">{placeholder ?? t('Add…')}</span>}
       </button>
     );
   const commit = () => {
@@ -435,9 +440,9 @@ function SelectExperiment() {
   const options = Object.values(data.experiments).filter((x) => x.status === 'running' || x.status === 'proposed');
   return (
     <div className="max-w-[420px]">
-      <p className="mb-2 text-[13px] text-ink-3">No strategic experiment linked. A 90-day experiment turns the objective into something testable.</p>
-      <select className="field" value="" onChange={(e) => e.target.value && update({ experimentId: e.target.value })} aria-label="Link an experiment">
-        <option value="">Link an experiment…</option>
+      <p className="mb-2 text-[13px] text-ink-3">{t('No strategic experiment linked. A 90-day experiment turns the objective into something testable.')}</p>
+      <select className="field" value="" onChange={(e) => e.target.value && update({ experimentId: e.target.value })} aria-label={t('Link an experiment')}>
+        <option value="">{t('Link an experiment…')}</option>
         {options.map((x) => (
           <option key={x.id} value={x.id}>
             {experimentCode(x.code)} · {x.title}
@@ -451,9 +456,9 @@ function SelectExperiment() {
 /* ------------------------------------------------------------ experiments */
 
 function LoopStrip() {
-  const steps = ['Hypothesis', 'Experiment', 'Result', 'Learning', 'Model update'];
+  const steps = [t('Hypothesis'), t('Experiment'), t('Result'), t('Learning'), t('Model update')];
   return (
-    <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11.5px] text-ink-3" aria-label="Feedback loop">
+    <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11.5px] text-ink-3" aria-label={t('Feedback loop')}>
       {steps.map((s, i) => (
         <li key={s} className="flex items-center gap-1.5">
           <span className="rounded-[2px] border border-line px-1.5 py-px">{s}</span>
@@ -467,26 +472,26 @@ function LoopStrip() {
 function ExperimentsColumn({ onCreate }: { onCreate(): void }) {
   const data = useAtlas((s) => s.data);
   const groups: { status: Experiment['status']; label: string }[] = [
-    { status: 'running', label: 'Running' },
-    { status: 'proposed', label: 'Proposed' },
-    { status: 'completed', label: 'Completed' },
+    { status: 'running', label: t('Running') },
+    { status: 'proposed', label: t('Proposed') },
+    { status: 'completed', label: t('Completed') },
   ];
   const all = Object.values(data.experiments);
   return (
     <div className="lg:sticky lg:top-0">
       <div className="flex items-center justify-between">
-        <h2 className="display text-[20px] text-ink">Experiments</h2>
+        <h2 className="display text-[20px] text-ink">{t('Experiments')}</h2>
         <Button size="sm" icon={Plus} onClick={onCreate}>
-          New
+          {t('New')}
         </Button>
       </div>
-      <p className="mt-1.5 text-[12.5px] text-ink-2">Test instead of predicting. A recorded result updates the patterns it was designed to test.</p>
+      <p className="mt-1.5 text-[12.5px] text-ink-2">{t('Test instead of predicting. A recorded result updates the patterns it was designed to test.')}</p>
       <div className="mt-2.5">
         <LoopStrip />
       </div>
       {all.length === 0 ? (
-        <EmptyState icon={DOMAIN_ICONS.goals} title="No experiments yet" className="mt-4">
-          Suggest experiments from any pattern, or design one from a path’s unknowns.
+        <EmptyState icon={DOMAIN_ICONS.goals} title={t('No experiments yet')} className="mt-4">
+          {t('Suggest experiments from any pattern, or design one from a path’s unknowns.')}
         </EmptyState>
       ) : (
         groups.map((g) => {
@@ -527,7 +532,7 @@ function ExperimentCard({ experiment: x }: { experiment: Experiment }) {
       </button>
       {x.patternLinks.length > 0 && (
         <p className="mt-1.5 text-[11.5px] text-ink-3">
-          Tests{' '}
+          {t('Tests')}{' '}
           {x.patternLinks
             .map((l) => (data.patterns[l.patternId] ? patternCode(data.patterns[l.patternId].code) : null))
             .filter(Boolean)
@@ -538,26 +543,25 @@ function ExperimentCard({ experiment: x }: { experiment: Experiment }) {
         <div className="mt-2.5 flex items-center gap-2.5">
           <Progress value={prog.ratio} color="var(--color-ink)" />
           <span className={cn('num shrink-0 text-[11px]', prog.overdue ? 'text-counter' : 'text-ink-3')}>
-            {prog.overdue ? 'result due' : `day ${prog.day}/${prog.total}`}
+            {prog.overdue ? t('result due') : t('day {d}/{total}', { d: prog.day, total: prog.total })}
           </span>
         </div>
       )}
       {x.status === 'completed' && x.result && (
         <p className="mt-1.5 text-[12px] text-ink-2">
-          <span className="text-ink-3">Result: </span>
-          {x.result.outcome === 'supports' ? 'supported' : x.result.outcome === 'contradicts' ? 'contradicted' : 'inconclusive'} ·{' '}
-          {x.result.learning || x.result.summary}
+          <span className="text-ink-3">{t('Result:')} </span>
+          {EXPERIMENT_OUTCOME_LABEL[x.result.outcome]} · {x.result.learning || x.result.summary}
         </p>
       )}
       {(x.status === 'running' || x.status === 'proposed') && (
         <div className="mt-2.5 flex gap-1.5">
           {x.status === 'running' ? (
             <Button size="sm" onClick={() => setRecording(true)}>
-              Record result
+              {t('Record result')}
             </Button>
           ) : (
             <Button size="sm" icon={Play} onClick={() => update(x.id, { status: 'running', startDate: todayISO() })}>
-              Start today
+              {t('Start today')}
             </Button>
           )}
         </div>

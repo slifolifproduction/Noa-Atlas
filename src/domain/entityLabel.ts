@@ -1,33 +1,34 @@
 import { DOMAIN_META } from './constants';
 import { decisionCode, displayNode, entryCode, experimentCode, pathCode, patternCode } from './selectors';
 import type { AtlasData, DomainKey, EntityRef } from './types';
+import { t } from '../i18n';
 
 /** Short human label for any inspectable entity. */
 export function entityLabel(data: AtlasData, ref: EntityRef): string {
   switch (ref.kind) {
     case 'domain':
-      return DOMAIN_META[ref.id as DomainKey]?.label ?? 'Domain';
+      return DOMAIN_META[ref.id as DomainKey]?.label ?? t('Domain');
     case 'node':
-      return displayNode(data, ref.id)?.label ?? 'Node';
+      return displayNode(data, ref.id)?.label ?? t('Node');
     case 'entry': {
       const e = data.entries[ref.id];
-      return e ? `${entryCode(e.seq)} ${e.title}` : 'Entry';
+      return e ? `${entryCode(e.seq)} ${e.title}` : t('Entry');
     }
     case 'decision': {
       const d = data.decisions[ref.id];
-      return d ? decisionCode(d.seq) : 'Decision';
+      return d ? decisionCode(d.seq) : t('Decision');
     }
     case 'pattern': {
       const p = data.patterns[ref.id];
-      return p ? patternCode(p.code) : 'Pattern';
+      return p ? patternCode(p.code) : t('Pattern');
     }
     case 'experiment': {
       const x = data.experiments[ref.id];
-      return x ? experimentCode(x.code) : 'Experiment';
+      return x ? experimentCode(x.code) : t('Experiment');
     }
     case 'path': {
       const p = data.paths[ref.id];
-      return p ? pathCode(p.code) : 'Path';
+      return p ? pathCode(p.code) : t('Path');
     }
   }
 }

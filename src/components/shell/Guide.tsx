@@ -5,8 +5,10 @@ import { navigate } from '../../app/router';
 import { cn } from '../../lib/cn';
 import { useUI } from '../../state/uiStore';
 import { Button } from '../ui/Button';
-import { Kbd } from '../ui/primitives';
+import { Kbd, Segmented } from '../ui/primitives';
 import { Modal } from '../ui/Modal';
+import { LANGUAGES, setLang, t, useLang, type Lang } from '../../i18n';
+import { Trans } from '../../i18n/Trans';
 
 interface Step {
   title: string;
@@ -15,7 +17,28 @@ interface Step {
   tryIt?: { label: string; run(): void };
 }
 
-const LOOP = [{ label: 'Write what happens' }, { label: 'See what repeats' }, { label: 'Choose a direction' }, { label: 'Take the next step' }];
+const LOOP = [
+  {
+    get label() {
+      return t('Write what happens');
+    },
+  },
+  {
+    get label() {
+      return t('See what repeats');
+    },
+  },
+  {
+    get label() {
+      return t('Choose a direction');
+    },
+  },
+  {
+    get label() {
+      return t('Take the next step');
+    },
+  },
+];
 
 /**
  * A short welcome: what this is, the one loop it runs on, and where things are.
@@ -26,6 +49,7 @@ export function Guide() {
   const setOpen = useUI((s) => s.setGuideOpen);
   const openCapture = useUI((s) => s.openCapture);
   const [i, setI] = useState(0);
+  const lang = useLang();
 
   // The first visit starts with the guide.
   useEffect(() => {
@@ -38,11 +62,11 @@ export function Guide() {
   const close = () => setOpen(false);
   const steps: Step[] = [
     {
-      title: 'Welcome to Cognitive Atlas',
+      title: t('Welcome to Cognitive Atlas'),
       body: (
         <>
-          <p>A private map of your life and how you think. It learns only from what you write, and everything stays in this browser.</p>
-          <p className="mt-2">It runs on one simple loop:</p>
+          <p>{t('A private map of your life and how you think. It learns only from what you write, and everything stays in this browser.')}</p>
+          <p className="mt-2">{t('It runs on one simple loop:')}</p>
           <ol className="mt-3 grid gap-2 sm:grid-cols-4">
             {LOOP.map((s, n) => (
               <li key={s.label} className="flex items-center gap-3 border-t border-line-strong pt-2.5 sm:flex-col sm:items-start sm:gap-2">
@@ -51,22 +75,27 @@ export function Guide() {
               </li>
             ))}
           </ol>
+          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
+            <Segmented<Lang> label={t('Language')} value={lang} onChange={setLang} options={LANGUAGES.map((l) => ({ value: l.key, label: l.name }))} />
+          </div>
         </>
       ),
     },
     {
-      title: '1 · Write what happens',
+      title: t('1 · Write what happens'),
       body: (
         <>
           <p>
-            Press <strong className="text-ink">Capture</strong> (or the <Kbd>N</Kbd> key) and write a few lines: something that happened, a decision, a worry.
-            No format and no title needed.
+            <Trans
+              text={t('Press {capture} (or the {key} key) and write a few lines: something that happened, a decision, a worry. No format and no title needed.')}
+              values={{ capture: <strong className="text-ink">{t('Capture')}</strong>, key: <Kbd>N</Kbd> }}
+            />
           </p>
-          <p className="mt-2">Short and honest beats long and polished. Once a week is enough to start.</p>
+          <p className="mt-2">{t('Short and honest beats long and polished. Once a week is enough to start.')}</p>
         </>
       ),
       tryIt: {
-        label: 'Write a note',
+        label: t('Write a note'),
         run: () => {
           close();
           openCapture('journal');
@@ -74,17 +103,20 @@ export function Guide() {
       },
     },
     {
-      title: '2 · See what keeps repeating',
+      title: t('2 · See what keeps repeating'),
       body: (
         <>
           <p>
-            After you save, the atlas suggests links and <strong className="text-ink">patterns</strong>, each one showing the notes behind it, for and against.
+            <Trans
+              text={t('After you save, the atlas suggests links and {patterns}, each one showing the notes behind it, for and against.')}
+              values={{ patterns: <strong className="text-ink">{t('patterns')}</strong> }}
+            />
           </p>
-          <p className="mt-2">You accept what fits and reject what does not. Nothing is added to your map without you.</p>
+          <p className="mt-2">{t('You accept what fits and reject what does not. Nothing is added to your map without you.')}</p>
         </>
       ),
       tryIt: {
-        label: 'Open Patterns',
+        label: t('Open Patterns'),
         run: () => {
           close();
           navigate('patterns');
@@ -92,17 +124,20 @@ export function Guide() {
       },
     },
     {
-      title: '3 · Choose a direction, then one step',
+      title: t('3 · Choose a direction, then one step'),
       body: (
         <>
           <p>
-            Under <strong className="text-ink">Plan</strong>, Options shows your choices side by side, never ranked: the choice is yours.
+            <Trans
+              text={t('Under {plan}, Options shows your choices side by side, never ranked: the choice is yours.')}
+              values={{ plan: <strong className="text-ink">{t('Plan')}</strong> }}
+            />
           </p>
-          <p className="mt-2">When you pick one, My plan turns it into a goal, this month&apos;s targets and this week&apos;s next step.</p>
+          <p className="mt-2">{t('When you pick one, My plan turns it into a goal, this month’s targets and this week’s next step.')}</p>
         </>
       ),
       tryIt: {
-        label: 'See your options',
+        label: t('See your options'),
         run: () => {
           close();
           navigate('paths');
@@ -110,24 +145,25 @@ export function Guide() {
       },
     },
     {
-      title: 'Finding your way around',
+      title: t('Finding your way around'),
       body: (
         <ul className="space-y-2.5">
-          <Where icon={PLACE_ICONS.map} title="Map">
-            Orbit shows your areas of life, Mind shows how you think. Click anything to open it; “Add point” adds your own. The Overview on the left always
-            shows one thing to do next.
+          <Where icon={PLACE_ICONS.map} title={t('Map')}>
+            {t(
+              'Orbit shows your areas of life, Mind shows how you think. Click anything to open it; “Add point” adds your own. The Overview on the left always shows one thing to do next.',
+            )}
           </Where>
-          <Where icon={PLACE_ICONS.notes} title="Notes">
-            Everything you have written: notes, decisions and open questions.
+          <Where icon={PLACE_ICONS.notes} title={t('Notes')}>
+            {t('Everything you have written: notes, decisions and open questions.')}
           </Where>
-          <Where icon={PLACE_ICONS.plan} title="Plan">
-            Your options side by side, the direction you chose, and this week&apos;s steps.
+          <Where icon={PLACE_ICONS.plan} title={t('Plan')}>
+            {t('Your options side by side, the direction you chose, and this week’s steps.')}
           </Where>
-          <Where icon={Ellipsis} title="More (⋯, top right)">
-            Versions (save your atlas and go back to it, or start fresh), this guide, shortcuts and settings.
+          <Where icon={Ellipsis} title={t('More (⋯, top right)')}>
+            {t('Versions (save your atlas and go back to it, or start fresh), this guide, shortcuts and settings.')}
           </Where>
-          <Where icon={Search} title="Search and help">
-            <Kbd>⌘K</Kbd> finds anything. Every page has a “How this page works” note.
+          <Where icon={Search} title={t('Search and help')}>
+            <Trans text={t('{key} finds anything. Every page has a “How this page works” note.')} values={{ key: <Kbd>⌘K</Kbd> }} />
           </Where>
         </ul>
       ),
@@ -145,28 +181,28 @@ export function Guide() {
       initialFocus="#guide-next"
       footer={
         <>
-          <div className="mr-auto flex items-center gap-1.5" aria-label={`Step ${i + 1} of ${steps.length}`}>
+          <div className="mr-auto flex items-center gap-1.5" aria-label={t('Step {n} of {total}', { n: i + 1, total: steps.length })}>
             {steps.map((_, n) => (
               <button
                 key={n}
                 type="button"
                 onClick={() => setI(n)}
-                aria-label={`Step ${n + 1}`}
+                aria-label={t('Step {n}', { n: n + 1 })}
                 className={cn('h-1.5 rounded-full transition-all', n === i ? 'w-5 bg-accent' : 'w-1.5 bg-ink/20 hover:bg-ink/35')}
               />
             ))}
           </div>
           {i === 0 ? (
             <Button variant="ghost" onClick={close}>
-              Skip
+              {t('Skip')}
             </Button>
           ) : (
             <Button variant="ghost" onClick={() => setI(i - 1)}>
-              Back
+              {t('Back')}
             </Button>
           )}
           <Button id="guide-next" variant="primary" icon={last ? undefined : ArrowRight} onClick={() => (last ? close() : setI(i + 1))}>
-            {i === 0 ? 'Show me how' : last ? 'Start' : 'Next'}
+            {i === 0 ? t('Show me how') : last ? t('Start') : t('Next')}
           </Button>
         </>
       }
@@ -178,7 +214,7 @@ export function Guide() {
           onClick={step.tryIt.run}
           className="mt-5 inline-flex items-center gap-1.5 border-b border-accent pb-0.5 text-[13px] text-ink hover:text-accent"
         >
-          Try it now: {step.tryIt.label} <ArrowRight size={13} aria-hidden />
+          {t('Try it now: {action}', { action: step.tryIt.label })} <ArrowRight size={13} aria-hidden />
         </button>
       )}
     </Modal>

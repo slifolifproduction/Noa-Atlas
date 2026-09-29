@@ -11,6 +11,7 @@ import { EntryView } from './EntryView';
 import { ExperimentView } from './ExperimentView';
 import { NodeView } from './NodeView';
 import { PathView, PatternView } from './SummaryViews';
+import { t } from '../../i18n';
 
 /**
  * The contextual panel. It keeps a trail of what was opened, so drilling from
@@ -40,22 +41,22 @@ export function Inspector() {
           type="button"
           onClick={back}
           className="flex min-w-0 items-center gap-1.5 rounded-[2px] px-2 py-1 text-[12px] text-ink-2 hover:bg-ink/[0.05] hover:text-ink"
-          title="Back (Alt + ←)"
+          title={t('Back (Alt + ←)')}
         >
           <ArrowLeft size={13} className="shrink-0" aria-hidden />
           <span className="truncate">{entityLabel(data, prev)}</span>
         </button>
       ) : (
-        <span className="label px-2">Inspector</span>
+        <span className="label px-2">{t('Inspector')}</span>
       )}
       {stack.length > 2 && <span className="num shrink-0 text-[10.5px] text-ink-3">+{stack.length - 2}</span>}
-      <IconButton icon={X} label="Close panel (Esc)" size="sm" className="ml-auto" onClick={close} />
+      <IconButton icon={X} label={t('Close panel (Esc)')} size="sm" className="ml-auto" onClick={close} />
     </div>
   );
 
   const content = !exists ? (
     <div className="p-4">
-      <EmptyState title="This item no longer exists">It may have been deleted. Go back to continue where you were.</EmptyState>
+      <EmptyState title={t('This item no longer exists')}>{t('It may have been deleted. Go back to continue where you were.')}</EmptyState>
     </div>
   ) : top.kind === 'node' || top.kind === 'domain' ? (
     <NodeView id={top.kind === 'domain' ? `domain:${top.id}` : top.id} />
@@ -74,7 +75,7 @@ export function Inspector() {
   if (panelWidth) {
     return (
       <aside
-        aria-label="Inspector"
+        aria-label={t('Inspector')}
         className="absolute top-0 right-0 bottom-0 z-20 flex animate-slide-in-right flex-col border-l border-line-strong bg-surface/[0.97] shadow-[-40px_0_80px_-40px_rgb(0_0_0/0.8)] backdrop-blur-md"
         style={{ width: panelWidth }}
       >
@@ -87,7 +88,7 @@ export function Inspector() {
   }
   return (
     <aside
-      aria-label="Inspector"
+      aria-label={t('Inspector')}
       className="fixed inset-x-0 bottom-0 z-40 flex max-h-[80dvh] animate-slide-in-up flex-col rounded-t-[2px] border-t border-line-strong bg-surface shadow-[0_-24px_48px_-12px_rgb(0_0_0/0.7)]"
     >
       <div className="flex justify-center pt-2" aria-hidden>

@@ -8,7 +8,7 @@ import { RelationSwatch } from '../../components/graph/Legend';
 import { PatternIcon } from '../../components/icons';
 import { refForNode } from '../../components/inspector/parts';
 import { Button, IconButton } from '../../components/ui/Button';
-import { HelpCard, PAGE_HELP, useGraphHelp } from '../../components/ui/HowItWorks';
+import { HelpCard, pageHelp, useGraphHelp } from '../../components/ui/HowItWorks';
 import { MenuItem, MenuLabel, MenuSeparator } from '../../components/ui/Menu';
 import { EmptyState } from '../../components/ui/primitives';
 import { CATEGORIES, RELATION_META } from '../../domain/constants';
@@ -20,6 +20,7 @@ import { useInspectorWidth, useIsDesktop, useIsMobile } from '../../hooks/useMed
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI, type MindView } from '../../state/uiStore';
+import { t, tn } from '../../i18n';
 
 const RAIL_WIDTH = 236;
 const MIND_RELATIONS: RelationType[] = ['causes', 'influences', 'supports', 'conflicts', 'contradicts', 'derived_from', 'examines', 'depends_on'];
@@ -96,9 +97,9 @@ export function MindPage() {
             style={{ width: RAIL_WIDTH }}
           >
             <div className="border-b border-line px-4 pt-3 pb-2.5">
-              <div className="label text-ink-2!">What to show</div>
+              <div className="label text-ink-2!">{t('What to show')}</div>
               <p className="mt-1 text-[12px] leading-snug text-ink-3">
-                {total} point{total === 1 ? '' : 's'}. Dashed: suggested or untested.
+                {tn(total, '{n} point. Dashed: suggested or untested.', '{n} points. Dashed: suggested or untested.')}
               </p>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto">{filters}</div>
@@ -108,7 +109,7 @@ export function MindPage() {
         <div className="absolute top-3 z-10 flex flex-wrap items-center justify-end gap-1.5" style={{ right: occluded + 12, left: isMobile ? 12 : undefined }}>
           {!isDesktop && (
             <Button size="sm" icon={Filter} onClick={() => setFiltersOpen(true)} className="mr-auto bg-surface/95">
-              Filter
+              {t('Filter')}
             </Button>
           )}
           <GraphSearch
@@ -120,23 +121,23 @@ export function MindPage() {
               requestFocus('mind', id);
             }}
           />
-          <Button size="sm" icon={Plus} onClick={() => setAdding(true)} title="Add a belief, fear, question, value or decision" className="bg-surface/95">
-            Add point
+          <Button size="sm" icon={Plus} onClick={() => setAdding(true)} title={t('Add a belief, fear, question, value or decision')} className="bg-surface/95">
+            {t('Add point')}
           </Button>
           <ViewMenu padding={padding}>
-            <MenuLabel>Around the selected card</MenuLabel>
+            <MenuLabel>{t('Around the selected card')}</MenuLabel>
             {(
               [
-                [0, 'Everything', 'Show the whole map'],
-                [1, 'Only close links', 'What is directly linked to it'],
-                [2, 'Wider', 'Also what is linked to those'],
+                [0, t('Everything'), t('Show the whole map')],
+                [1, t('Only close links'), t('What is directly linked to it')],
+                [2, t('Wider'), t('Also what is linked to those')],
               ] as const
             ).map(([depth, label, hint]) => (
               <MenuItem
                 key={depth}
                 radio
                 checked={(selectedId ? view.focusDepth : 0) === depth}
-                hint={depth && !selectedId ? 'Select a card first' : hint}
+                hint={depth && !selectedId ? t('Select a card first') : hint}
                 disabled={depth > 0 && !selectedId}
                 onSelect={() => setMindView({ focusDepth: depth })}
               >
@@ -144,18 +145,18 @@ export function MindPage() {
               </MenuItem>
             ))}
             <MenuSeparator />
-            <MenuItem icon={RotateCcw} hint="Put every card back where it started" onSelect={() => resetLayout('mind')}>
-              Reset layout
+            <MenuItem icon={RotateCcw} hint={t('Put every card back where it started')} onSelect={() => resetLayout('mind')}>
+              {t('Reset layout')}
             </MenuItem>
             <MenuItem icon={CircleHelp} onSelect={help.toggle}>
-              {help.shown ? 'Hide how this page works' : 'How this page works'}
+              {help.shown ? t('Hide how this page works') : t('How this page works')}
             </MenuItem>
           </ViewMenu>
         </div>
 
         {help.shown && (
           <div className="absolute top-14 z-20 w-[min(360px,calc(100%-24px))] animate-rise" style={{ right: occluded + 12 }}>
-            <HelpCard floating items={PAGE_HELP.mind} onDone={help.close} />
+            <HelpCard floating items={pageHelp('mind') ?? []} onDone={help.close} />
           </div>
         )}
 
@@ -163,15 +164,15 @@ export function MindPage() {
           <div className="absolute inset-0 z-10 flex items-center justify-center p-6">
             <EmptyState
               icon={Brain}
-              title="Your Mind graph is empty"
+              title={t('Your Mind graph is empty')}
               className="max-w-[380px] bg-surface/95"
               action={
                 <Button size="sm" variant="primary" icon={Plus} onClick={() => setAdding(true)}>
-                  Add a belief or question
+                  {t('Add a belief or question')}
                 </Button>
               }
             >
-              Start with one belief you act on, one assumption you have never tested, and one open question. Connections come next.
+              {t('Start with one belief you act on, one assumption you have never tested, and one open question. Connections come next.')}
             </EmptyState>
           </div>
         )}
@@ -180,8 +181,8 @@ export function MindPage() {
       {!isDesktop && filtersOpen && (
         <div className="absolute inset-0 z-30 flex animate-fade-in flex-col bg-surface">
           <div className="flex h-11 items-center justify-between border-b border-line pr-2 pl-4">
-            <span className="label">What to show</span>
-            <IconButton icon={X} label="Close" size="sm" onClick={() => setFiltersOpen(false)} />
+            <span className="label">{t('What to show')}</span>
+            <IconButton icon={X} label={t('Close')} size="sm" onClick={() => setFiltersOpen(false)} />
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">{filters}</div>
         </div>
@@ -200,10 +201,10 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
   return (
     <div className="pb-3">
       <div className="flex items-center justify-between px-4 pt-3 pb-1">
-        <span className="label">Kinds</span>
+        <span className="label">{t('Kinds')}</span>
         {hidden.size > 0 && (
           <button type="button" className="text-[11.5px] text-accent hover:underline" onClick={() => setView({ hiddenCategories: [] })}>
-            Show all
+            {t('Show all')}
           </button>
         )}
       </div>
@@ -234,7 +235,7 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
                   'ml-0.5 rounded-[2px] px-1.5 py-0.5 text-[10.5px] text-ink-3 hover:bg-ink/[0.05] hover:text-ink',
                   only ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
                 )}
-                aria-label={only ? 'Show all categories' : `Show only ${c.plural}`}
+                aria-label={only ? t('Show all categories') : t('Show only {kinds}', { kinds: c.plural.toLowerCase() })}
               >
                 {only ? 'all' : 'only'}
               </button>
@@ -251,8 +252,8 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
           className="flex w-full items-center gap-2 rounded-[2px] px-2 py-[5px] text-left text-[12.5px] text-ink-2 hover:bg-ink/[0.04] hover:text-ink"
         >
           <ChevronRight size={13} className={cn('text-ink-3 transition-transform', more && 'rotate-90')} aria-hidden />
-          <span className="flex-1">More filters</span>
-          {changed > 0 && <span className="num text-[11px] text-accent">{changed} off</span>}
+          <span className="flex-1">{t('More filters')}</span>
+          {changed > 0 && <span className="num text-[11px] text-accent">{t('{n} off', { n: changed })}</span>}
         </button>
       </div>
       {more && (
@@ -263,18 +264,18 @@ function MindFilters({ view, setView, counts }: { view: MindView; setView(p: Par
               onClick={() => setView({ showPatterns: !view.showPatterns })}
               icon={<PatternIcon size={13} className="text-ink-2" aria-hidden />}
             >
-              Patterns
+              {t('Patterns')}
             </ToggleRow>
             <ToggleRow
               on={view.showInferred}
               onClick={() => setView({ showInferred: !view.showInferred })}
               icon={view.showInferred ? <Eye size={13} className="text-ink-2" aria-hidden /> : <EyeOff size={13} className="text-ink-3" aria-hidden />}
             >
-              Suggested cards
+              {t('Suggested cards')}
             </ToggleRow>
           </div>
           <div className="px-4 pt-3 pb-1">
-            <span className="label">Kinds of link</span>
+            <span className="label">{t('Kinds of link')}</span>
           </div>
           <ul className="px-2">
             {MIND_RELATIONS.map((r) => {

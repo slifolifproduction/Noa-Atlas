@@ -14,15 +14,16 @@ import { formatDate } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
+import { t } from '../../i18n';
 
 export function QuestionsPage() {
   const data = useAtlas((s) => s.data);
   const [adding, setAdding] = useState(false);
   const questions = questionNodes(data);
   const groups: { status: QuestionStatus; hint: string }[] = [
-    { status: 'exploring', hint: 'Actively gathering evidence' },
-    { status: 'open', hint: 'Worth keeping open' },
-    { status: 'resolved', hint: 'Provisionally answered' },
+    { status: 'exploring', hint: t('Actively gathering evidence') },
+    { status: 'open', hint: t('Worth keeping open') },
+    { status: 'resolved', hint: t('Provisionally answered') },
   ];
 
   return (
@@ -30,17 +31,18 @@ export function QuestionsPage() {
       <PageHeader
         view="questions"
         help="questions"
-        description="Questions worth keeping open instead of answering too early. Each one also appears on the Mind map."
+        description={t('Questions worth keeping open instead of answering too early. Each one also appears on the Mind map.')}
         actions={
           <Button variant="primary" icon={Plus} onClick={() => setAdding(true)}>
-            New question
+            {t('New question')}
           </Button>
         }
       />
       {questions.length === 0 ? (
-        <EmptyState icon={CATEGORY_ICONS.question} title="No open questions" className="mt-6">
-          Good questions to start with: what you are actually optimising for, which opportunities to stop accepting, and which assumptions about your work have
-          never been tested.
+        <EmptyState icon={CATEGORY_ICONS.question} title={t('No open questions')} className="mt-6">
+          {t(
+            'Good questions to start with: what you are actually optimising for, which opportunities to stop accepting, and which assumptions about your work have never been tested.',
+          )}
         </EmptyState>
       ) : (
         groups.map((g) => {
@@ -79,7 +81,7 @@ function QuestionCard({ question: q }: { question: AtlasNode }) {
           {q.summary && <p className="mt-1 text-[12.5px] text-ink-2">{q.summary}</p>}
         </button>
         <Segmented<QuestionStatus>
-          label="Status"
+          label={t('Status')}
           size="sm"
           value={q.status ?? 'open'}
           onChange={(status) => update(q.id, { status })}
@@ -88,18 +90,18 @@ function QuestionCard({ question: q }: { question: AtlasNode }) {
       </div>
       {q.resolution && (
         <p className="mt-2 border-l-2 border-line-strong pl-2.5 text-[12.5px] text-ink-2">
-          <span className="text-ink-3">Provisional answer: </span>
+          <span className="text-ink-3">{t('Provisional answer:')} </span>
           {q.resolution}
         </p>
       )}
       <div className="mt-3 flex flex-wrap items-center gap-1.5">
-        <span className="mr-1 text-[11.5px] text-ink-3">{linked.length ? 'Examines' : 'Not linked to anything yet'}</span>
+        <span className="mr-1 text-[11.5px] text-ink-3">{linked.length ? t('Examines') : t('Not linked to anything yet')}</span>
         {linked.map((l) => (
           <NodeChip key={l.otherId} id={l.otherId} />
         ))}
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11.5px] text-ink-3">
-        <span>Opened {formatDate(q.createdAt.slice(0, 10), { year: true })}</span>
+        <span>{t('Opened {date}', { date: formatDate(q.createdAt, { year: true }) })}</span>
         {experiments.map((x) => (
           <button
             key={x.id}
@@ -115,7 +117,7 @@ function QuestionCard({ question: q }: { question: AtlasNode }) {
           className="ml-auto inline-flex items-center gap-1 text-ink-2 hover:text-ink"
           onClick={() => showOnMap('mind', q.id, { kind: 'node', id: q.id })}
         >
-          <Crosshair size={12} aria-hidden /> Show in Mind
+          <Crosshair size={12} aria-hidden /> {t('Show in Mind')}
         </button>
       </div>
     </li>

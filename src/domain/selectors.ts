@@ -3,7 +3,7 @@
  * same relationship logic (backlinks, neighbourhoods, statistics) is defined
  * exactly once.
  */
-import { addDays, daysBetween, formatSpan, todayISO, weekStart } from '../lib/dates';
+import { addDays, dateOf, daysBetween, formatSpan, todayISO, weekStart } from '../lib/dates';
 import { pad2 } from '../lib/text';
 import { computeConfidence, confidenceHistory } from './confidence';
 import { CATEGORY_META, DOMAIN_META, DRIVER_HORIZON, hubId, hubKey, isHubId, PATTERN_COLOR } from './constants';
@@ -23,14 +23,15 @@ import type {
   RelationType,
   SourceRef,
 } from './types';
+import { t } from '../i18n';
 
 /* ---------------- codes ---------------- */
 
-export const entryCode = (seq: number) => `Entry #${pad2(seq)}`;
-export const decisionCode = (seq: number) => `Decision #${pad2(seq)}`;
-export const patternCode = (code: number) => `Pattern ${pad2(code)}`;
+export const entryCode = (seq: number) => t('Entry #{n}', { n: pad2(seq) });
+export const decisionCode = (seq: number) => t('Decision #{n}', { n: pad2(seq) });
+export const patternCode = (code: number) => t('Pattern {code}', { code: pad2(code) });
 export const experimentCode = (code: number) => `EXP-${pad2(code)}`;
-export const pathCode = (code: string) => `Path ${code}`;
+export const pathCode = (code: string) => t('Path {code}', { code });
 
 /* ---------------- sources ---------------- */
 
@@ -48,13 +49,13 @@ export function resolveSource(data: AtlasData, ref: SourceRef): ResolvedSource {
     const e = data.entries[ref.id];
     return e
       ? { ref, code: entryCode(e.seq), title: e.title, date: e.date, body: e.content, exists: true }
-      : { ref, code: 'Entry', title: 'Deleted entry', exists: false };
+      : { ref, code: t('Entry'), title: t('Deleted entry'), exists: false };
   }
   if (ref.kind === 'decision') {
     const d = data.decisions[ref.id];
     return d
       ? { ref, code: decisionCode(d.seq), title: d.title, date: d.date, body: d.context, exists: true }
-      : { ref, code: 'Decision', title: 'Deleted decision', exists: false };
+      : { ref, code: t('Decision'), title: t('Deleted decision'), exists: false };
   }
   const x = data.experiments[ref.id];
   return x
@@ -62,11 +63,11 @@ export function resolveSource(data: AtlasData, ref: SourceRef): ResolvedSource {
         ref,
         code: experimentCode(x.code),
         title: x.title,
-        date: x.result?.recordedAt.slice(0, 10) ?? x.startDate,
+        date: x.result ? dateOf(x.result.recordedAt) : x.startDate,
         body: x.result?.summary ?? x.hypothesis,
         exists: true,
       }
-    : { ref, code: 'Experiment', title: 'Deleted experiment', exists: false };
+    : { ref, code: t('Experiment'), title: t('Deleted experiment'), exists: false };
 }
 
 export const sameRef = (a: SourceRef, b: SourceRef) => a.kind === b.kind && a.id === b.id;
@@ -101,7 +102,12 @@ export function patternStats(data: AtlasData, pattern: Pattern): PatternStats {
     .sort();
   const first = dates[0];
   const last = dates[dates.length - 1];
-  const frequency = dates.length === 0 ? 'Not yet observed' : dates.length === 1 ? 'Observed once' : `${dates.length}× in ${formatSpan(first, last)}`;
+  const frequency =
+    dates.length === 0
+      ? t('Not yet observed')
+      : dates.length === 1
+        ? t('Observed once')
+        : t('{n}× in {span}', { n: dates.length, span: formatSpan(first, last) });
   return {
     confidence: computeConfidence(pattern.evidence),
     supportCount: supporting.length,
@@ -149,7 +155,7 @@ export function displayNode(data: AtlasData, id: ID): DisplayNode | undefined {
       label: meta.label,
       summary: domain?.statement || meta.description,
       color: meta.color,
-      kindLabel: 'Domain',
+      kindLabel: t('Domain'),
       isHub: true,
       domain: key,
     };
@@ -169,7 +175,7 @@ export function displayNode(data: AtlasData, id: ID): DisplayNode | undefined {
   const node = data.nodes[id];
   if (!node) return undefined;
   const color = node.category ? CATEGORY_META[node.category].color : node.domain ? DOMAIN_META[node.domain].color : '#aab2bc';
-  const kindLabel = node.category ? CATEGORY_META[node.category].label : node.domain ? DOMAIN_META[node.domain].label : 'Node';
+  const kindLabel = node.category ? CATEGORY_META[node.category].label : node.domain ? DOMAIN_META[node.domain].label : t('Node');
   return { id, label: node.label, summary: node.summary, color, kindLabel, isHub: false, domain: node.domain, node };
 }
 

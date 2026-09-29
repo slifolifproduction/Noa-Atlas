@@ -12,6 +12,7 @@ import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
 import { Muted, PanelSection } from './parts';
+import { t } from '../../i18n';
 
 const HORIZON_LABEL = { immediate: 'Near-term drivers', long_term: 'Long-term drivers', neutral: 'Mixed drivers' } as const;
 
@@ -37,7 +38,7 @@ export function DecisionView({ id }: { id: ID }) {
         {d.context && <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{d.context}</p>}
         <div className="mt-3 flex items-center gap-1.5">
           <Button size="sm" icon={Pencil} onClick={() => openCapture('decision', { kind: 'decision', id })}>
-            Edit
+            {t('Edit')}
           </Button>
           <span className="ml-auto">
             <ConfirmButton
@@ -50,14 +51,14 @@ export function DecisionView({ id }: { id: ID }) {
         </div>
       </div>
 
-      <PanelSection title="Options considered" count={d.options.length}>
+      <PanelSection title={t('Options considered')} count={d.options.length}>
         <ol className="space-y-2">
           {d.options.map((o) => {
             const chosen = o.id === d.chosenOptionId;
             return (
               <li key={o.id} className={cn('rounded-[2px] border px-2.5 py-2', chosen ? 'border-accent/40 bg-accent-dim/40' : 'border-line')}>
                 <div className="flex items-center gap-2 text-[13px] text-ink">
-                  {chosen && <Check size={13} className="shrink-0 text-accent" aria-label="Chosen" />}
+                  {chosen && <Check size={13} className="shrink-0 text-accent" aria-label={t('Chosen')} />}
                   {o.label}
                 </div>
                 {o.rationale && <p className="mt-0.5 text-[12.5px] text-ink-2">{o.rationale}</p>}
@@ -67,14 +68,14 @@ export function DecisionView({ id }: { id: ID }) {
         </ol>
       </PanelSection>
 
-      <PanelSection title="Chosen action">
-        <p className="text-[13px] text-ink">{d.chosenAction || <span className="text-ink-3">Not recorded.</span>}</p>
+      <PanelSection title={t('Chosen action')}>
+        <p className="text-[13px] text-ink">{d.chosenAction || <span className="text-ink-3">{t('Not recorded.')}</span>}</p>
         {d.optimizingFor.length > 0 && (
           <p className="mt-2 text-[12px] text-ink-3">
-            Optimising for{' '}
+            {t('Optimising for')}{' '}
             {d.optimizingFor.map((x, i) => (
               <span key={x}>
-                <span className="text-ink-2">{x}</span>
+                <span className="text-ink-2">{t(x)}</span>
                 {i < d.optimizingFor.length - 1 ? ', ' : ''}
               </span>
             ))}
@@ -83,13 +84,13 @@ export function DecisionView({ id }: { id: ID }) {
         )}
       </PanelSection>
 
-      <PanelSection title="Expected outcome">
-        <p className="text-[13px] text-ink-2">{d.expectedOutcome || <span className="text-ink-3">Not recorded.</span>}</p>
+      <PanelSection title={t('Expected outcome')}>
+        <p className="text-[13px] text-ink-2">{d.expectedOutcome || <span className="text-ink-3">{t('Not recorded.')}</span>}</p>
       </PanelSection>
 
       <OutcomeSection id={id} />
 
-      <PanelSection title="Evidence in" count={usages.length}>
+      <PanelSection title={t('Evidence in')} count={usages.length}>
         {usages.length ? (
           <ul className="space-y-1">
             {usages.map(({ pattern, evidence }) => (
@@ -109,7 +110,7 @@ export function DecisionView({ id }: { id: ID }) {
             ))}
           </ul>
         ) : (
-          <Muted>Not cited by any pattern yet. Decision patterns are proposed from the Decision log.</Muted>
+          <Muted>{t('Not cited by any pattern yet. Decision patterns are proposed from the Decision log.')}</Muted>
         )}
       </PanelSection>
     </div>
@@ -128,15 +129,15 @@ function OutcomeSection({ id }: { id: ID }) {
   if (editing || !d.actualOutcome) {
     if (!editing)
       return (
-        <PanelSection title="Actual outcome">
-          <Muted>Not reviewed yet. Recording what actually happened is what lets decision patterns emerge.</Muted>
+        <PanelSection title={t('Actual outcome')}>
+          <Muted>{t('Not reviewed yet. Recording what actually happened is what lets decision patterns emerge.')}</Muted>
           <Button size="sm" className="mt-2" onClick={() => setEditing(true)}>
-            Record outcome
+            {t('Record outcome')}
           </Button>
         </PanelSection>
       );
     return (
-      <PanelSection title="Record outcome">
+      <PanelSection title={t('Record outcome')}>
         <form
           className="space-y-2.5"
           onSubmit={(e) => {
@@ -147,16 +148,16 @@ function OutcomeSection({ id }: { id: ID }) {
         >
           <textarea
             className="field min-h-[64px]"
-            placeholder="What actually happened?"
+            placeholder={t('What actually happened?')}
             value={actual}
             onChange={(e) => setActual(e.target.value)}
             required
             autoFocus
           />
           <div>
-            <div className="label mb-1">Compared with what you expected</div>
+            <div className="label mb-1">{t('Compared with what you expected')}</div>
             <Segmented<OutcomeRating>
-              label="Outcome compared with expectation"
+              label={t('Outcome compared with expectation')}
               size="sm"
               value={rating}
               onChange={setRating}
@@ -166,13 +167,13 @@ function OutcomeSection({ id }: { id: ID }) {
               }))}
             />
           </div>
-          <textarea className="field min-h-[56px]" placeholder="What did you learn?" value={learned} onChange={(e) => setLearned(e.target.value)} />
+          <textarea className="field min-h-[56px]" placeholder={t('What did you learn?')} value={learned} onChange={(e) => setLearned(e.target.value)} />
           <div className="flex gap-2">
             <Button size="sm" variant="primary" type="submit">
-              Save outcome
+              {t('Save outcome')}
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-              Cancel
+              {t('Cancel')}
             </Button>
           </div>
         </form>
@@ -182,18 +183,18 @@ function OutcomeSection({ id }: { id: ID }) {
   return (
     <>
       <PanelSection
-        title="Actual outcome"
+        title={t('Actual outcome')}
         aside={
           <Button size="sm" variant="ghost" onClick={() => setEditing(true)}>
-            Revise
+            {t('Revise')}
           </Button>
         }
       >
         <p className="text-[13px] text-ink-2">{d.actualOutcome}</p>
         {d.outcomeRating && <p className="mt-1.5 text-[12px] text-ink-3">{OUTCOME_RATING_LABEL[d.outcomeRating]}</p>}
       </PanelSection>
-      <PanelSection title="What I learned">
-        <p className="text-[13px] text-ink-2">{d.learned || <span className="text-ink-3">Nothing recorded.</span>}</p>
+      <PanelSection title={t('What I learned')}>
+        <p className="text-[13px] text-ink-2">{d.learned || <span className="text-ink-3">{t('Nothing recorded.')}</span>}</p>
       </PanelSection>
     </>
   );

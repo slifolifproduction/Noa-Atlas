@@ -1,4 +1,4 @@
-/**
+import { t } from '../../i18n'; /**
  * The mark: a sighting circle with its four cardinal ticks, a fixed centre,
  * and one body in orbit, in the signal colour.
  */
@@ -19,7 +19,7 @@ export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={className}>
       <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
-        Cognitive <span className="font-normal text-ink-2">Atlas</span>
+        {t('Cognitive')} <span className="font-normal text-ink-2">{t('Atlas')}</span>
       </span>
     </span>
   );

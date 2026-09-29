@@ -3,6 +3,7 @@ import { useState, type ReactNode } from 'react';
 import { RELATION_META } from '../../domain/constants';
 import type { RelationType } from '../../domain/types';
 import { cn } from '../../lib/cn';
+import { t } from '../../i18n';
 
 export function RelationSwatch({ relation, width = 28 }: { relation: RelationType; width?: number }) {
   const m = RELATION_META[relation];
@@ -48,7 +49,7 @@ export function Legend({
   return (
     <div className={cn('pointer-events-auto rounded-[2px] border border-line bg-surface/92 backdrop-blur-sm', open ? 'w-[212px]' : 'w-auto', className)}>
       <button type="button" onClick={() => setOpen(!open)} className="flex w-full items-center justify-between px-3 py-2" aria-expanded={open}>
-        <span className="label mr-3">Key</span>
+        <span className="label mr-3">{t('Key')}</span>
         <ChevronDown size={13} className={cn('text-ink-3 transition-transform', !open && '-rotate-90')} aria-hidden />
       </button>
       {open && (

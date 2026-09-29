@@ -2,12 +2,13 @@ import { SHORTCUTS } from '../../app/useGlobalShortcuts';
 import { useUI } from '../../state/uiStore';
 import { Modal } from '../ui/Modal';
 import { Kbd } from '../ui/primitives';
+import { t } from '../../i18n';
 
 export function ShortcutsDialog() {
   const open = useUI((s) => s.shortcutsOpen);
   const setOpen = useUI((s) => s.setShortcutsOpen);
   return (
-    <Modal open={open} onClose={() => setOpen(false)} title="Keyboard shortcuts" width="max-w-[440px]">
+    <Modal open={open} onClose={() => setOpen(false)} title={t('Keyboard shortcuts')} width="max-w-[440px]">
       <ul className="divide-y divide-line">
         {SHORTCUTS.map((s) => (
           <li key={s.label} className="flex items-center justify-between gap-4 py-2">

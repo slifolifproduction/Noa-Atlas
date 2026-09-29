@@ -4,6 +4,7 @@ import { Modal } from '../../components/ui/Modal';
 import { FieldLabel } from '../../components/ui/primitives';
 import { lines } from '../../lib/text';
 import { useAtlas } from '../../state/atlasStore';
+import { t } from '../../i18n';
 
 export function CurrentStateEditor({ onClose }: { onClose(): void }) {
   const state = useAtlas((s) => s.data.currentState);
@@ -16,13 +17,13 @@ export function CurrentStateEditor({ onClose }: { onClose(): void }) {
     <Modal
       open
       onClose={onClose}
-      title="Current state"
-      description="Where you are starting from. Every path branches from here."
+      title={t('Current state')}
+      description={t('Where you are starting from. Every path branches from here.')}
       width="max-w-[560px]"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button
             variant="primary"
@@ -31,38 +32,38 @@ export function CurrentStateEditor({ onClose }: { onClose(): void }) {
               onClose();
             }}
           >
-            Save
+            {t('Save')}
           </Button>
         </>
       }
     >
       <div className="space-y-3.5">
         <div>
-          <FieldLabel htmlFor="cs-pos">Position, in one line</FieldLabel>
+          <FieldLabel htmlFor="cs-pos">{t('Position, in one line')}</FieldLabel>
           <input
             id="cs-pos"
             className="field"
             value={position}
             onChange={(e) => setPosition(e.target.value)}
-            placeholder="e.g. Freelance producer, three months into a hybrid test"
+            placeholder={t('e.g. Freelance producer, three months into a hybrid test')}
           />
         </div>
         <div>
           <FieldLabel htmlFor="cs-sum" hint="optional">
-            Summary
+            {t('Summary')}
           </FieldLabel>
           <textarea id="cs-sum" className="field min-h-[56px]" value={summary} onChange={(e) => setSummary(e.target.value)} />
         </div>
         <div className="grid gap-3.5 sm:grid-cols-2">
           <div>
-            <FieldLabel htmlFor="cs-con" hint="one per line">
-              Constraints
+            <FieldLabel htmlFor="cs-con" hint={t('one per line')}>
+              {t('Constraints')}
             </FieldLabel>
             <textarea id="cs-con" className="field min-h-[110px] text-[12.5px]" value={constraints} onChange={(e) => setConstraints(e.target.value)} />
           </div>
           <div>
-            <FieldLabel htmlFor="cs-as" hint="one per line">
-              Assets
+            <FieldLabel htmlFor="cs-as" hint={t('one per line')}>
+              {t('Assets')}
             </FieldLabel>
             <textarea id="cs-as" className="field min-h-[110px] text-[12.5px]" value={assets} onChange={(e) => setAssets(e.target.value)} />
           </div>

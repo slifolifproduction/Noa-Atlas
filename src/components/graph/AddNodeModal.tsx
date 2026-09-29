@@ -6,6 +6,7 @@ import { useUI } from '../../state/uiStore';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { FieldLabel } from '../ui/primitives';
+import { t } from '../../i18n';
 
 /** Add a satellite to an Orbit domain, or a node to the Mind graph. */
 export function AddNodeModal({
@@ -39,20 +40,20 @@ export function AddNodeModal({
     <Modal
       open
       onClose={onClose}
-      title={layer === 'orbit' ? 'Add a point to Orbit' : 'Add a point to Mind'}
+      title={layer === 'orbit' ? t('Add a point to Orbit') : t('Add a point to Mind')}
       description={
         layer === 'orbit'
-          ? 'Something in one area of your life: a goal, project, skill, person or situation.'
-          : 'A thought in your own words: a belief, fear, question, value, decision…'
+          ? t('Something in one area of your life: a goal, project, skill, person or situation.')
+          : t('A thought in your own words: a belief, fear, question, value, decision…')
       }
       width="max-w-[480px]"
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={submit} disabled={!label.trim()}>
-            Add point
+            {t('Add point')}
           </Button>
         </>
       }
@@ -66,7 +67,7 @@ export function AddNodeModal({
       >
         {layer === 'orbit' ? (
           <div>
-            <FieldLabel htmlFor="add-domain">Area of life</FieldLabel>
+            <FieldLabel htmlFor="add-domain">{t('Area of life')}</FieldLabel>
             <select id="add-domain" className="field" value={domain} onChange={(e) => setDomain(e.target.value as DomainKey)}>
               {DOMAINS.map((d) => (
                 <option key={d.key} value={d.key}>
@@ -77,7 +78,7 @@ export function AddNodeModal({
           </div>
         ) : (
           <div>
-            <FieldLabel htmlFor="add-cat">Kind</FieldLabel>
+            <FieldLabel htmlFor="add-cat">{t('Kind')}</FieldLabel>
             <select id="add-cat" className="field" value={category} onChange={(e) => setCategory(e.target.value as MindCategory)}>
               {CATEGORIES.map((c) => (
                 <option key={c.key} value={c.key}>
@@ -88,19 +89,19 @@ export function AddNodeModal({
           </div>
         )}
         <div>
-          <FieldLabel htmlFor="add-label">{layer === 'mind' && category === 'question' ? 'Question' : 'Name'}</FieldLabel>
+          <FieldLabel htmlFor="add-label">{layer === 'mind' && category === 'question' ? t('Question') : t('Name')}</FieldLabel>
           <input
             id="add-label"
             className="field"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder={layer === 'orbit' ? 'e.g. Finish my short film, Learn Spanish, My sister' : 'e.g. Good work gets noticed on its own'}
+            placeholder={layer === 'orbit' ? t('e.g. Finish my short film, Learn Spanish, My sister') : t('e.g. Good work gets noticed on its own')}
             autoFocus
           />
         </div>
         <div>
           <FieldLabel htmlFor="add-summary" hint="optional">
-            Description
+            {t('Description')}
           </FieldLabel>
           <textarea id="add-summary" className="field min-h-[72px]" value={summary} onChange={(e) => setSummary(e.target.value)} />
         </div>

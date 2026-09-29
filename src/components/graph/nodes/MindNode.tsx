@@ -6,6 +6,7 @@ import type { MindNode } from '../../../graph/types';
 import { cn } from '../../../lib/cn';
 import { NodeHandles } from './Handles';
 import { NodeRipple } from './NodeRipple';
+import { t } from '../../../i18n';
 
 /** A belief, assumption, fear, decision… Dashed borders mark untested or inferred content. */
 export const MindNodeView = memo(function MindNodeView({ id, data, selected }: NodeProps<MindNode>) {
@@ -33,7 +34,7 @@ export const MindNodeView = memo(function MindNodeView({ id, data, selected }: N
       <div className="flex items-baseline gap-2 font-mono text-[10.5px] leading-[13px] tracking-[0.12em] uppercase" style={{ color: data.color }}>
         {CATEGORY_META[data.category].label}
         {data.origin === 'inferred' && data.confidence !== undefined && (
-          <span className="text-ink-3" title="Inferred by analysis; confidence in the inference">
+          <span className="text-ink-3" title={t('Inferred by analysis; confidence in the inference')}>
             ~{Math.round(data.confidence * 100)}%
           </span>
         )}

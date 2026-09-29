@@ -5,12 +5,13 @@ import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/primitives';
 import { CAPTURE_KINDS, DOMAIN_META, DOMAINS } from '../../domain/constants';
-import { entryCode, patternCode, sortedEntries, usagesOfSource } from '../../domain/selectors';
+import { patternCode, sortedEntries, usagesOfSource } from '../../domain/selectors';
 import type { DomainKey, EntryKind } from '../../domain/types';
 import { formatDate, formatMonth } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
+import { t } from '../../i18n';
 
 const ENTRY_KINDS = CAPTURE_KINDS.filter((k) => k.key !== 'decision');
 
@@ -49,10 +50,10 @@ export function JournalPage() {
       <PageHeader
         view="journal"
         help="journal"
-        description="Everything you have written. A note becomes evidence once you connect it to something or accept one of its suggestions."
+        description={t('Everything you have written. A note becomes evidence once you connect it to something or accept one of its suggestions.')}
         actions={
           <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')} kbd="N">
-            Write a note
+            {t('Write a note')}
           </Button>
         }
       />
@@ -63,26 +64,26 @@ export function JournalPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search entries and tags"
-            aria-label="Search entries"
+            placeholder={t('Search entries and tags')}
+            aria-label={t('Search entries')}
             className="w-full bg-transparent text-[12.5px] placeholder:text-ink-3 focus:outline-none"
           />
           {query && (
-            <button type="button" onClick={() => setQuery('')} aria-label="Clear search" className="text-ink-3 hover:text-ink">
+            <button type="button" onClick={() => setQuery('')} aria-label={t('Clear search')} className="text-ink-3 hover:text-ink">
               <X size={12} aria-hidden />
             </button>
           )}
         </div>
-        <select className="field h-8 w-auto py-0" value={kind} onChange={(e) => setKind(e.target.value as EntryKind | 'all')} aria-label="Type">
-          <option value="all">All types</option>
+        <select className="field h-8 w-auto py-0" value={kind} onChange={(e) => setKind(e.target.value as EntryKind | 'all')} aria-label={t('Type')}>
+          <option value="all">{t('All types')}</option>
           {ENTRY_KINDS.map((k) => (
             <option key={k.key} value={k.key}>
               {k.label}
             </option>
           ))}
         </select>
-        <select className="field h-8 w-auto py-0" value={domain} onChange={(e) => setDomain(e.target.value as DomainKey | 'all')} aria-label="Domain">
-          <option value="all">All domains</option>
+        <select className="field h-8 w-auto py-0" value={domain} onChange={(e) => setDomain(e.target.value as DomainKey | 'all')} aria-label={t('Domain')}>
+          <option value="all">{t('All domains')}</option>
           {DOMAINS.map((d) => (
             <option key={d.key} value={d.key}>
               {d.label}
@@ -98,29 +99,28 @@ export function JournalPage() {
             review ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-2 hover:border-line-strong',
           )}
         >
-          Needs review <span className="num ml-1 text-ink-3">{reviewCount}</span>
+          {t('Needs review')} <span className="num ml-1 text-ink-3">{reviewCount}</span>
         </button>
-        <span className="num ml-auto text-[11.5px] text-ink-3">
-          {entries.length} of {all.length}
-        </span>
+        <span className="num ml-auto text-[11.5px] text-ink-3">{t('{n} of {total}', { n: entries.length, total: all.length })}</span>
       </div>
 
       {all.length === 0 ? (
         <EmptyState
           icon={PLACE_ICONS.notes}
-          title="No entries yet"
+          title={t('No entries yet')}
           className="mt-6"
           action={
             <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')}>
-              Write the first entry
+              {t('Write the first entry')}
             </Button>
           }
         >
-          Start with something that happened this week and how you responded. Plain facts are more useful than conclusions; the analysis layer looks for
-          recurring shapes across entries.
+          {t(
+            'Start with something that happened this week and how you responded. Plain facts are more useful than conclusions; the analysis layer looks for recurring shapes across entries.',
+          )}
         </EmptyState>
       ) : entries.length === 0 ? (
-        <p className="mt-10 text-center text-[13px] text-ink-3">{filtered ? 'No entries match these filters.' : 'Nothing here.'}</p>
+        <p className="mt-10 text-center text-[13px] text-ink-3">{filtered ? t('No entries match these filters.') : t('Nothing here.')}</p>
       ) : (
         <div className="mt-5">
           {[...months.entries()].map(([month, list]) => (
@@ -146,7 +146,7 @@ export function JournalPage() {
                       >
                         <div className="pt-0.5">
                           <div className="num text-[12px] text-ink-2">{formatDate(e.date)}</div>
-                          <div className="num mt-0.5 text-[10.5px] text-ink-3">{entryCode(e.seq).replace('Entry ', '')}</div>
+                          <div className="num mt-0.5 text-[10.5px] text-ink-3">#{String(e.seq).padStart(2, '0')}</div>
                         </div>
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
@@ -161,9 +161,9 @@ export function JournalPage() {
                                 {DOMAIN_META[d].label}
                               </span>
                             ))}
-                            {e.tags.slice(0, 3).map((t) => (
-                              <span key={t} className="num text-[11px] text-ink-3">
-                                #{t}
+                            {e.tags.slice(0, 3).map((tag) => (
+                              <span key={tag} className="num text-[11px] text-ink-3">
+                                #{tag}
                               </span>
                             ))}
                           </div>
@@ -177,12 +177,14 @@ export function JournalPage() {
                                 borderColor: evidence.stance === 'supports' ? 'rgb(116 198 154 / 0.35)' : 'rgb(232 162 92 / 0.4)',
                                 color: evidence.stance === 'supports' ? 'var(--color-support)' : 'var(--color-counter)',
                               }}
-                              title={`${evidence.stance === 'supports' ? 'Supports' : 'Counters'} ${patternCode(pattern.code)}`}
+                              title={`${evidence.stance === 'supports' ? t('Supports') : t('Counters')} ${patternCode(pattern.code)}`}
                             >
                               {evidence.stance === 'supports' ? '+' : '−'} P{String(pattern.code).padStart(2, '0')}
                             </span>
                           ))}
-                          {pending > 0 && <span className="rounded-full bg-accent-dim px-1.5 text-[10.5px] text-accent">{pending} to review</span>}
+                          {pending > 0 && (
+                            <span className="rounded-full bg-accent-dim px-1.5 text-[10.5px] text-accent">{t('{n} to review', { n: pending })}</span>
+                          )}
                         </div>
                       </button>
                     </li>

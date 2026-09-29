@@ -11,7 +11,7 @@ import {
   OUTCOME_RATING_LABEL,
 } from '../../domain/constants';
 import type { CaptureKind, DecisionOption, DomainKey, EntryKind, OutcomeRating } from '../../domain/types';
-import { todayISO } from '../../lib/dates';
+import { formatDate, todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { createId } from '../../lib/ids';
 import { nodeTargetLabel, useAtlas } from '../../state/atlasStore';
@@ -21,6 +21,7 @@ import { CAPTURE_ICONS } from '../icons';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { FieldLabel, Kbd, Segmented, ToggleChip } from '../ui/primitives';
+import { t, tn } from '../../i18n';
 
 interface Draft {
   kind: CaptureKind;
@@ -178,7 +179,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
             outcomeRating: draft.actualOutcome.trim() ? draft.outcomeRating : undefined,
             learned: draft.learned.trim() || undefined,
           });
-          toast('Decision updated.', { tone: 'success' });
+          toast(t('Decision updated.'), { tone: 'success' });
         } else {
           captureDecision({ ...payload, nodeIds: [] }, { addToMap: draft.addToMap });
         }
@@ -192,7 +193,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           tags: parseTags(draft.tags),
           context: hasContext ? context : undefined,
         });
-        toast('Entry updated. Re-run analysis from its panel if the content changed.', { tone: 'success' });
+        toast(t('Entry updated. Re-run analysis from its panel if the content changed.'), { tone: 'success' });
       } else {
         onClose();
         await captureEntry(
@@ -229,9 +230,9 @@ function CaptureForm({ onClose }: { onClose(): void }) {
 
   const summary = [
     isDecision ? null : CAPTURE_KINDS.find((k) => k.key === draft.kind)?.label,
-    draft.date === todayISO() ? 'today' : draft.date,
-    draft.domains.length ? `${draft.domains.length} area${draft.domains.length === 1 ? '' : 's'}` : null,
-    parseTags(draft.tags).length ? `${parseTags(draft.tags).length} tag${parseTags(draft.tags).length === 1 ? '' : 's'}` : null,
+    draft.date === todayISO() ? t('today') : formatDate(draft.date),
+    draft.domains.length ? tn(draft.domains.length, '{n} area', '{n} areas') : null,
+    parseTags(draft.tags).length ? tn(parseTags(draft.tags).length, '{n} tag', '{n} tags') : null,
   ]
     .filter(Boolean)
     .join(' · ');
@@ -240,9 +241,11 @@ function CaptureForm({ onClose }: { onClose(): void }) {
     <Modal
       open
       onClose={onClose}
-      title={editing ? `Edit ${kindMeta.label.toLowerCase()}` : 'Capture'}
+      title={editing ? t('Edit {kind}', { kind: kindMeta.label.toLowerCase() }) : t('Capture')}
       description={
-        isDecision ? 'A choice you are making: the options, and what you expect.' : 'Anything that happened or crossed your mind. The atlas does the sorting.'
+        isDecision
+          ? t('A choice you are making: the options, and what you expect.')
+          : t('Anything that happened or crossed your mind. The atlas does the sorting.')
       }
       width="max-w-[640px]"
       initialFocus={isDecision ? '#cap-title' : '#cap-content'}
@@ -250,13 +253,13 @@ function CaptureForm({ onClose }: { onClose(): void }) {
         <>
           <span className="mr-auto hidden items-center gap-1 text-[11.5px] text-ink-3 sm:flex">
             <Kbd>⌘</Kbd>
-            <Kbd>↵</Kbd> to save
+            <Kbd>↵</Kbd> {t('to save')}
           </span>
           <Button variant="ghost" onClick={onClose}>
-            Cancel
+            {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={save} disabled={!valid} loading={saving}>
-            {editing ? 'Save changes' : isDecision ? 'Log decision' : 'Save note'}
+            {editing ? t('Save changes') : isDecision ? t('Log decision') : t('Save note')}
           </Button>
         </>
       }
@@ -270,12 +273,12 @@ function CaptureForm({ onClose }: { onClose(): void }) {
       >
         {!editing && (
           <Segmented<'note' | 'decision'>
-            label="What are you capturing?"
+            label={t('What are you capturing?')}
             value={isDecision ? 'decision' : 'note'}
             onChange={(v) => set('kind', v === 'decision' ? 'decision' : 'journal')}
             options={[
-              { value: 'note', label: 'A note' },
-              { value: 'decision', label: 'A decision' },
+              { value: 'note', label: t('A note') },
+              { value: 'decision', label: t('A decision') },
             ]}
           />
         )}
@@ -283,38 +286,38 @@ function CaptureForm({ onClose }: { onClose(): void }) {
         {isDecision ? (
           <>
             <div>
-              <FieldLabel htmlFor="cap-title">What are you deciding?</FieldLabel>
+              <FieldLabel htmlFor="cap-title">{t('What are you deciding?')}</FieldLabel>
               <input
                 id="cap-title"
                 className="field"
                 value={draft.title}
                 onChange={(e) => set('title', e.target.value)}
-                placeholder="e.g. Take the agency retainer or keep two days for my own film"
+                placeholder={t('e.g. Take the agency retainer or keep two days for my own film')}
               />
             </div>
             <div>
               <FieldLabel htmlFor="cap-content" hint="optional">
-                What is the situation?
+                {t('What is the situation?')}
               </FieldLabel>
               <textarea
                 id="cap-content"
                 className="field min-h-[80px] resize-y leading-relaxed"
                 value={draft.content}
                 onChange={(e) => set('content', e.target.value)}
-                placeholder="What is at stake, and why now?"
+                placeholder={t('What is at stake, and why now?')}
               />
             </div>
             <DecisionFields draft={draft} set={set} editing={Boolean(editing)} />
           </>
         ) : (
           <div>
-            <FieldLabel htmlFor="cap-content">What happened?</FieldLabel>
+            <FieldLabel htmlFor="cap-content">{t('What happened?')}</FieldLabel>
             <textarea
               id="cap-content"
               className="field min-h-[150px] resize-y leading-relaxed"
               value={draft.content}
               onChange={(e) => set('content', e.target.value)}
-              placeholder="Write it like a note to yourself: what happened, what you noticed, how it felt. A few lines is enough."
+              placeholder={t('Write it like a note to yourself: what happened, what you noticed, how it felt. A few lines is enough.')}
             />
           </div>
         )}
@@ -327,7 +330,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
             aria-expanded={details}
           >
             <span className="flex min-w-0 items-baseline gap-2">
-              <span className="text-[12.5px] text-ink-2">More details</span>
+              <span className="text-[12.5px] text-ink-2">{t('More details')}</span>
               <span className="truncate text-[11.5px] text-ink-3">{details ? 'optional' : summary}</span>
             </span>
             <ChevronDown size={14} className={cn('shrink-0 text-ink-3 transition-transform', !details && '-rotate-90')} aria-hidden />
@@ -336,8 +339,8 @@ function CaptureForm({ onClose }: { onClose(): void }) {
             <div className="space-y-4 border-t border-line px-3 pt-3 pb-3.5">
               {!isDecision && (
                 <div>
-                  <FieldLabel hint={kindMeta.hint}>Type</FieldLabel>
-                  <div role="radiogroup" aria-label="Type" className="flex flex-wrap gap-1.5">
+                  <FieldLabel hint={kindMeta.hint}>{t('Type')}</FieldLabel>
+                  <div role="radiogroup" aria-label={t('Type')} className="flex flex-wrap gap-1.5">
                     {noteKinds.map((k) => {
                       const Icon = CAPTURE_ICONS[k.key];
                       const active = draft.kind === k.key;
@@ -365,26 +368,26 @@ function CaptureForm({ onClose }: { onClose(): void }) {
               <div className={cn('grid gap-3', !isDecision && 'sm:grid-cols-[1fr_150px]')}>
                 {!isDecision && (
                   <div>
-                    <FieldLabel htmlFor="cap-title" hint="optional: the first line is used">
-                      Title
+                    <FieldLabel htmlFor="cap-title" hint={t('optional: the first line is used')}>
+                      {t('Title')}
                     </FieldLabel>
                     <input
                       id="cap-title"
                       className="field"
                       value={draft.title}
                       onChange={(e) => set('title', e.target.value)}
-                      placeholder={firstLine(draft.content) || 'A short, specific title'}
+                      placeholder={firstLine(draft.content) || t('A short, specific title')}
                     />
                   </div>
                 )}
                 <div className={isDecision ? 'max-w-[180px]' : undefined}>
-                  <FieldLabel htmlFor="cap-date">Date</FieldLabel>
+                  <FieldLabel htmlFor="cap-date">{t('Date')}</FieldLabel>
                   <input id="cap-date" type="date" className="field num" value={draft.date} onChange={(e) => set('date', e.target.value)} />
                 </div>
               </div>
 
               <div>
-                <FieldLabel hint="the analysis suggests these too">Areas of life</FieldLabel>
+                <FieldLabel hint={t('the analysis suggests these too')}>{t('Areas of life')}</FieldLabel>
                 <div className="flex flex-wrap gap-1.5">
                   {DOMAINS.map((d) => {
                     const on = draft.domains.includes(d.key);
@@ -404,15 +407,15 @@ function CaptureForm({ onClose }: { onClose(): void }) {
               </div>
 
               <div>
-                <FieldLabel htmlFor="cap-tags" hint="comma separated">
-                  Tags
+                <FieldLabel htmlFor="cap-tags" hint={t('comma separated')}>
+                  {t('Tags')}
                 </FieldLabel>
                 <input
                   id="cap-tags"
                   className="field"
                   value={draft.tags}
                   onChange={(e) => set('tags', e.target.value)}
-                  placeholder="focus, client, night-ferry"
+                  placeholder={t('focus, client, night-ferry')}
                 />
               </div>
 
@@ -424,34 +427,34 @@ function CaptureForm({ onClose }: { onClose(): void }) {
                     onClick={() => setShowContext(!showContext)}
                     aria-expanded={showContext}
                   >
-                    <span className="text-[12.5px] text-ink-2">How you felt</span>
+                    <span className="text-[12.5px] text-ink-2">{t('How you felt')}</span>
                     <ChevronDown size={14} className={cn('text-ink-3 transition-transform', !showContext && '-rotate-90')} aria-hidden />
                   </button>
                   {showContext && (
                     <div className="space-y-3 border-t border-line px-3 pt-3 pb-3.5">
-                      <ScaleRow label="Energy" values={[1, 2, 3, 4, 5]} labels={ENERGY_LABELS} value={draft.energy} onChange={(v) => set('energy', v)} />
-                      <ScaleRow label="Mood" values={[-2, -1, 0, 1, 2]} labels={MOOD_LABELS} value={draft.mood} onChange={(v) => set('mood', v)} />
+                      <ScaleRow label={t('Energy')} values={[1, 2, 3, 4, 5]} labels={ENERGY_LABELS} value={draft.energy} onChange={(v) => set('energy', v)} />
+                      <ScaleRow label={t('Mood')} values={[-2, -1, 0, 1, 2]} labels={MOOD_LABELS} value={draft.mood} onChange={(v) => set('mood', v)} />
                       <div>
-                        <div className="label mb-1.5">Felt</div>
+                        <div className="label mb-1.5">{t('Felt')}</div>
                         <div className="flex flex-wrap gap-1.5">
                           {EMOTION_OPTIONS.map((e) => {
                             const on = draft.emotions.includes(e);
                             return (
                               <ToggleChip key={e} on={on} onClick={() => set('emotions', on ? draft.emotions.filter((x) => x !== e) : [...draft.emotions, e])}>
-                                {e}
+                                {t(e)}
                               </ToggleChip>
                             );
                           })}
                         </div>
                       </div>
                       <div>
-                        <FieldLabel htmlFor="cap-setting">Setting</FieldLabel>
+                        <FieldLabel htmlFor="cap-setting">{t('Setting')}</FieldLabel>
                         <input
                           id="cap-setting"
                           className="field"
                           value={draft.setting}
                           onChange={(e) => set('setting', e.target.value)}
-                          placeholder="Where, when, with whom"
+                          placeholder={t('Where, when, with whom')}
                         />
                       </div>
                     </div>
@@ -467,7 +470,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
                     onChange={(e) => set('addToMap', e.target.checked)}
                     className="accent-[var(--color-accent)]"
                   />
-                  Also add to {nodeTargetLabel(target)}
+                  {t('Also add to {target}', { target: nodeTargetLabel(target) })}
                 </label>
               )}
             </div>
@@ -525,14 +528,14 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
   return (
     <div className="space-y-4">
       <div>
-        <FieldLabel hint="mark the one you chose">Options considered</FieldLabel>
+        <FieldLabel hint={t('mark the one you chose')}>{t('Options considered')}</FieldLabel>
         <div className="space-y-2">
           {draft.options.map((o, i) => (
             <div key={o.id} className="grid grid-cols-[auto_1fr_auto] items-start gap-2 rounded-[2px] border border-line p-2">
               <input
                 type="radio"
                 name="chosen"
-                aria-label={`Chose option ${i + 1}`}
+                aria-label={t('Chose option {n}', { n: i + 1 })}
                 checked={draft.chosenOptionId === o.id}
                 onChange={() => set('chosenOptionId', o.id)}
                 className="mt-2.5 accent-[var(--color-accent)]"
@@ -542,21 +545,21 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
                   className="field"
                   value={o.label}
                   onChange={(e) => updateOption(o.id, { label: e.target.value })}
-                  placeholder={`Option ${i + 1}`}
-                  aria-label={`Option ${i + 1}`}
+                  placeholder={t('Option {n}', { n: i + 1 })}
+                  aria-label={t('Option {n}', { n: i + 1 })}
                 />
                 <input
                   className="field text-[12.5px]"
                   value={o.rationale}
                   onChange={(e) => updateOption(o.id, { rationale: e.target.value })}
-                  placeholder="Why it was worth considering"
-                  aria-label={`Why option ${i + 1} was considered`}
+                  placeholder={t('Why it was worth considering')}
+                  aria-label={t('Why option {n} was considered', { n: i + 1 })}
                 />
               </div>
               <button
                 type="button"
                 className="mt-1.5 rounded-[2px] p-1 text-ink-3 hover:text-ink"
-                aria-label="Remove option"
+                aria-label={t('Remove option')}
                 onClick={() =>
                   set(
                     'options',
@@ -569,40 +572,40 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
             </div>
           ))}
           <Button size="sm" variant="ghost" icon={Plus} onClick={() => set('options', [...draft.options, blankOption()])}>
-            Add option
+            {t('Add option')}
           </Button>
         </div>
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
-          <FieldLabel htmlFor="cap-chosen">Chosen action</FieldLabel>
+          <FieldLabel htmlFor="cap-chosen">{t('Chosen action')}</FieldLabel>
           <input
             id="cap-chosen"
             className="field"
             value={draft.chosenAction}
             onChange={(e) => set('chosenAction', e.target.value)}
-            placeholder="What you actually did"
+            placeholder={t('What you actually did')}
           />
         </div>
         <div>
-          <FieldLabel htmlFor="cap-expected">Expected outcome</FieldLabel>
+          <FieldLabel htmlFor="cap-expected">{t('Expected outcome')}</FieldLabel>
           <input
             id="cap-expected"
             className="field"
             value={draft.expectedOutcome}
             onChange={(e) => set('expectedOutcome', e.target.value)}
-            placeholder="What you expect to happen"
+            placeholder={t('What you expect to happen')}
           />
         </div>
       </div>
       <div>
-        <FieldLabel hint="used to find decision patterns">Optimising for</FieldLabel>
+        <FieldLabel hint={t('used to find decision patterns')}>{t('Optimising for')}</FieldLabel>
         <div className="flex flex-wrap gap-1.5">
           {DRIVERS.map((d) => {
             const on = draft.optimizingFor.includes(d);
             return (
               <ToggleChip key={d} on={on} onClick={() => set('optimizingFor', on ? draft.optimizingFor.filter((x) => x !== d) : [...draft.optimizingFor, d])}>
-                {d}
+                {t(d)}
               </ToggleChip>
             );
           })}
@@ -611,7 +614,7 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
       {editing && (
         <div className="space-y-3 rounded-[2px] border border-line p-3">
           <div>
-            <FieldLabel htmlFor="cap-actual">Actual outcome</FieldLabel>
+            <FieldLabel htmlFor="cap-actual">{t('Actual outcome')}</FieldLabel>
             <textarea id="cap-actual" className="field min-h-[56px]" value={draft.actualOutcome} onChange={(e) => set('actualOutcome', e.target.value)} />
           </div>
           <div className="flex flex-wrap gap-1.5">
@@ -622,7 +625,7 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
             ))}
           </div>
           <div>
-            <FieldLabel htmlFor="cap-learned">What I learned</FieldLabel>
+            <FieldLabel htmlFor="cap-learned">{t('What I learned')}</FieldLabel>
             <textarea id="cap-learned" className="field min-h-[56px]" value={draft.learned} onChange={(e) => set('learned', e.target.value)} />
           </div>
         </div>

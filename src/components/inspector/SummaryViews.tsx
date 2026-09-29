@@ -9,6 +9,7 @@ import { useUI } from '../../state/uiStore';
 import { ConfidenceMeter } from '../evidence/Confidence';
 import { Button } from '../ui/Button';
 import { NodeChip, PanelSection } from './parts';
+import { t } from '../../i18n';
 
 export function PatternView({ id }: { id: ID }) {
   const data = useAtlas((s) => s.data);
@@ -24,27 +25,25 @@ export function PatternView({ id }: { id: ID }) {
         </div>
         <h2 className="mt-2 display text-[21px] leading-[1.2] text-ink">{p.chain.join(' → ')}</h2>
         <p className="mt-2 text-[13px] leading-relaxed text-ink-2">
-          <span className="text-ink-3">Observed pattern: </span>
+          <span className="text-ink-3">{t('Observed pattern:')} </span>
           {p.observation}
         </p>
         <ConfidenceMeter value={stats.confidence} className="mt-3.5" />
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-[12px]">
           <div>
-            <dt className="text-ink-3">Evidence</dt>
-            <dd className="num text-ink-2">
-              {stats.supportCount} for · {stats.counterCount} against
-            </dd>
+            <dt className="text-ink-3">{t('Evidence')}</dt>
+            <dd className="num text-ink-2">{t('{s} for · {c} against', { s: stats.supportCount, c: stats.counterCount })}</dd>
           </div>
           <div>
-            <dt className="text-ink-3">Frequency</dt>
+            <dt className="text-ink-3">{t('Frequency')}</dt>
             <dd className="text-ink-2">{stats.frequency}</dd>
           </div>
           <div>
-            <dt className="text-ink-3">First observed</dt>
+            <dt className="text-ink-3">{t('First observed')}</dt>
             <dd className="num text-ink-2">{formatDate(stats.firstObserved)}</dd>
           </div>
           <div>
-            <dt className="text-ink-3">Last observed</dt>
+            <dt className="text-ink-3">{t('Last observed')}</dt>
             <dd className="num text-ink-2">{formatDate(stats.lastObserved)}</dd>
           </div>
         </dl>
@@ -57,11 +56,11 @@ export function PatternView({ id }: { id: ID }) {
             navigate('patterns', id);
           }}
         >
-          Open full evidence
+          {t('Open full evidence')}
         </Button>
       </div>
       {p.nodeIds.length > 0 && (
-        <PanelSection title="Rests on" count={p.nodeIds.length}>
+        <PanelSection title={t('Rests on')} count={p.nodeIds.length}>
           <div className="flex flex-wrap gap-1.5">
             {p.nodeIds.map((n) => (
               <NodeChip key={n} id={n} />
@@ -92,7 +91,7 @@ export function PathView({ id }: { id: ID }) {
           navigate('paths');
         }}
       >
-        Compare paths
+        {t('Compare paths')}
       </Button>
     </div>
   );

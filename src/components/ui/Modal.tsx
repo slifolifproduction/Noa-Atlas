@@ -3,6 +3,7 @@ import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/cn';
 import { IconButton } from './Button';
+import { t } from '../../i18n';
 
 /**
  * Accessible modal dialog: focus moves in on open and returns on close, Escape
@@ -84,7 +85,7 @@ export function Modal({
             <h2 className="display text-[20px] text-ink">{title}</h2>
             {description && <p className="mt-1.5 max-w-[60ch] text-[12.5px] leading-relaxed text-ink-2">{description}</p>}
           </div>
-          <IconButton icon={X} label="Close" onClick={onClose} data-close size="sm" />
+          <IconButton icon={X} label={t('Close')} onClick={onClose} data-close size="sm" />
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">{children}</div>
         {footer && <footer className="flex items-center justify-end gap-2 border-t border-line px-5 py-3">{footer}</footer>}

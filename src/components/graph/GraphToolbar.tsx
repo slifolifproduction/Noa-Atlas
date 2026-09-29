@@ -2,6 +2,7 @@ import { useReactFlow, type FitViewOptions } from '@xyflow/react';
 import { Maximize2, Minus, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { Menu, MenuSeparator } from '../ui/Menu';
+import { t } from '../../i18n';
 
 /** Search within the current graph. Enter cycles through matches. */
 export function GraphSearch({
@@ -9,7 +10,7 @@ export function GraphSearch({
   onQuery,
   matches,
   onPick,
-  placeholder = 'Find a node',
+  placeholder = t('Find a node'),
 }: {
   query: string;
   onQuery(q: string): void;
@@ -49,7 +50,7 @@ export function GraphSearch({
           <span className="num shrink-0 text-[11px] text-ink-3" aria-live="polite">
             {matches.length}
           </span>
-          <button type="button" className="rounded-[2px] p-1 text-ink-3 hover:text-ink" aria-label="Clear search" onClick={() => onQuery('')}>
+          <button type="button" className="rounded-[2px] p-1 text-ink-3 hover:text-ink" aria-label={t('Clear search')} onClick={() => onQuery('')}>
             <X size={12} aria-hidden />
           </button>
         </>
@@ -69,15 +70,15 @@ export function ViewMenu({ padding = 0.12, children }: { padding?: FitViewOption
   const rf = useReactFlow();
   const fit = () => rf.fitView({ padding, duration: 400, nodes: rf.getNodes().filter((n) => n.type !== 'rings' && !n.hidden) });
   return (
-    <Menu label="View" icon={SlidersHorizontal} width="w-[268px]">
-      <div role="group" aria-label="Zoom" className="flex gap-1 px-1 pt-1 pb-1.5">
+    <Menu label={t('View')} icon={SlidersHorizontal} width="w-[268px]">
+      <div role="group" aria-label={t('Zoom')} className="flex gap-1 px-1 pt-1 pb-1.5">
         <button
           type="button"
           role="menuitem"
           tabIndex={-1}
           className={`${zoomBtn} w-9`}
-          aria-label="Zoom out (−)"
-          title="Zoom out (−)"
+          aria-label={t('Zoom out (−)')}
+          title={t('Zoom out (−)')}
           onClick={() => rf.zoomOut({ duration: 200 })}
         >
           <Minus size={14} aria-hidden />
@@ -87,15 +88,15 @@ export function ViewMenu({ padding = 0.12, children }: { padding?: FitViewOption
           role="menuitem"
           tabIndex={-1}
           className={`${zoomBtn} w-9`}
-          aria-label="Zoom in (+)"
-          title="Zoom in (+)"
+          aria-label={t('Zoom in (+)')}
+          title={t('Zoom in (+)')}
           onClick={() => rf.zoomIn({ duration: 200 })}
         >
           <Plus size={14} aria-hidden />
         </button>
         <button type="button" role="menuitem" tabIndex={-1} className={`${zoomBtn} flex-1`} onClick={fit}>
           <Maximize2 size={13} aria-hidden />
-          Fit to screen
+          {t('Fit to screen')}
           <kbd className="num text-[10.5px] opacity-60">F</kbd>
         </button>
       </div>

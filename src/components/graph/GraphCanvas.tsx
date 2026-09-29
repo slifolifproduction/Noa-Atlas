@@ -37,6 +37,7 @@ import { NodeProbe } from './NodeProbe';
 import { Reticle } from './Reticle';
 import { EdgeMarkers, SemanticEdgeView } from './SemanticEdge';
 import { SpaceField } from './SpaceField';
+import { t } from '../../i18n';
 
 const nodeTypes: NodeTypes = {
   hub: HubNodeView,
@@ -91,7 +92,7 @@ interface Signal {
 }
 
 const nodeLabel = (n: AtlasFlowNode | undefined): string =>
-  !n ? '' : n.type === 'pattern' ? `Pattern ${String(n.data.code).padStart(2, '0')}` : 'label' in n.data ? String(n.data.label) : '';
+  !n ? '' : n.type === 'pattern' ? t('Pattern {code}', { code: String(n.data.code).padStart(2, '0') }) : 'label' in n.data ? String(n.data.label) : '';
 
 /** Neighbours pulled along by a drag: offset, velocity and how strongly each follows. */
 interface Spring {
@@ -176,7 +177,7 @@ function Canvas({
   useEffect(() => {
     space.onDegrade = () => {
       setDegraded(true);
-      toast('Depth paused to keep this device smooth. Settings → Space can turn it back on.');
+      toast(t('Depth paused to keep this device smooth. Settings → Space can turn it back on.'));
     };
     return () => void (space.onDegrade = null);
   }, [space]);
@@ -738,7 +739,7 @@ function Canvas({
               onClose={() => setPending(null)}
             />
           )}
-          {probe && !pending && !edgeMenu && <NodeProbe id={probe} occludedRight={occludedRight} hint="Click to open · arrow keys travel along links" />}
+          {probe && !pending && !edgeMenu && <NodeProbe id={probe} occludedRight={occludedRight} hint={t('Click to open · arrow keys travel along links')} />}
           {signal && isDesktop && labelsFor.has(signal.origin) && built.edges.some((e) => e.data?.relation !== 'part_of') && (
             <SignalReadout key={signal.cycle} signal={signal} labelOf={(id) => nodeLabel(labelsFor.get(id))} left={occludedLeft} right={occludedRight} />
           )}
@@ -760,10 +761,10 @@ function SignalReadout({ signal, labelOf, left, right }: { signal: Signal; label
     <div
       className="atlas-readout pointer-events-none absolute bottom-3 z-10 max-w-[min(520px,55%)] -translate-x-1/2 animate-fade-in truncate rounded-[2px] bg-canvas/70 px-2 py-1 font-mono text-[10.5px] tracking-wide text-ink-3"
       style={{ left: `calc(${left}px + (100% - ${left + right}px) / 2)` }}
-      title="The map links your notes in the background. This shows the connection it is following right now."
+      title={t('The map links your notes in the background. This shows the connection it is following right now.')}
     >
       <span className="atlas-live-dot mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" aria-hidden />
-      <span className="text-ink-2">Live</span> · following <span className="text-ink-2">{labelOf(signal.origin)}</span>
+      <span className="text-ink-2">{t('Live')}</span> · {t('following')} <span className="text-ink-2">{labelOf(signal.origin)}</span>
       {first.length > 0 && (
         <>
           {' '}
@@ -774,7 +775,7 @@ function SignalReadout({ signal, labelOf, left, right }: { signal: Signal; label
       {signal.focus && (
         <>
           {' '}
-          · you often look at <span className="text-ink-2">{labelOf(signal.focus)}</span>
+          · {t('you often look at')} <span className="text-ink-2">{labelOf(signal.focus)}</span>
         </>
       )}
     </div>

@@ -40,7 +40,12 @@ async function readJson(req: http.IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
-async function runTask(task: TaskName, input: unknown) {
+// The interface language the text fields should be written in (ids and quotes stay as they are).
+const LANGUAGE_RULE: Record<string, string> = {
+  id: '\nWrite every free-text field in Indonesian (Bahasa Indonesia). Quotes from the records stay exactly as written.',
+};
+
+async function runTask(task: TaskName, input: unknown, language?: string) {
   const spec = TASKS[task];
   const message = await client.beta.messages.parse({
     model: MODEL,
@@ -49,7 +54,7 @@ async function runTask(task: TaskName, input: unknown) {
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
     output_config: { effort: 'medium', format: betaZodOutputFormat(spec.schema) },
-    system: spec.system,
+    system: spec.system + (LANGUAGE_RULE[language ?? ''] ?? ''),
     messages: [{ role: 'user', content: JSON.stringify(input) }],
   });
   if (message.stop_reason === 'refusal') throw new Error('The model declined this request.');
@@ -67,8 +72,8 @@ const server = http.createServer(async (req, res) => {
   if (req.method !== 'POST' || !(task in TASKS)) return send(res, 404, { error: `Unknown task "${task}"` });
 
   try {
-    const body = (await readJson(req)) as { input?: unknown };
-    const output = await runTask(task as TaskName, body.input ?? {});
+    const body = (await readJson(req)) as { input?: unknown; language?: string };
+    const output = await runTask(task as TaskName, body.input ?? {}, body.language);
     send(res, 200, { output });
   } catch (error) {
     if (error instanceof Anthropic.RateLimitError) return send(res, 429, { error: 'Rate limited. Try again shortly.' });

@@ -5,7 +5,7 @@ import { navigate } from '../../app/router';
 import { EXPERIMENT_STATUS_LABEL } from '../../domain/constants';
 import { experimentCode, experimentProgress, pathCode, patternCode } from '../../domain/selectors';
 import type { ID } from '../../domain/types';
-import { formatDate, todayISO } from '../../lib/dates';
+import { formatDate, todayISO, useToday } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { ResultModal } from '../experiments/ResultModal';
@@ -13,6 +13,7 @@ import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Progress } from '../ui/primitives';
 import { NodeChip, PanelSection } from './parts';
+import { t } from '../../i18n';
 
 export function ExperimentView({ id }: { id: ID }) {
   const data = useAtlas((s) => s.data);
@@ -23,6 +24,7 @@ export function ExperimentView({ id }: { id: ID }) {
   const back = useUI((s) => s.back);
   const close = useUI((s) => s.closeInspector);
   const [recording, setRecording] = useState(false);
+  useToday();
   if (!x) return null;
   const prog = experimentProgress(x);
 
@@ -38,21 +40,19 @@ export function ExperimentView({ id }: { id: ID }) {
         <h2 className="mt-2 display text-[21px] leading-[1.2] text-ink">{x.title}</h2>
         <div className="mt-3 space-y-2.5">
           <div>
-            <div className="label">Hypothesis</div>
+            <div className="label">{t('Hypothesis')}</div>
             <p className="mt-0.5 text-[13.5px] text-ink">{x.hypothesis}</p>
           </div>
           <div>
-            <div className="label">Experiment</div>
+            <div className="label">{t('Experiment')}</div>
             <p className="mt-0.5 text-[13px] text-ink-2">{x.design}</p>
           </div>
         </div>
         {x.status === 'running' && (
           <div className="mt-3.5">
             <div className="mb-1 flex justify-between text-[12px] text-ink-3">
-              <span className="num">
-                Day {prog.day} of {prog.total}
-              </span>
-              <span className="num">ends {formatDate(prog.endDate)}</span>
+              <span className="num">{t('Day {d} of {total}', { d: prog.day, total: prog.total })}</span>
+              <span className="num">{t('ends {date}', { date: formatDate(prog.endDate) })}</span>
             </div>
             <Progress value={prog.ratio} color="var(--color-ink)" />
           </div>
@@ -60,12 +60,12 @@ export function ExperimentView({ id }: { id: ID }) {
         <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
           {x.status === 'proposed' && (
             <Button size="sm" variant="primary" icon={Play} onClick={() => update(id, { status: 'running', startDate: todayISO() })}>
-              Start today
+              {t('Start today')}
             </Button>
           )}
           {x.status === 'running' && (
             <Button size="sm" variant="primary" onClick={() => setRecording(true)}>
-              Record result
+              {t('Record result')}
             </Button>
           )}
           <Button
@@ -77,7 +77,7 @@ export function ExperimentView({ id }: { id: ID }) {
               navigate('navigation');
             }}
           >
-            My plan
+            {t('My plan')}
           </Button>
           <span className="ml-auto">
             <ConfirmButton
@@ -90,14 +90,14 @@ export function ExperimentView({ id }: { id: ID }) {
         </div>
       </div>
 
-      <PanelSection title="Measure" count={x.measures.length}>
+      <PanelSection title={t('Measure')} count={x.measures.length}>
         <table className="w-full text-[12.5px]">
           <thead>
             <tr className="text-left text-[11px] text-ink-3">
-              <th className="pb-1 font-normal">Measure</th>
-              <th className="pb-1 font-normal">Baseline</th>
-              <th className="pb-1 font-normal">Target</th>
-              <th className="pb-1 font-normal">Result</th>
+              <th className="pb-1 font-normal">{t('Measure')}</th>
+              <th className="pb-1 font-normal">{t('Baseline')}</th>
+              <th className="pb-1 font-normal">{t('Target')}</th>
+              <th className="pb-1 font-normal">{t('Result')}</th>
             </tr>
           </thead>
           <tbody className="align-top">
@@ -114,11 +114,11 @@ export function ExperimentView({ id }: { id: ID }) {
       </PanelSection>
 
       {x.result && (
-        <PanelSection title="Result">
+        <PanelSection title={t('Result')}>
           <p className="text-[13px] text-ink">{x.result.summary}</p>
           {x.result.learning && (
             <p className="mt-2 text-[13px] text-ink-2">
-              <span className="text-ink-3">Learning: </span>
+              <span className="text-ink-3">{t('Learning:')} </span>
               {x.result.learning}
             </p>
           )}
@@ -126,7 +126,7 @@ export function ExperimentView({ id }: { id: ID }) {
       )}
 
       {(x.patternLinks.length > 0 || x.pathIds.length > 0 || x.questionIds.length > 0) && (
-        <PanelSection title="Tests">
+        <PanelSection title={t('Tests')}>
           <div className="flex flex-wrap gap-1.5">
             {x.patternLinks.map((l) =>
               data.patterns[l.patternId] ? (

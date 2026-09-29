@@ -16,6 +16,7 @@ import { evaluateExperimentLocally } from './localAnalysis';
 import { AnalysisError } from './errors';
 import { TASKS, type TaskName, type TaskOutput } from './schemas';
 import type { AnalysisProvider, PatternCandidate } from './types';
+import { t, getLang } from '../i18n';
 
 const clamp01 = (n: number) => Math.max(0, Math.min(1, Number.isFinite(n) ? n : 0));
 
@@ -54,24 +55,24 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
       res = await fetch(`${base}/${task}`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input, language: getLang() }),
       });
     } catch {
-      throw new AnalysisError(`Could not reach the analysis proxy at ${base}.`, task);
+      throw new AnalysisError(t('Could not reach the analysis proxy at {url}.', { url: base }), task);
     }
     if (!res.ok) {
       const detail = await res.text().catch(() => '');
-      throw new AnalysisError(`Analysis proxy returned ${res.status}${detail ? `: ${detail.slice(0, 200)}` : ''}`, task);
+      throw new AnalysisError(`${t('Analysis proxy returned {status}', { status: res.status })}${detail ? `: ${detail.slice(0, 200)}` : ''}`, task);
     }
     const json = (await res.json()) as { output?: unknown };
     const parsed = TASKS[task].schema.safeParse(json.output);
-    if (!parsed.success) throw new AnalysisError('The model response did not match the expected structure.', task);
+    if (!parsed.success) throw new AnalysisError(t('The model response did not match the expected structure.'), task);
     return parsed.data as TaskOutput<T>;
   }
 
   return {
     id: 'claude',
-    label: 'Claude',
+    label: t('Claude'),
 
     async analyzeEntry(entry, data): Promise<EntryAnalysis> {
       const out = await call('entry_analysis', {

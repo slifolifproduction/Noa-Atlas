@@ -5,6 +5,7 @@
 import { daysBetween, todayISO } from '../lib/dates';
 import { currentAction, experimentCode, experimentProgress, pendingSuggestions } from './selectors';
 import type { AtlasData, CaptureKind, EntityRef, ID } from './types';
+import { t, tn } from '../i18n';
 
 export type NextStepAction =
   | { kind: 'capture'; capture: CaptureKind }
@@ -29,9 +30,9 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
   if (records === 0) {
     return {
       key: 'first-note',
-      title: 'Write your first note',
-      detail: 'A few lines about your day or a decision on your mind is enough. The map builds itself from what you write.',
-      cta: 'Write a note',
+      title: t('Write your first note'),
+      detail: t('A few lines about your day or a decision on your mind is enough. The map builds itself from what you write.'),
+      cta: t('Write a note'),
       action: { kind: 'capture', capture: 'journal' },
     };
   }
@@ -45,9 +46,9 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
   if (due) {
     return {
       key: `result:${due.id}`,
-      title: `Record what happened in ${experimentCode(due.code)}`,
-      detail: `“${due.title}” has run its ${due.durationDays} days. Its result updates the patterns it was testing.`,
-      cta: 'Record the result',
+      title: t('Record what happened in {code}', { code: experimentCode(due.code) }),
+      detail: t('“{title}” has run its {n} days. Its result updates the patterns it was testing.', { title: due.title, n: due.durationDays }),
+      cta: t('Record the result'),
       action: { kind: 'open', ref: { kind: 'experiment', id: due.id } },
     };
   }
@@ -60,16 +61,16 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
     return evidence
       ? {
           key: 'review-evidence',
-          title: `Review ${evidence} suggestion${evidence === 1 ? '' : 's'}`,
-          detail: 'The atlas found notes that may support or count against a pattern. Accept what fits, reject what does not.',
-          cta: 'Review in Patterns',
+          title: tn(evidence, 'Review {n} suggestion', 'Review {n} suggestions'),
+          detail: t('The atlas found notes that may support or count against a pattern. Accept what fits, reject what does not.'),
+          cta: t('Review in Patterns'),
           action: { kind: 'route', route: 'patterns' },
         }
       : {
           key: `review-links:${latest.id}`,
-          title: `Check ${pending.length} suggested link${pending.length === 1 ? '' : 's'}`,
-          detail: `From “${latest.title}”. Say yes to add them to your map, or dismiss them.`,
-          cta: 'Open the note',
+          title: tn(pending.length, 'Check {n} suggested link', 'Check {n} suggested links'),
+          detail: t('From “{title}”. Say yes to add them to your map, or dismiss them.', { title: latest.title }),
+          cta: t('Open the note'),
           action: { kind: 'open', ref: { kind: 'entry', id: latest.id } },
         };
   }
@@ -82,9 +83,9 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
   if (!lastDate || daysBetween(lastDate, today) >= 7) {
     return {
       key: 'weekly-note',
-      title: 'Write about this week',
-      detail: lastDate ? `Your last note was ${daysBetween(lastDate, today)} days ago. What happened since then?` : 'What happened this week?',
-      cta: 'Write a note',
+      title: t('Write about this week'),
+      detail: lastDate ? t('Your last note was {n} days ago. What happened since then?', { n: daysBetween(lastDate, today) }) : t('What happened this week?'),
+      cta: t('Write a note'),
       action: { kind: 'capture', capture: 'journal' },
     };
   }
@@ -92,9 +93,9 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
   if (!data.navigation) {
     return {
       key: 'choose-direction',
-      title: 'Choose a direction',
-      detail: 'Compare your options side by side, then pick one to turn into concrete steps.',
-      cta: 'See your options',
+      title: t('Choose a direction'),
+      detail: t('Compare your options side by side, then pick one to turn into concrete steps.'),
+      cta: t('See your options'),
       action: { kind: 'route', route: 'paths' },
     };
   }
@@ -104,18 +105,18 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
     return {
       key: `action:${action.id}`,
       title: action.title,
-      detail: `This week's next step toward “${data.navigation.objective.title}”.`,
-      cta: 'Mark as done',
+      detail: t('This week’s next step toward “{goal}”.', { goal: data.navigation.objective.title }),
+      cta: t('Mark as done'),
       action: { kind: 'done', actionId: action.id },
-      also: { label: 'Open the plan', action: { kind: 'route', route: 'navigation' } },
+      also: { label: t('Open the plan'), action: { kind: 'route', route: 'navigation' } },
     };
   }
 
   return {
     key: 'plan-week',
-    title: 'Plan this week',
-    detail: 'Every step for this week is done. Add the next one to your plan.',
-    cta: 'Open the plan',
+    title: t('Plan this week'),
+    detail: t('Every step for this week is done. Add the next one to your plan.'),
+    cta: t('Open the plan'),
     action: { kind: 'route', route: 'navigation' },
   };
 }
