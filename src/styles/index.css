@@ -275,23 +275,6 @@
     transform: scale(1.35);
   }
 }
-@keyframes atlas-drift {
-  0% {
-    transform: translate(0, 0);
-  }
-  25% {
-    transform: translate(1.4px, -0.8px);
-  }
-  50% {
-    transform: translate(0.3px, -1.6px);
-  }
-  75% {
-    transform: translate(-1.1px, -0.7px);
-  }
-  100% {
-    transform: translate(0, 0);
-  }
-}
 @keyframes atlas-in {
   from {
     opacity: 0;
@@ -394,13 +377,23 @@
   opacity: 0;
   animation: atlas-ripple 1.8s var(--ease-out-quint) forwards;
 }
-.sat-drift {
-  animation: atlas-drift var(--drift-dur, 20s) ease-in-out infinite var(--drift-dir, normal);
-  animation-delay: var(--phase, 0s);
+/* 3D space (graph/space.ts): node wrappers, edges, their overlays and the rings are
+ * moved by transforms the engine writes each frame; promoting them keeps that on the
+ * compositor. Edge transforms map graph coordinates, hence the 0 0 origin. */
+.react-flow__edges > svg,
+.edge-space {
+  transform-origin: 0 0;
 }
-/* On very large maps satellite drift is imperceptible anyway; skip it. */
-.atlas-dense .sat-drift {
-  animation: none;
+.edge-space {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.atlas-3d .react-flow__node:not(.react-flow__node-rings),
+.atlas-3d .react-flow__edges > svg,
+.atlas-3d .edge-space:not(:empty),
+.atlas-3d .ring-plane {
+  will-change: transform;
 }
 /* Flow pulses: moved along the edge curve by transform keyframes (set in script). */
 .atlas-dot {

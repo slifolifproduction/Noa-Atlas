@@ -4,14 +4,15 @@ import { checkProxyHealth } from '../../ai/health';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { ConfirmButton } from '../../components/ui/ConfirmButton';
-import { FieldLabel, Kbd } from '../../components/ui/primitives';
+import { FieldLabel, Kbd, Segmented } from '../../components/ui/primitives';
 import { CONFIDENCE_EXPLAINER } from '../../domain/confidence';
 import { modelCounts } from '../../domain/selectors';
 import { todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { exportPayload, parseImport, STORAGE_KEYS } from '../../persistence/storage';
-import { toast, useUI } from '../../state/uiStore';
+import { spaceHealth } from '../../graph/space';
+import { toast, useUI, type SpaceMode } from '../../state/uiStore';
 
 function Block({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
   return (
@@ -36,6 +37,8 @@ export function SettingsPage() {
   const resetLayout = useUI((s) => s.resetLayout);
   const closeInspector = useUI((s) => s.closeInspector);
   const setShortcutsOpen = useUI((s) => s.setShortcutsOpen);
+  const spaceMode = useUI((s) => s.spaceMode);
+  const setSpaceMode = useUI((s) => s.setSpaceMode);
   const [health, setHealth] = useState<{ ok: boolean; message: string } | null>(null);
   const [checking, setChecking] = useState(false);
   const file = useRef<HTMLInputElement>(null);
@@ -87,6 +90,29 @@ export function SettingsPage() {
         <Block title="Profile">
           <FieldLabel htmlFor="s-name">Name</FieldLabel>
           <input id="s-name" className="field max-w-[320px]" value={data.profile.name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+        </Block>
+
+        <Block
+          title="Space"
+          description="Orbit and Mind are drawn as a 3D space: nodes sit at different depths and the view turns with your pointer (or the tilt of a phone). Reduced-motion settings on your device always keep it still."
+        >
+          <Segmented<SpaceMode>
+            label="Depth"
+            value={spaceMode}
+            onChange={setSpaceMode}
+            options={[
+              { value: 'auto', label: 'Automatic', title: 'Depth on; switches to flat if this device cannot keep motion smooth' },
+              { value: 'on', label: 'Always 3D' },
+              { value: 'off', label: 'Flat' },
+            ]}
+          />
+          <p className="mt-2 text-[12.5px] leading-snug text-ink-3">
+            {spaceMode === 'auto' && spaceHealth.degraded
+              ? 'Automatic switched to flat on this device for this visit, to keep motion smooth.'
+              : spaceMode === 'off'
+                ? 'Flat: stars still drift, the graph itself stays in one plane.'
+                : 'Pan, zoom, move the pointer or select a node to see depth.'}
+          </p>
         </Block>
 
         <Block

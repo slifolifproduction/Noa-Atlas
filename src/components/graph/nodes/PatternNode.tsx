@@ -1,6 +1,7 @@
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import { PATTERN_COLOR } from '../../../domain/constants';
+import { useSpaceNode } from '../../../graph/space';
 import type { PatternNode } from '../../../graph/types';
 import { pad2 } from '../../../lib/text';
 import { PatternIcon } from '../../icons';
@@ -12,8 +13,9 @@ const CLIP = 'polygon(12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 1
 /** A detected pattern, derived from evidence. Its links show which nodes it rests on. */
 export const PatternNodeView = memo(function PatternNodeView({ id, data, selected }: NodeProps<PatternNode>) {
   const pct = Math.round(data.confidence * 100);
+  const spaceRef = useSpaceNode(id);
   return (
-    <div className="node-body pattern-body relative" style={{ filter: selected ? 'drop-shadow(0 0 6px rgb(125 211 232 / 0.35))' : undefined }}>
+    <div ref={spaceRef} className="node-body pattern-body relative" style={{ filter: selected ? 'drop-shadow(0 0 6px rgb(125 211 232 / 0.35))' : undefined }}>
       <div className="p-px" style={{ clipPath: CLIP, background: selected ? 'var(--color-accent)' : `${PATTERN_COLOR}55` }}>
         <div className="max-w-[250px] bg-raised px-5 py-2" style={{ clipPath: CLIP }}>
           <div className="flex items-center gap-1.5">

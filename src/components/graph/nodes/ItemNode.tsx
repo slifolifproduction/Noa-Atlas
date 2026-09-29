@@ -1,6 +1,6 @@
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
-import { hash01 } from '../../../graph/motion';
+import { useSpaceNode } from '../../../graph/space';
 import type { ItemNode } from '../../../graph/types';
 import { useLabelScale, useZoomLevel } from '../../../hooks/useZoom';
 import { cn } from '../../../lib/cn';
@@ -18,23 +18,16 @@ const SIDE_CLASS = {
 
 /** A satellite of a domain hub: a goal, a project, a skill, a person. */
 export const ItemNodeView = memo(function ItemNodeView({ id, data, selected }: NodeProps<ItemNode>) {
-  const phase = hash01(id);
   const zoom = useZoomLevel();
   const scale = useLabelScale(0.85, 1.35);
   // Semantic zoom: satellite labels appear once there is room for them.
   const quiet = zoom < 0.72 && !selected && !data.matched && !data.near;
   const fill = data.mark === 'gap' ? 'transparent' : data.mark === 'developing' ? `linear-gradient(90deg, ${data.color} 50%, transparent 50%)` : data.color;
+  const spaceRef = useSpaceNode(id);
   return (
-    <div className="node-body group relative h-[24px] w-[24px]">
-      {/* Micro-orbit: a sub-2px drift of the visual only; the node itself never moves. */}
-      <div
-        className="sat-drift absolute inset-0"
-        style={{
-          ['--drift-dur' as string]: `${16 + phase * 10}s`,
-          ['--phase' as string]: `${-(phase * 26).toFixed(2)}s`,
-          ['--drift-dir' as string]: phase > 0.5 ? 'normal' : 'reverse',
-        }}
-      >
+    <div ref={spaceRef} className="node-body group relative h-[24px] w-[24px]">
+      {/* Satellites move in depth with the space engine (graph/space.ts); the body itself is still. */}
+      <div className="absolute inset-0">
         <div
           className={cn('sat-core absolute inset-0 rounded-full border bg-surface transition-shadow', data.origin === 'inferred' && 'border-dashed')}
           style={{

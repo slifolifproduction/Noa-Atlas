@@ -4,18 +4,18 @@ import { useEffect, useRef } from 'react';
 /**
  * Deep space behind (and a little in front of) the graph.
  *
- * The graph is the focal plane. Behind it: faint nebulae, then three depths
- * of stars; in front of it: a little out-of-focus dust. Every layer moves at
- * its own rate when the camera pans, zooms or the pointer moves, which is
- * what reads as depth.
+ * The graph sits in the middle of the scene. Behind it: faint nebulae, then
+ * three depths of stars; in front of it: a little out-of-focus dust. Every
+ * layer moves at its own rate when the camera pans, zooms or turns (see
+ * graph/space.ts, whose camera this shares), which is what reads as depth.
  *
  * Behind the graph are two canvases: an opaque backdrop (nebulae pre-rendered
- * once per resize, plus the vignette) that is repainted only when its
- * sub-pixel-slow parallax has moved half a pixel, and a transparent star
- * layer. The dust is a handful of tiny DOM layers moved by transform. Nothing re-renders React: one requestAnimationFrame
- * loop reads React Flow's store directly, redraws every frame while the
- * camera moves, ~30 fps while the view eases toward the pointer and ~12 fps
- * for the slow idle drift.
+ * once per resize, plus the vignette) that is repainted only after a
+ * half-pixel shift, and a transparent star layer. The dust is a handful of
+ * tiny DOM layers moved by transform. Nothing re-renders React: one
+ * requestAnimationFrame loop reads React Flow's store and the camera
+ * directly, redraws every frame while the camera pans, zooms or turns, and
+ * ~12 fps for the slow idle drift.
  */
 
 interface Star {
@@ -49,7 +49,11 @@ const HAZE_RES = 0.5;
 const mod = (a: number, n: number) => ((a % n) + n) % n;
 const rgba = ([r, g, b]: number[], a: number) => `rgba(${r},${g},${b},${a})`;
 
-export function SpaceField({ reduced }: { reduced: boolean }) {
+/**
+ * `camera` is the space engine's eased look direction, shared so stars, dust,
+ * nodes and rings all turn with one camera.
+ */
+export function SpaceField({ reduced, camera }: { reduced: boolean; camera: { lx: number; ly: number } }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const backdrop = useRef<HTMLCanvasElement>(null);
   const moteRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -65,18 +69,14 @@ export function SpaceField({ reduced }: { reduced: boolean }) {
     let w = 0;
     let h = 0;
     let margin = 0;
-    // Cached so pointer moves never force a layout read.
-    let rect = { left: 0, top: 0, width: 1, height: 1 };
     let stars: Star[] = [];
     let raf = 0;
-    let last = performance.now();
     let lastDraw = 0;
     let drift = 0;
     let prev = [NaN, NaN, NaN];
     let dirty = true;
     let bgKey = '';
-    // Pointer (or device tilt) in [-1, 1], eased toward its target.
-    const look = { x: 0, y: 0, tx: 0, ty: 0 };
+    let drawnLook = [0, 0];
     const motes = moteRefs.current.slice();
 
     const haze = document.createElement('canvas');
@@ -98,7 +98,6 @@ export function SpaceField({ reduced }: { reduced: boolean }) {
 
     const resize = () => {
       const dpr = Math.min(2, window.devicePixelRatio || 1);
-      rect = el.getBoundingClientRect();
       w = el.clientWidth;
       h = el.clientHeight;
       if (!w || !h) return;
@@ -159,14 +158,15 @@ export function SpaceField({ reduced }: { reduced: boolean }) {
       const fx = (w / 2 - tx) / k;
       const fy = (h / 2 - ty) / k;
       const still = reduced;
-      const lx = still ? 0 : look.x;
-      const ly = still ? 0 : look.y;
+      const lx = still ? 0 : camera.lx;
+      const ly = still ? 0 : camera.ly;
+      drawnLook = [lx, ly];
 
       // Nebulae: so far away that panning does not move them; only zoom and the look direction
       // do, a little. Repainted only after a visible (half-pixel) shift.
       const hs = still ? 1 : Math.round(k ** 0.06 * 500) / 500;
-      const hx = still ? 0 : Math.round(lx * 12) / 2;
-      const hy = still ? 0 : Math.round(ly * 10) / 2;
+      const hx = still ? 0 : Math.round(lx * 40) / 2;
+      const hy = still ? 0 : Math.round(ly * 30) / 2;
       const key = `${hs}:${hx}:${hy}`;
       if (key !== bgKey) {
         bgKey = key;
@@ -182,12 +182,13 @@ export function SpaceField({ reduced }: { reduced: boolean }) {
       for (const s of stars) {
         const colour = s.d > 0.6 ? '#e2eaf3' : '#b6c2cf';
         if (colour !== fill) ctx.fillStyle = fill = colour;
-        const pan = still ? 0 : 0.015 + s.d * 0.11;
+        const pan = still ? 0 : 0.02 + s.d * 0.16;
         // Floored so a far zoom-out does not multiply the star count (and the work) without limit.
         const scale = still ? 1 : Math.max(0.8, k ** (0.1 + s.d * 0.32));
-        // Behind the focal plane: layers shift with the look direction, the far ones least.
-        const x = mod(s.u * w - fx * pan - drift * (0.15 + s.d) + lx * (4 + s.d * 22), w);
-        const y = mod(s.v * h - fy * pan + ly * (3 + s.d * 16), h);
+        // Behind the focal plane: as the camera turns about the graph, the farther a star the
+        // more it swings (the same rule the engine applies to nodes behind the plane).
+        const x = mod(s.u * w - fx * pan - drift * (0.15 + s.d) + lx * (16 + (1 - s.d) * 40), w);
+        const y = mod(s.v * h - fy * pan + ly * (12 + (1 - s.d) * 30), h);
         const r = s.r * Math.sqrt(scale);
         // Zooming out shrinks the tile, so neighbouring copies fill the edges.
         const span = scale < 1 ? 1 : 0;
@@ -222,8 +223,8 @@ export function SpaceField({ reduced }: { reduced: boolean }) {
         for (let i = 0; i < motes.length; i++) {
           const m = motes[i];
           if (!m) continue;
-          const x = mod(MOTES[i].u * tw - fx * k * 1.6 - drift * 3 - lx * 46, tw) - 240;
-          const y = mod(MOTES[i].v * th - fy * k * 1.6 - ly * 34, th) - 240;
+          const x = mod(MOTES[i].u * tw - fx * k * 1.6 - drift * 3 - lx * 90, tw) - 240;
+          const y = mod(MOTES[i].v * th - fy * k * 1.6 - ly * 65, th) - 240;
           const px = w / 2 + (x - w / 2) * s;
           const py = h / 2 + (y - h / 2) * s;
           const size = MOTES[i].size * Math.min(2.4, Math.max(0.5, s));
@@ -234,38 +235,18 @@ export function SpaceField({ reduced }: { reduced: boolean }) {
 
     const loop = (now: number) => {
       raf = requestAnimationFrame(loop);
-      const dt = Math.min(0.1, (now - last) / 1000);
-      last = now;
-      const ease = Math.min(1, dt * 3.2);
-      look.x += (look.tx - look.x) * ease;
-      look.y += (look.ty - look.y) * ease;
       const t = store.getState().transform;
-      const camera = dirty || t[0] !== prev[0] || t[1] !== prev[1] || t[2] !== prev[2];
-      const looking = Math.abs(look.tx - look.x) + Math.abs(look.ty - look.y) > 0.002;
-      // Camera moves redraw every frame so space keeps pace with the graph. The eased look-around
-      // is slow enough for ~30 fps, and the idle drift (a few px/s) for ~12 fps.
-      if (!camera && now - lastDraw < (looking ? 30 : 80)) return;
+      const moved = dirty || t[0] !== prev[0] || t[1] !== prev[1] || t[2] !== prev[2];
+      const turn = Math.abs(camera.lx - drawnLook[0]) + Math.abs(camera.ly - drawnLook[1]);
+      // Pans and zooms redraw every frame so space keeps pace with the graph; a quick turn (the
+      // pointer) too; a slow one (the idle sway) at ~15 fps; the drift alone (a few px/s) at ~12 fps.
+      if (!moved && !(turn > 0.004) && now - lastDraw < (turn > 0.0008 ? 64 : 80)) return;
       drift += DRIFT * ((now - (lastDraw || now)) / 1000);
       lastDraw = now;
       prev = [t[0], t[1], t[2]];
       dirty = false;
       draw();
     };
-
-    const onPointer = (e: PointerEvent) => {
-      if (e.pointerType !== 'mouse') return;
-      if (!rect.width || !rect.height) return;
-      look.tx = Math.max(-1, Math.min(1, ((e.clientX - rect.left) / rect.width) * 2 - 1));
-      look.ty = Math.max(-1, Math.min(1, ((e.clientY - rect.top) / rect.height) * 2 - 1));
-    };
-    // Phones and tablets: tilting the device looks around (where the browser allows it without a prompt).
-    const onTilt = (e: DeviceOrientationEvent) => {
-      if (e.gamma == null || e.beta == null) return;
-      look.tx = Math.max(-1, Math.min(1, e.gamma / 25));
-      look.ty = Math.max(-1, Math.min(1, (e.beta - 40) / 25));
-    };
-    const tiltNeedsPermission =
-      typeof (globalThis.DeviceOrientationEvent as unknown as { requestPermission?: unknown } | undefined)?.requestPermission === 'function';
 
     const ro = new ResizeObserver(() => {
       resize();
@@ -275,18 +256,12 @@ export function SpaceField({ reduced }: { reduced: boolean }) {
     resize();
     // With reduced motion space is still: drawn once, redrawn only when the view resizes.
     if (reduced) draw();
-    else {
-      raf = requestAnimationFrame(loop);
-      window.addEventListener('pointermove', onPointer, { passive: true });
-      if (typeof DeviceOrientationEvent !== 'undefined' && !tiltNeedsPermission) window.addEventListener('deviceorientation', onTilt, { passive: true });
-    }
+    else raf = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
-      window.removeEventListener('pointermove', onPointer);
-      window.removeEventListener('deviceorientation', onTilt);
     };
-  }, [reduced, store]);
+  }, [reduced, store, camera]);
 
   return (
     <>

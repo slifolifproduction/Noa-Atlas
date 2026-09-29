@@ -4,6 +4,7 @@ import { computeConfidence } from '../../domain/confidence';
 import { CATEGORY_META, DOMAIN_META, hubKey, isHubId, PATTERN_COLOR, RELATION_META } from '../../domain/constants';
 import { evidenceForNode, neighbors, patternsForNode } from '../../domain/selectors';
 import type { AtlasData, ID, RelationType } from '../../domain/types';
+import { useSpace } from '../../graph/space';
 import type { AtlasFlowNode, SemanticEdge } from '../../graph/types';
 import { pad2 } from '../../lib/text';
 import { useAtlas } from '../../state/atlasStore';
@@ -83,6 +84,7 @@ export function NodeProbe({ id, occludedRight, hint }: { id: ID; occludedRight: 
   const info = useMemo(() => describe(data, id), [data, id]);
   const rf = useReactFlow<AtlasFlowNode, SemanticEdge>();
   const store = useStoreApi();
+  const space = useSpace();
   const ref = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
@@ -95,9 +97,14 @@ export function NodeProbe({ id, occludedRight, hint }: { id: ID; occludedRight: 
       if (!n) return;
       const { transform, width, height } = store.getState();
       const [tx, ty, k] = transform;
-      const p = n.internals.positionAbsolute;
-      const w = n.measured.width ?? 0;
-      const h = n.measured.height ?? 0;
+      // Where the node is drawn: its stored box, moved and scaled by the space engine.
+      const o = space?.offset(id) ?? { dx: 0, dy: 0, s: 1 };
+      const w = (n.measured.width ?? 0) * o.s;
+      const h = (n.measured.height ?? 0) * o.s;
+      const p = {
+        x: n.internals.positionAbsolute.x + ((n.measured.width ?? 0) - w) / 2 + o.dx,
+        y: n.internals.positionAbsolute.y + ((n.measured.height ?? 0) - h) / 2 + o.dy,
+      };
       const right = (p.x + w) * k + tx + GAP;
       const left = p.x * k + tx - GAP - WIDTH;
       const x = right + WIDTH > width - occludedRight - 8 && left > 8 ? left : right;
@@ -105,8 +112,13 @@ export function NodeProbe({ id, occludedRight, hint }: { id: ID; occludedRight: 
       el.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
     };
     place();
-    return store.subscribe(place);
-  }, [id, rf, store, occludedRight, info]);
+    const offStore = store.subscribe(place);
+    const offSpace = space?.subscribe(place);
+    return () => {
+      offStore();
+      offSpace?.();
+    };
+  }, [id, rf, store, space, occludedRight, info]);
 
   if (!info) return null;
   return (

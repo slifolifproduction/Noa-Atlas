@@ -3,6 +3,7 @@ import { memo, useEffect, useRef } from 'react';
 import { RELATION_META } from '../../domain/constants';
 import type { RelationType } from '../../domain/types';
 import { hash01, pulseTravel, useMotion, useWave } from '../../graph/motion';
+import { useSpaceEdge } from '../../graph/space';
 import { CIRCLE_NODE_TYPES, type SemanticEdge, type SemanticEdgeData } from '../../graph/types';
 
 interface Box {
@@ -42,6 +43,8 @@ function border(b: Box, tx: number, ty: number, pad = 3) {
 export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, target, data, selected }: EdgeProps<SemanticEdge>) {
   const s = useInternalNode(source);
   const t = useInternalNode(target);
+  // In a 3D graph the engine moves the line and its overlay (pulses, label) with its endpoints.
+  const space = useSpaceEdge(id, source, target);
   if (!s || !t || !data) return null;
   const a = box(s);
   const b = box(t);
@@ -59,32 +62,37 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
 
   const meta = RELATION_META[data.relation];
   const emphasised = data.active || data.hover || selected;
+  const label = emphasised && data.relation !== 'part_of';
   return (
     <>
-      <EdgeFlow id={id} curve={{ x0: start.x, y0: start.y, cx, cy, x1: end.x, y1: end.y }} length={len} data={data} source={source} target={target} />
-      <BaseEdge
-        id={id}
-        path={path}
-        interactionWidth={14}
-        markerEnd={meta.arrow ? `url(#atlas-arrow-${data.relation})` : undefined}
-        style={{
-          stroke: meta.color,
-          strokeWidth: meta.width * (emphasised ? 1.35 : 1),
-          strokeDasharray: meta.dash,
-          strokeLinecap: data.relation === 'derived_from' ? 'round' : undefined,
-          opacity: data.relation === 'part_of' || emphasised ? 1 : data.secondary ? 0.2 : 0.6,
-        }}
-      />
-      {emphasised && data.relation !== 'part_of' && (
-        <EdgeLabelRenderer>
-          <div
-            className="nodrag nopan pointer-events-none absolute rounded-[4px] border border-line bg-canvas/90 px-1.5 py-px font-mono text-[10px] tracking-wide text-ink-2"
-            style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}
-          >
-            {meta.verb}
-          </div>
-        </EdgeLabelRenderer>
-      )}
+      <g ref={space.svg}>
+        <BaseEdge
+          id={id}
+          path={path}
+          interactionWidth={14}
+          markerEnd={meta.arrow ? `url(#atlas-arrow-${data.relation})` : undefined}
+          style={{
+            stroke: meta.color,
+            strokeWidth: meta.width * (emphasised ? 1.35 : 1),
+            strokeDasharray: meta.dash,
+            strokeLinecap: data.relation === 'derived_from' ? 'round' : undefined,
+            opacity: data.relation === 'part_of' || emphasised ? 1 : data.secondary ? 0.2 : 0.6,
+          }}
+        />
+      </g>
+      <EdgeLabelRenderer>
+        <div ref={space.html} className="edge-space">
+          <EdgeFlow id={id} curve={{ x0: start.x, y0: start.y, cx, cy, x1: end.x, y1: end.y }} length={len} data={data} source={source} target={target} />
+          {label && (
+            <div
+              className="nodrag nopan pointer-events-none absolute w-max rounded-[4px] border border-line bg-canvas/90 px-1.5 py-px font-mono text-[10px] tracking-wide text-ink-2"
+              style={{ transform: `translate(-50%, -50%) translate(${lx}px, ${ly}px)` }}
+            >
+              {meta.verb}
+            </div>
+          )}
+        </div>
+      </EdgeLabelRenderer>
     </>
   );
 });
@@ -214,7 +222,7 @@ function EdgeFlow({
   if (!engaged && !idle && !showWave) return null;
 
   return (
-    <EdgeLabelRenderer>
+    <>
       {(engaged || idle) &&
         (mode === 'meet' ? (
           <>
@@ -238,7 +246,7 @@ function EdgeFlow({
           peak={0.55 * wave.strength}
         />
       )}
-    </EdgeLabelRenderer>
+    </>
   );
 }
 

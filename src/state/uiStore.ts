@@ -55,6 +55,9 @@ export interface FocusRequest {
   at: number;
 }
 
+/** 3D depth in the graphs: automatic (steps down on slow devices), always on, or flat. */
+export type SpaceMode = 'auto' | 'on' | 'off';
+
 /** Requests older than this are ignored, so revisiting a graph never jumps to an old target. */
 export const FOCUS_REQUEST_TTL = 2500;
 
@@ -70,6 +73,7 @@ interface UIState {
   focusRequest: FocusRequest | null;
   toasts: Toast[];
   settings: ProviderSettings;
+  spaceMode: SpaceMode;
   busy: Record<string, boolean>;
 
   openEntity(ref: EntityRef): void;
@@ -90,6 +94,7 @@ interface UIState {
   toast(message: string, opts?: Partial<Omit<Toast, 'id' | 'message'>>): void;
   dismissToast(id: string): void;
   setSettings(patch: Partial<ProviderSettings>): void;
+  setSpaceMode(mode: SpaceMode): void;
   setBusy(key: string, busy: boolean): void;
 }
 
@@ -109,6 +114,7 @@ export const useUI = create<UIState>()(
       focusRequest: null,
       toasts: [],
       settings: DEFAULT_PROVIDER_SETTINGS,
+      spaceMode: 'auto',
       busy: {},
 
       openEntity: (ref) =>
@@ -142,6 +148,7 @@ export const useUI = create<UIState>()(
       },
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
+      setSpaceMode: (spaceMode) => set({ spaceMode }),
       setBusy: (key, busy) => set((s) => ({ busy: { ...s.busy, [key]: busy } })),
     }),
     {
@@ -154,6 +161,7 @@ export const useUI = create<UIState>()(
         orbitView: s.orbitView,
         mindView: s.mindView,
         settings: s.settings,
+        spaceMode: s.spaceMode,
       }),
     },
   ),

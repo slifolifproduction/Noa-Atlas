@@ -1,6 +1,7 @@
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import { hash01, useMotion, useWave } from '../../../graph/motion';
+import { useSpaceNode } from '../../../graph/space';
 import type { HubNode } from '../../../graph/types';
 import { useLabelScale } from '../../../hooks/useZoom';
 import { cn } from '../../../lib/cn';
@@ -19,8 +20,10 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
   const circ = 2 * Math.PI * r;
   const arc = Math.max(0.04, data.activity) * circ;
   const scale = useLabelScale(0.95, 2.2);
+  const spaceRef = useSpaceNode(id);
   return (
     <div
+      ref={spaceRef}
       className={cn('node-body hub-body group relative', data.center && 'is-center')}
       style={{ width: size, height: size, ['--phase' as string]: `${-(hash01(id) * 9).toFixed(2)}s`, ['--hub-color' as string]: data.color }}
     >

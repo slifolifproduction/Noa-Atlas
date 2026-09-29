@@ -1,6 +1,7 @@
 import type { NodeProps } from '@xyflow/react';
 import { memo } from 'react';
 import { CATEGORY_META } from '../../../domain/constants';
+import { useSpaceNode } from '../../../graph/space';
 import type { MindNode } from '../../../graph/types';
 import { cn } from '../../../lib/cn';
 import { CATEGORY_ICONS } from '../../icons';
@@ -12,8 +13,10 @@ export const MindNodeView = memo(function MindNodeView({ id, data, selected }: N
   const Icon = CATEGORY_ICONS[data.category];
   const dashed = data.origin === 'inferred' || data.category === 'assumption';
   const resolved = data.category === 'question' && data.status === 'resolved';
+  const spaceRef = useSpaceNode(id);
   return (
     <div
+      ref={spaceRef}
       className={cn(
         'node-body relative flex max-w-[228px] items-start gap-2 rounded-[7px] border bg-surface px-2.5 py-[7px] transition-shadow',
         dashed && 'border-dashed',

@@ -7,6 +7,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useStoreApi,
   ViewportPortal,
   type Connection,
   type NodeChange,
@@ -20,10 +21,11 @@ import type { GraphLayer, ID } from '../../domain/types';
 import type { BuiltGraph } from '../../graph/build';
 import type { AtlasFlowNode, SemanticEdge } from '../../graph/types';
 import { MAX_ACTIVE_PULSES, MAX_IDLE_PULSES, MotionContext, waveBus, type MotionSettings } from '../../graph/motion';
+import { SPACE_MAX_NODES, SpaceContext, SpaceEngine, spaceHealth } from '../../graph/space';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { cn } from '../../lib/cn';
 import { isTyping } from '../../lib/dom';
-import { FOCUS_REQUEST_TTL, useUI } from '../../state/uiStore';
+import { FOCUS_REQUEST_TTL, toast, useUI } from '../../state/uiStore';
 import { EdgePopover } from './EdgePopover';
 import { HubNodeView } from './nodes/HubNode';
 import { ItemNodeView } from './nodes/ItemNode';
@@ -111,6 +113,7 @@ function Canvas({
   children,
 }: GraphCanvasProps) {
   const rf = useReactFlow<AtlasFlowNode, SemanticEdge>();
+  const store = useStoreApi<AtlasFlowNode, SemanticEdge>();
   const wrapper = useRef<HTMLDivElement>(null);
   const pointer = useRef({ x: 0, y: 0 });
   const setPositions = useUI((s) => s.setPositions);
@@ -139,6 +142,100 @@ function Canvas({
   nodesRef.current = nodes;
   /** Set by keyboard travel so the camera follows the next selection. */
   const travelled = useRef<ID | null>(null);
+
+  // The graph as a 3D space: node depths, a turning camera, focus lift and pointer gravity.
+  const space = useMemo(() => new SpaceEngine(store), [store]);
+  const spaceMode = useUI((s) => s.spaceMode);
+  const [degraded, setDegraded] = useState(spaceHealth.degraded);
+  useEffect(() => {
+    space.onDegrade = () => {
+      setDegraded(true);
+      toast('Depth paused to keep this device smooth. Settings → Space can turn it back on.');
+    };
+    return () => void (space.onDegrade = null);
+  }, [space]);
+  const spaceOn = living && !reduced;
+  const depthOn = spaceOn && built.nodes.length <= SPACE_MAX_NODES && spaceMode !== 'off' && !(spaceMode === 'auto' && degraded);
+  useEffect(() => {
+    space.configure({
+      camera: spaceOn,
+      depth: depthOn,
+      nodes: built.nodes,
+      occludedLeft,
+      occludedRight,
+      intensity: isDesktop ? 1 : 0.55,
+      adaptive: spaceMode === 'auto',
+    });
+  }, [space, spaceOn, depthOn, built.nodes, occludedLeft, occludedRight, isDesktop, spaceMode]);
+  useEffect(() => () => space.stop(), [space]);
+  useEffect(() => {
+    space.setFocus(
+      selectedId,
+      built.nodes.filter((n) => n.className === 'is-near').map((n) => n.id),
+      hovered,
+    );
+  }, [space, selectedId, built.nodes, hovered]);
+
+  // Momentum: a thrown pan keeps drifting and slows down, as things do in space.
+  const momentum = useRef({ dragging: false, samples: [] as { t: number; x: number; y: number }[], raf: 0 });
+  const onMoveStart = useCallback((e: MouseEvent | TouchEvent | null) => {
+    if (!e) return;
+    const m = momentum.current;
+    cancelAnimationFrame(m.raf);
+    m.raf = 0;
+    m.dragging = e.type === 'mousedown' || e.type === 'pointerdown' || e.type === 'touchstart';
+    m.samples = [];
+  }, []);
+  const onMove = useCallback((e: MouseEvent | TouchEvent | null, vp: Viewport) => {
+    const m = momentum.current;
+    if (!e || !m.dragging) return;
+    // Event timestamps, not callback times, so slow frames do not distort the throw.
+    m.samples.push({ t: e.timeStamp, x: vp.x, y: vp.y });
+    if (m.samples.length > 8) m.samples.shift();
+  }, []);
+  const onMoveEnd = useCallback(
+    (e: MouseEvent | TouchEvent | null, vp: Viewport) => {
+      const m = momentum.current;
+      if (m.raf) return; // the glide saves the viewport when it settles
+      if (persistViewport) setViewport(layer, vp);
+      if (!e || !m.dragging || !living || reduced) return;
+      m.dragging = false;
+      const now = e.timeStamp;
+      // Only a release while still moving throws; stopping first and then letting go does not.
+      const recent = m.samples.filter((p) => now - p.t < 160);
+      if (recent.length < 2 || now - recent[recent.length - 1].t > 100) return;
+      const a = recent[0];
+      const b = recent[recent.length - 1];
+      let vx = (b.x - a.x) / Math.max(1, b.t - a.t);
+      let vy = (b.y - a.y) / Math.max(1, b.t - a.t);
+      const speed = Math.hypot(vx, vy);
+      if (speed < 0.3) return;
+      // Capped, so a hard flick drifts a long way but never flies off the map.
+      const cap = Math.min(1, 2.4 / speed);
+      vx *= cap;
+      vy *= cap;
+      let { x, y } = vp;
+      let last = performance.now();
+      const step = (t: number) => {
+        const dt = Math.min(32, t - last);
+        last = t;
+        x += vx * dt;
+        y += vy * dt;
+        const decay = Math.exp(-dt / 300);
+        vx *= decay;
+        vy *= decay;
+        rf.setViewport({ x, y, zoom: vp.zoom });
+        if (Math.hypot(vx, vy) > 0.02) m.raf = requestAnimationFrame(step);
+        else {
+          m.raf = 0;
+          if (persistViewport) setViewport(layer, rf.getViewport());
+        }
+      };
+      m.raf = requestAnimationFrame(step);
+    },
+    [persistViewport, setViewport, layer, living, reduced, rf],
+  );
+  useEffect(() => () => cancelAnimationFrame(momentum.current.raf), []);
   const fitOptionsRef = useRef<FitViewOptions>({ padding: fitPadding });
   const [pending, setPending] = useState<{ source: ID; target: ID; x: number; y: number } | null>(null);
   const [edgeMenu, setEdgeMenu] = useState<{ edgeId: string; x: number; y: number } | null>(null);
@@ -429,88 +526,98 @@ function Canvas({
 
   return (
     <MotionContext.Provider value={motion}>
-      <div
-        ref={wrapper}
-        className={cn('relative h-full w-full', living && 'atlas-living', living && nodes.length > 160 && 'atlas-dense', revealing && 'atlas-reveal')}
-        onPointerMove={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
-        onPointerUp={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
-      >
-        <EdgeMarkers />
-        {living && <SpaceField reduced={reduced} />}
-        <ReactFlow<AtlasFlowNode, SemanticEdge>
-          nodes={nodes}
-          edges={edges}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          nodeOrigin={[0.5, 0.5]}
-          onNodesChange={onNodesChange}
-          onNodeDragStart={onNodeDragStart}
-          onNodeDrag={onNodeDrag}
-          onNodeDragStop={onNodeDragStop}
-          onNodeClick={(_, n) => n.id !== '__rings' && onSelect(n.id)}
-          onNodeDoubleClick={(_, n) => onNodeDoubleClick?.(n.id)}
-          onNodeMouseEnter={(_, n) => n.id !== '__rings' && setHovered(n.id)}
-          onNodeMouseLeave={() => setHovered(null)}
-          onPaneClick={() => {
-            setEdgeMenu(null);
-            setPending(null);
-            onSelect(null);
-          }}
-          onEdgeClick={(e, edge) => {
-            const rect = wrapper.current?.getBoundingClientRect();
-            setEdgeMenu({ edgeId: edge.id, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
-          }}
-          onConnect={onConnect}
-          isValidConnection={isValidConnection}
-          connectionMode={ConnectionMode.Loose}
-          onMoveEnd={(_, vp) => persistViewport && setViewport(layer, vp)}
-          defaultViewport={initialViewport}
-          fitView={!initialViewport}
-          fitViewOptions={fitOptions}
-          minZoom={0.12}
-          maxZoom={2.4}
-          deleteKeyCode={null}
-          selectionKeyCode={null}
-          multiSelectionKeyCode={null}
-          selectNodesOnDrag={false}
-          nodesDraggable={draggable}
-          zoomOnDoubleClick={false}
-          onlyRenderVisibleElements={nodes.length > 160}
-        >
-          {!living && <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgb(255 255 255 / 0.07)" />}
-          {selectedNode && (
-            <ViewportPortal>
-              <Reticle key={selectedNode.id} node={selectedNode} />
-            </ViewportPortal>
+      <SpaceContext.Provider value={space}>
+        <div
+          ref={wrapper}
+          className={cn(
+            'relative h-full w-full',
+            living && 'atlas-living',
+            living && nodes.length > SPACE_MAX_NODES && 'atlas-dense',
+            depthOn && 'atlas-3d',
+            revealing && 'atlas-reveal',
           )}
-          {minimap && isDesktop && (
-            <MiniMap
-              pannable
-              zoomable
-              position="bottom-right"
-              style={{ width: 148, height: 104, marginRight: occludedRight + 16, marginBottom: 16 }}
-              nodeColor={(n) => MINIMAP_COLORS[n.type ?? ''] ?? '#3a424c'}
-              nodeStrokeWidth={0}
-              maskColor="rgb(10 12 15 / 0.72)"
-              ariaLabel="Minimap"
+          onPointerMove={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
+          onPointerUp={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
+        >
+          <EdgeMarkers />
+          {living && <SpaceField reduced={reduced} camera={space.camera} />}
+          <ReactFlow<AtlasFlowNode, SemanticEdge>
+            nodes={nodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            nodeOrigin={[0.5, 0.5]}
+            onNodesChange={onNodesChange}
+            onNodeDragStart={onNodeDragStart}
+            onNodeDrag={onNodeDrag}
+            onNodeDragStop={onNodeDragStop}
+            onNodeClick={(_, n) => n.id !== '__rings' && onSelect(n.id)}
+            onNodeDoubleClick={(_, n) => onNodeDoubleClick?.(n.id)}
+            onNodeMouseEnter={(_, n) => n.id !== '__rings' && setHovered(n.id)}
+            onNodeMouseLeave={() => setHovered(null)}
+            onPaneClick={() => {
+              setEdgeMenu(null);
+              setPending(null);
+              onSelect(null);
+            }}
+            onEdgeClick={(e, edge) => {
+              const rect = wrapper.current?.getBoundingClientRect();
+              setEdgeMenu({ edgeId: edge.id, x: e.clientX - (rect?.left ?? 0), y: e.clientY - (rect?.top ?? 0) });
+            }}
+            onConnect={onConnect}
+            isValidConnection={isValidConnection}
+            connectionMode={ConnectionMode.Loose}
+            onMoveStart={onMoveStart}
+            onMove={onMove}
+            onMoveEnd={onMoveEnd}
+            defaultViewport={initialViewport}
+            fitView={!initialViewport}
+            fitViewOptions={fitOptions}
+            minZoom={0.12}
+            maxZoom={2.4}
+            deleteKeyCode={null}
+            selectionKeyCode={null}
+            multiSelectionKeyCode={null}
+            selectNodesOnDrag={false}
+            nodesDraggable={draggable}
+            zoomOnDoubleClick={false}
+            onlyRenderVisibleElements={nodes.length > 160}
+          >
+            {!living && <Background variant={BackgroundVariant.Dots} gap={28} size={1} color="rgb(255 255 255 / 0.07)" />}
+            {selectedNode && (
+              <ViewportPortal>
+                <Reticle key={selectedNode.id} node={selectedNode} />
+              </ViewportPortal>
+            )}
+            {minimap && isDesktop && (
+              <MiniMap
+                pannable
+                zoomable
+                position="bottom-right"
+                style={{ width: 148, height: 104, marginRight: occludedRight + 16, marginBottom: 16 }}
+                nodeColor={(n) => MINIMAP_COLORS[n.type ?? ''] ?? '#3a424c'}
+                nodeStrokeWidth={0}
+                maskColor="rgb(10 12 15 / 0.72)"
+                ariaLabel="Minimap"
+              />
+            )}
+          </ReactFlow>
+          {pending && (
+            <RelationPicker
+              x={pending.x}
+              y={pending.y}
+              source={labelsFor.get(pending.source)}
+              target={labelsFor.get(pending.target)}
+              sourceId={pending.source}
+              targetId={pending.target}
+              onClose={() => setPending(null)}
             />
           )}
-        </ReactFlow>
-        {pending && (
-          <RelationPicker
-            x={pending.x}
-            y={pending.y}
-            source={labelsFor.get(pending.source)}
-            target={labelsFor.get(pending.target)}
-            sourceId={pending.source}
-            targetId={pending.target}
-            onClose={() => setPending(null)}
-          />
-        )}
-        {probe && !pending && !edgeMenu && <NodeProbe id={probe} occludedRight={occludedRight} hint="Click to open · arrow keys travel along links" />}
-        {edgeMenu && <EdgePopover edgeId={edgeMenu.edgeId} x={edgeMenu.x} y={edgeMenu.y} edges={built.edges} onClose={() => setEdgeMenu(null)} />}
-        {children}
-      </div>
+          {probe && !pending && !edgeMenu && <NodeProbe id={probe} occludedRight={occludedRight} hint="Click to open · arrow keys travel along links" />}
+          {edgeMenu && <EdgePopover edgeId={edgeMenu.edgeId} x={edgeMenu.x} y={edgeMenu.y} edges={built.edges} onClose={() => setEdgeMenu(null)} />}
+          {children}
+        </div>
+      </SpaceContext.Provider>
     </MotionContext.Provider>
   );
 }

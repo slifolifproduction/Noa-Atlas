@@ -1,3 +1,4 @@
+import { useSpaceFollower } from '../../graph/space';
 import type { AtlasFlowNode } from '../../graph/types';
 
 const BRACKET = 9;
@@ -8,6 +9,8 @@ const BRACKET = 9;
  * portal, so it lives in graph space and follows pans, zooms and drags.
  */
 export function Reticle({ node }: { node: AtlasFlowNode }) {
+  // Positioned with left/top so the space engine's translate/scale act about its centre.
+  const spaceRef = useSpaceFollower(node.id);
   const w = node.measured?.width ?? 0;
   const h = node.measured?.height ?? 0;
   if (!w || !h) return null;
@@ -18,7 +21,7 @@ export function Reticle({ node }: { node: AtlasFlowNode }) {
     const r = d / 2 - 1;
     const c = 2 * Math.PI * r;
     return (
-      <div className="pointer-events-none absolute top-0 left-0" style={{ transform: `translate(${node.position.x - d / 2}px, ${node.position.y - d / 2}px)` }}>
+      <div ref={spaceRef} className="pointer-events-none absolute" style={{ left: node.position.x - d / 2, top: node.position.y - d / 2 }}>
         <div className="atlas-lock" style={{ width: d, height: d }}>
           <svg width={d} height={d} className="atlas-reticle-spin overflow-visible" aria-hidden>
             <circle
@@ -64,7 +67,7 @@ export function Reticle({ node }: { node: AtlasFlowNode }) {
     `M ${BRACKET} ${bh} H 0 V ${bh - BRACKET}`,
   ];
   return (
-    <div className="pointer-events-none absolute top-0 left-0" style={{ transform: `translate(${node.position.x - bw / 2}px, ${node.position.y - bh / 2}px)` }}>
+    <div ref={spaceRef} className="pointer-events-none absolute" style={{ left: node.position.x - bw / 2, top: node.position.y - bh / 2 }}>
       <div className="atlas-lock" style={{ width: bw, height: bh }}>
         <svg width={bw} height={bh} className="overflow-visible" aria-hidden>
           {corners.map((d) => (
