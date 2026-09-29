@@ -1,6 +1,6 @@
 import { ChevronRight } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { claimCode, claimSentence, claimStatus } from '../../domain/claims';
+import { useState, type ReactNode } from 'react';
+import { claimSentence, claimStatus } from '../../domain/claims';
 import { AREA_META, areaHubKey, isAreaHubId, KIND_META, LAYER_META, layerOf, OCCURRENCE_KIND_LABEL, YOU_ID } from '../../domain/constants';
 import type { HistoryItem } from '../../domain/history';
 import { decisionCode, displayNode, entryCode, patternCode, patternStats, patternTitle } from '../../domain/selectors';
@@ -149,12 +149,11 @@ export function ClaimRow({ id, className }: { id: ID; className?: string }) {
       >
         <ClaimIcon size={13} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="label">{claimCode(c.code)}</span>
+          <span className="block text-[13px] leading-snug text-ink-2 group-hover:text-ink">{claimSentence(data, c, status)}</span>
+          <span className="mt-0.5 flex items-center gap-2">
             <StatusBadge status={status} />
-            {c.state === 'suggested' && <span className="font-mono text-[10px] tracking-wide text-ink-3 uppercase">{t('suggested')}</span>}
+            {c.state === 'suggested' && <span className="text-[11px] text-ink-3">{t('suggested by the Atlas')}</span>}
           </span>
-          <span className="mt-0.5 block text-[13px] leading-snug text-ink-2 group-hover:text-ink">{claimSentence(data, c, status)}</span>
         </span>
         <ChevronRight size={13} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
       </button>
@@ -190,4 +189,28 @@ export function KindEyebrow({ id }: { id: ID }) {
 
 export function Muted({ children }: { children: ReactNode }) {
   return <p className="text-[12.5px] leading-relaxed text-ink-3">{children}</p>;
+}
+
+/** A section that stays folded until asked for: the detail behind a plain answer. */
+export function Fold({ title, count, children, defaultOpen = false }: { title: string; count?: number; children: ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section className="border-t border-line">
+      <h3>
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          className="flex w-full items-center gap-2 px-4 py-2.5 text-left hover:bg-ink/[0.025]"
+        >
+          <ChevronRight size={13} className={cn('shrink-0 text-ink-3 transition-transform', open && 'rotate-90')} aria-hidden />
+          <span className="label flex-1">
+            {title}
+            {count !== undefined && <span className="num ml-1.5 text-ink-3">{count}</span>}
+          </span>
+        </button>
+      </h3>
+      {open && <div className="px-4 pb-3.5">{children}</div>}
+    </section>
+  );
 }

@@ -21,7 +21,9 @@ export function useGlobalShortcuts() {
       const dialogOpen = ui.paletteOpen || ui.capture || ui.shortcutsOpen || document.querySelector('[role="dialog"][aria-modal="true"]');
       if (isTyping(e.target) || e.metaKey || e.ctrlKey || e.defaultPrevented) return;
       if (e.key === 'Escape' && !dialogOpen) {
+        // First the panel closes; a second press lets go of the focus.
         if (ui.inspector.length) ui.closeInspector();
+        else if (ui.focus) ui.setFocus(null);
         return;
       }
       if (dialogOpen) return;
@@ -29,7 +31,7 @@ export function useGlobalShortcuts() {
         if (e.key === 'ArrowLeft') ui.back();
         return;
       }
-      if (/^[1-4]$/.test(e.key)) return navigate(nextInGroup(Number(e.key) - 1));
+      if (/^[1-5]$/.test(e.key)) return navigate(nextInGroup(Number(e.key) - 1));
       switch (e.key) {
         case 'n':
         case 'c':
@@ -41,11 +43,9 @@ export function useGlobalShortcuts() {
         case '?':
           return ui.setShortcutsOpen(true);
         case 'j':
-          return navigate('journal');
+          return navigate('timeline', 'notes');
         case 'd':
-          return navigate('decisions');
-        case 'q':
-          return navigate('questions');
+          return navigate('timeline', 'decisions');
         case '[':
           return ui.back();
       }
@@ -55,7 +55,7 @@ export function useGlobalShortcuts() {
   }, []);
 }
 
-/** A place's number takes you there; pressed again, it switches to the next page inside it. */
+/** A lens's number takes you there; pressed again, it switches to the next page inside it. */
 function nextInGroup(index: number): RouteKey {
   const group = GROUPS[index];
   const here = parseHash(window.location.hash).key;
@@ -66,27 +66,21 @@ function nextInGroup(index: number): RouteKey {
 
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
   {
-    keys: ['1', '–', '4'],
+    keys: ['1', '–', '5'],
     get label() {
-      return t('Map, Notes, Patterns, Plan (again: next tab)');
+      return t('Map, Time, Causes, Repeats, Ahead');
     },
   },
   {
     keys: ['J'],
     get label() {
-      return t('Journal');
+      return t('Your notes, in Time');
     },
   },
   {
     keys: ['D'],
     get label() {
-      return t('Decisions');
-    },
-  },
-  {
-    keys: ['Q'],
-    get label() {
-      return t('Questions');
+      return t('Your decisions, in Time');
     },
   },
   {
@@ -104,7 +98,7 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
   {
     keys: ['Esc'],
     get label() {
-      return t('Close the panel');
+      return t('Close the panel; again to let go of the focus');
     },
   },
   {

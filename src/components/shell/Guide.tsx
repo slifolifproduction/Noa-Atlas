@@ -1,276 +1,80 @@
-import { ArrowRight, Ellipsis, Search, type LucideIcon } from 'lucide-react';
-import { PLACE_ICONS } from '../icons';
-import { useEffect, useState, type ReactNode } from 'react';
-import { navigate } from '../../app/router';
-import { cn } from '../../lib/cn';
+import { ArrowRight } from 'lucide-react';
+import { useEffect } from 'react';
 import { useUI } from '../../state/uiStore';
+import { AREA_ICONS, CAPTURE_ICONS, KIND_ICONS } from '../icons';
 import { Button } from '../ui/Button';
-import { Kbd, Segmented } from '../ui/primitives';
+import { Segmented } from '../ui/primitives';
 import { Modal } from '../ui/Modal';
 import { LANGUAGES, setLang, t, useLang, type Lang } from '../../i18n';
-import { Trans } from '../../i18n/Trans';
-
-interface Step {
-  title: string;
-  body: ReactNode;
-  /** A way to try the step right away (closes the guide). */
-  tryIt?: { label: string; run(): void };
-}
-
-const LOOP = [
-  {
-    get label() {
-      return t('Write what happens');
-    },
-  },
-  {
-    get label() {
-      return t('See what keeps happening');
-    },
-  },
-  {
-    get label() {
-      return t('Ask why, and say what you think affects what');
-    },
-  },
-  {
-    get label() {
-      return t('Test it, compare, revise');
-    },
-  },
-];
 
 /**
- * A short welcome: what this is, the one loop it runs on, and where things are.
- * Opens by itself on the first visit; the ⋯ menu brings it back.
+ * The welcome: three plain statements, then straight into the atlas. Opens
+ * by itself on the first visit; the ⋯ menu brings it back.
  */
 export function Guide() {
   const open = useUI((s) => s.guideOpen);
   const setOpen = useUI((s) => s.setGuideOpen);
   const openCapture = useUI((s) => s.openCapture);
-  const [i, setI] = useState(0);
   const lang = useLang();
 
-  // The first visit starts with the guide.
+  // The first visit starts with the welcome.
   useEffect(() => {
     if (!useUI.getState().guideSeen) setOpen(true);
   }, [setOpen]);
-  useEffect(() => {
-    if (open) setI(0);
-  }, [open]);
 
   const close = () => setOpen(false);
-  const steps: Step[] = [
+  const lines = [
+    { icon: AREA_ICONS.self, title: t('This is your life, drawn as a map.'), body: t('You are at the centre; the areas of your life sit around you.') },
+    { icon: CAPTURE_ICONS.journal, title: t('Write what happened.'), body: t('A few honest lines are enough. The Atlas places them on the map for you.') },
     {
-      title: t('Welcome to Cognitive Atlas'),
-      body: (
-        <>
-          <p>
-            {t(
-              'A private map of your life and how it works. It learns only from what you write, shows how it knows everything it shows, and keeps it all in this browser.',
-            )}
-          </p>
-          <p className="mt-2">{t('It runs on one simple loop:')}</p>
-          <ol className="mt-3 grid gap-2 sm:grid-cols-4">
-            {LOOP.map((s, n) => (
-              <li key={s.label} className="flex items-center gap-3 border-t border-line-strong pt-2.5 sm:flex-col sm:items-start sm:gap-2">
-                <span className="display text-[26px] leading-[1.2] text-ink-3">{n + 1}</span>
-                <span className="text-[12.5px] leading-snug text-ink">{s.label}</span>
-              </li>
-            ))}
-          </ol>
-          <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-line pt-4">
-            <Segmented<Lang> label={t('Language')} value={lang} onChange={setLang} options={LANGUAGES.map((l) => ({ value: l.key, label: l.name }))} />
-          </div>
-        </>
-      ),
-    },
-    {
-      title: t('1 · Write what happens'),
-      body: (
-        <>
-          <p>
-            <Trans
-              text={t('Press {capture} (or the {key} key) and write a few lines: something that happened, a decision, a worry. No format and no title needed.')}
-              values={{ capture: <strong className="text-ink">{t('Capture')}</strong>, key: <Kbd>N</Kbd> }}
-            />
-          </p>
-          <p className="mt-2">{t('Short and honest beats long and polished. Once a week is enough to start.')}</p>
-        </>
-      ),
-      tryIt: {
-        label: t('Write a note'),
-        run: () => {
-          close();
-          openCapture('journal');
-        },
-      },
-    },
-    {
-      title: t('2 · See what keeps repeating'),
-      body: (
-        <>
-          <p>
-            <Trans
-              text={t(
-                'After you save, the atlas reads what happened into your {timeline} and notices {patterns}: things that keep happening, with every instance and counter-case.',
-              )}
-              values={{ timeline: <strong className="text-ink">{t('timeline')}</strong>, patterns: <strong className="text-ink">{t('patterns')}</strong> }}
-            />
-          </p>
-          <p className="mt-2">
-            {t('You accept what fits and reject what does not. Nothing is added without you, and nothing about how you felt is ever guessed.')}
-          </p>
-        </>
-      ),
-      tryIt: {
-        label: t('Open Patterns'),
-        run: () => {
-          close();
-          navigate('patterns');
-        },
-      },
-    },
-    {
-      title: t('3 · Ask why, and make a claim'),
-      body: (
-        <>
-          <p>
-            <Trans
-              text={t(
-                'A {claim} says one thing changes another: “taking on more work lowers my progress”. Drag from one element to another on the map to make one.',
-              )}
-              values={{ claim: <strong className="text-ink">{t('claim')}</strong> }}
-            />
-          </p>
-          <p className="mt-2">
-            {t(
-              'Every claim starts as proposed and climbs to plausible, supported and tested only as your notes back it up. No percentages: the status always says what it rests on.',
-            )}
-          </p>
-        </>
-      ),
-      tryIt: {
-        label: t('Open Connections'),
-        run: () => {
-          close();
-          navigate('network');
-        },
-      },
-    },
-    {
-      title: t('4 · Test it, then choose a direction'),
-      body: (
-        <>
-          <p>
-            <Trans
-              text={t('Under {plan}, Options shows your choices side by side, never ranked: the choice is yours.')}
-              values={{ plan: <strong className="text-ink">{t('Plan')}</strong> }}
-            />
-          </p>
-          <p className="mt-2">
-            {t(
-              'Tests change one thing on purpose and compare with what you predicted. When you pick a direction, My plan turns it into a goal and this week’s next step.',
-            )}
-          </p>
-        </>
-      ),
-      tryIt: {
-        label: t('See your options'),
-        run: () => {
-          close();
-          navigate('paths');
-        },
-      },
-    },
-    {
-      title: t('Finding your way around'),
-      body: (
-        <ul className="space-y-2.5">
-          <Where icon={PLACE_ICONS.map} title={t('Map')}>
-            {t('What exists: you at the centre, your areas of life around you, and on each ring what you hold, what you do and what surrounds you.')}
-          </Where>
-          <Where icon={PLACE_ICONS.history} title={t('History')}>
-            {t('What happened: the timeline, your notes and your decisions.')}
-          </Where>
-          <Where icon={PLACE_ICONS.understanding} title={t('Understanding')}>
-            {t('How it seems to work: claims and loops, patterns, and the questions you are investigating.')}
-          </Where>
-          <Where icon={PLACE_ICONS.plan} title={t('Plan')}>
-            {t('Your options side by side, the direction you chose, and this week’s steps.')}
-          </Where>
-          <Where icon={Ellipsis} title={t('More (⋯, top right)')}>
-            {t('Versions (save your atlas and go back to it, or start fresh), this guide, shortcuts and settings.')}
-          </Where>
-          <Where icon={Search} title={t('Search and help')}>
-            <Trans text={t('{key} finds anything. Every page has a “How this page works” note.')} values={{ key: <Kbd>⌘K</Kbd> }} />
-          </Where>
-        </ul>
-      ),
+      icon: KIND_ICONS.question,
+      title: t('Tap anything to ask about it.'),
+      body: t('Why is this happening? What usually comes before it? What if I change it? Every answer shows what it rests on.'),
     },
   ];
-  const step = steps[i];
-  const last = i === steps.length - 1;
 
   return (
     <Modal
       open={open}
       onClose={close}
-      title={step.title}
-      width="max-w-[560px]"
-      initialFocus="#guide-next"
+      title={t('Welcome to Cognitive Atlas')}
+      width="max-w-[520px]"
+      initialFocus="#guide-start"
       footer={
         <>
-          <div className="mr-auto flex items-center gap-1.5" aria-label={t('Step {n} of {total}', { n: i + 1, total: steps.length })}>
-            {steps.map((_, n) => (
-              <button
-                key={n}
-                type="button"
-                onClick={() => setI(n)}
-                aria-label={t('Step {n}', { n: n + 1 })}
-                className={cn('h-1.5 rounded-full transition-all', n === i ? 'w-5 bg-accent' : 'w-1.5 bg-ink/20 hover:bg-ink/35')}
-              />
-            ))}
-          </div>
-          {i === 0 ? (
-            <Button variant="ghost" onClick={close}>
-              {t('Skip')}
-            </Button>
-          ) : (
-            <Button variant="ghost" onClick={() => setI(i - 1)}>
-              {t('Back')}
-            </Button>
-          )}
-          <Button id="guide-next" variant="primary" icon={last ? undefined : ArrowRight} onClick={() => (last ? close() : setI(i + 1))}>
-            {i === 0 ? t('Show me how') : last ? t('Start') : t('Next')}
+          <Button
+            variant="ghost"
+            className="mr-auto"
+            onClick={() => {
+              close();
+              openCapture('journal');
+            }}
+          >
+            {t('Write a note first')}
+          </Button>
+          <Button id="guide-start" variant="primary" icon={ArrowRight} onClick={close}>
+            {t('Explore the atlas')}
           </Button>
         </>
       }
     >
-      <div className="text-[13.5px] leading-relaxed text-ink-2">{step.body}</div>
-      {step.tryIt && (
-        <button
-          type="button"
-          onClick={step.tryIt.run}
-          className="mt-5 inline-flex items-center gap-1.5 border-b border-accent pb-0.5 text-[13px] text-ink hover:text-accent"
-        >
-          {t('Try it now: {action}', { action: step.tryIt.label })} <ArrowRight size={13} aria-hidden />
-        </button>
-      )}
+      <ol className="space-y-4">
+        {lines.map((l) => (
+          <li key={l.title} className="flex gap-3.5">
+            <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-line-strong">
+              <l.icon size={15} strokeWidth={1.6} className="text-ink-2" aria-hidden />
+            </span>
+            <span>
+              <span className="display block text-[17px] leading-[1.25] text-ink">{l.title}</span>
+              <span className="mt-0.5 block text-[13px] leading-relaxed text-ink-2">{l.body}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="mt-5 text-[12px] text-ink-3">{t('It starts with a sample life, so there is something to explore. Everything stays in this browser.')}</p>
+      <div className="mt-3 border-t border-line pt-3">
+        <Segmented<Lang> label={t('Language')} size="sm" value={lang} onChange={setLang} options={LANGUAGES.map((l) => ({ value: l.key, label: l.name }))} />
+      </div>
     </Modal>
-  );
-}
-
-function Where({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }) {
-  return (
-    <li className="flex gap-3">
-      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-[2px] border border-line bg-raised">
-        <Icon size={14} strokeWidth={1.5} className="text-ink-2" aria-hidden />
-      </span>
-      <span>
-        <span className="block text-[13px] font-medium text-ink">{title}</span>
-        <span className="block text-[12.5px] leading-snug text-ink-2">{children}</span>
-      </span>
-    </li>
   );
 }

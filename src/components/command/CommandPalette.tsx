@@ -17,10 +17,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { navigate } from '../../app/router';
 import { openOn, showOnMap } from '../../app/showOnMap';
-import { claimCode, claimSentence } from '../../domain/claims';
-import { AREA_META, AREAS, areaHubId, groupOf, KIND_META, OCCURRENCE_KIND_LABEL, VIEWS, YOU_ID, type ViewKey } from '../../domain/constants';
-import { findLoops } from '../../domain/loops';
-import { decisionCode, entryCode, experimentCode, pathCode, patternCode, patternTitle } from '../../domain/selectors';
+import { claimSentence, claimStatus } from '../../domain/claims';
+import { AREA_META, AREAS, areaHubId, groupOf, KIND_META, OCCURRENCE_KIND_LABEL, STATUS_META, VIEWS, YOU_ID, type ViewKey } from '../../domain/constants';
+import { findLoops, loopName } from '../../domain/loops';
+import { decisionCode, entryCode, experimentCode, pathCode, patternStats, patternTitle } from '../../domain/selectors';
 import type { AtlasData } from '../../domain/types';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
@@ -55,17 +55,17 @@ function buildIndex(data: AtlasData): Item[] {
         run: () => navigate(key),
       };
     }),
-    { id: 'act:entry', group: t('Actions'), label: t('Capture an entry'), icon: Plus, run: () => ui.openCapture('journal') },
+    { id: 'act:entry', group: t('Actions'), label: t('Write a note'), icon: Plus, run: () => ui.openCapture('journal') },
     { id: 'act:decision', group: t('Actions'), label: t('Log a decision'), icon: Split, run: () => ui.openCapture('decision') },
     {
       id: 'act:scan',
       group: t('Actions'),
-      label: t('Scan all entries for evidence'),
-      detail: t('Re-run analysis; keeps what you already reviewed'),
+      label: t('Read all notes again'),
+      detail: t('Looks for new repeats and reasons; keeps what you already confirmed'),
       icon: ScanSearch,
       run: async () => {
         const n = await scanAllEntries();
-        toast(n ? tn(n, '{n} suggestion waiting for review.', '{n} suggestions waiting for review.') : t('No new suggestions.'), { tone: 'success' });
+        toast(n ? tn(n, '{n} suggestion for you to confirm.', '{n} suggestions for you to confirm.') : t('No new suggestions.'), { tone: 'success' });
       },
     },
     { id: 'act:keys', group: t('Actions'), label: t('Keyboard shortcuts'), icon: Keyboard, run: () => ui.setShortcutsOpen(true) },
@@ -131,9 +131,9 @@ function buildIndex(data: AtlasData): Item[] {
     if (c.state === 'set_aside') continue;
     items.push({
       id: `claim:${c.id}`,
-      group: t('Claims'),
+      group: t('Possible reasons'),
       label: claimSentence(data, c),
-      detail: claimCode(c.code),
+      detail: STATUS_META[claimStatus(data, c)].label,
       icon: ClaimIcon,
       run: () => openOn('network', { kind: 'claim', id: c.id }),
     });
@@ -141,8 +141,8 @@ function buildIndex(data: AtlasData): Item[] {
   for (const l of findLoops(data)) {
     items.push({
       id: `loop:${l.id}`,
-      group: t('Loops'),
-      label: l.name ?? (l.type === 'reinforcing' ? t('A reinforcing loop') : t('A balancing loop')),
+      group: t('Cycles'),
+      label: loopName(l),
       detail: l.nodeIds
         .map((id) => data.nodes[id]?.label)
         .filter(Boolean)
@@ -154,7 +154,7 @@ function buildIndex(data: AtlasData): Item[] {
   for (const o of Object.values(data.occurrences)) {
     items.push({
       id: `occ:${o.id}`,
-      group: t('Timeline'),
+      group: t('Time'),
       label: o.label,
       detail: OCCURRENCE_KIND_LABEL[o.kind],
       icon: HISTORY_ICONS[o.kind],
@@ -164,9 +164,9 @@ function buildIndex(data: AtlasData): Item[] {
   for (const p of Object.values(data.patterns)) {
     items.push({
       id: `pat:${p.id}`,
-      group: t('Patterns'),
+      group: t('Repeats'),
       label: patternTitle(p),
-      detail: patternCode(p.code),
+      detail: patternStats(data, p).frequency,
       icon: PatternIcon,
       run: () => navigate('patterns', p.id),
     });
@@ -198,7 +198,7 @@ function buildIndex(data: AtlasData): Item[] {
       label: d.title,
       detail: decisionCode(d.seq),
       icon: Split,
-      run: () => openOn('decisions', { kind: 'decision', id: d.id }),
+      run: () => openOn('timeline', { kind: 'decision', id: d.id }),
     });
   }
   for (const e of Object.values(data.entries).sort((a, b) => b.date.localeCompare(a.date))) {
@@ -208,7 +208,7 @@ function buildIndex(data: AtlasData): Item[] {
       label: e.title,
       detail: `${entryCode(e.seq)} · ${e.content}`,
       icon: CAPTURE_ICONS[e.kind],
-      run: () => openOn('journal', { kind: 'entry', id: e.id }),
+      run: () => openOn('timeline', { kind: 'entry', id: e.id }),
     });
   }
   return items;
@@ -298,7 +298,7 @@ function Palette({ onClose }: { onClose(): void }) {
                 onClose();
               }
             }}
-            placeholder={t('Search nodes, entries, patterns, or type a command')}
+            placeholder={t('Search your atlas, or type a command')}
             aria-label={t('Search')}
             aria-controls="palette-list"
             aria-activedescendant={results[active] ? `pal-${active}` : undefined}

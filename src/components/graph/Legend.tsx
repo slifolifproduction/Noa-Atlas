@@ -84,14 +84,14 @@ export function Legend({
         <div className="max-h-[60vh] space-y-1.5 overflow-y-auto border-t border-line px-3 pt-2 pb-3">
           {claims && (
             <>
-              <div className="label pt-0.5">{t('Claims: what affects what')}</div>
+              <div className="label pt-0.5">{t('What seems to affect what')}</div>
               {EFFECTS.map((e) => (
                 <div key={e.key} className="flex items-center gap-2.5">
                   <EffectSwatch effect={e.key} />
                   <span className="text-[12px] text-ink-2">{e.label}</span>
                 </div>
               ))}
-              <div className="label pt-2">{t('How well supported')}</div>
+              <div className="label pt-2">{t('How sure')}</div>
               {CLAIM_STATUSES.filter((s) => s.key !== 'retired').map((s) => (
                 <div key={s.key} className="flex items-center gap-2.5" title={s.description}>
                   <StatusSwatch status={s.key} />
@@ -102,7 +102,7 @@ export function Legend({
           )}
           {links.length > 0 && (
             <>
-              <div className={cn('label', claims && 'pt-2')}>{t('Declared links')}</div>
+              <div className={cn('label', claims && 'pt-2')}>{t('Links you drew')}</div>
               {links.map((l) => (
                 <div key={l} className="flex items-center gap-2.5">
                   <LinkSwatch type={l} />

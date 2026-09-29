@@ -157,7 +157,7 @@ export const LAYERS: LayerMeta[] = [
       return t('What I hold');
     },
     get short() {
-      return t('Hold');
+      return t('Inner');
     },
     get description() {
       return t('Values, beliefs, fears, goals and open questions.');
@@ -169,7 +169,7 @@ export const LAYERS: LayerMeta[] = [
       return t('What I do');
     },
     get short() {
-      return t('Do');
+      return t('Doing');
     },
     get description() {
       return t('Behaviours, commitments, skills and roles.');
@@ -593,10 +593,10 @@ export const CLAIM_STATUSES: StatusMeta[] = [
     key: 'proposed',
     rank: 0,
     get label() {
-      return t('Proposed');
+      return t('A hunch');
     },
     get description() {
-      return t('Stated, with no evidence yet.');
+      return t('Nothing in your notes shows it yet.');
     },
     dash: '2 5',
     opacity: 0.55,
@@ -605,10 +605,10 @@ export const CLAIM_STATUSES: StatusMeta[] = [
     key: 'plausible',
     rank: 1,
     get label() {
-      return t('Plausible');
+      return t('Seen a few times');
     },
     get description() {
-      return t('At least one instance and a described mechanism.');
+      return t('It happened more than once, or once with a clear reason why.');
     },
     dash: '7 5',
     opacity: 0.75,
@@ -617,10 +617,10 @@ export const CLAIM_STATUSES: StatusMeta[] = [
     key: 'supported',
     rank: 2,
     get label() {
-      return t('Supported');
+      return t('Keeps showing up');
     },
     get description() {
-      return t('Repeated across episodes, with at least one contrast case.');
+      return t('Seen in several separate weeks, and at least once it did not happen without it.');
     },
     opacity: 0.9,
   },
@@ -628,10 +628,10 @@ export const CLAIM_STATUSES: StatusMeta[] = [
     key: 'tested',
     rank: 3,
     get label() {
-      return t('Tested');
+      return t('You tested it');
     },
     get description() {
-      return t('A deliberate change produced the predicted difference.');
+      return t('You changed it on purpose and what you predicted happened.');
     },
     opacity: 1,
   },
@@ -639,10 +639,10 @@ export const CLAIM_STATUSES: StatusMeta[] = [
     key: 'weakened',
     rank: -1,
     get label() {
-      return t('Weakened');
+      return t('Exceptions outweigh it');
     },
     get description() {
-      return t('Counter-evidence or a failed test outweighs the support.');
+      return t('The times it did not hold, or a test that failed, weigh more than the times it did.');
     },
     dash: '1 4',
     opacity: 0.45,
@@ -651,7 +651,7 @@ export const CLAIM_STATUSES: StatusMeta[] = [
     key: 'retired',
     rank: -2,
     get label() {
-      return t('No longer holds');
+      return t('No longer seems true');
     },
     get description() {
       return t('It held for a while, then stopped.');
@@ -667,37 +667,37 @@ export const STATUS_LADDER: ClaimStatus[] = ['proposed', 'plausible', 'supported
 
 export const EVIDENCE_KIND_LABEL: Record<EvidenceKind, string> = {
   get instance() {
-    return t('Instance');
+    return t('A time it happened');
   },
   get contrast() {
-    return t('Contrast');
+    return t('A time without it');
   },
   get counter_case() {
-    return t('Counter-case');
+    return t('An exception');
   },
   get mechanism() {
-    return t('Mechanism');
+    return t('How it works');
   },
   get intervention() {
-    return t('Test result');
+    return t('A test');
   },
 };
 
 export const EVIDENCE_KIND_HINT: Record<EvidenceKind, string> = {
   get instance() {
-    return t('A time A came before B.');
+    return t('The cause came first, then the effect.');
   },
   get contrast() {
-    return t('Without A (or with less of it), B did not happen.');
+    return t('Without the cause, the effect did not happen either.');
   },
   get counter_case() {
-    return t('A without B, or B without A.');
+    return t('One happened without the other.');
   },
   get mechanism() {
-    return t('A passage describing how A leads to B.');
+    return t('A passage that says how one leads to the other.');
   },
   get intervention() {
-    return t('A was changed on purpose and B changed as predicted (or did not).');
+    return t('You changed it on purpose and compared with what you predicted.');
   },
 };
 
@@ -717,25 +717,25 @@ export const VIEW_LABEL: Record<View, string> = {
 
 export const KNOWLEDGE_LABEL: Record<Knowledge, string> = {
   get recorded() {
-    return t('Recorded');
+    return t('your words');
   },
   get declared() {
-    return t('Declared by you');
+    return t('you said so');
   },
   get observed() {
-    return t('Observed');
+    return t('seen in your notes');
   },
   get claimed() {
-    return t('Claimed');
+    return t('a possible reason');
   },
   get tested() {
-    return t('Tested');
+    return t('tested');
   },
   get imagined() {
-    return t('Imagined');
+    return t('imagined');
   },
   get suggested() {
-    return t('Suggested by analysis');
+    return t('suggested');
   },
 };
 
@@ -1015,10 +1015,10 @@ export const PATTERN_KIND_LABEL: Record<PatternKind, string> = {
 
 export const REGULARITY_LABEL: Record<Regularity, string> = {
   get emerging() {
-    return t('Emerging');
+    return t('New');
   },
   get recurring() {
-    return t('Recurring');
+    return t('Keeps happening');
   },
   get fading() {
     return t('Fading');
@@ -1027,10 +1027,10 @@ export const REGULARITY_LABEL: Record<Regularity, string> = {
 
 export const REGULARITY_HINT: Record<Regularity, string> = {
   get emerging() {
-    return t('Seen in fewer than three episodes so far.');
+    return t('Seen in fewer than three separate weeks so far.');
   },
   get recurring() {
-    return t('Seen in three or more separate episodes.');
+    return t('Seen in three or more separate weeks.');
   },
   get fading() {
     return t('The latest records count against it, or it has not been seen for three months.');
@@ -1076,107 +1076,74 @@ export const SKILL_STATUS_LABEL: Record<SkillStatus, string> = {
   },
 };
 
-/* ------------------------------------------------------------------ places and pages */
+/* ------------------------------------------------------------------ lenses and pages */
 
 /** Every page: its short name, the question it answers, and one plain line about it. */
 export const VIEWS = {
   orbit: {
     get label() {
-      return t('Orbit');
+      return t('Map');
     },
     get question() {
       return t('What is my life made of?');
     },
     get blurb() {
-      return t('Everything that exists in your atlas, from you outward.');
+      return t('Everything in your atlas, from you outward.');
     },
   },
   timeline: {
     get label() {
-      return t('Timeline');
+      return t('Time');
     },
     get question() {
       return t('What happened, and when?');
     },
     get blurb() {
-      return t('Events, actions, decisions and readings, in order, each traced to its note.');
-    },
-  },
-  journal: {
-    get label() {
-      return t('Journal');
-    },
-    get question() {
-      return t('What did I write?');
-    },
-    get blurb() {
-      return t('Your notes: the record everything else is read from.');
-    },
-  },
-  decisions: {
-    get label() {
-      return t('Decisions');
-    },
-    get question() {
-      return t('What did I choose, and what followed?');
-    },
-    get blurb() {
-      return t('Each decision as a branch point: the options seen, the one lived, what followed.');
+      return t('Your notes, what happened and what you decided, in order. Every moment points back to what you wrote.');
     },
   },
   network: {
     get label() {
-      return t('Connections');
+      return t('Causes');
     },
     get question() {
-      return t('What affects what?');
+      return t('What seems to affect what?');
     },
     get blurb() {
-      return t('Every claim about how one thing changes another, with how well it is supported.');
+      return t('The possible reasons behind things, on the same map, drawn by how sure they are.');
     },
   },
   patterns: {
     get label() {
-      return t('Patterns');
+      return t('Repeats');
     },
     get question() {
       return t('What keeps happening?');
     },
     get blurb() {
-      return t('Regularities in your history, with the claims that may explain them.');
+      return t('Things that have happened before, noticed in what you wrote.');
     },
   },
-  questions: {
+  paths: {
     get label() {
-      return t('Questions');
+      return t('Ahead');
     },
     get question() {
-      return t('What am I trying to find out?');
+      return t('What could happen from here?');
     },
     get blurb() {
-      return t('Why something happened, what would happen if something changed, and what only you can decide.');
+      return t('Possible directions from where you are. They are not history: nothing here has happened yet.');
     },
   },
   navigation: {
     get label() {
-      return t('My plan');
+      return t('What you chose');
     },
     get question() {
       return t('What do I do next?');
     },
     get blurb() {
-      return t('Your chosen direction as concrete steps, and the tests that check your claims.');
-    },
-  },
-  paths: {
-    get label() {
-      return t('Options');
-    },
-    get question() {
-      return t('What are my options?');
-    },
-    get blurb() {
-      return t('Possible directions, compared side by side, with the claims each relies on.');
+      return t('The direction you chose, down to this week’s step, and the tests that check it.');
     },
   },
   settings: {
@@ -1195,8 +1162,9 @@ export const VIEWS = {
 export type ViewKey = keyof typeof VIEWS;
 
 /**
- * The four places in the top bar, one per layer of the atlas: what exists,
- * what happened, what is understood, and what is planned or possible.
+ * Five lenses on one atlas. Each answers a question about the same thing:
+ * where it sits, what happened, what seems to affect it, what repeats, and
+ * what could come next.
  */
 export const GROUPS = [
   {
@@ -1205,39 +1173,49 @@ export const GROUPS = [
       return t('Map');
     },
     get question() {
-      return t('What exists');
+      return t('Where it sits');
     },
     views: ['orbit'],
   },
   {
-    key: 'history',
+    key: 'time',
     get label() {
-      return t('History');
+      return t('Time');
     },
     get question() {
       return t('What happened');
     },
-    views: ['timeline', 'journal', 'decisions'],
+    views: ['timeline'],
   },
   {
-    key: 'understanding',
+    key: 'causes',
     get label() {
-      return t('Understanding');
+      return t('Causes');
     },
     get question() {
-      return t('How it seems to work');
+      return t('What seems to affect what');
     },
-    views: ['network', 'patterns', 'questions'],
+    views: ['network'],
   },
   {
-    key: 'plan',
+    key: 'repeats',
     get label() {
-      return t('Plan');
+      return t('Repeats');
     },
     get question() {
-      return t('What could change');
+      return t('What keeps happening');
     },
-    views: ['navigation', 'paths'],
+    views: ['patterns'],
+  },
+  {
+    key: 'ahead',
+    get label() {
+      return t('Ahead');
+    },
+    get question() {
+      return t('What could come next');
+    },
+    views: ['paths', 'navigation'],
   },
 ] as const satisfies readonly { key: string; label: string; question: string; views: readonly ViewKey[] }[];
 

@@ -49,17 +49,14 @@ export function StatusLadder({ status }: { status: ClaimStatus }) {
   );
 }
 
-/** What kind of knowledge something is: recorded, declared, observed, claimed, tested, imagined or suggested. */
+/** Where something comes from, as a quiet mark: your words, seen in your notes, suggested, imagined… */
 export function KnowledgeTag({ kind, className }: { kind: Knowledge; className?: string }) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center rounded-[2px] border px-1.5 font-mono text-[10px] leading-[16px] tracking-[0.08em] text-ink-2 uppercase',
-        kind === 'suggested' || kind === 'imagined' ? 'border-dashed border-line-strong' : 'border-line',
-        className,
-      )}
-      title={KNOWLEDGE_HINT[kind]}
-    >
+    <span className={cn('inline-flex items-center gap-1.5 text-[11.5px] whitespace-nowrap text-ink-3', className)} title={KNOWLEDGE_HINT[kind]}>
+      <span
+        className={cn('h-1.5 w-1.5 rounded-full', kind === 'suggested' || kind === 'imagined' ? 'border border-dashed border-ink-3' : 'bg-ink-3')}
+        aria-hidden
+      />
       {KNOWLEDGE_LABEL[kind]}
     </span>
   );

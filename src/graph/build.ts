@@ -3,9 +3,10 @@ import type { CSSProperties } from 'react';
  * Map atlas data to React Flow nodes and edges. Pure functions: given the same
  * data, positions and view state they return the same graph.
  *
- * Orbit shows what exists (elements, by area and layer) and, as lines, the
- * declared links and adopted claims between them. Connections shows only
- * claims: what is said to affect what, each line styled by its derived status.
+ * One canvas, two lenses on the same positions. Map shows what exists
+ * (elements, by area and layer) with the declared links, member lines and
+ * area arcs; Causes shows the claims: what is said to affect what, each line
+ * styled by its derived status.
  */
 import { claimStatus } from '../domain/claims';
 import { STATUS_META } from '../domain/constants';
@@ -99,7 +100,15 @@ const areaOf = (data: AtlasData, id: ID): AreaKey | undefined => (id === YOU_ID 
 
 /* ------------------------------------------------------------ orbit */
 
+/** Which lens the canvas shows: what exists (map) or what seems to affect what (causes). */
+export type CanvasLens = 'map' | 'causes';
+
 export interface OrbitOptions {
+  lens?: CanvasLens;
+  /** Causes lens: which possible reasons to draw. */
+  causes?: Pick<NetworkView, 'hiddenStatuses' | 'hiddenAreas' | 'showSuggested' | 'focusDepth' | 'loopId'>;
+  /** Elements named on the map without being hovered. */
+  salient?: Set<ID>;
   stored: Record<ID, XY>;
   collapsed: Set<AreaKey>;
   hiddenLayers: Set<LayerKey>;
@@ -231,6 +240,7 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
         labelSide: placed.inward.has(n.id) ? FLIP[side] : side,
         matched,
         near: false,
+        salient: Boolean(opts.salient?.has(n.id)),
       },
     });
   }
@@ -239,7 +249,17 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     for (const n of nodes) if (n.type === 'item' && near.has(n.id)) n.data.near = true;
   }
 
+  const edges: SemanticEdge[] = opts.lens === 'causes' ? causesEdges(data, nodes, visible, opts) : mapEdges(data, visible, opts);
+  for (const e of edges) e.data!.flow = e.data!.family !== 'member';
+
+  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches));
+  return { nodes, edges, visible, matches };
+}
+
+/** Map lens: declared links, each element's line to its area, the arcs between areas, and claims around the focus. */
+function mapEdges(data: AtlasData, visible: Set<ID>, opts: OrbitOptions): SemanticEdge[] {
   const edges: SemanticEdge[] = [];
+  const elements = mapElements(data);
   for (const e of Object.values(data.edges)) {
     if (!visible.has(e.source) || !visible.has(e.target)) continue;
     const meta = LINK_META[e.type];
@@ -314,105 +334,45 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
       }),
     );
   }
-  for (const e of edges) e.data!.flow = e.data!.family !== 'member';
-
-  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches));
-  return { nodes, edges, visible, matches };
+  return edges;
 }
 
-/* ------------------------------------------------------------ connections */
-
-export interface NetworkOptions {
-  positions: Record<ID, XY>;
-  view: NetworkView;
-  selectedId?: ID;
-  query: string;
-}
-
-/** The claims the network shows, and the elements they connect. */
-export function networkMembers(data: AtlasData, view: Pick<NetworkView, 'hiddenStatuses' | 'hiddenAreas' | 'showSuggested'>) {
+/**
+ * Causes lens: the same map, drawn as what seems to affect what. Elements no
+ * visible reason touches fade back; a highlighted cycle stands out.
+ */
+function causesEdges(data: AtlasData, nodes: AtlasFlowNode[], visible: Set<ID>, opts: OrbitOptions): SemanticEdge[] {
+  const view = opts.causes ?? { hiddenStatuses: ['retired'], hiddenAreas: [], showSuggested: true, focusDepth: 0 };
   const hiddenStatus = new Set(view.hiddenStatuses);
   const hiddenArea = new Set(view.hiddenAreas);
-  const claims: { claim: Claim; status: ClaimStatus }[] = [];
-  const ids = new Set<ID>();
+  const loop = view.loopId ? loopById(data, view.loopId) : undefined;
+  const loopClaims = new Set(loop?.claimIds ?? []);
+  const loopNodes = new Set(loop?.nodeIds ?? []);
+  const edges: SemanticEdge[] = [];
+  const touched = new Map<ID, number>();
   for (const c of Object.values(data.claims)) {
     if (c.state === 'set_aside' || (c.state === 'suggested' && !view.showSuggested)) continue;
     const status = claimStatus(data, c);
     if (hiddenStatus.has(status)) continue;
     const ends = [c.from, ...c.with, c.to];
-    if (ends.some((id) => !data.nodes[id] || hiddenArea.has(data.nodes[id]!.area))) continue;
-    claims.push({ claim: c, status });
-    for (const id of ends) ids.add(id);
-  }
-  return { nodeIds: [...ids], claims };
-}
-
-/** Links used by the force layout: every claim, whatever the filters, so positions stay stable. */
-export function networkLinks(data: AtlasData) {
-  const links: { source: ID; target: ID }[] = [];
-  for (const c of Object.values(data.claims)) {
-    if (c.state === 'set_aside') continue;
-    links.push({ source: c.from, target: c.to });
-    for (const w of c.with) links.push({ source: w, target: c.to });
-  }
-  return links;
-}
-
-export function buildNetwork(data: AtlasData, opts: NetworkOptions): BuiltGraph {
-  const q = opts.query.trim().toLowerCase();
-  const { nodeIds, claims } = networkMembers(data, opts.view);
-  let visible = new Set<ID>(nodeIds);
-  if (opts.view.focusDepth > 0 && opts.selectedId && visible.has(opts.selectedId)) {
-    visible = neighborhood(data, opts.selectedId, opts.view.focusDepth, visible);
-  }
-  const loop = opts.view.loopId ? loopById(data, opts.view.loopId) : undefined;
-  const loopNodes = new Set(loop?.nodeIds ?? []);
-  const loopClaims = new Set(loop?.claimIds ?? []);
-
-  const matches: ID[] = [];
-  const nodes: AtlasFlowNode[] = [];
-  for (const id of nodeIds) {
-    if (!visible.has(id)) continue;
-    const n = data.nodes[id]!;
-    const matched = matchesQuery(q, n.label, n.summary);
-    if (matched) matches.push(id);
-    const position = opts.positions[id] ?? { x: 0, y: 0 };
-    nodes.push({
-      id,
-      type: 'element',
-      // Staged reveal: outward from the centre.
-      style: { '--reveal': `${240 + Math.round(Math.min(640, Math.hypot(position.x, position.y) * 0.7))}ms` } as CSSProperties,
-      position,
-      className: loop && !loopNodes.has(id) ? 'is-soft' : undefined,
-      data: {
-        label: n.label,
-        kind: n.kind,
-        area: n.area,
-        color: AREA_META[n.area].color,
-        origin: n.origin,
-        adopted: n.adopted,
-        concern: Boolean(n.concern),
-        status: n.status,
-        inCount: claims.filter((c) => c.claim.to === id && c.claim.state === 'adopted').length,
-        outCount: claims.filter((c) => (c.claim.from === id || c.claim.with.includes(id)) && c.claim.state === 'adopted').length,
-        matched,
-        inLoop: loopNodes.has(id),
-      },
-    });
-  }
-
-  const edges: SemanticEdge[] = [];
-  for (const { claim, status } of claims) {
-    for (const ed of claimEdges(claim, status, visible)) {
-      ed.data!.flow = true;
+    if (ends.some((id) => !visible.has(id) || hiddenArea.has(data.nodes[id]?.area as AreaKey))) continue;
+    for (const ed of claimEdges(c, status, visible)) {
       if (loop) {
-        ed.data!.loop = loopClaims.has(claim.id);
+        ed.data!.loop = loopClaims.has(c.id);
         if (!ed.data!.loop) ed.className = 'is-soft';
       }
       edges.push(ed);
     }
+    for (const id of ends) touched.set(id, (touched.get(id) ?? 0) + 1);
   }
-
-  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches));
-  return { nodes, edges, visible, matches };
+  const around =
+    view.focusDepth > 0 && opts.selectedId && visible.has(opts.selectedId) ? neighborhood(data, opts.selectedId, view.focusDepth, visible) : undefined;
+  for (const n of nodes) {
+    if (n.type !== 'item') continue;
+    const count = touched.get(n.id) ?? 0;
+    // Name what the reasons run through, so the picture reads without hovering.
+    n.data.salient = n.data.salient || count >= 2 || loopNodes.has(n.id);
+    if (!count || (loop && !loopNodes.has(n.id)) || (around && !around.has(n.id))) n.className = 'is-soft';
+  }
+  return edges;
 }

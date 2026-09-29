@@ -11,6 +11,7 @@
 import { claimSentence, claimStatus } from './claims';
 import { EFFECT_META, STATUS_META } from './constants';
 import type { AtlasData, Claim, ClaimStatus, ID } from './types';
+import { t } from '../i18n';
 
 export interface Loop {
   /** Stable id: the member claim ids, sorted. */
@@ -88,3 +89,6 @@ export function loopById(data: AtlasData, id: string): Loop | undefined {
 export function loopSentences(data: AtlasData, loop: Loop): string[] {
   return loop.claimIds.map((id) => claimSentence(data, data.claims[id]!));
 }
+
+/** A cycle's name: the one the person gave it, or what it does. */
+export const loopName = (l: Loop) => l.name ?? (l.type === 'reinforcing' ? t('A cycle that feeds itself') : t('A cycle that holds itself back'));

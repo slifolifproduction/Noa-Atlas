@@ -1,12 +1,15 @@
-import { Star } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { HISTORY_ICONS, PLACE_ICONS } from '../../components/icons';
+import { Plus, Search, Star, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { CAPTURE_ICONS, HISTORY_ICONS, PLACE_ICONS } from '../../components/icons';
 import { NodeChip } from '../../components/inspector/parts';
+import { FocusBanner, useFocusFilter } from '../../components/shell/Focus';
 import { PageHeader } from '../../components/shell/PageHeader';
-import { EmptyState } from '../../components/ui/primitives';
-import { AREAS, MODE_LABEL, OCCURRENCE_KIND_LABEL } from '../../domain/constants';
-import { activeCommitmentsByWeek, contextStates, historyItems, readingsOf, recordGaps, type HistoryItem, type HistoryKind } from '../../domain/history';
-import type { AreaKey } from '../../domain/types';
+import { Button } from '../../components/ui/Button';
+import { EmptyState, Segmented } from '../../components/ui/primitives';
+import { momentsOf } from '../../domain/ask';
+import { AREA_META, AREAS, MODE_LABEL, OCCURRENCE_KIND_LABEL } from '../../domain/constants';
+import { activeCommitmentsByWeek, contextStates, historyItems, readingsOf, recordGaps, type HistoryItem } from '../../domain/history';
+import type { AreaKey, AtlasData } from '../../domain/types';
 import { useElementWidth } from '../../hooks/useElementWidth';
 import { formatDate, formatMonth, parseISODate, useToday } from '../../lib/dates';
 import { cn } from '../../lib/cn';
@@ -14,49 +17,73 @@ import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { t, tn } from '../../i18n';
 
-const KIND_ORDER: HistoryKind[] = ['event', 'action', 'experience', 'decision', 'reading', 'test', 'record', 'step'];
-const KIND_LABEL: Record<HistoryKind, () => string> = {
-  event: () => t('Events'),
-  action: () => t('Actions'),
-  experience: () => t('Experiences'),
-  decision: () => t('Decisions'),
-  reading: () => t('Readings'),
-  test: () => t('Tests'),
-  record: () => t('Notes'),
-  step: () => t('Planned steps'),
+type Show = 'all' | 'notes' | 'decisions' | 'happenings';
+
+const SHOWS: Record<Show, (h: HistoryItem) => boolean> = {
+  all: () => true,
+  notes: (h) => h.kind === 'record',
+  decisions: (h) => h.kind === 'decision',
+  happenings: (h) => h.kind === 'event' || h.kind === 'action' || h.kind === 'experience' || h.kind === 'test',
 };
 
+const pendingIn = (data: AtlasData, h: HistoryItem) =>
+  h.kind === 'record' ? (data.entries[h.ref.id]?.analysis?.suggestions.filter((s) => s.state === 'pending').length ?? 0) : 0;
+
+function areasOf(data: AtlasData, h: HistoryItem): AreaKey[] {
+  if (h.ref.kind === 'entry') return data.entries[h.ref.id]?.areas ?? [];
+  if (h.ref.kind === 'decision') return data.decisions[h.ref.id]?.areas ?? [];
+  return h.about.map((id) => data.nodes[id]?.area).filter((a): a is AreaKey => Boolean(a));
+}
+
+function searchText(data: AtlasData, h: HistoryItem): string {
+  if (h.ref.kind === 'entry') {
+    const e = data.entries[h.ref.id];
+    if (e) return `${e.title} ${e.content} ${e.tags.join(' ')}`;
+  }
+  if (h.ref.kind === 'decision') {
+    const d = data.decisions[h.ref.id];
+    if (d) return `${d.title} ${d.context} ${d.chosenAction} ${d.options.map((o) => o.label).join(' ')}`;
+  }
+  return h.label;
+}
+
 /**
- * History: what happened, when. Each item traces back to the note or decision
- * it was read from. Planned steps are shown apart, as planned, never as
- * history. Nothing here explains anything; it is what explanations are
- * checked against.
+ * Time: what happened, when. Notes, what they describe, decisions (drawn as
+ * forks, with the branches not taken) and tests on one line, newest first.
+ * With something in focus, only the moments about it. Planned steps stay
+ * apart, as planned; nothing here explains anything.
  */
-export function TimelinePage() {
+export function TimelinePage({ preset }: { preset?: string }) {
   const data = useAtlas((s) => s.data);
   const open = useUI((s) => s.openEntity);
+  const openCapture = useUI((s) => s.openCapture);
   const top = useUI((s) => s.inspector[s.inspector.length - 1]);
   const today = useToday();
-  const [hidden, setHidden] = useState<Set<HistoryKind>>(() => new Set(['record', 'reading']));
+  const initial: Show = preset === 'notes' || preset === 'decisions' ? preset : 'all';
+  const [show, setShow] = useState<Show>(initial);
+  useEffect(() => setShow(initial), [initial]);
+  const { focus, on, setOn } = useFocusFilter();
+  const [query, setQuery] = useState('');
   const [area, setArea] = useState<AreaKey | 'all'>('all');
+  const [review, setReview] = useState(false);
   const [landmarks, setLandmarks] = useState(false);
 
-  const all = useMemo(() => historyItems(data, { records: true, planned: true, today }), [data, today]);
-  const items = useMemo(
-    () =>
-      all.filter((h) => {
-        if (hidden.has(h.kind)) return false;
-        if (landmarks && !h.landmark) return false;
-        if (area !== 'all' && !h.about.some((id) => data.nodes[id]?.area === area)) return false;
-        return true;
-      }),
-    [all, hidden, landmarks, area, data.nodes],
-  );
-  const counts = useMemo(() => {
-    const c = Object.fromEntries(KIND_ORDER.map((k) => [k, 0])) as Record<HistoryKind, number>;
-    for (const h of all) c[h.kind]++;
-    return c;
-  }, [all]);
+  const all = useMemo(() => historyItems(data, { records: true, planned: true, today }).filter((h) => h.kind !== 'reading'), [data, today]);
+  const about = useMemo(() => (focus ? new Set(momentsOf(data, focus).map((h) => h.key)) : null), [data, focus]);
+  const inFocus = useMemo(() => (on && about ? all.filter((h) => about.has(h.key)) : all), [all, about, on]);
+  const items = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return inFocus.filter((h) => {
+      if (!SHOWS[show](h)) return false;
+      if (review && !pendingIn(data, h)) return false;
+      if (landmarks && !h.landmark) return false;
+      if (area !== 'all' && !areasOf(data, h).includes(area)) return false;
+      if (q && !searchText(data, h).toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [inFocus, show, review, landmarks, area, query, data]);
+  const count = (k: Show) => inFocus.filter((h) => h.mode === 'actual' && SHOWS[k](h)).length;
+  const toReview = inFocus.filter((h) => pendingIn(data, h) > 0).length;
   const gaps = recordGaps(data, today);
 
   const planned = items.filter((h) => h.mode !== 'actual');
@@ -66,45 +93,92 @@ export function TimelinePage() {
     const k = h.date.slice(0, 7);
     months.set(k, [...(months.get(k) ?? []), h]);
   }
+  const quiet = show === 'all' && !on && !query && !review && area === 'all' && !landmarks;
 
   return (
     <div className="mx-auto max-w-[980px] px-4 py-5 md:px-6 md:py-6">
-      <PageHeader view="timeline" help="timeline" />
+      <PageHeader
+        view="timeline"
+        help="timeline"
+        actions={
+          <>
+            <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')} kbd="N">
+              {t('Write a note')}
+            </Button>
+            <Button variant="ghost" icon={HISTORY_ICONS.decision} onClick={() => openCapture('decision')}>
+              {t('Log a decision')}
+            </Button>
+          </>
+        }
+      />
 
       {all.length === 0 ? (
-        <EmptyState icon={PLACE_ICONS.history} title={t('Nothing on the timeline yet')} className="mt-6">
-          {t('The timeline fills from your notes: when a note reports something that happened, accept it as an event, an action or an experience.')}
+        <EmptyState
+          icon={PLACE_ICONS.time}
+          title={t('Nothing here yet')}
+          className="mt-6"
+          action={
+            <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')}>
+              {t('Write the first note')}
+            </Button>
+          }
+        >
+          {t('Time fills from what you write: a few honest lines about something that happened, or a decision you made.')}
         </EmptyState>
       ) : (
         <>
-          <LoadChart />
+          <FocusBanner
+            focus={focus}
+            on={on}
+            setOn={setOn}
+            shown={inFocus.filter((h) => h.mode === 'actual').length}
+            total={all.filter((h) => h.mode === 'actual').length}
+            className="mt-5"
+          />
 
-          <div className="mt-6 flex flex-wrap items-center gap-1.5">
-            {KIND_ORDER.filter((k) => counts[k] > 0).map((k) => {
-              const on = !hidden.has(k);
-              const Icon = HISTORY_ICONS[k];
-              return (
-                <button
-                  key={k}
-                  type="button"
-                  aria-pressed={on}
-                  onClick={() => {
-                    const next = new Set(hidden);
-                    if (on) next.add(k);
-                    else next.delete(k);
-                    setHidden(next);
-                  }}
-                  className={cn(
-                    'inline-flex h-8 items-center gap-1.5 rounded-[2px] border px-2.5 text-[12.5px]',
-                    on ? 'border-line-strong text-ink' : 'border-line text-ink-3 hover:text-ink-2',
-                  )}
-                >
-                  <Icon size={12} aria-hidden />
-                  {KIND_LABEL[k]()}
-                  <span className="num text-[11px] text-ink-3">{counts[k]}</span>
+          {quiet && <LoadChart />}
+
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            <Segmented<Show>
+              label={t('Show')}
+              size="sm"
+              value={show}
+              onChange={setShow}
+              options={[
+                { value: 'all', label: t('Everything') },
+                { value: 'notes', label: `${t('Notes')} ${count('notes')}` },
+                { value: 'decisions', label: `${t('Decisions')} ${count('decisions')}` },
+                { value: 'happenings', label: `${t('What happened')} ${count('happenings')}` },
+              ]}
+            />
+            <div className="flex h-8 min-w-[180px] flex-1 items-center gap-2 rounded-[2px] border border-line bg-surface px-2.5 focus-within:border-accent/50 sm:max-w-[240px]">
+              <Search size={13} className="text-ink-3" aria-hidden />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t('Search what you wrote')}
+                aria-label={t('Search what you wrote')}
+                className="w-full bg-transparent text-[12.5px] placeholder:text-ink-3 focus:outline-none"
+              />
+              {query && (
+                <button type="button" onClick={() => setQuery('')} aria-label={t('Clear search')} className="text-ink-3 hover:text-ink">
+                  <X size={12} aria-hidden />
                 </button>
-              );
-            })}
+              )}
+            </div>
+            {toReview > 0 && (
+              <button
+                type="button"
+                aria-pressed={review}
+                onClick={() => setReview(!review)}
+                className={cn(
+                  'h-8 rounded-[2px] border px-2.5 text-[12.5px]',
+                  review ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-2 hover:border-line-strong',
+                )}
+              >
+                {t('To confirm')} <span className="num ml-1 text-ink-3">{toReview}</span>
+              </button>
+            )}
             <button
               type="button"
               aria-pressed={landmarks}
@@ -115,7 +189,7 @@ export function TimelinePage() {
               )}
             >
               <Star size={12} aria-hidden />
-              {t('Landmarks only')}
+              {t('Landmarks')}
             </button>
             <select className="field h-8 w-auto py-0" value={area} onChange={(e) => setArea(e.target.value as AreaKey | 'all')} aria-label={t('Area of life')}>
               <option value="all">{t('All areas')}</option>
@@ -127,7 +201,7 @@ export function TimelinePage() {
             </select>
           </div>
 
-          {gaps.quietWeeks > 0 && (
+          {quiet && gaps.quietWeeks > 0 && (
             <p className="mt-3 text-[12px] text-ink-3">
               {tn(
                 gaps.quietWeeks,
@@ -137,7 +211,7 @@ export function TimelinePage() {
             </p>
           )}
 
-          {planned.length > 0 && (
+          {planned.length > 0 && (show === 'all' || show === 'happenings') && (
             <section className="mt-6">
               <h2 className="label mb-1">{t('Ahead: planned, not yet history')}</h2>
               <ul className="divide-y divide-line border-y border-dashed border-line">
@@ -155,9 +229,17 @@ export function TimelinePage() {
                   {formatMonth(`${month}-01`)} <span className="num ml-1 text-ink-3">{list.length}</span>
                 </h2>
                 <ul className="divide-y divide-line border-y border-line">
-                  {list.map((h) => (
-                    <Row key={h.key} item={h} active={top?.kind === h.ref.kind && top.id === h.ref.id} onOpen={() => open(h.ref)} />
-                  ))}
+                  {list.map((h) => {
+                    const active = top?.kind === h.ref.kind && top.id === h.ref.id;
+                    const onOpen = () => open(h.ref);
+                    return h.kind === 'record' ? (
+                      <NoteRow key={h.key} item={h} active={active} onOpen={onOpen} />
+                    ) : h.kind === 'decision' ? (
+                      <ForkRow key={h.key} item={h} active={active} onOpen={onOpen} />
+                    ) : (
+                      <Row key={h.key} item={h} active={active} onOpen={onOpen} />
+                    );
+                  })}
                 </ul>
               </section>
             ))}
@@ -166,6 +248,86 @@ export function TimelinePage() {
         </>
       )}
     </div>
+  );
+}
+
+/** A note: what you wrote, with the first lines of it and anything waiting for a yes or no. */
+function NoteRow({ item: h, active, onOpen }: { item: HistoryItem; active: boolean; onOpen(): void }) {
+  const e = useAtlas((s) => s.data.entries[h.ref.id]);
+  const pending = e?.analysis?.suggestions.filter((s) => s.state === 'pending').length ?? 0;
+  if (!e) return null;
+  const Icon = CAPTURE_ICONS[e.kind];
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        className={cn('grid w-full grid-cols-[64px_minmax(0,1fr)] gap-3 px-2 py-3 text-left transition-colors', active ? 'bg-raised' : 'hover:bg-surface')}
+      >
+        <div className="num pt-0.5 text-[12px] text-ink-2">{formatDate(e.date)}</div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Icon size={13} className="shrink-0 text-ink-3" aria-hidden />
+            <span className="display min-w-0 flex-1 truncate text-[16px] leading-[1.2] text-ink">{e.title}</span>
+            {pending > 0 && <span className="shrink-0 rounded-full bg-accent-dim px-1.5 text-[10.5px] text-accent">{t('{n} to confirm', { n: pending })}</span>}
+          </div>
+          <p className="mt-0.5 line-clamp-2 pl-[21px] text-[12.5px] leading-snug text-ink-2">{e.content}</p>
+          {e.areas.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 pl-[21px]">
+              {e.areas.map((d) => (
+                <span key={d} className="flex items-center gap-1 text-[11px] text-ink-3">
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: AREA_META[d].color }} aria-hidden />
+                  {AREA_META[d].label}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      </button>
+    </li>
+  );
+}
+
+/** A decision as a fork: the branch you took, and the ones you did not, drawn dashed. */
+function ForkRow({ item: h, active, onOpen }: { item: HistoryItem; active: boolean; onOpen(): void }) {
+  const d = useAtlas((s) => s.data.decisions[h.ref.id]);
+  const today = useToday();
+  if (!d) return null;
+  const Icon = HISTORY_ICONS.decision;
+  const taken = d.options.find((o) => o.id === d.chosenOptionId);
+  const others = d.options.filter((o) => o.id !== d.chosenOptionId);
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onOpen}
+        className={cn('grid w-full grid-cols-[64px_minmax(0,1fr)] gap-3 px-2 py-3 text-left transition-colors', active ? 'bg-raised' : 'hover:bg-surface')}
+      >
+        <div className="num pt-0.5 text-[12px] text-ink-2">{formatDate(d.date)}</div>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <Icon size={13} className="shrink-0 text-ink-3" aria-hidden />
+            <span className="display min-w-0 flex-1 truncate text-[16px] leading-[1.2] text-ink">{d.title}</span>
+            {d.outcomeRating === undefined && d.date < today && <span className="shrink-0 text-[10.5px] text-ink-3">{t('how did it go?')}</span>}
+          </div>
+          <div className="mt-1.5 ml-[6px] space-y-0.5 border-l border-line-strong pl-3">
+            <div className="text-[12.5px] leading-snug text-ink-2">
+              <span className="text-ink-3">{t('Took')}:</span> {taken?.label || d.chosenAction || '—'}
+            </div>
+            {others.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 text-[12px] text-ink-3">
+                <span>{tn(others.length, '{n} branch not taken', '{n} branches not taken')}:</span>
+                {others.map((o) => (
+                  <span key={o.id} className="rounded-[2px] border border-dashed border-line-strong px-1.5 py-px text-[11.5px] text-ink-3">
+                    {o.label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </button>
+    </li>
   );
 }
 

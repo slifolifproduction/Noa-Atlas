@@ -1,8 +1,8 @@
 import { Check, Pencil, Plus, RefreshCw, X } from 'lucide-react';
-import { useState } from 'react';
-import { claimCode, claimSentence } from '../../domain/claims';
+import { useEffect, useRef, useState } from 'react';
+import { claimSentence } from '../../domain/claims';
 import { AREA_META, CAPTURE_KIND_LABEL, ENERGY_LABELS, MOOD_LABELS, OCCURRENCE_KIND_LABEL } from '../../domain/constants';
-import { entryCode, mapElements, patternCode, patternTitle, usagesOfSource } from '../../domain/selectors';
+import { entryCode, mapElements, patternTitle, usagesOfSource } from '../../domain/selectors';
 import type { AnalysisSuggestion, ID } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
@@ -29,6 +29,7 @@ export function EntryView({ id }: { id: ID }) {
   const back = useUI((s) => s.back);
   const open = useUI((s) => s.openEntity);
   const busy = useUI((s) => s.busy[`entry:${id}`]);
+  const highlight = useUI((s) => s.highlight);
   const [linking, setLinking] = useState(false);
   if (!entry) return null;
   const Icon = CAPTURE_ICONS[entry.kind];
@@ -51,7 +52,9 @@ export function EntryView({ id }: { id: ID }) {
           <KnowledgeTag kind="recorded" />
         </div>
         <h2 className="mt-2.5 display text-[21px] leading-[1.2] text-ink">{entry.title}</h2>
-        <p className="mt-2 text-[13.5px] leading-relaxed whitespace-pre-wrap text-ink-2">{entry.content}</p>
+        <p className="mt-2 text-[13.5px] leading-relaxed whitespace-pre-wrap text-ink-2">
+          <Marked text={entry.content} passage={highlight} />
+        </p>
         <div className="mt-3 flex flex-wrap gap-1.5">
           {entry.areas.map((d) => (
             <Chip key={d} color={AREA_META[d].color}>
@@ -112,20 +115,27 @@ export function EntryView({ id }: { id: ID }) {
       <PanelSection
         title={t('On the map')}
         count={entry.nodeIds.length}
-        aside={<IconButton icon={linking ? X : Plus} label={linking ? t('Cancel') : t('Link an element')} size="sm" onClick={() => setLinking(!linking)} />}
+        aside={
+          <IconButton
+            icon={linking ? X : Plus}
+            label={linking ? t('Cancel') : t('Link to something on the map')}
+            size="sm"
+            onClick={() => setLinking(!linking)}
+          />
+        }
       >
         {linking && (
           <select
             className="field mb-2"
             autoFocus
             value=""
-            aria-label={t('Link an element')}
+            aria-label={t('Link to something on the map')}
             onChange={(e) => {
               if (e.target.value) updateEntry(id, { nodeIds: [...entry.nodeIds, e.target.value] });
               setLinking(false);
             }}
           >
-            <option value="">{t('Choose an element…')}</option>
+            <option value="">{t('Choose…')}</option>
             {mapElements(data)
               .filter((n) => !entry.nodeIds.includes(n.id))
               .sort((a, b) => a.label.localeCompare(b.label))
@@ -154,14 +164,12 @@ export function EntryView({ id }: { id: ID }) {
             ))}
           </div>
         ) : (
-          <Muted>
-            {t('Not linked to anything on the map. Linking a note says what it is about; it can then be offered as evidence for claims about those things.')}
-          </Muted>
+          <Muted>{t('Not linked to anything on the map yet. Linking says what the note is about, so it can count as a moment for it.')}</Muted>
         )}
       </PanelSection>
 
       {happenings.length > 0 && (
-        <PanelSection title={t('Read into the timeline')} count={happenings.length}>
+        <PanelSection title={t('What happened, as read from it')} count={happenings.length}>
           <ul className="-mx-1.5">
             {happenings.map((h) => (
               <HistoryRow key={h.key} item={h} />
@@ -170,7 +178,7 @@ export function EntryView({ id }: { id: ID }) {
         </PanelSection>
       )}
 
-      <PanelSection title={t('Cited as evidence')} count={usages.length}>
+      <PanelSection title={t('Where it counts')} count={usages.length}>
         {usages.length ? (
           <ul className="space-y-1.5">
             {usages.map(({ pattern, claim, evidence }) => (
@@ -182,8 +190,9 @@ export function EntryView({ id }: { id: ID }) {
                 >
                   <StanceMark stance={evidence.stance} />
                   <span className="min-w-0">
-                    <span className="label block">
-                      {pattern ? patternCode(pattern.code) : claimCode(claim!.code)} · {evidence.stance === 'supports' ? t('supports') : t('counters')}
+                    <span className="block text-[11.5px] text-ink-3">
+                      {pattern ? t('Something that repeats') : t('A possible reason')} ·{' '}
+                      {evidence.stance === 'supports' ? t('backs it up') : t('goes against it')}
                     </span>
                     <span className="block text-[13px] text-ink-2">{pattern ? patternTitle(pattern) : claimSentence(data, claim!)}</span>
                   </span>
@@ -192,25 +201,25 @@ export function EntryView({ id }: { id: ID }) {
             ))}
           </ul>
         ) : (
-          <Muted>{t('Not cited by any claim or pattern.')}</Muted>
+          <Muted>{t('Not counted toward any reason or repeat yet.')}</Muted>
         )}
       </PanelSection>
 
       <PanelSection
-        title={t('Analysis')}
+        title={t('What the Atlas noticed')}
         aside={
           <Button size="sm" variant="ghost" icon={RefreshCw} loading={busy} onClick={() => analyzeEntry(id)}>
-            {analysis ? t('Re-run') : t('Analyse')}
+            {analysis ? t('Read it again') : t('Read it')}
           </Button>
         }
       >
         {!analysis ? (
-          <Muted>{t('Not analysed yet.')}</Muted>
+          <Muted>{t('Not read yet.')}</Muted>
         ) : (
           <div className="space-y-3">
             <div>
               <div className="mb-1 text-[11.5px] text-ink-3">
-                {t('Observations · {provider} · {date}', { provider: t(analysis.provider), date: formatDate(analysis.generatedAt) })}
+                {t('Read by {provider} · {date}', { provider: t(analysis.provider), date: formatDate(analysis.generatedAt) })}
               </div>
               {analysis.observations.length ? (
                 <ul className="space-y-1.5">
@@ -227,7 +236,7 @@ export function EntryView({ id }: { id: ID }) {
             </div>
             {pending.length > 0 && (
               <div>
-                <div className="mb-1 text-[11.5px] text-ink-3">{t('Suggestions for you to review')}</div>
+                <div className="mb-1 text-[11.5px] text-ink-3">{t('For you to confirm')}</div>
                 <ul className="divide-y divide-line rounded-[2px] border border-line">
                   {pending.map((s) => (
                     <SuggestionRow key={s.id} entryId={id} suggestion={s} />
@@ -259,8 +268,8 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
     const p = data.patterns[s.patternId];
     title = (
       <>
-        {s.stance === 'supports' ? t('May be an instance of') : t('May be a counter-case to')}{' '}
-        <span className="text-ink">{p ? `${patternCode(p.code)}: ${patternTitle(p)}` : t('a pattern')}</span>
+        {s.stance === 'supports' ? t('Might be another time of') : t('Might be an exception to')}{' '}
+        <span className="text-ink">{p ? patternTitle(p) : t('something that repeats')}</span>
       </>
     );
   } else if (s.type === 'link_node') {
@@ -291,7 +300,7 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
           <div className="flex shrink-0 gap-0.5">
             {!composing && (
               <Button size="sm" variant="ghost" onClick={() => setComposing(true)}>
-                {t('State as a claim')}
+                {t('Add as a reason')}
               </Button>
             )}
             <IconButton icon={X} label={t('Dismiss')} size="sm" onClick={() => resolve(entryId, s.id, false)} />
@@ -306,7 +315,7 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
       {composing && s.type === 'attribution' && (
         <div className="mt-2">
           <ClaimComposer
-            hint={t('Your explanation, as a claim. It starts as proposed: one note saying so is your hypothesis, not yet evidence.')}
+            hint={t('Your explanation, as a possible reason. It starts as a hunch: one note saying so is your guess, not yet something seen again.')}
             onCreated={(cid) => {
               resolve(entryId, s.id, true);
               setComposing(false);
@@ -318,4 +327,47 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
       )}
     </li>
   );
+}
+
+/**
+ * A note's text with the passage that was cited marked, so opening a note
+ * from its moment lands on the words that count.
+ */
+function Marked({ text, passage }: { text: string; passage: string | null }) {
+  const mark = useRef<HTMLElement>(null);
+  const [at, needle] = findPassage(text, passage);
+  // After the panel has settled at the top, bring the passage into view.
+  useEffect(() => {
+    if (at < 0) return;
+    const timer = setTimeout(() => mark.current?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 120);
+    return () => clearTimeout(timer);
+  }, [at, needle]);
+  if (!needle || at < 0) return <>{text}</>;
+  return (
+    <>
+      {text.slice(0, at)}
+      <mark className="rounded-[1px] bg-accent/20 px-0.5 text-ink" ref={mark}>
+        {text.slice(at, at + needle.length)}
+      </mark>
+      {text.slice(at + needle.length)}
+    </>
+  );
+}
+
+/**
+ * Where a cited passage sits in a note. Excerpts are trimmed and may end
+ * differently from the note ("blocks." for "blocks, steady…"), so the match
+ * loosens one word at a time, down to the first four.
+ */
+function findPassage(text: string, passage: string | null): [number, string] {
+  const clean = passage?.replace(/[“”"]/g, '').trim() ?? '';
+  const hay = text.toLowerCase();
+  let words = clean.split(/\s+/).filter(Boolean);
+  while (words.length >= 4 || (words.length && words.join(' ') === clean)) {
+    const needle = words.join(' ').replace(/[.,;:!?…]+$/, '');
+    const at = hay.indexOf(needle.toLowerCase());
+    if (at >= 0) return [at, needle];
+    words = words.slice(0, -1);
+  }
+  return [-1, ''];
 }

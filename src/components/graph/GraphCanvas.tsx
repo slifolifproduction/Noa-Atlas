@@ -29,7 +29,6 @@ import { FOCUS_REQUEST_TTL, toast, useUI } from '../../state/uiStore';
 import { EdgePopover } from './EdgePopover';
 import { HubNodeView } from './nodes/HubNode';
 import { ItemNodeView } from './nodes/ItemNode';
-import { ElementNodeView } from './nodes/ElementNode';
 import { RingsNodeView } from './nodes/RingsNode';
 import { RelationPicker } from './RelationPicker';
 import { NodeProbe } from './NodeProbe';
@@ -41,12 +40,11 @@ import { t } from '../../i18n';
 const nodeTypes: NodeTypes = {
   hub: HubNodeView,
   item: ItemNodeView,
-  element: ElementNodeView,
   rings: RingsNodeView,
 };
 const edgeTypes: EdgeTypes = { semantic: SemanticEdgeView };
 
-const MINIMAP_COLORS: Record<string, string> = { hub: '#5b6572', item: '#3a424c', element: '#48515c' };
+const MINIMAP_COLORS: Record<string, string> = { hub: '#5b6572', item: '#3a424c' };
 
 /** Structure, not influence: carries no pulses and does not count as a connection. */
 const isStructural = (e: SemanticEdge) => e.data?.family === 'member' || (e.data?.family === 'link' && e.data.linkType === 'part_of');
@@ -81,18 +79,6 @@ export interface GraphCanvasProps {
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 const ARROWS: Record<string, [number, number]> = { ArrowRight: [1, 0], ArrowLeft: [-1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
-
-/** The latest signal the network sent, for the live readout. */
-interface Signal {
-  cycle: number;
-  origin: ID;
-  first: ID[];
-  hops: number;
-  nodes: number;
-  focus: ID | null;
-}
-
-const nodeLabel = (n: AtlasFlowNode | undefined): string => (!n ? '' : 'label' in n.data ? String(n.data.label) : '');
 
 /** Neighbours pulled along by a drag: offset, velocity and how strongly each follows. */
 interface Spring {
@@ -386,7 +372,7 @@ function Canvas({
 
   // One-shot "focus this node" requests from the inspector, search or palette.
   useEffect(() => {
-    if (!focusRequest || focusRequest.layer !== layer || Date.now() - focusRequest.at > FOCUS_REQUEST_TTL) return;
+    if (!focusRequest || Date.now() - focusRequest.at > FOCUS_REQUEST_TTL) return;
     const n = nodes.find((x) => x.id === focusRequest.id);
     if (!n) return;
     // Wait a frame so an initial fit (on a freshly mounted canvas) does not override the focus.
@@ -465,7 +451,6 @@ function Canvas({
   // back to what you have been looking at; with a selection it stays in that neighbourhood.
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
-  const [signal, setSignal] = useState<Signal | null>(null);
   useEffect(() => {
     if (!living || reduced) return;
     let timer = 0;
@@ -525,7 +510,6 @@ function Canvas({
             }, hop * HOP_MS);
             steps.add(t);
           });
-          setSignal({ cycle, origin, first: hops[0]?.flatMap((s) => s.reached) ?? [], hops: hops.length, nodes: visited.size, focus: space.topAttention() });
         }
       }
       schedule();
@@ -740,44 +724,10 @@ function Canvas({
             />
           )}
           {probe && !pending && !edgeMenu && <NodeProbe id={probe} occludedRight={occludedRight} hint={t('Click to open · arrow keys travel along links')} />}
-          {signal && isDesktop && labelsFor.has(signal.origin) && built.edges.some((e) => !isStructural(e)) && (
-            <SignalReadout key={signal.cycle} signal={signal} labelOf={(id) => nodeLabel(labelsFor.get(id))} left={occludedLeft} right={occludedRight} />
-          )}
           {edgeMenu && <EdgePopover edgeId={edgeMenu.edgeId} x={edgeMenu.x} y={edgeMenu.y} edges={built.edges} onClose={() => setEdgeMenu(null)} />}
           {children}
         </div>
       </SpaceContext.Provider>
     </MotionContext.Provider>
-  );
-}
-
-/**
- * What the network is doing right now, in words: where the last signal left from, what it
- * reached first, how far it travelled, and where attention has built up.
- */
-function SignalReadout({ signal, labelOf, left, right }: { signal: Signal; labelOf(id: ID): string; left: number; right: number }) {
-  const first = signal.first.map(labelOf).filter(Boolean);
-  return (
-    <div
-      className="atlas-readout pointer-events-none absolute bottom-3 z-10 max-w-[min(520px,55%)] -translate-x-1/2 animate-fade-in truncate rounded-[2px] bg-canvas/70 px-2 py-1 font-mono text-[10.5px] tracking-wide text-ink-3"
-      style={{ left: `calc(${left}px + (100% - ${left + right}px) / 2)` }}
-      title={t('A pulse travels from one element along your links and claims, to show what it touches. It illustrates connections; it is not a finding.')}
-    >
-      <span className="atlas-live-dot mr-1.5 inline-block h-1.5 w-1.5 rounded-full bg-accent align-middle" aria-hidden />
-      <span className="text-ink-2">{t('Live')}</span> · {t('following')} <span className="text-ink-2">{labelOf(signal.origin)}</span>
-      {first.length > 0 && (
-        <>
-          {' '}
-          → {first.slice(0, 3).join(', ')}
-          {first.length > 3 ? ` +${first.length - 3}` : ''}
-        </>
-      )}
-      {signal.focus && (
-        <>
-          {' '}
-          · {t('you often look at')} <span className="text-ink-2">{labelOf(signal.focus)}</span>
-        </>
-      )}
-    </div>
   );
 }

@@ -2,7 +2,7 @@ import { Check, Pencil } from 'lucide-react';
 import { useState } from 'react';
 import { claimStatus } from '../../domain/claims';
 import { STATUS_META } from '../../domain/constants';
-import { loopById } from '../../domain/loops';
+import { loopById, loopName } from '../../domain/loops';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { KnowledgeTag, StatusBadge } from '../evidence/Status';
@@ -26,7 +26,7 @@ export function LoopView({ id }: { id: string }) {
   if (!loop)
     return (
       <div className="p-4">
-        <Muted>{t('This loop no longer closes: one of its claims changed.')}</Muted>
+        <Muted>{t('This cycle no longer closes: one of its steps changed.')}</Muted>
       </div>
     );
   const reinforcing = loop.type === 'reinforcing';
@@ -35,7 +35,7 @@ export function LoopView({ id }: { id: string }) {
       <div className="px-4 pt-4 pb-4">
         <div className="flex items-center gap-2">
           <LoopIcon size={14} className="text-ink-2" aria-hidden />
-          <span className="label">{reinforcing ? t('Reinforcing loop') : t('Balancing loop')}</span>
+          <span className="label">{t('A cycle')}</span>
           <span className="ml-auto">
             <KnowledgeTag kind="claimed" />
           </span>
@@ -56,8 +56,8 @@ export function LoopView({ id }: { id: string }) {
           </form>
         ) : (
           <h2 className="mt-2.5 display text-[20px] leading-[1.2] text-ink">
-            {loop.name ?? (reinforcing ? t('A reinforcing loop') : t('A balancing loop'))}
-            <button type="button" className="ml-2 align-middle text-ink-3 hover:text-ink" aria-label={t('Name this loop')} onClick={() => setEditing(true)}>
+            {loopName(loop)}
+            <button type="button" className="ml-2 align-middle text-ink-3 hover:text-ink" aria-label={t('Name this cycle')} onClick={() => setEditing(true)}>
               <Pencil size={13} aria-hidden />
             </button>
           </h2>
@@ -68,13 +68,13 @@ export function LoopView({ id }: { id: string }) {
             : t('The circle pushes back on itself: it corrects, or it resists change, and tends to settle.')}
         </p>
         <div className="mt-2.5 flex items-center gap-2 text-[12px] text-ink-3">
-          {t('Only as solid as its weakest link:')} <StatusBadge status={loop.weakest} />
+          {t('Only as sure as its least sure step:')} <StatusBadge status={loop.weakest} />
         </div>
         <Button size="sm" className="mt-3" onClick={() => (setNetworkView({ loopId: id }), (window.location.hash = '#/network'))}>
-          {t('Highlight in Connections')}
+          {t('Show it in Causes')}
         </Button>
       </div>
-      <PanelSection title={t('The circle')} count={loop.claimIds.length}>
+      <PanelSection title={t('The steps')} count={loop.claimIds.length}>
         <ol className="-mx-1.5">
           {loop.claimIds.map((cid) => (
             <ClaimRow key={cid} id={cid} className={loop.breakpoints.includes(cid) ? 'rounded-[2px] bg-ink/[0.03]' : undefined} />
@@ -82,7 +82,7 @@ export function LoopView({ id }: { id: string }) {
         </ol>
       </PanelSection>
       <PanelSection title={t('Where to look first')}>
-        <Muted>{t('The weakest links are the least certain part of the loop, and often the easiest place to break or test it:')}</Muted>
+        <Muted>{t('The least sure steps are often the easiest place to break the cycle, or to test it:')}</Muted>
         <ul className="mt-1.5 space-y-1">
           {loop.breakpoints.map((cid) => {
             const c = data.claims[cid];

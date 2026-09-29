@@ -44,7 +44,7 @@ export function ExperimentView({ id }: { id: ID }) {
         <h2 className="mt-2 display text-[21px] leading-[1.2] text-ink">{x.title}</h2>
         <div className="mt-3 space-y-2.5">
           <div>
-            <div className="label">{t('Hypothesis')}</div>
+            <div className="label">{t('The idea being tested')}</div>
             <p className="mt-0.5 text-[13.5px] text-ink">{x.hypothesis}</p>
           </div>
           <div>
@@ -99,7 +99,7 @@ export function ExperimentView({ id }: { id: ID }) {
               navigate('navigation');
             }}
           >
-            {t('My plan')}
+            {t('Open the plan')}
           </Button>
           <span className="ml-auto">
             <ConfirmButton
@@ -154,7 +154,7 @@ export function ExperimentView({ id }: { id: ID }) {
       )}
 
       {x.claimId && (
-        <PanelSection title={t('The claim it tests')}>
+        <PanelSection title={t('The reason it tests')}>
           <ul className="-mx-1.5">
             <ClaimRow id={x.claimId} />
           </ul>

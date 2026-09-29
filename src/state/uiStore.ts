@@ -70,6 +70,16 @@ export const FOCUS_REQUEST_TTL = 2500;
 
 interface UIState {
   inspector: EntityRef[];
+  /**
+   * The thing being looked at, whichever lens is open: an element or an area.
+   * It stays when the panel closes, and every lens answers about it, until it
+   * is cleared.
+   */
+  focus: EntityRef | null;
+  /** The question left open in the panel, so moving to another thing keeps asking the same thing. */
+  asking: string | null;
+  /** A passage to highlight when a record opens from its evidence. */
+  highlight: string | null;
   capture: CaptureRequest | null;
   paletteOpen: boolean;
   shortcutsOpen: boolean;
@@ -91,6 +101,10 @@ interface UIState {
   busy: Record<string, boolean>;
 
   openEntity(ref: EntityRef): void;
+  setFocus(ref: EntityRef | null): void;
+  setAsking(question: string | null): void;
+  /** Open a record at the passage that was cited from it. */
+  openSource(ref: EntityRef, excerpt?: string): void;
   replaceEntity(ref: EntityRef): void;
   back(): void;
   closeInspector(): void;
@@ -117,11 +131,15 @@ interface UIState {
 }
 
 const sameEntity = (a?: EntityRef, b?: EntityRef) => Boolean(a && b && a.kind === b.kind && a.id === b.id);
+export const isFocusable = (ref: EntityRef) => ref.kind === 'node' || ref.kind === 'area';
 
 export const useUI = create<UIState>()(
   persist(
     (set) => ({
       inspector: [],
+      focus: null,
+      asking: null,
+      highlight: null,
       capture: null,
       paletteOpen: false,
       shortcutsOpen: false,
@@ -142,11 +160,20 @@ export const useUI = create<UIState>()(
 
       openEntity: (ref) =>
         set((s) => {
-          if (sameEntity(s.inspector[s.inspector.length - 1], ref)) return s;
+          // Opening an element or an area makes it the subject of every lens.
+          const focus = isFocusable(ref) ? ref : s.focus;
+          if (sameEntity(s.inspector[s.inspector.length - 1], ref)) return { focus };
           // Keep the trail short enough to stay legible.
-          return { inspector: [...s.inspector.filter((r) => !sameEntity(r, ref)), ref].slice(-12) };
+          return { inspector: [...s.inspector.filter((r) => !sameEntity(r, ref)), ref].slice(-12), focus, highlight: null };
         }),
-      replaceEntity: (ref) => set({ inspector: [ref] }),
+      setFocus: (focus) => set({ focus }),
+      setAsking: (asking) => set({ asking }),
+      openSource: (ref, excerpt) =>
+        set((s) => ({
+          highlight: excerpt ?? null,
+          inspector: [...s.inspector.filter((r) => !sameEntity(r, ref)), ref].slice(-12),
+        })),
+      replaceEntity: (ref) => set((s) => ({ inspector: [ref], focus: isFocusable(ref) ? ref : s.focus })),
       back: () => set((s) => ({ inspector: s.inspector.slice(0, -1) })),
       closeInspector: () => set({ inspector: [] }),
 
@@ -180,14 +207,22 @@ export const useUI = create<UIState>()(
     }),
     {
       name: STORAGE_KEYS.ui,
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => safeLocalStorage),
       // v1 laid the map out by domains and had a Mind graph; both layouts are rebuilt for the layered map.
+      // v2 → v3: Causes became a lens on the map's own positions, and the map starts quiet.
       migrate: (persisted, version) => {
-        const p = (persisted ?? {}) as Record<string, unknown>;
-        if (version >= 2) return p;
-        const { mindView: _m, layouts: _l, orbitView: _o, ...rest } = p;
-        return rest;
+        let p = (persisted ?? {}) as Record<string, unknown>;
+        if (version < 2) {
+          const { mindView: _m, layouts: _l, orbitView: _o, ...rest } = p;
+          p = rest;
+        }
+        if (version < 3) {
+          const layouts = { orbit: { positions: {} }, ...((p.layouts as Record<string, unknown> | undefined) ?? {}), network: { positions: {} } };
+          const orbitView = p.orbitView ? { ...(p.orbitView as Record<string, unknown>), showClaims: false } : undefined;
+          p = { ...p, layouts, ...(orbitView ? { orbitView } : {}) };
+        }
+        return p;
       },
       partialize: (s) => ({
         hudOpen: s.hudOpen,

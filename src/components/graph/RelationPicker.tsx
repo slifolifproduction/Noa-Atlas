@@ -46,7 +46,7 @@ export function RelationPicker({
 
   const claim = (effect: Effect) => {
     const id = addClaim({ from: sourceId, to: targetId, effect, author: 'user', state: 'adopted' });
-    toast(t('Claim added. It stays proposed until the record backs it: add the notes that show it.'), { tone: 'success' });
+    toast(t('Added as a hunch. It becomes surer as your notes show it.'), { tone: 'success' });
     openEntity({ kind: 'claim', id });
     onClose();
   };
@@ -64,7 +64,7 @@ export function RelationPicker({
     <div
       ref={ref}
       role="dialog"
-      aria-label={t('Connect two elements')}
+      aria-label={t('Connect two things')}
       className="absolute z-20 max-h-[min(560px,80vh)] w-[300px] animate-rise overflow-y-auto rounded-[2px] border border-line-strong bg-overlay p-1.5 shadow-2xl"
       style={{ left, top }}
       onKeyDown={(e) => {
@@ -81,8 +81,8 @@ export function RelationPicker({
       {bothElements && (
         <>
           <div className="px-2 pt-1">
-            <div className="label">{t('A claim: how A changes B')}</div>
-            <p className="mt-0.5 text-[11px] text-ink-3">{t('A hypothesis. It starts as proposed and climbs only with evidence.')}</p>
+            <div className="label">{t('A possible reason: one changes the other')}</div>
+            <p className="mt-0.5 text-[11px] text-ink-3">{t('It starts as a hunch and becomes surer only as your notes show it.')}</p>
           </div>
           {EFFECTS.map((e) => (
             <button key={e.key} type="button" onClick={() => claim(e.key)} className={row}>
@@ -96,8 +96,8 @@ export function RelationPicker({
         </>
       )}
       <div className="mt-1 border-t border-line px-2 pt-2">
-        <div className="label">{t('A declared link')}</div>
-        <p className="mt-0.5 text-[11px] text-ink-3">{t('How they relate, in your own terms. Needs no evidence; claims nothing about causes.')}</p>
+        <div className="label">{t('A link')}</div>
+        <p className="mt-0.5 text-[11px] text-ink-3">{t('How they relate, in your own terms. True because you say so; it says nothing about causes.')}</p>
       </div>
       {LINKS.map((r) => (
         <button key={r.key} type="button" onClick={() => link(r.key)} className={row}>

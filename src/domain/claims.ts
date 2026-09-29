@@ -100,7 +100,7 @@ export function claimSentence(data: AtlasData, claim: Claim, status: ClaimStatus
   return `${from} ${effectPhrase(claim.effect, status)} ${nodeLabel(data, claim.to)}`;
 }
 
-export const claimCode = (code: number) => t('Claim {code}', { code: String(code).padStart(2, '0') });
+export const claimCode = (code: number) => t('Reason {code}', { code: String(code).padStart(2, '0') });
 
 /** Claims the person has on their map (adopted, still holding or not). */
 export const activeClaims = (data: AtlasData) => Object.values(data.claims).filter((c) => c.state === 'adopted');

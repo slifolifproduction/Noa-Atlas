@@ -63,8 +63,8 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
       ? {
           key: 'review-evidence',
           title: tn(evidence, 'Review {n} suggestion', 'Review {n} suggestions'),
-          detail: t('The atlas found notes that may be instances of, or counter-cases to, a pattern. Accept what fits, reject what does not.'),
-          cta: t('Review in Patterns'),
+          detail: t('The Atlas found notes that might be another time something happened, or an exception to it. Say yes to what fits.'),
+          cta: t('Look in Repeats'),
           action: { kind: 'route', route: 'patterns' },
         }
       : {
@@ -107,9 +107,9 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
     const c = thin.bareClaims[0];
     return {
       key: `back-claim:${c.id}`,
-      title: t('Check a claim against your notes'),
+      title: t('Check a hunch against your notes'),
       detail: t('“{claim}” has nothing behind it yet. Look for a time it happened, and a time it did not.', { claim: claimSentence(data, c) }),
-      cta: t('Open the claim'),
+      cta: t('Open it'),
       action: { kind: 'open', ref: { kind: 'claim', id: c.id } },
     };
   }

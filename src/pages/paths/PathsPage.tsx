@@ -1,14 +1,14 @@
 import { Check, Pencil, Plus } from 'lucide-react';
 import { AssumptionIcon, ExperimentIcon, PLACE_ICONS } from '../../components/icons';
 import { StatusBadge } from '../../components/evidence/Status';
-import { claimCode, claimSentence, claimStatus } from '../../domain/claims';
-import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { claimSentence, claimStatus } from '../../domain/claims';
+import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/primitives';
 import { EXPERIMENT_STATUS_LABEL, SKILL_STATUS_LABEL } from '../../domain/constants';
-import { experimentCode, pathCode, patternCode, patternStats, patternTitle } from '../../domain/selectors';
+import { currentAction, currentExperiment, experimentCode, pathCode, patternStats, patternTitle } from '../../domain/selectors';
 import { RegularityTag } from '../../components/evidence/Status';
 import type { SkillStatus, StrategicPath } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
@@ -18,6 +18,8 @@ import { adoptExperimentDraft, commitDirection } from '../../state/operations';
 import { useUI } from '../../state/uiStore';
 import { CurrentStateEditor } from './CurrentStateEditor';
 import { PathEditor } from './PathEditor';
+import { FocusBanner, useFocusFilter } from '../../components/shell/Focus';
+import { focusElements, optionsTouching } from '../../domain/ask';
 import { t } from '../../i18n';
 
 const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns' | 'assumptions'; label: string; hint: string }[] = [
@@ -108,16 +110,16 @@ const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns' | 'assumptio
       return t('Relies on');
     },
     get hint() {
-      return t('Claims that must hold, and how well they do');
+      return t('Reasons that must hold, and how sure each is');
     },
   },
   {
     key: 'patterns',
     get label() {
-      return t('Patterns in play');
+      return t('Repeats in play');
     },
     get hint() {
-      return t('From your evidence');
+      return t('From your notes');
     },
   },
   {
@@ -133,10 +135,19 @@ const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns' | 'assumptio
 
 const SKILL_MARK: Record<SkillStatus, string> = { have: '●', developing: '◐', gap: '○' };
 
+/**
+ * Ahead: what could happen from here. Your options side by side, described
+ * the same way and never ranked, with what you chose on top. Nothing here has
+ * happened; it is drawn dashed. With something in focus, the options that
+ * count on it.
+ */
 export function PathsPage() {
   const data = useAtlas((s) => s.data);
   const addPath = useAtlas((s) => s.addPath);
-  const paths = Object.values(data.paths).sort((a, b) => a.code.localeCompare(b.code));
+  const { focus, on, setOn } = useFocusFilter();
+  const all = Object.values(data.paths).sort((a, b) => a.code.localeCompare(b.code));
+  const touching = useMemo(() => (focus ? new Set(optionsTouching(data, focusElements(data, focus)).map((p) => p.id)) : null), [data, focus]);
+  const paths = on && touching ? all.filter((p) => touching.has(p.id)) : all;
   const [editing, setEditing] = useState<string | null>(null);
   const [editingState, setEditingState] = useState(false);
 
@@ -145,18 +156,23 @@ export function PathsPage() {
       <PageHeader
         view="paths"
         help="paths"
-        description={t('Your options side by side, described the same way. They are never ranked: the choice is yours.')}
+        description={t('Your options side by side, described the same way. None of it has happened yet, and they are never ranked: the choice is yours.')}
         actions={
-          <Button icon={Plus} onClick={() => setEditing(addPath())}>
-            {t('New path')}
+          <Button size="sm" variant="ghost" icon={Plus} onClick={() => setEditing(addPath())}>
+            {t('Add an option')}
           </Button>
         }
       />
 
-      {paths.length === 0 ? (
+      <ChosenStrip />
+      <FocusBanner focus={focus} on={on} setOn={setOn} shown={paths.length} total={all.length} className="mt-5" />
+
+      {all.length > 0 && paths.length === 0 ? (
+        <p className="mt-6 text-[13px] text-ink-3">{t('None of your options counts on this yet. Open an option to say what it relies on.')}</p>
+      ) : paths.length === 0 ? (
         <div className="mt-6 grid gap-6 md:grid-cols-[280px_1fr]">
           <CurrentStateCell onEdit={() => setEditingState(true)} />
-          <EmptyState icon={PLACE_ICONS.plan} title={t('No paths yet')}>
+          <EmptyState icon={PLACE_ICONS.ahead} title={t('No options yet')}>
             {t(
               'Describe two or three genuinely different directions. The same questions are asked of each (requirements, capital, time, risks, unknowns) so they can be compared without a verdict.',
             )}
@@ -169,6 +185,49 @@ export function PathsPage() {
       {editing && data.paths[editing] && <PathEditor path={data.paths[editing]} onClose={() => setEditing(null)} />}
       {editingState && <CurrentStateEditor onClose={() => setEditingState(false)} />}
     </div>
+  );
+}
+
+/** What you chose: the direction, this week's step and the test that is running. The plan itself is one tap away. */
+function ChosenStrip() {
+  const data = useAtlas((s) => s.data);
+  const open = useUI((s) => s.openEntity);
+  const nav = data.navigation;
+  if (!nav) return null;
+  const path = data.paths[nav.pathId];
+  const step = currentAction(nav);
+  const test = currentExperiment(data);
+  return (
+    <section aria-labelledby="chosen-title" className="mt-5 rounded-[2px] border border-accent/35 bg-surface px-4 py-3.5">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <h2 id="chosen-title" className="label text-ink-2!">
+          {t('What you chose')}
+        </h2>
+        {path && <span className="text-[12px] text-ink-3">{path.title}</span>}
+        <Button size="sm" className="ml-auto" onClick={() => navigate('navigation')}>
+          {t('Open the plan')}
+        </Button>
+      </div>
+      <p className="display mt-1.5 text-[18px] leading-[1.2] text-ink">{nav.objective.title}</p>
+      <dl className="mt-2.5 grid gap-x-8 gap-y-2 text-[12.5px] sm:grid-cols-2">
+        <div>
+          <dt className="text-[11.5px] text-ink-3">{t('Next step')}</dt>
+          <dd className="text-ink-2">{step ? step.title : t('Nothing open. Add the next step to your plan.')}</dd>
+        </div>
+        <div>
+          <dt className="text-[11.5px] text-ink-3">{t('Trying now')}</dt>
+          <dd className="text-ink-2">
+            {test ? (
+              <button type="button" className="text-left hover:text-ink hover:underline" onClick={() => open({ kind: 'experiment', id: test.id })}>
+                {test.title}
+              </button>
+            ) : (
+              t('No test running.')
+            )}
+          </dd>
+        </div>
+      </dl>
+    </section>
   );
 }
 
@@ -283,7 +342,10 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
             <div
               key={p.id}
               ref={(el) => void (heads.current[i] = el)}
-              className={cn('relative z-[1] self-start rounded-[2px] border bg-surface p-4', isDirection ? 'border-accent/40' : 'border-line')}
+              className={cn(
+                'relative z-[1] self-start rounded-[2px] border bg-surface p-4',
+                isDirection ? 'border-accent/40' : 'border-dashed border-line-strong',
+              )}
             >
               <div className="flex items-center gap-2">
                 <span className="label text-ink-2!">{pathCode(p.code)}</span>
@@ -292,7 +354,7 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
                     className="rounded-[2px] border border-accent/40 px-1.5 text-[10.5px] text-accent"
                     title={t('You chose this direction; it is not a ranking')}
                   >
-                    {t('Your current direction · since {date}', { date: formatDate(nav!.committedAt) })}
+                    {t('What you chose · since {date}', { date: formatDate(nav!.committedAt) })}
                   </span>
                 )}
                 <button
@@ -449,7 +511,6 @@ function Cell({
             return (
               <li key={id}>
                 <button type="button" onClick={() => onOpenPattern(id)} className="text-left hover:text-ink">
-                  <span className="num mr-1.5 text-[11.5px] text-ink-3">{patternCode(pat.code)}</span>
                   {patternTitle(pat)} <RegularityTag regularity={patternStats(data, pat).regularity} />
                 </button>
               </li>
@@ -469,11 +530,8 @@ function Cell({
             return (
               <li key={id}>
                 <button type="button" onClick={() => useUI.getState().openEntity({ kind: 'claim', id })} className="text-left hover:text-ink">
-                  <span className="flex items-center gap-2">
-                    <span className="num text-[11.5px] text-ink-3">{claimCode(c.code)}</span>
-                    <StatusBadge status={status} />
-                  </span>
                   <span className="block">{claimSentence(data, c, status)}</span>
+                  <StatusBadge status={status} />
                 </button>
               </li>
             );

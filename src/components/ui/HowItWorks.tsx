@@ -13,78 +13,49 @@ const PAGE_HELP: Record<string, () => ReactNode[]> = {
         'You are at the centre. Each sector is an area of your life; the rings, from you outward, hold what you value and believe, what you do, and what surrounds you.',
       )}
     </>,
-    <>{t('Each mark is one element; its icon says what kind of thing it is. A second ring around a mark means an outcome you want explained or changed.')}</>,
+    <>{t('Tap anything to ask about it. What you pick stays the subject in every lens (Time, Causes, Repeats, Ahead) until you let it go.')}</>,
     <>
       {t(
-        'Lines are either declared links (true because you say so) or claims that one thing changes another (dashed until the record backs them). Drag from one element to another to add either.',
+        'Lines are links you drew, or possible reasons (dashed while they are still a hunch). To add a reason, open something and ask “Why might this be happening?”, or drag from one thing to another.',
       )}
     </>,
-    <>{t('A dashed area marker means nothing was written about it lately: terra incognita. The Overview on the left lists where the map is thin.')}</>,
+    <>{t('A dashed area marker means nothing was written about it lately. The overview on the left suggests something to look at.')}</>,
   ],
   network: () => [
-    <>
-      {t(
-        'Every line here is a claim: this raises, lowers, triggers, makes possible, limits or sustains that. Its style shows how well the record supports it.',
-      )}
-    </>,
-    <>
-      {t(
-        'A claim climbs from proposed to plausible, supported and tested only with evidence: instances, a mechanism, contrast cases and deliberate tests. Counter-cases weaken it.',
-      )}
-    </>,
-    <>{t('Loops appear by themselves when claims close a circle. Pick one on the left to highlight it; its weakest link is where to look first.')}</>,
-    <>{t('Dashed cards and lines are proposals from the analysis. They stay proposals until you adopt them.')}</>,
+    <>{t('The same map, showing what seems to affect what. Every line is a possible reason; the surer it is, the firmer it is drawn.')}</>,
+    <>{t('A reason starts as a hunch and becomes surer only as your notes show it: separate weeks, a time without it, a test. Exceptions weaken it.')}</>,
+    <>{t('Cycles appear by themselves when reasons come back around. Pick one on the left to see it; its least sure step is where to look first.')}</>,
+    <>{t('Dashed lines are suggestions from the Atlas. They stay suggestions until you keep them.')}</>,
   ],
   timeline: () => [
-    <>{t('What happened, when: events, actions, experiences, decisions and readings, each traced to the note it came from.')}</>,
-    <>
-      {t(
-        'The chart shows how many commitments were active each week and how your energy was, side by side. Whether one affects the other is a claim, checked elsewhere.',
-      )}
-    </>,
-    <>{t('Planned steps appear apart, as planned. Nothing imagined or expected is ever mixed into what happened.')}</>,
+    <>{t('What happened, when: your notes, what they describe, your decisions and your tests, newest first.')}</>,
+    <>{t('Decisions show the branches you did not take. What might have happened there is imagined, and never counts as something that happened.')}</>,
+    <>{t('When something is in focus, Time shows only the moments about it. Clear the focus to see everything.')}</>,
   ],
   patterns: () => [
-    <>{t('A pattern is something that keeps happening in your history: green dots are instances, orange dots counter-cases. Nothing is scored.')}</>,
-    <>{t('It is emerging until it shows in three separate weeks, recurring after that, and fading when counter-cases take over or it stops appearing.')}</>,
-    <>{t('Why it happens is a separate question: attach the claims that may explain it, and test those.')}</>,
+    <>{t('Things that keep happening, drawn from your notes. Each one shows every time it happened, and the exceptions.')}</>,
+    <>{t('It is new until it shows in three separate weeks, keeps happening after that, and is fading when exceptions take over or it stops appearing.')}</>,
+    <>{t('Why it happens is a separate question: open it and ask.')}</>,
   ],
   paths: () => [
-    <>{t('Each option is a possible direction, described the same way so you can compare them. They are never ranked.')}</>,
-    <>{t('“Relies on” lists the claims an option needs to hold, with how well each does: that is how solid the option is.')}</>,
-    <>{t('When you have decided, press “Choose as direction”. My plan then turns it into concrete steps.')}</>,
+    <>{t('Each option is a possible direction, described the same way so you can compare them. They are never ranked, and nothing here has happened yet.')}</>,
+    <>{t('“Relies on” lists the reasons an option needs to hold, with how sure each one is: that is how solid the option is.')}</>,
+    <>{t('When you have decided, press “Choose as direction”. It then turns into concrete steps, under What you chose.')}</>,
   ],
   navigation: () => [
     <>{t('Your chosen direction, from the big goal down to this week’s steps.')}</>,
-    <>{t('Tick targets and steps off as you go. The next open step also appears in “Do this next” on the Map.')}</>,
-    <>{t('Tests change one thing on purpose and compare with a prediction you wrote first. The result becomes evidence on the claim it tests.')}</>,
-  ],
-  journal: () => [
-    <>{t('Every note you have written, newest first. Press Capture (or N) to add one. Notes are the record; nothing rewrites them.')}</>,
-    <>{t('Open a note to see what the analysis read in it: happenings for the timeline, possible instances, and sentences where you explain a cause.')}</>,
-  ],
-  decisions: () => [
-    <>{t('Log a decision with the options you saw and what you expected from each.')}</>,
-    <>{t('Later, add whether you carried it out and what actually happened. Judge the decision by what you knew then, separately from how it turned out.')}</>,
-  ],
-  questions: () => [
-    <>
-      {t('A why-question explains something against what you expected instead. A what-if follows a change forward. A question of value is yours to settle.')}
-    </>,
-    <>{t('Gather the claims that bear on it, then write a provisional answer and what would change it.')}</>,
+    <>{t('Tick targets and steps off as you go. The next open step also appears on the Map, under Next step.')}</>,
+    <>{t('A test changes one thing on purpose and compares it with what you expected. Its result makes a reason surer, or less sure.')}</>,
   ],
 };
 
 export const pageHelp = (page: string): ReactNode[] | undefined => PAGE_HELP[page]?.();
 
-/**
- * A page's "how this works" note: open on the first visit, then folded into
- * a small link. Remembered per page.
- */
+/** A page's "how this works" note, folded into a small link until asked for. */
 export function HowItWorks({ page, className }: { page: string; className?: string }) {
-  const seen = useUI((s) => s.tipsSeen.includes(page));
   const setSeen = useUI((s) => s.setTipSeen);
-  const [open, setOpen] = useState(!seen);
+  // Pages should explain themselves; the note waits behind a small link until asked for.
+  const [open, setOpen] = useState(false);
   const items = pageHelp(page);
   if (!items) return null;
   if (!open) {
@@ -140,12 +111,9 @@ export function HelpCard({ items, onDone, className, floating }: { items: ReactN
 
 /** For the graph pages: a toolbar button with the same note in a floating card. */
 export function useGraphHelp(page: string) {
-  const seen = useUI((s) => s.tipsSeen.includes(page));
-  const guideSeen = useUI((s) => s.guideSeen);
   const setSeen = useUI((s) => s.setTipSeen);
   const [open, setOpen] = useState(false);
-  // First visit (after the welcome guide): open by itself.
-  const shown = open || (guideSeen && !seen);
+  const shown = open;
   return {
     shown,
     toggle: () => (shown ? close() : setOpen(true)),

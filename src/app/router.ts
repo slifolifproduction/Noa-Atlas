@@ -10,13 +10,18 @@ export interface Route {
 
 const KEYS = new Set<string>(Object.keys(VIEWS));
 
-/** Pages that were renamed: old links keep working. */
-const RENAMED: Record<string, RouteKey> = { mind: 'network' };
+/** Pages that were renamed or folded into a lens: old links keep working. */
+const RENAMED: Record<string, Route> = {
+  mind: { key: 'network' },
+  journal: { key: 'timeline', param: 'notes' },
+  decisions: { key: 'timeline', param: 'decisions' },
+  questions: { key: 'orbit' },
+};
 
 export function parseHash(hash: string): Route {
   const [raw, param] = hash.replace(/^#\/?/, '').split('/');
-  const key = RENAMED[raw] ?? raw;
-  return KEYS.has(key) ? { key: key as RouteKey, param: param ? decodeURIComponent(param) : undefined } : { key: 'orbit' };
+  if (RENAMED[raw]) return RENAMED[raw];
+  return KEYS.has(raw) ? { key: raw as RouteKey, param: param ? decodeURIComponent(param) : undefined } : { key: 'orbit' };
 }
 
 function subscribe(notify: () => void) {

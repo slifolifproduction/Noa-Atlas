@@ -10,7 +10,7 @@ export function GraphSearch({
   onQuery,
   matches,
   onPick,
-  placeholder = t('Find an element'),
+  placeholder = t('Find something on the map'),
 }: {
   query: string;
   onQuery(q: string): void;

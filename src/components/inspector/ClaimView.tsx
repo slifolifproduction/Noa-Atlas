@@ -2,7 +2,7 @@ import { Archive, Check, FlaskConical, Pencil, Plus, RotateCcw, X } from 'lucide
 import { useMemo, useState } from 'react';
 import { claimCode, claimGaps, claimSentence, claimStatus, evidenceCandidates, evidenceProfile, otherExplanations } from '../../domain/claims';
 import { EFFECT_META, EFFECTS, EVIDENCE_KIND_HINT, EVIDENCE_KIND_LABEL, EXPERIMENT_STATUS_LABEL, VIEW_LABEL } from '../../domain/constants';
-import { loopsWithClaim } from '../../domain/loops';
+import { loopName, loopsWithClaim } from '../../domain/loops';
 import { experimentCode, testsOfClaim } from '../../domain/selectors';
 import type { Effect, EvidenceKind, ID, View } from '../../domain/types';
 import type { ExperimentDraft } from '../../ai/types';
@@ -16,7 +16,8 @@ import { ClaimIcon, LoopIcon } from '../icons';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
-import { ClaimRow, Muted, NodeChip, PanelSection } from './parts';
+import { whyWeThink } from '../../domain/ask';
+import { ClaimRow, Fold, Muted, NodeChip, PanelSection } from './parts';
 import { t } from '../../i18n';
 
 const firstSentence = (text: string) => {
@@ -25,9 +26,10 @@ const firstSentence = (text: string) => {
 };
 
 /**
- * One claim, and how the Atlas knows what it says. The status is derived from
- * the kinds of evidence behind it, never typed in; the person's own view is
- * kept beside it, apart.
+ * All of the reasoning behind one possible reason: why the Atlas thinks so in
+ * plain words first, then (folded) the counts, the moments and the notes that
+ * might bear on it. How sure it is comes from the kinds of evidence behind it,
+ * never typed in; the person's own view is kept beside it, apart.
  */
 export function ClaimView({ id }: { id: ID }) {
   const data = useAtlas((s) => s.data);
@@ -64,7 +66,7 @@ export function ClaimView({ id }: { id: ID }) {
           <span className="flex h-6 w-6 items-center justify-center rounded-[2px] border" style={{ borderColor: `${EFFECT_META[claim.effect].color}66` }}>
             <ClaimIcon size={13} color={EFFECT_META[claim.effect].color} strokeWidth={1.8} aria-hidden />
           </span>
-          <span className="label">{claimCode(claim.code)}</span>
+          <span className="label">{t('A possible reason')}</span>
           <StatusBadge status={status} />
           <span className="ml-auto">
             <KnowledgeTag kind={knowledge} />
@@ -112,19 +114,19 @@ export function ClaimView({ id }: { id: ID }) {
         {claim.state === 'suggested' && (
           <div className="mt-3 rounded-[2px] border border-dashed border-line-strong p-3">
             <p className="text-[12.5px] leading-snug text-ink-2">
-              {t('Proposed by the analysis. It stays off the map until you adopt it; adopting it does not make it true.')}
+              {t('Suggested by the Atlas from your notes. It stays off the map until you keep it, and keeping it does not make it true.')}
             </p>
             <div className="mt-2 flex gap-2">
               <Button size="sm" variant="primary" icon={Check} onClick={() => a.adoptClaim(id)}>
-                {t('Worth checking, adopt')}
+                {t('Worth keeping an eye on')}
               </Button>
               <Button size="sm" variant="ghost" icon={X} onClick={() => a.setClaimAside(id)}>
-                {t('Set aside')}
+                {t('Not now')}
               </Button>
             </div>
           </div>
         )}
-        {claim.state === 'set_aside' && <p className="mt-3 text-[12px] text-ink-3">{t('Set aside. Kept for reference, off the map.')}</p>}
+        {claim.state === 'set_aside' && <p className="mt-3 text-[12px] text-ink-3">{t('Put aside for now. Kept for reference, off the map.')}</p>}
         {claim.retired && (
           <div className="mt-3 rounded-[2px] border border-line p-3">
             <p className="text-[12.5px] text-ink-2">
@@ -163,7 +165,29 @@ export function ClaimView({ id }: { id: ID }) {
         )}
       </div>
 
-      <PanelSection title={t('How it is known')}>
+      <PanelSection title={t('Why do you think that?')}>
+        <ul className="space-y-1">
+          {whyWeThink(data, claim).map((line) => (
+            <li key={line} className="text-[13px] leading-snug text-ink-2">
+              {line}
+            </li>
+          ))}
+        </ul>
+        {status !== 'tested' && status !== 'retired' && (
+          <div className="mt-3">
+            <div className="text-[11.5px] text-ink-3">{t('What would make it surer')}</div>
+            <ul className="mt-1 space-y-0.5">
+              {claimGaps(data, claim).map((g) => (
+                <li key={g} className="text-[12.5px] leading-snug text-ink-2">
+                  · {g}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </PanelSection>
+
+      <Fold title={t('How sure, in detail')}>
         <StatusLadder status={status} />
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px]">
           <Fact label={t('Records cited')} value={String(sources)} />
@@ -176,21 +200,9 @@ export function ClaimView({ id }: { id: ID }) {
             value={profile.testsFor + profile.testsAgainst ? t('{a} for · {b} against', { a: profile.testsFor, b: profile.testsAgainst }) : t('none')}
           />
         </dl>
-        {status !== 'tested' && status !== 'retired' && (
-          <div className="mt-3">
-            <div className="text-[11.5px] text-ink-3">{t('What would move it')}</div>
-            <ul className="mt-1 space-y-0.5">
-              {claimGaps(data, claim).map((g) => (
-                <li key={g} className="text-[12.5px] leading-snug text-ink-2">
-                  · {g}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </PanelSection>
+      </Fold>
 
-      <PanelSection title={t('Evidence')} count={claim.evidence.length}>
+      <Fold title={t('The moments behind it')} count={claim.evidence.length} defaultOpen={claim.evidence.length > 0 && claim.evidence.length <= 3}>
         {claim.evidence.length ? (
           <ul className="divide-y divide-line">
             {claim.evidence.map((e) => (
@@ -198,12 +210,12 @@ export function ClaimView({ id }: { id: ID }) {
             ))}
           </ul>
         ) : (
-          <Muted>{t('Nothing behind it yet. It stays proposed until the record shows it.')}</Muted>
+          <Muted>{t('Nothing behind it yet. It stays a hunch until your notes show it.')}</Muted>
         )}
-      </PanelSection>
+      </Fold>
 
       {candidates.length > 0 && claim.state !== 'set_aside' && (
-        <PanelSection title={t('In your record, possibly relevant')} count={candidates.length}>
+        <Fold title={t('Notes that might bear on it')} count={candidates.length}>
           <Muted>{t('Records that mention one or both sides. You judge what each shows.')}</Muted>
           <ul className="mt-2 space-y-2.5">
             {candidates.map((c) => (
@@ -234,10 +246,10 @@ export function ClaimView({ id }: { id: ID }) {
               </li>
             ))}
           </ul>
-        </PanelSection>
+        </Fold>
       )}
 
-      <PanelSection title={t('Your view')}>
+      <PanelSection title={t('Does this fit your experience?')}>
         <Segmented<View | 'none'>
           label={t('Your view')}
           size="sm"
@@ -246,7 +258,7 @@ export function ClaimView({ id }: { id: ID }) {
           options={[{ value: 'none', label: '—' }, ...(['agree', 'unsure', 'disagree'] as const).map((v) => ({ value: v, label: VIEW_LABEL[v] }))]}
         />
         <p className="mt-1.5 text-[11.5px] text-ink-3">
-          {t('Kept apart from the evidence: your view never changes the status, and the status never overrules your view.')}
+          {t('Kept apart from what your notes show: your view never changes how sure it is, and how sure it is never overrules your view.')}
         </p>
       </PanelSection>
 
@@ -262,20 +274,20 @@ export function ClaimView({ id }: { id: ID }) {
                   type="button"
                   className="mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
                   aria-pressed={rival}
-                  title={t('Rivals compete to explain the same thing: if one holds, the other may not be needed')}
+                  title={t('Competing explanations: if one holds, the other may not be needed')}
                   onClick={() => a.toggleRival(id, o.id)}
                 >
-                  {rival ? t('Rival') : t('Mark rival')}
+                  {rival ? t('Competing') : t('Mark as competing')}
                 </button>
               </li>
             ))}
           </ul>
         ) : (
-          <Muted>{t('No other claim explains the same thing yet. What else could produce it?')}</Muted>
+          <Muted>{t('Nothing else explains the same thing yet. What else could produce it?')}</Muted>
         )}
       </PanelSection>
 
-      <PanelSection title={t('Tests')} count={tests.length}>
+      <PanelSection title={t('Try it and see')} count={tests.length}>
         {tests.length > 0 && (
           <ul className="-mx-1.5 mb-2">
             {tests.map((x) => (
@@ -300,7 +312,7 @@ export function ClaimView({ id }: { id: ID }) {
                 <div className="text-[13px] text-ink">{d.title}</div>
                 <p className="mt-0.5 text-[12px] text-ink-2">{d.design}</p>
                 <p className="mt-1 text-[11.5px] text-ink-3">
-                  {t('Prediction')}: {d.prediction}
+                  {t('What should happen')}: {d.prediction}
                 </p>
                 <Button
                   size="sm"
@@ -321,14 +333,14 @@ export function ClaimView({ id }: { id: ID }) {
           claim.state === 'adopted' &&
           !claim.retired && (
             <Button size="sm" variant="ghost" icon={FlaskConical} disabled={busy} onClick={async () => setDrafts(await proposeExperiments(id))}>
-              {busy ? t('Thinking…') : t('Design a test')}
+              {busy ? t('Thinking…') : t('Try a change and see')}
             </Button>
           )
         )}
       </PanelSection>
 
       {loops.length > 0 && (
-        <PanelSection title={t('Loops')} count={loops.length}>
+        <PanelSection title={t('Cycles it is part of')} count={loops.length}>
           <ul className="-mx-1.5">
             {loops.map((l) => (
               <li key={l.id}>
@@ -338,10 +350,8 @@ export function ClaimView({ id }: { id: ID }) {
                   onClick={() => open({ kind: 'loop', id: l.id })}
                 >
                   <LoopIcon size={13} className="shrink-0 text-ink-3" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2 group-hover:text-ink">
-                    {l.name ?? (l.type === 'reinforcing' ? t('A reinforcing loop') : t('A balancing loop'))}
-                  </span>
-                  {l.breakpoints.includes(id) && <span className="text-[11px] text-ink-3">{t('weakest link')}</span>}
+                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2 group-hover:text-ink">{loopName(l)}</span>
+                  {l.breakpoints.includes(id) && <span className="text-[11px] text-ink-3">{t('least sure step')}</span>}
                 </button>
               </li>
             ))}
@@ -350,7 +360,8 @@ export function ClaimView({ id }: { id: ID }) {
       )}
 
       <div className="border-t border-line px-4 py-3 text-[11.5px] text-ink-3">
-        {t('Stated {date}', { date: formatDate(claim.createdAt, { year: true }) })} · {claim.author === 'user' ? t('by you') : t('proposed by the analysis')}
+        {claimCode(claim.code)} · {t('Stated {date}', { date: formatDate(claim.createdAt, { year: true }) })} ·{' '}
+        {claim.author === 'user' ? t('by you') : t('suggested by the Atlas')}
         {claim.view && ` · ${t('your view: {v}', { v: VIEW_LABEL[claim.view.stance].toLowerCase() })}`}
       </div>
     </div>

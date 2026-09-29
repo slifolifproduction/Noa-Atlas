@@ -49,24 +49,8 @@ export type ItemNodeData = {
   matched: boolean;
   /** Neighbour of the selection: keep the label visible at any zoom. */
   near: boolean;
-};
-
-/** An element in the Connections network: a card with its kind. */
-export type ElementCardData = {
-  label: string;
-  kind: ElementKind;
-  area: AreaKey;
-  color: string;
-  origin: Origin;
-  adopted: boolean;
-  concern: boolean;
-  status?: QuestionStatus;
-  /** How many adopted claims go in and out. */
-  inCount: number;
-  outCount: number;
-  matched: boolean;
-  /** Part of the highlighted loop. */
-  inLoop: boolean;
+  /** Worth naming without being asked: something you care about, or that moved lately. */
+  salient: boolean;
 };
 
 export type RingsNodeData = {
@@ -114,9 +98,8 @@ export type SemanticEdgeData = {
 
 export type HubNode = Node<HubNodeData, 'hub'>;
 export type ItemNode = Node<ItemNodeData, 'item'>;
-export type ElementCardNode = Node<ElementCardData, 'element'>;
 export type RingsNode = Node<RingsNodeData, 'rings'>;
-export type AtlasFlowNode = HubNode | ItemNode | ElementCardNode | RingsNode;
+export type AtlasFlowNode = HubNode | ItemNode | RingsNode;
 export type SemanticEdge = Edge<SemanticEdgeData, 'semantic'>;
 
 export const CIRCLE_NODE_TYPES = new Set(['hub', 'item']);

@@ -50,7 +50,7 @@ function describe(data: AtlasData, id: ID): ProbeInfo | null {
   if (patternCount) facts.push(tn(patternCount, 'in {n} pattern', 'in {n} patterns'));
   const loops = loopsThrough(data, id).length;
   if (loops) facts.push(tn(loops, 'in {n} loop', 'in {n} loops'));
-  if (node.origin === 'inferred') facts.push(t('proposed by the analysis'));
+  if (node.origin === 'inferred') facts.push(t('noticed by the Atlas in your notes'));
   const into = claimsInto(data, id).length;
   const out = claimsOutOf(data, id).length;
   const links: string[] = [];

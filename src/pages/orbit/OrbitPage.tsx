@@ -1,4 +1,4 @@
-import { CircleHelp, FoldVertical, Plus, RotateCcw, UnfoldVertical } from 'lucide-react';
+import { CircleHelp, FoldVertical, Plus, RotateCcw, SlidersHorizontal, UnfoldVertical, X } from 'lucide-react';
 import type { FitViewOptions } from '@xyflow/react';
 import { useCallback, useMemo, useState } from 'react';
 import { AddNodeModal } from '../../components/graph/AddNodeModal';
@@ -6,63 +6,79 @@ import { GraphCanvas } from '../../components/graph/GraphCanvas';
 import { GraphSearch, ViewMenu } from '../../components/graph/GraphToolbar';
 import { Legend } from '../../components/graph/Legend';
 import { refForNode } from '../../components/inspector/parts';
-import { Button } from '../../components/ui/Button';
-import { MenuItem, MenuSeparator } from '../../components/ui/Menu';
+import { useFocus } from '../../components/shell/Focus';
+import { Button, IconButton } from '../../components/ui/Button';
+import { MenuItem, MenuLabel, MenuSeparator } from '../../components/ui/Menu';
 import { HelpCard, pageHelp, useGraphHelp } from '../../components/ui/HowItWorks';
+import { focusGraphId, salientIds } from '../../domain/ask';
 import { areaHubKey, isAreaHubId, LAYERS, ORBIT_DESKTOP, ORBIT_PORTRAIT, SECTOR_KEYS } from '../../domain/constants';
 import type { AreaKey, ID, LayerKey, LinkType } from '../../domain/types';
-import { buildOrbit } from '../../graph/build';
-import { selectionFor } from '../../graph/selection';
+import { buildOrbit, type CanvasLens } from '../../graph/build';
 import { useInspectorWidth, useIsDesktop, useIsMobile } from '../../hooks/useMediaQuery';
 import { useToday } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
+import { CausesRail } from './CausesRail';
 import { StatusHud } from './StatusHud';
 import { t } from '../../i18n';
 
-const HUD_WIDTH = 304;
+const RAIL_WIDTH = 280;
 
-export function OrbitPage() {
+/**
+ * The canvas behind two lenses. Map shows what exists, from you outward;
+ * Causes shows, on the very same map, what seems to affect what. Switching
+ * between them keeps every element in its place and keeps what you are
+ * looking at.
+ */
+export function OrbitPage({ lens }: { lens: CanvasLens }) {
   const data = useAtlas((s) => s.data);
-  const inspector = useUI((s) => s.inspector);
+  const inspectorOpen = useUI((s) => s.inspector.length > 0);
   const stored = useUI((s) => s.layouts.orbit.positions);
   const view = useUI((s) => s.orbitView);
+  const causes = useUI((s) => s.networkView);
   const hudOpen = useUI((s) => s.hudOpen);
   const setHudOpen = useUI((s) => s.setHudOpen);
   const setOrbitView = useUI((s) => s.setOrbitView);
+  const setNetworkView = useUI((s) => s.setNetworkView);
   const resetLayout = useUI((s) => s.resetLayout);
   const openEntity = useUI((s) => s.openEntity);
   const closeInspector = useUI((s) => s.closeInspector);
+  const setFocus = useUI((s) => s.setFocus);
   const requestFocus = useUI((s) => s.requestFocus);
   const isDesktop = useIsDesktop();
   const panelWidth = useInspectorWidth();
   const isMobile = useIsMobile();
   const [query, setQuery] = useState('');
   const [adding, setAdding] = useState(false);
-  const [mobileHud, setMobileHud] = useState(false);
-  const help = useGraphHelp('orbit');
-
-  const selectedId = selectionFor(inspector, 'orbit', data);
-  // On phones the map starts simplified: the centre and the area markers; an area's elements appear when it is selected.
-  const collapsed = useMemo(() => new Set<AreaKey>(isMobile ? SECTOR_KEYS : view.collapsed), [isMobile, view.collapsed]);
-  const hiddenLayers = useMemo(() => new Set<LayerKey>(view.hiddenLayers), [view.hiddenLayers]);
+  const [mobileSide, setMobileSide] = useState(false);
+  const help = useGraphHelp(lens === 'map' ? 'orbit' : 'network');
   const today = useToday();
+
+  const focus = useFocus();
+  const selectedId = focusGraphId(focus);
+  // On phones the map starts simplified: the centre and the area markers; an area's elements appear when it is selected.
+  const collapsed = useMemo(() => new Set<AreaKey>(isMobile && lens === 'map' ? SECTOR_KEYS : view.collapsed), [isMobile, lens, view.collapsed]);
+  const hiddenLayers = useMemo(() => new Set<LayerKey>(view.hiddenLayers), [view.hiddenLayers]);
+  const salient = useMemo(() => salientIds(data, today), [data, today]);
 
   const built = useMemo(
     () =>
       buildOrbit(data, {
+        lens,
+        causes,
+        salient,
         // Phones get a compact portrait layout and no dragging, so desktop arrangements stay intact.
         stored: isMobile ? {} : stored,
         geometry: isMobile ? ORBIT_PORTRAIT : ORBIT_DESKTOP,
-        collapsed,
-        hiddenLayers,
+        collapsed: lens === 'map' ? collapsed : new Set(),
+        hiddenLayers: lens === 'map' ? hiddenLayers : new Set(),
         showClaims: view.showClaims,
         selectedId,
-        focus: view.focus,
+        focus: lens === 'map' && view.focus,
         query,
         today,
       }),
-    [data, stored, isMobile, collapsed, hiddenLayers, view.showClaims, selectedId, view.focus, query, today],
+    [data, lens, causes, salient, stored, isMobile, collapsed, hiddenLayers, view.showClaims, selectedId, view.focus, query, today],
   );
 
   const links = useMemo(() => {
@@ -70,28 +86,36 @@ export function OrbitPage() {
     return (['aims_at', 'motivates', 'conflicts', 'aligns', 'about', 'part_of'] as LinkType[]).filter((r) => seen.has(r));
   }, [built.edges]);
 
-  const onSelect = useCallback((id: ID | null) => (id ? openEntity(refForNode(id)) : closeInspector()), [openEntity, closeInspector]);
+  // Tapping something makes it the subject of every lens; tapping empty space lets go.
+  const onSelect = useCallback(
+    (id: ID | null) => {
+      if (id) return openEntity(refForNode(id));
+      closeInspector();
+      setFocus(null);
+    },
+    [openEntity, closeInspector, setFocus],
+  );
 
   const toggleHub = useCallback(
     (id: ID) => {
-      if (!isAreaHubId(id)) return;
+      if (lens !== 'map' || !isAreaHubId(id)) return;
       const key = areaHubKey(id);
       const set = new Set(useUI.getState().orbitView.collapsed);
       if (set.has(key)) set.delete(key);
       else set.add(key);
       setOrbitView({ collapsed: [...set] });
     },
-    [setOrbitView],
+    [lens, setOrbitView],
   );
 
   const allCollapsed = view.collapsed.length === SECTOR_KEYS.length;
   const empty = Object.keys(data.entries).length === 0 && Object.keys(data.nodes).length === 0;
-  const occluded = inspector.length ? panelWidth : 0;
-  const hudVisible = isDesktop && hudOpen;
-  const leftInset = hudVisible ? HUD_WIDTH + 24 : 12;
+  const occluded = inspectorOpen ? panelWidth : 0;
+  const sideVisible = isDesktop && (lens === 'causes' || hudOpen);
+  const leftInset = sideVisible ? RAIL_WIDTH + 24 : 12;
   // On an empty atlas without the overview on screen, a start card sits at the top (clear of the
   // toasts at the bottom): fit the map below it.
-  const startCard = empty && !hudVisible;
+  const startCard = empty && !sideVisible && lens === 'map';
   const padding = useMemo(
     (): FitViewOptions['padding'] =>
       isMobile
@@ -99,6 +123,17 @@ export function OrbitPage() {
         : { top: startCard ? '230px' : '80px', bottom: '32px', left: `${leftInset + 56}px`, right: `${occluded + 96}px` },
     [isMobile, leftInset, occluded, startCard],
   );
+  const selectedArea = selectedId && isAreaHubId(selectedId) ? areaHubKey(selectedId) : selectedId ? data.nodes[selectedId]?.area : undefined;
+
+  const side =
+    lens === 'causes' ? (
+      <CausesRail />
+    ) : (
+      <StatusHud
+        onClose={isDesktop ? () => setHudOpen(false) : () => setMobileSide(false)}
+        start={empty ? { addPoint: () => setAdding(true), identity: () => openEntity({ kind: 'area', id: 'self' }) } : undefined}
+      />
+    );
 
   return (
     <div className="relative h-full overflow-hidden">
@@ -114,7 +149,8 @@ export function OrbitPage() {
         fitPadding={padding}
         refitKey={startCard ? 'start' : 'map'}
         draggable={!isMobile}
-        occludedLeft={hudVisible ? leftInset : 0}
+        occludedLeft={sideVisible ? leftInset : 0}
+        minimap={lens === 'causes'}
         living
       >
         {/* Toolbar */}
@@ -125,10 +161,11 @@ export function OrbitPage() {
           {!isDesktop && (
             <button
               type="button"
-              onClick={() => setMobileHud(true)}
-              className="mr-auto h-8 rounded-[2px] border border-line bg-surface/95 px-2.5 text-[12px] text-ink-2"
+              onClick={() => setMobileSide(true)}
+              className="mr-auto flex h-8 items-center gap-1.5 rounded-[2px] border border-line bg-surface/95 px-2.5 text-[12px] text-ink-2"
             >
-              {t('Overview')}
+              {lens === 'causes' && <SlidersHorizontal size={12} aria-hidden />}
+              {lens === 'causes' ? t('Cycles and filters') : t('Overview')}
             </button>
           )}
           <GraphSearch
@@ -140,55 +177,79 @@ export function OrbitPage() {
               requestFocus('orbit', id);
             }}
           />
-          <Button
-            size="sm"
-            icon={Plus}
-            onClick={() => setAdding(true)}
-            title={t('Add a value, goal, commitment, person… to an area of life')}
-            className="bg-surface/95"
-          >
+          <Button size="sm" icon={Plus} onClick={() => setAdding(true)} title={t('Add something that is part of your life')} className="bg-surface/95">
             {t('Add')}
           </Button>
           <ViewMenu padding={padding}>
-            <MenuItem checked={view.focus} hint={t('Hide what is not linked to the selected item')} onSelect={() => setOrbitView({ focus: !view.focus })}>
-              {t('Focus on the selection')}
-            </MenuItem>
-            <MenuItem
-              checked={view.showClaims}
-              hint={t('All claims as lines. Without this, only the claims around the selected element show.')}
-              onSelect={() => setOrbitView({ showClaims: !view.showClaims })}
-            >
-              {t('Show claims')}
-            </MenuItem>
-            <MenuSeparator />
-            {LAYERS.map((l) => (
-              <MenuItem
-                key={l.key}
-                checked={!view.hiddenLayers.includes(l.key)}
-                hint={l.description}
-                onSelect={() =>
-                  setOrbitView({
-                    hiddenLayers: view.hiddenLayers.includes(l.key) ? view.hiddenLayers.filter((x) => x !== l.key) : [...view.hiddenLayers, l.key],
-                  })
-                }
-              >
-                {l.label}
-              </MenuItem>
-            ))}
-            <MenuSeparator />
-            {!isMobile && (
-              <MenuItem
-                icon={allCollapsed ? UnfoldVertical : FoldVertical}
-                hint={t('Double-click one area to fold just that one')}
-                onSelect={() => setOrbitView({ collapsed: allCollapsed ? [] : [...SECTOR_KEYS] })}
-              >
-                {allCollapsed ? t('Unfold all areas') : t('Fold all areas')}
-              </MenuItem>
-            )}
-            {isDesktop && (
-              <MenuItem checked={hudOpen} hint={t('Do this next, where you are, your plan')} onSelect={() => setHudOpen(!hudOpen)}>
-                {t('Overview panel')}
-              </MenuItem>
+            {lens === 'map' ? (
+              <>
+                <MenuItem
+                  checked={view.showClaims}
+                  hint={t('Without this, only the possible reasons around what you are looking at show.')}
+                  onSelect={() => setOrbitView({ showClaims: !view.showClaims })}
+                >
+                  {t('Show every possible reason')}
+                </MenuItem>
+                <MenuItem
+                  checked={view.focus}
+                  hint={t('Hide what is not linked to what you are looking at')}
+                  onSelect={() => setOrbitView({ focus: !view.focus })}
+                >
+                  {t('Only what is linked to it')}
+                </MenuItem>
+                <MenuSeparator />
+                {LAYERS.map((l) => (
+                  <MenuItem
+                    key={l.key}
+                    checked={!view.hiddenLayers.includes(l.key)}
+                    hint={l.description}
+                    onSelect={() =>
+                      setOrbitView({
+                        hiddenLayers: view.hiddenLayers.includes(l.key) ? view.hiddenLayers.filter((x) => x !== l.key) : [...view.hiddenLayers, l.key],
+                      })
+                    }
+                  >
+                    {l.label}
+                  </MenuItem>
+                ))}
+                <MenuSeparator />
+                {!isMobile && (
+                  <MenuItem
+                    icon={allCollapsed ? UnfoldVertical : FoldVertical}
+                    hint={t('Double-click one area to fold just that one')}
+                    onSelect={() => setOrbitView({ collapsed: allCollapsed ? [] : [...SECTOR_KEYS] })}
+                  >
+                    {allCollapsed ? t('Unfold all areas') : t('Fold all areas')}
+                  </MenuItem>
+                )}
+                {isDesktop && (
+                  <MenuItem checked={hudOpen} hint={t('Something to look at, and the next step')} onSelect={() => setHudOpen(!hudOpen)}>
+                    {t('Overview panel')}
+                  </MenuItem>
+                )}
+              </>
+            ) : (
+              <>
+                <MenuLabel>{t('Around what you are looking at')}</MenuLabel>
+                {(
+                  [
+                    [0, t('Everything'), t('Every possible reason on the map')],
+                    [1, t('Only direct effects'), t('What acts on it and what it acts on')],
+                    [2, t('Wider'), t('Also what acts on those')],
+                  ] as const
+                ).map(([depth, label, hint]) => (
+                  <MenuItem
+                    key={depth}
+                    radio
+                    checked={(selectedId ? causes.focusDepth : 0) === depth}
+                    hint={depth && !selectedId ? t('Tap something first') : hint}
+                    disabled={depth > 0 && !selectedId}
+                    onSelect={() => setNetworkView({ focusDepth: depth })}
+                  >
+                    {label}
+                  </MenuItem>
+                ))}
+              </>
             )}
             <MenuSeparator />
             <MenuItem icon={RotateCcw} hint={t('Put everything back where it started')} onSelect={() => resetLayout('orbit')}>
@@ -202,27 +263,24 @@ export function OrbitPage() {
 
         {help.shown && (
           <div className="absolute top-14 z-20 w-[min(360px,calc(100%-24px))] animate-rise" style={{ right: occluded + 12 }}>
-            <HelpCard floating items={pageHelp('orbit') ?? []} onDone={help.close} />
+            <HelpCard floating items={pageHelp(lens === 'map' ? 'orbit' : 'network') ?? []} onDone={help.close} />
           </div>
         )}
 
-        {/* Overview panel */}
-        {hudVisible && (
+        {/* Side: the overview on Map, cycles and filters on Causes */}
+        {sideVisible && (
           <div
             className="ticks absolute top-3 bottom-3 left-3 z-10 animate-fade-in overflow-hidden rounded-[2px] border border-line bg-surface/[0.9] shadow-2xl backdrop-blur-md"
-            style={{ width: HUD_WIDTH }}
+            style={{ width: RAIL_WIDTH }}
           >
-            <StatusHud
-              onClose={() => setHudOpen(false)}
-              start={empty ? { addPoint: () => setAdding(true), identity: () => openEntity({ kind: 'area', id: 'self' }) } : undefined}
-            />
+            {side}
           </div>
         )}
 
         {/* First step, only on an empty atlas */}
         {startCard && (
           <div
-            className="absolute top-[64px] z-10 max-md:top-[108px] w-[min(440px,calc(100%-24px))] -translate-x-1/2 rounded-[2px] border border-line-strong bg-surface/95 px-4 py-3.5 backdrop-blur"
+            className="absolute top-[64px] z-10 w-[min(440px,calc(100%-24px))] -translate-x-1/2 rounded-[2px] border border-line-strong bg-surface/95 px-4 py-3.5 backdrop-blur max-md:top-[108px]"
             style={{ left: isDesktop ? `calc(${leftInset}px + (100% - ${leftInset + occluded}px) / 2)` : '50%' }}
           >
             <div className="label">{t('Start here')}</div>
@@ -247,41 +305,41 @@ export function OrbitPage() {
 
         {/* Key */}
         {!isMobile && (
-          <div className="absolute bottom-6 z-10 transition-[right] duration-200" style={{ right: occluded + 12 }}>
-            <Legend
-              links={links}
-              claims={view.showClaims || Boolean(selectedId)}
-              extra={
-                <>
-                  <p className="text-[11.5px] leading-snug text-ink-3">
-                    {t('Angle: the area of life. Rings, from you outward: what you hold, what you do, what surrounds you.')}
-                  </p>
-                  <p className="text-[11.5px] leading-snug text-ink-3">
-                    {t('Arcs between areas: how many claims and links run from one area to another; thicker is more. Click one to see them.')}
-                  </p>
-                  <p className="text-[11.5px] leading-snug text-ink-3">{t('Second ring around a mark: an outcome you want explained or changed.')}</p>
-                  <p className="text-[11.5px] leading-snug text-ink-3">
-                    {t('Area arc: share of notes in the last 60 days. Dashed marker: nothing written about it lately.')}
-                  </p>
-                </>
-              }
-            />
+          <div className="absolute bottom-6 z-10 transition-[right] duration-200" style={{ right: occluded + (lens === 'causes' ? 172 : 12) }}>
+            {lens === 'map' ? (
+              <Legend
+                links={links}
+                claims={view.showClaims || Boolean(selectedId)}
+                extra={
+                  <>
+                    <p className="text-[11.5px] leading-snug text-ink-3">
+                      {t('Angle: the area of life. Rings, from you outward: what you hold, what you do, what surrounds you.')}
+                    </p>
+                    <p className="text-[11.5px] leading-snug text-ink-3">
+                      {t('Arcs between areas: how many possible reasons and links run from one area to another. Tap one to see them.')}
+                    </p>
+                    <p className="text-[11.5px] leading-snug text-ink-3">{t('Second ring around a mark: something you want explained or changed.')}</p>
+                  </>
+                }
+              />
+            ) : (
+              <Legend />
+            )}
           </div>
         )}
       </GraphCanvas>
 
-      {!isDesktop && mobileHud && (
-        <div className="absolute inset-y-0 left-0 z-30 w-full animate-fade-in border-r border-line bg-surface sm:w-[360px]">
-          <StatusHud onClose={() => setMobileHud(false)} />
+      {!isDesktop && mobileSide && (
+        <div className="absolute inset-0 z-30 flex animate-fade-in flex-col bg-surface sm:w-[360px] sm:border-r sm:border-line">
+          {lens === 'causes' && (
+            <div className="flex h-11 shrink-0 items-center justify-end border-b border-line pr-2">
+              <IconButton icon={X} label={t('Close')} size="sm" onClick={() => setMobileSide(false)} />
+            </div>
+          )}
+          <div className="min-h-0 flex-1">{side}</div>
         </div>
       )}
-      {adding && (
-        <AddNodeModal
-          layer="orbit"
-          onClose={() => setAdding(false)}
-          defaultArea={selectedId && isAreaHubId(selectedId) ? areaHubKey(selectedId) : selectedId ? data.nodes[selectedId]?.area : undefined}
-        />
-      )}
+      {adding && <AddNodeModal layer="orbit" onClose={() => setAdding(false)} defaultArea={selectedArea} />}
     </div>
   );
 }

@@ -298,7 +298,7 @@ const StepMark = mark(
 /* ---------------------------------------------------------------- patterns and notes */
 /* ---------------------------------------------------------------- patterns and notes */
 
-/** A pattern: the hexagon it wears on the Mind map. */
+/** A pattern: something that keeps coming back. */
 export const PatternIcon = mark(
   'pattern',
   <>
@@ -373,7 +373,7 @@ export const HISTORY_ICONS = {
 export const DecisionIcon = Decision;
 export const JournalIcon = Journal;
 
-/* ---------------------------------------------------------------- the four places */
+/* ---------------------------------------------------------------- the five lenses */
 
 export const PLACE_ICONS = {
   // Map: a small orbit around a centre.
@@ -385,9 +385,9 @@ export const PLACE_ICONS = {
       {dot(18.9, 8, 1.6)}
     </>,
   ),
-  // History: a line of time with moments on it.
-  history: mark(
-    'history',
+  // Time: a line of time with moments on it.
+  time: mark(
+    'time',
     <>
       <path d="M3.5 12h17" />
       {dot(7, 12, 1.6)}
@@ -396,24 +396,24 @@ export const PLACE_ICONS = {
       <path d="M7 8v-2M12.5 8V5M17.5 8v-2" {...faint} />
     </>,
   ),
-  // Understanding: three ideas and what connects them.
-  understanding: mark(
-    'understanding',
+  // Causes: one thing acting on two others.
+  causes: mark(
+    'causes',
     <>
-      <path d="M12 7.5 7.2 16M12 7.5l4.8 8.5M7.5 17.5h9" {...faint} />
+      <path d="M12 7.5 7.2 16M12 7.5l4.8 8.5" {...faint} />
       <circle cx="12" cy="6" r="2.2" />
       <circle cx="6.2" cy="17.5" r="2.2" />
       <circle cx="17.8" cy="17.5" r="2.2" />
     </>,
   ),
-  // Plan: a heading on a compass.
-  plan: mark(
-    'plan',
+  repeats: PatternIcon,
+  // Ahead: a heading on a compass.
+  ahead: mark(
+    'ahead',
     <>
       <circle cx="12" cy="12" r="8.5" />
       <path d="M15.2 8.8 13.3 13.3 8.8 15.2l1.9-4.5Z" />
     </>,
   ),
   notes: Journal,
-  patterns: PatternIcon,
 } satisfies Record<string, LucideIcon>;

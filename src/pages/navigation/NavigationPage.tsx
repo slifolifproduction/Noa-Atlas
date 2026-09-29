@@ -39,7 +39,7 @@ export function NavigationPage() {
           <Route />
         ) : (
           <EmptyState
-            icon={PLACE_ICONS.plan}
+            icon={PLACE_ICONS.ahead}
             title={t('No direction chosen')}
             action={
               <a href={hrefFor('paths')} className={buttonClass('primary', 'md', 'gap-2')}>

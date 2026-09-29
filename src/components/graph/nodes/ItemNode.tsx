@@ -29,7 +29,8 @@ export const ItemNodeView = memo(function ItemNodeView({ id, data, selected }: N
   const zoom = useZoomLevel();
   const scale = useLabelScale(0.85, 1.35);
   // Semantic zoom: labels appear once there is room for them.
-  const quiet = zoom < 0.72 && !selected && !data.matched && !data.near;
+  // A few meaningful things keep their name at any zoom.
+  const quiet = zoom < 0.72 && !selected && !data.matched && !data.near && !data.salient;
   const Icon = KIND_ICONS[data.kind];
   const faded = data.ended || data.status === 'resolved';
   const spaceRef = useSpaceNode(id);

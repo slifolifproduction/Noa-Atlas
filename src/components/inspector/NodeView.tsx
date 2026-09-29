@@ -1,30 +1,31 @@
-import { Check, Crosshair, Link2, Pencil, Plus, X } from 'lucide-react';
+import { Check, Crosshair, Ellipsis, Link2, Pencil, Plus, Sparkle, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useRoute } from '../../app/router';
 import { showOnMap } from '../../app/showOnMap';
+import { aroundInTime, followOn, momentsOf, optionsTouching, reasonsFor, strongestPattern, type Neighbour } from '../../domain/ask';
 import { byStrength, claimsInto, claimsOutOf } from '../../domain/claims';
-import { AREA_META, AREAS, KIND_META, LINK_META, QUESTION_STATUS_LABEL } from '../../domain/constants';
-import { historyOf, readingsOf } from '../../domain/history';
-import { loopsThrough } from '../../domain/loops';
-import { displayNode, neighbors, patternsForNode, recordsFor, type Neighbor } from '../../domain/selectors';
-import type { AreaKey, ID, Investigation, LinkType, QuestionStatus } from '../../domain/types';
-import { formatDate } from '../../lib/dates';
+import { AREA_META, AREAS, KIND_META, KINDS, QUESTION_STATUS_LABEL } from '../../domain/constants';
+import { readingsOf } from '../../domain/history';
+import { loopName, loopsThrough } from '../../domain/loops';
+import { displayNode, neighbors, patternsForNode } from '../../domain/selectors';
+import type { AreaKey, ElementKind, ID, Investigation, QuestionStatus } from '../../domain/types';
+import { formatDate, formatMonth } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { KnowledgeTag } from '../evidence/Status';
-import { LinkSwatch } from '../graph/Legend';
-import { KIND_ICONS, LoopIcon } from '../icons';
+import { KIND_ICONS, LoopIcon, PLACE_ICONS } from '../icons';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
+import { AddReason, Lately, Question, Reason, RepeatRow, SeeIn, TryIt } from './Ask';
 import { ClaimComposer, ConnectForm, ElementSelect } from './ClaimComposer';
-import { ClaimRow, HistoryRow, KindEyebrow, Muted, NodeChip, PanelSection, PatternRow, RecordRow } from './parts';
+import { ClaimRow, Muted, NodeChip, PanelSection } from './parts';
 import { t, tn } from '../../i18n';
 
 /**
- * One element of the map, read through the layers: what it is (map), what
- * happened around it (history), what is claimed to act on it and what it
- * acts on (understanding), and the loops it sits in.
+ * One thing in the atlas, told as a short story (what it is, what happened
+ * lately, one thing the Atlas noticed) and then asked about: five questions,
+ * each answered in place, each answer opening one level deeper on request.
  */
 export function NodeView({ id }: { id: ID }) {
   const data = useAtlas((s) => s.data);
@@ -33,29 +34,41 @@ export function NodeView({ id }: { id: ID }) {
   const closeInspector = useUI((s) => s.closeInspector);
   const route = useRoute();
   const [editing, setEditing] = useState(false);
+  const [more, setMore] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
   const node = data.nodes[id];
   const display = displayNode(data, id);
-  const into = useMemo(() => claimsInto(data, id).sort(byStrength(data)), [data, id]);
-  const out = useMemo(() => claimsOutOf(data, id).sort(byStrength(data)), [data, id]);
+  const moments = useMemo(() => momentsOf(data, { kind: 'node', id }).filter((h) => h.mode === 'actual'), [data, id]);
+  const reasons = useMemo(() => reasonsFor(data, id), [data, id]);
+  const repeat = useMemo(() => strongestPattern(data, id), [data, id]);
   const loops = useMemo(() => loopsThrough(data, id), [data, id]);
-  const links = useMemo(() => neighbors(data, id).filter((n) => n.relation.family === 'link'), [data, id]);
-  const history = useMemo(() => historyOf(data, id), [data, id]);
-  const records = useMemo(() => recordsFor(data, id), [data, id]);
-  const patterns = useMemo(() => patternsForNode(data, id), [data, id]);
+  const linked = useMemo(
+    () => [
+      ...new Set(
+        neighbors(data, id)
+          .filter((n) => n.relation.family === 'link')
+          .map((n) => n.otherId),
+      ),
+    ],
+    [data, id],
+  );
 
   if (!node || !display) return null;
   const Icon = KIND_ICONS[node.kind];
   const color = display.color;
   const layer = route.key === 'network' ? 'network' : 'orbit';
-
-  const byLink = new Map<string, Neighbor[]>();
-  for (const l of links) {
-    if (l.relation.family !== 'link') continue;
-    const k = `${l.direction}:${l.relation.type}`;
-    byLink.set(k, [...(byLink.get(k) ?? []), l]);
-  }
+  const lately = moments.filter((h) => h.kind !== 'reading').slice(0, 3);
+  const noticed =
+    repeat && repeat.stats.instances >= 2
+      ? t('Something like this has happened {n} times since {month}.', { n: repeat.stats.instances, month: formatMonth(repeat.stats.firstObserved!) })
+      : loops.length
+        ? loops[0].type === 'reinforcing'
+          ? t('It sits in a cycle that feeds itself.')
+          : t('It sits in a cycle that holds itself back.')
+        : node.concern && !reasons.length
+          ? t('You care about this, and nothing explains it yet.')
+          : undefined;
 
   return (
     <div>
@@ -64,9 +77,11 @@ export function NodeView({ id }: { id: ID }) {
           <span className="flex h-6 w-6 items-center justify-center rounded-[2px] border" style={{ borderColor: `${color}66` }}>
             <Icon size={13} color={color} strokeWidth={1.8} aria-hidden />
           </span>
-          <KindEyebrow id={id} />
+          <span className="label">
+            {KIND_META[node.kind].label} · {AREA_META[node.area].label}
+          </span>
           <span className="ml-auto">
-            <KnowledgeTag kind={node.adopted ? 'declared' : 'suggested'} />
+            <KnowledgeTag kind={node.adopted ? (node.origin === 'inferred' ? 'observed' : 'declared') : 'suggested'} />
           </span>
         </div>
 
@@ -76,23 +91,44 @@ export function NodeView({ id }: { id: ID }) {
           <>
             <h2 className="mt-2.5 display text-[21px] leading-[1.2] text-ink">{node.label}</h2>
             {node.summary && <p className="mt-1.5 text-[13px] leading-relaxed text-ink-2">{node.summary}</p>}
-            <p className="mt-2 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-ink-3">
-              {(node.since || node.until) && (
-                <span>
-                  {node.since ? formatDate(node.since, { year: true }) : '…'} – {node.until ? formatDate(node.until, { year: true }) : t('now')}
-                </span>
-              )}
-              {node.concern && <span className="text-ink-2">{t('An outcome you want explained or changed')}</span>}
-              {node.external && <span>{t('Outside your control')}</span>}
-            </p>
+            {(node.since || node.until || node.concern || node.external) && (
+              <p className="mt-1.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[12px] text-ink-3">
+                {(node.since || node.until) && (
+                  <span>
+                    {node.since ? formatDate(node.since, { year: true }) : '…'} – {node.until ? formatDate(node.until, { year: true }) : t('now')}
+                  </span>
+                )}
+                {node.concern && <span className="text-ink-2">{t('Something you want explained or changed')}</span>}
+                {node.external && <span>{t('Outside your control')}</span>}
+              </p>
+            )}
           </>
+        )}
+
+        {node.adopted && !editing && (
+          <div className="mt-3.5">
+            <div className="label mb-1">{t('Lately')}</div>
+            <Lately items={lately} empty={t('Nothing dated is about this yet.')} />
+            {noticed && (
+              <p className="mt-2.5 flex items-start gap-2 text-[12.5px] leading-snug text-ink">
+                <Sparkle size={12} className="mt-[3px] shrink-0 text-accent" aria-hidden />
+                <span>{noticed}</span>
+              </p>
+            )}
+            {linked.length > 0 && (
+              <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11.5px] text-ink-3">{t('Linked to')}</span>
+                {linked.slice(0, 6).map((x) => (
+                  <NodeChip key={x} id={x} />
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
         {!node.adopted && (
           <div className="mt-3 rounded-[2px] border border-dashed border-line-strong p-3">
-            <p className="text-[12.5px] leading-snug text-ink-2">
-              {t('Proposed by the analysis from your notes. It stays off the map until you say it fits.')}
-            </p>
+            <p className="text-[12.5px] leading-snug text-ink-2">{t('The Atlas noticed this in your notes. It stays off the map until you say it fits.')}</p>
             <div className="mt-2 flex gap-2">
               <Button size="sm" variant="primary" icon={Check} onClick={() => adoptNode(id)}>
                 {t('It fits, add it')}
@@ -120,6 +156,13 @@ export function NodeView({ id }: { id: ID }) {
             <Button size="sm" variant="ghost" icon={Pencil} onClick={() => setEditing(true)}>
               {t('Edit')}
             </Button>
+            <Button size="sm" variant="ghost" icon={Ellipsis} onClick={() => setMore((m) => !m)} aria-expanded={more}>
+              {t('More')}
+            </Button>
+          </div>
+        )}
+        {more && !editing && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line pt-2">
             <Button size="sm" variant="ghost" icon={Link2} onClick={() => setConnecting((c) => !c)} aria-expanded={connecting}>
               {t('Connect')}
             </Button>
@@ -136,149 +179,259 @@ export function NodeView({ id }: { id: ID }) {
         {connecting && <ConnectForm id={id} onDone={() => setConnecting(false)} />}
       </div>
 
+      {node.adopted && (
+        <>
+          <Question
+            id="happening"
+            title={t("What's been happening?")}
+            hint={moments.length ? tn(moments.length, '{n} moment so far', '{n} moments so far') : t('Nothing dated yet')}
+          >
+            {() => <Happening id={id} />}
+          </Question>
+          <Question
+            id="why"
+            title={t('Why might this be happening?')}
+            hint={reasons.length ? tn(reasons.length, '{n} possible reason', '{n} possible reasons') : t('Nothing explains it yet')}
+          >
+            {() => <Why id={id} />}
+          </Question>
+          <Question id="around" title={t('What usually comes before or after?')}>
+            {() => <Around id={id} />}
+          </Question>
+          <Question
+            id="before"
+            title={t('Has this happened before?')}
+            hint={repeat ? tn(repeat.stats.instances, 'Something like it, {n} time', 'Something like it, {n} times') : undefined}
+          >
+            {() => <Before id={id} />}
+          </Question>
+          <Question id="whatif" title={t('What if I change it?')}>
+            {() => <WhatIf id={id} />}
+          </Question>
+        </>
+      )}
+
       {node.kind === 'belief' && <BeliefSection id={id} />}
       {node.kind === 'question' && <QuestionSection id={id} />}
-      {node.kind === 'state' && <ReadingsSection id={id} />}
 
-      <PanelSection title={t('What acts on it')} count={into.length}>
-        {into.length ? (
-          <ul className="-mx-1.5">
-            {into.map((c) => (
-              <ClaimRow key={c.id} id={c.id} />
+      <div className="border-t border-line px-4 py-3 text-[11.5px] text-ink-3">
+        {t('Added {date}', { date: formatDate(node.createdAt, { year: true }) })} ·{' '}
+        {node.origin === 'inferred' ? t('noticed by the Atlas in your notes') : t('written by you')}
+        {node.origin === 'inferred' && node.adopted && ` · ${t('kept by you')}`}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- the five answers ---------------- */
+
+function Happening({ id }: { id: ID }) {
+  const data = useAtlas((s) => s.data);
+  const node = data.nodes[id]!;
+  const moments = momentsOf(data, { kind: 'node', id }).filter((h) => h.mode === 'actual' && h.kind !== 'reading');
+  return (
+    <>
+      {node.kind === 'state' && <Readings id={id} />}
+      <Lately items={moments.slice(0, 8)} empty={t('Nothing in your notes is about this yet. Write about it, and it shows up here.')} />
+      {moments.length > 8 && <p className="mt-1 text-[11.5px] text-ink-3">{t('+{n} more', { n: moments.length - 8 })}</p>}
+      <SeeIn route="timeline">{t('See it all in Time')}</SeeIn>
+    </>
+  );
+}
+
+function Why({ id }: { id: ID }) {
+  const data = useAtlas((s) => s.data);
+  const node = data.nodes[id]!;
+  const reasons = reasonsFor(data, id);
+  const [adding, setAdding] = useState(false);
+  return (
+    <>
+      {reasons.length ? (
+        <ul className="space-y-1.5">
+          {reasons.map((c) => (
+            <Reason key={c.id} claim={c} />
+          ))}
+        </ul>
+      ) : (
+        <Muted>
+          {node.concern
+            ? t('Nothing explains this yet. That is where the atlas is thinnest, and the most useful place to start.')
+            : t('Nothing on the map explains this yet.')}
+        </Muted>
+      )}
+      <div className="mt-2.5">
+        {adding ? (
+          <AddReason to={id} area={node.area} onDone={() => setAdding(false)} />
+        ) : (
+          <Button size="sm" variant="ghost" icon={Plus} onClick={() => setAdding(true)}>
+            {reasons.length ? t('Another explanation?') : t('Add a possible reason')}
+          </Button>
+        )}
+      </div>
+    </>
+  );
+}
+
+function Around({ id }: { id: ID }) {
+  const data = useAtlas((s) => s.data);
+  const node = data.nodes[id]!;
+  const around = useMemo(() => aroundInTime(data, id), [data, id]);
+  const [proposing, setProposing] = useState<{ id: ID; direction: 'into' | 'out' } | null>(null);
+  if (!around.moments) return <Muted>{t('Nothing dated is about this yet, so there is nothing to line up.')}</Muted>;
+  const list = (items: Neighbour[], direction: 'into' | 'out') =>
+    items.length ? (
+      <ul className="space-y-1">
+        {items.map((n) => (
+          <li key={n.id}>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <NodeChip id={n.id} />
+              <span className="text-[11.5px] text-ink-3">{t('{n} of {m} times', { n: n.count, m: around.moments })}</span>
+              {n.linked ? (
+                <span className="text-[11.5px] text-ink-3">{direction === 'into' ? t('already a possible reason') : t('already a possible effect')}</span>
+              ) : (
+                <button
+                  type="button"
+                  className="text-[11.5px] text-accent hover:underline"
+                  onClick={() => setProposing(proposing?.id === n.id ? null : { id: n.id, direction })}
+                >
+                  {direction === 'into' ? t('Could this be a reason?') : t('Could this be an effect?')}
+                </button>
+              )}
+            </div>
+            {proposing?.id === n.id && proposing.direction === direction && (
+              <div className="mt-1.5">
+                <AddReason to={id} area={node.area} direction={direction} initial={data.nodes[n.id]?.label} onDone={() => setProposing(null)} />
+              </div>
+            )}
+          </li>
+        ))}
+      </ul>
+    ) : (
+      <Muted>{t('Nothing comes up often enough to say.')}</Muted>
+    );
+  return (
+    <>
+      <p className="text-[12px] text-ink-3">
+        {tn(around.moments, 'Looking at the three weeks around the {n} time it came up.', 'Looking at the three weeks around the {n} times it came up.')}
+      </p>
+      <div className="label mt-2.5 mb-1">{t('Often before')}</div>
+      {list(around.before, 'into')}
+      <div className="label mt-3 mb-1">{t('Often after')}</div>
+      {list(around.after, 'out')}
+      <p className="mt-3 text-[11.5px] text-ink-3">{t('Coming before is not the same as causing. It is worth a look, not a conclusion.')}</p>
+    </>
+  );
+}
+
+function Before({ id }: { id: ID }) {
+  const data = useAtlas((s) => s.data);
+  const patterns = patternsForNode(data, id);
+  return (
+    <>
+      {patterns.length ? (
+        <ul className="-mx-1.5">
+          {patterns.map((p) => (
+            <RepeatRow key={p.id} id={p.id} />
+          ))}
+        </ul>
+      ) : (
+        <Muted>{t('Not that the Atlas can see yet. A repeat shows once something similar happens in separate weeks.')}</Muted>
+      )}
+      <SeeIn route="patterns">{t('See everything that repeats')}</SeeIn>
+    </>
+  );
+}
+
+function WhatIf({ id }: { id: ID }) {
+  const data = useAtlas((s) => s.data);
+  const open = useUI((s) => s.openEntity);
+  const node = data.nodes[id]!;
+  const { direct, further } = useMemo(() => followOn(data, id), [data, id]);
+  const loops = useMemo(() => loopsThrough(data, id), [data, id]);
+  const options = useMemo(() => optionsTouching(data, [id]), [data, id]);
+  const [adding, setAdding] = useState(false);
+  const test = direct[0] ?? claimsInto(data, id).sort(byStrength(data))[0];
+  return (
+    <>
+      {direct.length ? (
+        <>
+          <p className="mb-1.5 text-[12px] text-ink-3">{t('If it changed, these might change with it:')}</p>
+          <ul className="space-y-1.5">
+            {direct.map((c) => (
+              <Reason key={c.id} claim={c} />
             ))}
           </ul>
-        ) : (
-          <Muted>
-            {node.concern
-              ? t('Nothing claimed yet. This is an outcome you care about with no explanation on the map: where understanding is thin.')
-              : t('No claims about what changes this yet.')}
-          </Muted>
-        )}
-      </PanelSection>
-
-      <PanelSection title={t('What it acts on')} count={out.length}>
-        {out.length ? (
-          <ul className="-mx-1.5">
-            {out.map((c) => (
-              <ClaimRow key={c.id} id={c.id} />
+        </>
+      ) : (
+        <Muted>{t('Nothing on the map says what this changes yet.')}</Muted>
+      )}
+      {further.length > 0 && (
+        <>
+          <div className="label mt-3 mb-1">{t('And one step further')}</div>
+          <ul className="space-y-1.5">
+            {further.map((c) => (
+              <Reason key={c.id} claim={c} />
             ))}
           </ul>
-        ) : (
-          <Muted>{t('No claims about what this changes yet. Use Connect, or drag from it to another element on the map.')}</Muted>
-        )}
-      </PanelSection>
-
+        </>
+      )}
       {loops.length > 0 && (
-        <PanelSection title={t('Loops it is part of')} count={loops.length}>
+        <>
+          <div className="label mt-3 mb-1">{t('It comes back around')}</div>
           <ul className="-mx-1.5">
             {loops.map((l) => (
               <li key={l.id}>
                 <button
                   type="button"
                   className="group flex w-full items-start gap-2 rounded-[2px] px-1.5 py-1.5 text-left hover:bg-ink/[0.035]"
-                  onClick={() => useUI.getState().openEntity({ kind: 'loop', id: l.id })}
+                  onClick={() => open({ kind: 'loop', id: l.id })}
                 >
                   <LoopIcon size={13} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[13px] text-ink-2 group-hover:text-ink">
-                      {l.name ?? (l.type === 'reinforcing' ? t('A reinforcing loop') : t('A balancing loop'))}
-                    </span>
-                    <span className="block text-[11.5px] text-ink-3">
-                      {l.type === 'reinforcing' ? t('Reinforcing: it escalates') : t('Balancing: it pulls back')} ·{' '}
-                      {tn(l.claimIds.length, '{n} link', '{n} links')}
-                    </span>
+                  <span className="min-w-0 flex-1 text-[13px] text-ink-2 group-hover:text-ink">
+                    {loopName(l)}
+                    <span className="block text-[11.5px] text-ink-3">{tn(l.nodeIds.length, '{n} thing in the cycle', '{n} things in the cycle')}</span>
                   </span>
                 </button>
               </li>
             ))}
           </ul>
-        </PanelSection>
+        </>
       )}
-
-      {links.length > 0 && (
-        <PanelSection title={t('Declared links')} count={links.length}>
-          <div className="space-y-2.5">
-            {[...byLink.entries()].map(([k, list]) => {
-              const [dir, type] = k.split(':') as ['in' | 'out', LinkType];
-              const meta = LINK_META[type];
-              return (
-                <div key={k}>
-                  <div className="mb-1 flex items-center gap-2">
-                    <LinkSwatch type={type} width={20} />
-                    <span className="text-[11.5px] text-ink-3">{dir === 'out' ? meta.label : inverseLink(type)}</span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 pl-7">
-                    {list.map((l) => (
-                      <NodeChip key={l.otherId + k} id={l.otherId} />
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </PanelSection>
-      )}
-
-      <PanelSection title={t('What happened')} count={history.length}>
-        {history.length ? (
+      {options.length > 0 && (
+        <>
+          <div className="label mt-3 mb-1">{t('Directions that count on it')}</div>
           <ul className="-mx-1.5">
-            {history.slice(0, 8).map((h) => (
-              <HistoryRow key={h.key} item={h} />
+            {options.map((p) => (
+              <li key={p.id}>
+                <button
+                  type="button"
+                  className="group flex w-full items-start gap-2 rounded-[2px] px-1.5 py-1.5 text-left hover:bg-ink/[0.035]"
+                  onClick={() => open({ kind: 'path', id: p.id })}
+                >
+                  <PLACE_ICONS.ahead size={13} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
+                  <span className="min-w-0 flex-1 text-[13px] text-ink-2 group-hover:text-ink">{p.title}</span>
+                </button>
+              </li>
             ))}
           </ul>
-        ) : (
-          <Muted>{t('Nothing on the timeline concerns this yet.')}</Muted>
+        </>
+      )}
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {test && <TryIt claimId={test.id} />}
+        {!adding && (
+          <Button size="sm" variant="ghost" icon={Plus} onClick={() => setAdding(true)}>
+            {t('Something else it might change?')}
+          </Button>
         )}
-        {history.length > 8 && <p className="mt-1 text-[11.5px] text-ink-3">{t('+{n} more on the Timeline', { n: history.length - 8 })}</p>}
-      </PanelSection>
-
-      <PanelSection title={t('Notes and decisions')} count={records.entries.length + records.decisions.length}>
-        {records.entries.length + records.decisions.length === 0 ? (
-          <Muted>{t('No notes are linked to this yet. Link one from a note’s panel, or accept an analysis suggestion.')}</Muted>
-        ) : (
-          <ul className="-mx-1.5">
-            {records.decisions.slice(0, 3).map((d) => (
-              <RecordRow key={d.id} kind="decision" id={d.id} />
-            ))}
-            {records.entries.slice(0, 5).map((e) => (
-              <RecordRow key={e.id} kind="entry" id={e.id} />
-            ))}
-          </ul>
-        )}
-      </PanelSection>
-
-      {patterns.length > 0 && (
-        <PanelSection title={t('Patterns')} count={patterns.length}>
-          <ul className="-mx-1.5">
-            {patterns.map((p) => (
-              <PatternRow key={p.id} id={p.id} />
-            ))}
-          </ul>
-        </PanelSection>
-      )}
-
-      <div className="border-t border-line px-4 py-3 text-[11.5px] text-ink-3">
-        {t('Added {date}', { date: formatDate(node.createdAt, { year: true }) })} ·{' '}
-        {node.origin === 'inferred' ? t('proposed by the analysis') : t('written by you')}
-        {node.origin === 'inferred' && node.adopted && ` · ${t('adopted by you')}`}
       </div>
-    </div>
+      {adding && (
+        <div className="mt-2">
+          <AddReason to={id} area={node.area} direction="out" onDone={() => setAdding(false)} />
+        </div>
+      )}
+      <SeeIn route="paths">{t('See what could come next')}</SeeIn>
+    </>
   );
-}
-
-function inverseLink(type: LinkType): string {
-  switch (type) {
-    case 'aims_at':
-      return t('Aimed at by');
-    case 'motivates':
-      return t('Motivated by');
-    case 'about':
-      return t('Asked or believed about it');
-    case 'part_of':
-      return t('Contains');
-    default:
-      return LINK_META[type].label;
-  }
 }
 
 /** A belief is also a claim about how things work: show the claim and how it is holding up. */
@@ -438,17 +591,12 @@ function QuestionSection({ id }: { id: ID }) {
 }
 
 /** A state is read over time: its readings as a small line. */
-function ReadingsSection({ id }: { id: ID }) {
+function Readings({ id }: { id: ID }) {
   const data = useAtlas((s) => s.data);
   const node = data.nodes[id];
   const readings = useMemo(() => readingsOf(data, id), [data, id]);
   if (!node) return null;
-  if (readings.length < 2)
-    return (
-      <PanelSection title={t('Readings')}>
-        <Muted>{t('Not enough readings yet to show how it moves.')}</Muted>
-      </PanelSection>
-    );
+  if (readings.length < 2) return null;
   const min = node.scale?.min ?? Math.min(...readings.map((r) => r.value));
   const max = node.scale?.max ?? Math.max(...readings.map((r) => r.value));
   const w = 300;
@@ -458,7 +606,7 @@ function ReadingsSection({ id }: { id: ID }) {
   const d = readings.map((r, i) => `${i ? 'L' : 'M'} ${x(i).toFixed(1)} ${y(r.value).toFixed(1)}`).join(' ');
   const last = readings[readings.length - 1];
   return (
-    <PanelSection title={t('Readings')} count={readings.length}>
+    <div className="mb-3">
       <svg viewBox={`0 0 ${w} ${h}`} className="h-14 w-full" role="img" aria-label={t('Readings over time')}>
         <path d={d} fill="none" stroke="var(--color-ink-2)" strokeWidth="1.5" strokeLinejoin="round" />
         <circle cx={x(readings.length - 1)} cy={y(last.value)} r="2.5" fill="var(--color-ink)" />
@@ -471,7 +619,7 @@ function ReadingsSection({ id }: { id: ID }) {
           max,
         })}
       </p>
-    </PanelSection>
+    </div>
   );
 }
 
@@ -479,6 +627,7 @@ function EditForm({ id, onDone }: { id: ID; onDone(): void }) {
   const node = useAtlas((s) => s.data.nodes[id]);
   const updateNode = useAtlas((s) => s.updateNode);
   const [label, setLabel] = useState(node?.label ?? '');
+  const [kind, setKind] = useState<ElementKind>(node?.kind ?? 'state');
   const [summary, setSummary] = useState(node?.summary ?? '');
   const [area, setArea] = useState<AreaKey>(node?.area ?? 'self');
   const [since, setSince] = useState(node?.since ?? '');
@@ -493,6 +642,7 @@ function EditForm({ id, onDone }: { id: ID; onDone(): void }) {
         if (!label.trim()) return;
         updateNode(id, {
           label: label.trim(),
+          kind,
           summary: summary.trim(),
           area,
           since: since || undefined,
@@ -503,8 +653,18 @@ function EditForm({ id, onDone }: { id: ID; onDone(): void }) {
       }}
     >
       <label className="block">
-        <span className="label">{KIND_META[node.kind].label}</span>
+        <span className="label">{t('Name')}</span>
         <input className="field mt-1" value={label} onChange={(e) => setLabel(e.target.value)} autoFocus />
+      </label>
+      <label className="block">
+        <span className="label">{t('What kind of thing it is')}</span>
+        <select className="field mt-1" value={kind} onChange={(e) => setKind(e.target.value as ElementKind)}>
+          {KINDS.map((k) => (
+            <option key={k.key} value={k.key}>
+              {k.label}
+            </option>
+          ))}
+        </select>
       </label>
       <label className="block">
         <span className="label">{t('Description')}</span>
@@ -532,7 +692,7 @@ function EditForm({ id, onDone }: { id: ID; onDone(): void }) {
       </div>
       <label className="flex items-start gap-2 text-[12.5px] text-ink-2">
         <input type="checkbox" className="mt-[3px]" checked={concern} onChange={(e) => setConcern(e.target.checked)} />
-        <span>{t('An outcome I want explained or changed')}</span>
+        <span>{t('Something I want explained or changed')}</span>
       </label>
       <div className="flex gap-2">
         <Button size="sm" variant="primary" type="submit" icon={Check}>

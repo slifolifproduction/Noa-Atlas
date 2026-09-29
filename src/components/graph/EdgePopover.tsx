@@ -1,6 +1,6 @@
 import { ArrowUpRight, Trash } from 'lucide-react';
 import { useEffect } from 'react';
-import { claimCode, claimSentence, claimStatus, evidenceProfile } from '../../domain/claims';
+import { claimSentence, claimStatus, evidenceProfile } from '../../domain/claims';
 import { LINK_META, LINKS, STATUS_META } from '../../domain/constants';
 import { displayNode } from '../../domain/selectors';
 import type { LinkType } from '../../domain/types';
@@ -42,14 +42,12 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
       <div role="dialog" aria-label={t('Between two areas')} className={cn(box, 'max-h-[70vh] overflow-y-auto')} style={style}>
         <div className="flex items-center gap-2">
           <span className="label">{t('Between two areas')}</span>
-          <span className="ml-auto font-mono text-[11px] tracking-wide text-ink-3 uppercase">{t('Derived')}</span>
+          <span className="ml-auto text-[11px] text-ink-3">{t('drawn by the Atlas')}</span>
         </div>
         <p className="mt-2 text-[13px] leading-snug text-ink">
           {a?.label} → {b?.label}
         </p>
-        <p className="mt-1 text-[11.5px] text-ink-3">
-          {t('Summed from the claims and links between their elements. It says nothing of its own: open a claim to see its evidence.')}
-        </p>
+        <p className="mt-1 text-[11.5px] text-ink-3">{t('Everything that connects the two areas, gathered in one line. Open any of it to see why.')}</p>
         <ul className="mt-2 space-y-1">
           {claims.map((c) => {
             const status = claimStatus(data, c);
@@ -88,26 +86,26 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
     const status = claimStatus(data, claim);
     const p = evidenceProfile(data, claim);
     return (
-      <div role="dialog" aria-label={t('Claim')} className={box} style={style}>
+      <div role="dialog" aria-label={t('A possible reason')} className={box} style={style}>
         <div className="flex items-center gap-2">
           <EffectSwatch effect={claim.effect} />
-          <span className="label">{claimCode(claim.code)}</span>
-          <span className="ml-auto font-mono text-[11px] tracking-wide text-ink-2 uppercase" title={STATUS_META[status].description}>
+          <span className="label">{t('A possible reason')}</span>
+          <span className="ml-auto text-[11.5px] text-ink-2" title={STATUS_META[status].description}>
             {STATUS_META[status].label}
           </span>
         </div>
         <p className="mt-2 text-[13px] leading-snug text-ink">{claimSentence(data, claim, status)}</p>
         {claim.via && <p className="mt-1.5 text-[12px] text-ink-2">{t('How: {via}', { via: claim.via })}</p>}
         <p className="mt-2 text-[12px] text-ink-3">
-          {tn(p.episodes, 'Seen in {n} episode', 'Seen in {n} episodes')}
-          {p.contrast > 0 && ` · ${tn(p.contrast, '{n} contrast case', '{n} contrast cases')}`}
-          {p.counter > 0 && ` · ${tn(p.counter, '{n} counter-case', '{n} counter-cases')}`}
+          {tn(p.episodes, 'Seen in {n} separate week', 'Seen in {n} separate weeks')}
+          {p.contrast > 0 && ` · ${tn(p.contrast, '{n} time without it', '{n} times without it')}`}
+          {p.counter > 0 && ` · ${tn(p.counter, '{n} exception', '{n} exceptions')}`}
           {p.testsFor + p.testsAgainst > 0 && ` · ${tn(p.testsFor + p.testsAgainst, '{n} test', '{n} tests')}`}
         </p>
-        <p className="mt-1 text-[11.5px] text-ink-3">{claim.author === 'user' ? t('You made this claim.') : t('Proposed by the analysis.')}</p>
+        <p className="mt-1 text-[11.5px] text-ink-3">{claim.author === 'user' ? t('Your idea.') : t('Suggested by the Atlas.')}</p>
         <div className="mt-3 flex justify-between">
           <Button size="sm" variant="ghost" icon={ArrowUpRight} onClick={() => (openEntity({ kind: 'claim', id: claim.id }), onClose())}>
-            {t('Open claim')}
+            {t('Why do you think that?')}
           </Button>
           <Button size="sm" variant="ghost" onClick={onClose}>
             {t('Done')}
@@ -127,14 +125,14 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
       <div className="flex items-center gap-2">
         <LinkSwatch type={link.type} />
         <span className="label">{meta.label}</span>
-        <span className="ml-auto font-mono text-[11px] tracking-wide text-ink-3 uppercase">{t('Declared')}</span>
+        <span className="ml-auto text-[11px] text-ink-3">{t('drawn by you')}</span>
       </div>
       <p className="mt-2 text-[13px] leading-snug text-ink">
         {a?.label} <span className="text-ink-3">{meta.verb}</span> {b?.label}
       </p>
       {link.note && <p className="mt-1.5 text-[12px] text-ink-2">{link.note}</p>}
       <p className="mt-2 text-[11.5px] text-ink-3">
-        {t('True because you say so: a link organises the map and needs no evidence. It does not claim that one changes the other.')}
+        {t('True because you say so. A link keeps the map in order; it does not say that one changes the other.')}
       </p>
       <label className="mt-3 block">
         <span className="label">{t('Link')}</span>
