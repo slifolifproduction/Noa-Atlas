@@ -402,6 +402,12 @@
 .atlas-3d .ring-plane {
   will-change: transform;
 }
+/* The engine scales each node about its own centre (React Flow's default origin is the
+ * top-left corner, which would push a node that comes forward down and to the right,
+ * away from its edges and its selection reticle). */
+.atlas-3d .react-flow__node:not(.react-flow__node-rings) {
+  transform-origin: 50% 50%;
+}
 /* Flow pulses: moved along the edge curve by transform keyframes (set in script). */
 .atlas-dot {
   position: absolute;

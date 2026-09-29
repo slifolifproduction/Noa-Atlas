@@ -4,18 +4,20 @@ import { useEffect, useRef } from 'react';
 /**
  * Deep space behind (and a little in front of) the graph, always moving.
  *
- * The scene cruises slowly forward: stars come out of the distance, drift
- * outward from the middle of the view and pass by; nebulae slide past very
- * slowly; a little dust streams by in front of the graph; now and then a faint
- * meteor crosses. Panning, zooming and the camera's turn (shared with the
- * space engine in graph/space.ts) add parallax on top.
+ * The scene cruises forward and rolls very slowly: stars come out of the
+ * distance, stream outward from the middle of the view and pass by (the
+ * nearest leave short trails), and many of them twinkle. Nebulae drift, turn
+ * and breathe, each on its own slow cycle; a distant galaxy turns; dust
+ * streams by in front of the graph; meteors cross now and then. Panning,
+ * zooming and the camera's turn (shared with the space engine in
+ * graph/space.ts) add parallax on top.
  *
- * Behind the graph are two canvases: an opaque backdrop (nebulae pre-rendered
- * once per resize, plus the vignette), repainted only after a half-pixel
- * shift, and a transparent star layer redrawn each frame. The dust is a
+ * Behind the graph are two canvases: an opaque backdrop at half resolution
+ * (nebulae and the galaxy are soft, so it is cheap to redraw ~20 times a
+ * second), and a transparent star layer redrawn each frame. The dust is a
  * handful of tiny DOM layers moved by transform. Nothing re-renders React.
- * In `lite` mode (devices that were stepped down to flat) the cruise is slower
- * and redrawn at ~20 fps, and there is no dust.
+ * In `lite` mode (devices that were stepped down to flat) everything still
+ * moves, redrawn at a lower rate, without the dust.
  */
 
 interface Star {
@@ -27,6 +29,10 @@ interface Star {
   a: number;
   bright: boolean;
   cool: boolean;
+  /** Twinkle: depth (0 = steady), rate and phase. */
+  tw: number;
+  tf: number;
+  tp: number;
 }
 
 interface Mote {
@@ -47,21 +53,33 @@ interface Meteor {
   dy: number;
   start: number;
   dur: number;
+  len: number;
+  reach: number;
 }
 
 const CANVAS = '#0a0c0f';
+const TAU = Math.PI * 2;
+/**
+ * Each nebula drifts on its own slow orbit (amplitude in px, period in s), turns
+ * (seconds per turn, sign = direction) and breathes in size and brightness.
+ */
 const NEBULAE = [
-  { x: -0.2, y: -0.2, size: 1.2, color: [64, 92, 140], alpha: 0.3 },
-  { x: 0.34, y: 0.16, size: 1.0, color: [40, 104, 112], alpha: 0.24 },
-  { x: -0.04, y: 0.44, size: 0.85, color: [88, 72, 132], alpha: 0.2 },
-  { x: 0.46, y: -0.38, size: 0.6, color: [70, 86, 120], alpha: 0.16 },
+  { x: -0.22, y: -0.2, size: 1.25, color: [64, 96, 150], alpha: 0.34, drift: [70, 46], period: [83, 101], turn: 520, breathe: 29 },
+  { x: 0.34, y: 0.16, size: 1.05, color: [36, 110, 118], alpha: 0.28, drift: [60, 52], period: [97, 71], turn: -610, breathe: 37 },
+  { x: -0.06, y: 0.46, size: 0.9, color: [96, 70, 142], alpha: 0.26, drift: [80, 40], period: [67, 89], turn: 450, breathe: 23 },
+  { x: 0.48, y: -0.36, size: 0.7, color: [76, 88, 132], alpha: 0.2, drift: [50, 60], period: [113, 79], turn: -700, breathe: 41 },
+  { x: -0.5, y: 0.3, size: 0.65, color: [120, 64, 110], alpha: 0.14, drift: [44, 58], period: [73, 107], turn: 380, breathe: 31 },
 ];
-const MOTE_COUNT = 10;
+/** A far spiral galaxy, tilted, turning slowly in its own plane. */
+const GALAXY = { x: 0.38, y: -0.2, size: 0.2, tilt: -0.5, flat: 0.42, turn: 240, alpha: 0.55 };
+const MOTE_COUNT = 14;
 
-/** Forward cruise: distance units per second (a star takes ~40 s to pass). */
-const CRUISE = 1 / 38;
+/** Forward cruise: distance units per second (a star takes ~16 s to pass). */
+const CRUISE = 1 / 16;
+/** The whole field rolls slowly around the view's centre (seconds per turn). */
+const ROLL = 900;
 const Z_NEAR = 0.06;
-/** Nebulae are soft, so their backdrop is rendered at reduced resolution and scaled up. */
+/** Nebulae are soft, so the backdrop is rendered at reduced resolution and scaled up. */
 const HAZE_RES = 0.5;
 const rgba = ([r, g, b]: number[], a: number) => `rgba(${r},${g},${b},${a})`;
 const smooth = (e0: number, e1: number, x: number) => {
@@ -90,20 +108,21 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
     let h = 0;
     let spreadX = 1;
     let spreadY = 1;
-    let margin = 0;
     let stars: Star[] = [];
     let raf = 0;
     let last = performance.now();
     let lastDraw = 0;
-    let bgKey = '';
+    let lastBg = 0;
+    let base = 1;
+    let nebulae: { canvas: HTMLCanvasElement; size: number; phase: number }[] = [];
     let meteor: Meteor | null = null;
-    let nextMeteor = performance.now() + 9000 + Math.random() * 12000;
+    let nextMeteor = performance.now() + 2500 + Math.random() * 4000;
     const moteEls = moteRefs.current.slice();
     let camFx = 0;
     let camFy = 0;
     const motes: Mote[] = [];
 
-    const haze = document.createElement('canvas');
+    const galaxy = document.createElement('canvas');
     const vignette = document.createElement('canvas');
 
     // A soft glow sprite for the few bright stars.
@@ -121,15 +140,18 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
     const rand = () => (seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296;
     /** A star somewhere in the volume (on first fill) or at the far end (respawn). */
     const spawn = (s: Partial<Star>, anywhere: boolean): Star => {
-      const bright = rand() < 0.025;
+      const bright = rand() < 0.03;
       return Object.assign(s, {
         x: (rand() * 2 - 1) * spreadX,
         y: (rand() * 2 - 1) * spreadY,
         z: anywhere ? Z_NEAR + rand() * (1 - Z_NEAR) : 0.85 + rand() * 0.15,
-        r: 0.28 + rand() * 0.42,
-        a: 0.35 + rand() * 0.45,
+        r: 0.28 + rand() * 0.45,
+        a: 0.38 + rand() * 0.5,
         bright,
         cool: rand() < 0.7,
+        tw: rand() < 0.45 ? 0.3 + rand() * 0.45 : 0,
+        tf: 0.6 + rand() * 2.2,
+        tp: rand() * TAU,
       }) as Star;
     };
     const spawnMote = (m: Partial<Mote>, anywhere: boolean): Mote =>
@@ -148,11 +170,13 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
       w = el.clientWidth;
       h = el.clientHeight;
       if (!w || !h) return;
-      el.width = bgEl.width = Math.round(w * dpr);
-      el.height = bgEl.height = Math.round(h * dpr);
+      el.width = Math.round(w * dpr);
+      el.height = Math.round(h * dpr);
+      bgEl.width = Math.ceil(w * HAZE_RES);
+      bgEl.height = Math.ceil(h * HAZE_RES);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      bg.setTransform(dpr, 0, 0, dpr, 0, 0);
-      bgKey = '';
+      bg.setTransform(HAZE_RES, 0, 0, HAZE_RES, 0, 0);
+      lastBg = 0;
       // Far stars (z ≈ 1) must already cover the whole screen, so the field stays even as it flows.
       const R = Math.max(w, h) * 0.5;
       spreadX = ((w / 2 + 40) * 1.6) / R;
@@ -163,26 +187,61 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
       motes.length = 0;
       for (let i = 0; i < MOTE_COUNT; i++) motes.push(spawnMote({}, true));
 
-      // Nebulae: painted once, a margin larger than the view so drift, zoom and look never show an edge.
-      const base = Math.max(w, h);
-      margin = Math.round(base * 0.12 + 140);
-      haze.width = Math.ceil((w + margin * 2) * HAZE_RES);
-      haze.height = Math.ceil((h + margin * 2) * HAZE_RES);
-      const hc = haze.getContext('2d')!;
-      hc.setTransform(HAZE_RES, 0, 0, HAZE_RES, 0, 0);
-      hc.fillStyle = CANVAS;
-      hc.fillRect(0, 0, w + margin * 2, h + margin * 2);
-      for (const n of NEBULAE) {
-        const cx = margin + w / 2 + n.x * base;
-        const cy = margin + h / 2 + n.y * base;
-        const r = (n.size * base) / 2;
-        const ng = hc.createRadialGradient(cx, cy, 0, cx, cy, r);
-        ng.addColorStop(0, rgba(n.color, n.alpha));
-        ng.addColorStop(0.55, rgba(n.color, n.alpha * 0.35));
-        ng.addColorStop(1, rgba(n.color, 0));
-        hc.fillStyle = ng;
-        hc.fillRect(cx - r, cy - r, r * 2, r * 2);
+      // Nebulae: one soft, lumpy cloud sprite each, painted once per resize and then moved every frame.
+      base = Math.max(w, h);
+      nebulae = NEBULAE.map((n, i) => {
+        const size = n.size * base;
+        const px = Math.max(8, Math.ceil(size * HAZE_RES));
+        const c = document.createElement('canvas');
+        c.width = c.height = px;
+        const nc = c.getContext('2d')!;
+        nc.scale(px / size, px / size);
+        const lumps = 6;
+        for (let j = 0; j < lumps; j++) {
+          const a = rand() * TAU;
+          // Every lump stays inside the sprite, so no rotated edge ever shows.
+          const d = j === 0 ? 0 : 0.08 + rand() * 0.14;
+          const cx = size / 2 + Math.cos(a) * d * size;
+          const cy = size / 2 + Math.sin(a) * d * size;
+          const r = (j === 0 ? 0.5 : Math.min(0.2 + rand() * 0.2, 0.49 - d)) * size;
+          const alpha = j === 0 ? n.alpha * 0.8 : n.alpha * (0.35 + rand() * 0.4);
+          const ng = nc.createRadialGradient(cx, cy, 0, cx, cy, r);
+          ng.addColorStop(0, rgba(n.color, alpha));
+          ng.addColorStop(0.5, rgba(n.color, alpha * 0.4));
+          ng.addColorStop(1, rgba(n.color, 0));
+          nc.fillStyle = ng;
+          nc.fillRect(cx - r, cy - r, r * 2, r * 2);
+        }
+        return { canvas: c, size, phase: i * 1.7 + rand() * 2 };
+      });
+
+      // The galaxy: a bright core and two logarithmic arms of scattered points, drawn face-on.
+      const gs = GALAXY.size * base;
+      const gpx = Math.max(8, Math.ceil(gs * 0.75));
+      galaxy.width = galaxy.height = gpx;
+      const gc = galaxy.getContext('2d')!;
+      gc.setTransform(gpx / gs, 0, 0, gpx / gs, gpx / 2, gpx / 2);
+      const core = gc.createRadialGradient(0, 0, 0, 0, 0, gs * 0.2);
+      core.addColorStop(0, 'rgba(236,232,255,0.9)');
+      core.addColorStop(0.25, 'rgba(190,196,236,0.4)');
+      core.addColorStop(1, 'rgba(150,160,220,0)');
+      gc.fillStyle = core;
+      gc.fillRect(-gs / 2, -gs / 2, gs, gs);
+      for (let arm = 0; arm < 2; arm++) {
+        for (let j = 0; j < 260; j++) {
+          const f = j / 260;
+          const theta = f * TAU * 1.35 + arm * Math.PI;
+          const rr = gs * (0.04 + 0.43 * f);
+          const spread = gs * 0.035 * (0.4 + f) * (rand() * 2 - 1);
+          const px2 = Math.cos(theta) * rr + spread * Math.sin(theta);
+          const py2 = Math.sin(theta) * rr - spread * Math.cos(theta);
+          gc.globalAlpha = (1 - f) * (0.25 + rand() * 0.5);
+          gc.fillStyle = rand() < 0.2 ? '#f0d9ef' : '#c9d6f5';
+          const sz = gs * (0.006 + rand() * 0.01);
+          gc.fillRect(px2 - sz / 2, py2 - sz / 2, sz, sz);
+        }
       }
+      gc.globalAlpha = 1;
 
       // Vignette: the edges of space fall off into darkness. Fixed to the screen.
       vignette.width = Math.ceil(w * HAZE_RES);
@@ -215,21 +274,57 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
       const R = Math.max(w, h) * 0.5;
       const zoom = still ? 1 : Math.min(1.25, Math.max(0.85, k ** 0.18));
 
-      // Nebulae slide past very slowly, and shift with the camera's turn.
-      const hs = still ? 1 : Math.round(k ** 0.06 * 500) / 500;
-      const hx = still ? 0 : Math.round((lx * 20 + 22 * Math.sin(t / 47)) * 2) / 2;
-      const hy = still ? 0 : Math.round((ly * 15 + 14 * Math.cos(t / 61)) * 2) / 2;
-      const key = `${hs}:${hx}:${hy}`;
-      if (key !== bgKey) {
-        bgKey = key;
+      // The whole field rolls slowly around the centre of the view.
+      const roll = still ? 0 : (t * TAU) / ROLL;
+      const rc = Math.cos(roll);
+      const rs = Math.sin(roll);
+
+      // Backdrop: nebulae drift, turn and breathe; the galaxy turns. Soft, so ~20 (lite ~10) redraws a second.
+      if (still ? lastBg === 0 : now - lastBg > (lite ? 95 : 45)) {
+        lastBg = now;
+        bg.globalAlpha = 1;
         bg.fillStyle = CANVAS;
         bg.fillRect(0, 0, w, h);
-        bg.drawImage(haze, w / 2 - (margin + w / 2) * hs + hx, h / 2 - (margin + h / 2) * hs + hy, (w + margin * 2) * hs, (h + margin * 2) * hs);
+        const hz = still ? 1 : k ** 0.06;
+        // Far away: they barely slide with pans, and swing with the camera's turn.
+        const px0 = still ? 0 : -fx * 0.012 + lx * 20;
+        const py0 = still ? 0 : -fy * 0.012 + ly * 15;
+        for (let i = 0; i < nebulae.length; i++) {
+          const n = NEBULAE[i];
+          const neb = nebulae[i];
+          const ph = neb.phase;
+          const ox = still ? 0 : n.drift[0] * Math.sin((t * TAU) / n.period[0] + ph);
+          const oy = still ? 0 : n.drift[1] * Math.cos((t * TAU) / n.period[1] + ph * 1.3);
+          const bx = n.x * base;
+          const by = n.y * base;
+          const nx = cx + (bx * rc - by * rs) * hz + ox + px0;
+          const ny = cy + (bx * rs + by * rc) * hz + oy + py0;
+          const breathe = still ? 1 : 1 + 0.09 * Math.sin((t * TAU) / n.breathe + ph);
+          bg.globalAlpha = still ? 1 : 0.72 + 0.28 * Math.sin((t * TAU) / (n.breathe * 0.7) + ph * 2);
+          bg.save();
+          bg.translate(nx, ny);
+          bg.rotate((still ? 0 : (t * TAU) / n.turn) + ph);
+          const size = neb.size * breathe * hz;
+          bg.drawImage(neb.canvas, -size / 2, -size / 2, size, size);
+          bg.restore();
+        }
+        const gbx = GALAXY.x * base;
+        const gby = GALAXY.y * base;
+        bg.globalAlpha = GALAXY.alpha;
+        bg.save();
+        bg.translate(cx + (gbx * rc - gby * rs) * hz + px0 * 1.4, cy + (gbx * rs + gby * rc) * hz + py0 * 1.4);
+        bg.rotate(GALAXY.tilt + roll);
+        bg.scale(1, GALAXY.flat);
+        bg.rotate(still ? 0 : (t * TAU) / GALAXY.turn);
+        const gsz = GALAXY.size * base * hz;
+        bg.drawImage(galaxy, -gsz / 2, -gsz / 2, gsz, gsz);
+        bg.restore();
+        bg.globalAlpha = 1;
         bg.drawImage(vignette, 0, 0, w, h);
       }
 
       ctx.clearRect(0, 0, w, h);
-      const speed = still ? 0 : CRUISE * (lite ? 0.6 : 1);
+      const speed = still ? 0 : CRUISE * (lite ? 0.75 : 1);
       let fill = '';
       for (const s of stars) {
         s.z -= speed * dt;
@@ -237,15 +332,31 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
         // Pan parallax (near stars slide further) and the camera turn (far stars swing further).
         const ox = still ? 0 : -fx * (0.02 + 0.16 * near) + lx * (14 + 30 * s.z);
         const oy = still ? 0 : -fy * (0.02 + 0.16 * near) + ly * (10 + 22 * s.z);
-        const px = cx + ((s.x / s.z) * R * zoom) / 1.6 + ox;
-        const py = cy + ((s.y / s.z) * R * zoom) / 1.6 + oy;
+        const sx = s.x * rc - s.y * rs;
+        const sy = s.x * rs + s.y * rc;
+        const px = cx + ((sx / s.z) * R * zoom) / 1.6 + ox;
+        const py = cy + ((sy / s.z) * R * zoom) / 1.6 + oy;
         if (s.z < Z_NEAR || px < -30 || px > w + 30 || py < -30 || py > h + 30) {
           if (!still) spawn(s, false);
           continue;
         }
-        // Stars fade in from the distance and grow a little as they pass.
-        const alpha = s.a * smooth(1, 0.8, s.z) * (0.55 + 0.45 * near);
+        // Stars fade in from the distance, grow a little as they pass, and some twinkle.
+        const twinkle = still || !s.tw ? 1 : 1 - s.tw * (0.5 + 0.5 * Math.sin(t * s.tf * TAU * 0.5 + s.tp));
+        const alpha = s.a * smooth(1, 0.8, s.z) * (0.55 + 0.45 * near) * twinkle;
         const r = s.r * (0.7 + 1.4 * near * near);
+        // The nearest stars leave a short trail back toward where they came from.
+        if (!still && near > 0.62) {
+          const zb = s.z + speed * 0.35;
+          const qx = cx + ((sx / zb) * R * zoom) / 1.6 + ox;
+          const qy = cy + ((sy / zb) * R * zoom) / 1.6 + oy;
+          ctx.globalAlpha = alpha * 0.45;
+          ctx.strokeStyle = s.cool ? '#b6c2cf' : '#e2eaf3';
+          ctx.lineWidth = Math.max(0.6, r * 0.9);
+          ctx.beginPath();
+          ctx.moveTo(qx, qy);
+          ctx.lineTo(px, py);
+          ctx.stroke();
+        }
         if (s.bright) {
           const size = 8 + 14 * near;
           ctx.globalAlpha = alpha * 0.7;
@@ -262,8 +373,8 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
         }
       }
 
-      // Now and then a faint meteor.
-      if (!still && !lite) {
+      // Meteors cross now and then.
+      if (!still) {
         if (!meteor && now > nextMeteor) {
           const fromLeft = Math.random() < 0.5;
           const angle = (fromLeft ? 0.35 : Math.PI - 0.35) + (Math.random() - 0.5) * 0.4;
@@ -273,19 +384,21 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
             dx: Math.cos(angle),
             dy: Math.sin(angle),
             start: now,
-            dur: 900 + Math.random() * 500,
+            dur: 800 + Math.random() * 700,
+            len: 140 + Math.random() * 140,
+            reach: 360 + Math.random() * 260,
           };
-          nextMeteor = now + 14000 + Math.random() * 18000;
+          nextMeteor = now + (lite ? 9000 : 5000) + Math.random() * (lite ? 12000 : 9000);
         }
         if (meteor) {
           const p = (now - meteor.start) / meteor.dur;
           if (p >= 1) meteor = null;
           else {
-            const len = 160;
-            const hx2 = meteor.x + meteor.dx * p * 420;
-            const hy2 = meteor.y + meteor.dy * p * 420;
+            const len = meteor.len;
+            const hx2 = meteor.x + meteor.dx * p * meteor.reach;
+            const hy2 = meteor.y + meteor.dy * p * meteor.reach;
             const mg = ctx.createLinearGradient(hx2 - meteor.dx * len, hy2 - meteor.dy * len, hx2, hy2);
-            const a = Math.sin(p * Math.PI) * 0.55;
+            const a = Math.sin(p * Math.PI) * 0.7;
             mg.addColorStop(0, 'rgba(210,228,248,0)');
             mg.addColorStop(1, `rgba(226,236,248,${a.toFixed(3)})`);
             ctx.globalAlpha = 1;
@@ -295,6 +408,8 @@ export function SpaceField({ reduced, camera, lite = false }: { reduced: boolean
             ctx.moveTo(hx2 - meteor.dx * len, hy2 - meteor.dy * len);
             ctx.lineTo(hx2, hy2);
             ctx.stroke();
+            ctx.globalAlpha = a;
+            ctx.drawImage(glow, hx2 - 7, hy2 - 7, 14, 14);
           }
         }
       }
