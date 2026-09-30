@@ -198,9 +198,6 @@ export function QuestsPage() {
             wide={wide}
             avoid={avoid}
             ring={t('Nothing is watching yet').toUpperCase()}
-            hp={0}
-            maxHp={0}
-            daysLeft={0}
             label={t('A closed eye: no boss yet')}
           />
           <div ref={hudTop} className="quest-hud absolute top-3 left-4 lg:top-5 lg:left-6">
@@ -277,9 +274,6 @@ export function QuestsPage() {
           avoid={avoid}
           seed={seedOf(boss.id)}
           ring={`${WATCH_LABEL(boss)} · ${boss.title} · ${countdown(boss)} · HP ${boss.hp}/${boss.maxHp}`.toUpperCase()}
-          hp={boss.hp}
-          maxHp={boss.maxHp}
-          daysLeft={boss.daysLeft}
           label={t('{title}: {hp} of {max} still open, due {date}', { title: boss.title, hp: boss.hp, max: boss.maxHp, date: formatDate(boss.due) })}
         />
 

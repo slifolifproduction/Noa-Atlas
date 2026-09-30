@@ -152,11 +152,9 @@ export function fitEye(w: number, h: number, boxes: Box[], wide: boolean) {
 
 /* ---- The tear in space it looks through ------------------------------------ */
 
-/** The tear runs far either side of the eye, and stands open a little wider than it in the middle. */
+/** The tear runs far either side of the eye, level with it, and stands open a little wider than it in the middle. */
 export const TEAR_W = EW * 2.3;
 export const TEAR_H = 300;
-/** It lies a little off level, as a tear would. */
-export const TEAR_TILT = -4;
 
 /** Smooth noise along a line: a value every unit, eased between. */
 function noise(seed: number) {
@@ -228,10 +226,9 @@ export function tearSpecks(seed: number) {
  * dimension is seen through: the same shape the canvases paint.
  */
 export function tearWindow(seed: number, cx: number, cy: number, k: number) {
-  const [c, s] = [Math.cos((TEAR_TILT * Math.PI) / 180), Math.sin((TEAR_TILT * Math.PI) / 180)];
   return (
     tearOutline(seed)
-      .map(([x, y], i) => `${i ? 'L' : 'M'}${(cx + (c * x - s * y) * k).toFixed(1)} ${(cy + (s * x + c * y) * k).toFixed(1)}`)
+      .map(([x, y], i) => `${i ? 'L' : 'M'}${(cx + x * k).toFixed(1)} ${(cy + y * k).toFixed(1)}`)
       .join('') + 'Z'
   );
 }
@@ -265,7 +262,6 @@ export function paintTear(
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, o.w, o.h);
     ctx.translate(o.cx, o.cy);
-    ctx.rotate((TEAR_TILT * Math.PI) / 180);
     ctx.scale(o.k, o.k);
     return ctx;
   };
@@ -445,10 +441,9 @@ export function turn(yaw: number, pitch: number) {
 
 /* ---- The clock that is its pupil ------------------------------------------ */
 
-/** The seconds at six o'clock: a moon going round a small orbit. The readout at three. */
+/** The seconds at six o'clock: a moon going round a small orbit. */
 const SUB_R = 14;
 export const SUB = { y: RC * 0.5, r: SUB_R };
-export const READOUT = { x: RC * 0.6, w: 13, h: 8 };
 /** The hands: hairlines ending in a node, like the spokes of the iris. */
 export const HOUR = { length: 44, node: 4 };
 export const MINUTE = { length: 70, node: 2.6 };
@@ -459,15 +454,15 @@ const ADVANCE: Record<string, number> = { I: 3, V: 7, X: 7 };
 /**
  * An old clock, drawn as one of the atlas's instruments: Roman numerals as
  * single hairlines set round the dial (their tops facing out), a ring of
- * ticks on the rim, dotted rings and a reticle inside. III gives way to a
- * readout, VI to the seconds.
+ * ticks on the rim, dotted rings and a reticle inside. VI gives way to the
+ * seconds.
  */
 export const DIAL = (() => {
   const h = 9.5;
   const rn = RC - 17;
   let numerals = '';
   NUMERALS.forEach((text, i) => {
-    if (i === 3 || i === 6) return;
+    if (i === 6) return;
     const th = (i * 30 * Math.PI) / 180;
     const [cos, sin] = [Math.cos(th), Math.sin(th)];
     const pt = (x: number, y: number) => `${f(cos * x - sin * (y - rn))} ${f(sin * x + cos * (y - rn))}`;
@@ -571,19 +566,6 @@ export function ringText(phrase: string, r: number, size: number) {
 }
 
 /* ---- The lens ---------------------------------------------------------------- */
-
-/** Out-of-focus motes drifting close to the lens, in front of everything. */
-export const BOKEH = (() => {
-  const r = seeded(63);
-  return Array.from({ length: 8 }, () => ({
-    left: `${r() * 100}%`,
-    top: `${8 + r() * 84}%`,
-    size: 50 + r() ** 1.5 * 170,
-    alpha: 0.025 + r() * 0.05,
-    dur: `${18 + r() * 16}s`,
-    delay: `${-r() * 20}s`,
-  }));
-})();
 
 let grain: string | undefined;
 /** A tile of film grain, made once. */

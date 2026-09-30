@@ -1262,16 +1262,6 @@ html body {
   letter-spacing: 0.22em;
   fill: rgb(var(--eye) / 0.3);
 }
-.eye-bracket {
-  fill: none;
-  stroke: rgb(var(--eye) / 0.55);
-  stroke-width: 1.4;
-}
-.eye-bracket-dash {
-  fill: none;
-  stroke: rgb(var(--eye-hot) / 0.5);
-  stroke-dasharray: 1 4;
-}
 .eye-needle {
   stroke: rgb(var(--eye) / 0.5);
 }
@@ -1449,23 +1439,6 @@ html body {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.clk-mark {
-  font-family: var(--font-mono);
-  letter-spacing: 0.14em;
-  fill: rgb(var(--eye) / 0.5);
-}
-.clk-bracket {
-  fill: none;
-  stroke: rgb(var(--eye) / 0.6);
-}
-.clk-readout {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  fill: rgb(var(--eye));
-}
-.quest-rig[data-urgent] .clk-readout {
-  fill: rgb(255 90 31);
-}
 .clk-sub {
   fill: none;
   stroke: rgb(var(--eye) / 0.35);
@@ -1507,8 +1480,7 @@ html body {
  * burns faintly and breathes, its depths fall away inside it, light streams
  * along its seam. Beaten, it seals to a scar; near the date it burns orange. */
 .quest-tear-move,
-.quest-emerge,
-.quest-bokeh {
+.quest-emerge {
   position: absolute;
   inset: 0;
   pointer-events: none;
@@ -1668,22 +1640,7 @@ html body {
 .quest-rig[data-state='dormant'] .quest-emerge {
   transition: none;
 }
-/* The lens: motes out of focus close to it, drifting; a streak through the pupil; grain. */
-.quest-bokeh {
-  inset: -40px;
-}
-.quest-bokeh span {
-  position: absolute;
-  translate: -50% -50%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgb(236 232 223 / calc(var(--a) * 0.55)) 0 56%, rgb(236 232 223 / var(--a)) 66%, transparent 71%);
-  animation: quest-drift 24s ease-in-out infinite alternate;
-}
-@keyframes quest-drift {
-  to {
-    transform: translate(36px, -22px);
-  }
-}
+/* The lens: a streak through the pupil; grain. */
 .quest-streak {
   position: absolute;
   left: 0;
@@ -1884,7 +1841,6 @@ html body {
   }
   .quest-tear-glow,
   .quest-seam,
-  .quest-bokeh span,
   .quest-grain {
     animation: none !important;
   }

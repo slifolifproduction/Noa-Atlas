@@ -5,7 +5,6 @@ import { cn } from '../../lib/cn';
 import { clockParts } from '../../lib/dates';
 import {
   arc,
-  BOKEH,
   CONTOUR,
   DIAL,
   EW,
@@ -23,7 +22,6 @@ import {
   R_TEXT,
   R_TICKS,
   RC,
-  READOUT,
   RI,
   ringText,
   seeded,
@@ -33,7 +31,6 @@ import {
   STREAMS,
   SUB,
   TAU,
-  TEAR_TILT,
   TEAR_W,
   tearWindow,
   ticks,
@@ -94,18 +91,16 @@ const TWINKLES = (() => {
  * of rings that turns (the far rings soft; its strength as the ring of
  * segments, a numbered segment per piece of work, dark once done; its armor
  * as plates further out; a line of text going round); the tear's burning
- * edges are painted again over it. In front: motes out
- * of focus near the lens, a thin anamorphic streak through the pupil, and
- * grain. The eye is placed as large as it can be without touching the text
+ * edges are painted again over it. In front: a thin anamorphic streak
+ * through the pupil, and grain. The eye is placed as large as it can be without touching the text
  * over it (`avoid`).
  *
  * The eye is a ball that turns: its iris (a field of fibres with a spoke for
- * each piece of work), the rings round it and its pupil are one disc on the
- * ball, so they always move together; turning carries the disc across and
+ * each piece of work, and its rings, all inside its edge) and its pupil are
+ * one disc on the ball, so they always move together; turning carries the disc across and
  * foreshortens it, the pupil only dilates about the iris's centre, and the
  * light on the white follows. The pupil is a clock drawn as one of the
- * atlas's instruments, keeping the real time in your zone, with the days
- * left in its readout.
+ * atlas's instruments, keeping the real time in your zone.
  *
  * It comes out of the tear (EMERGES..ARRIVES), then stares at you: it follows
  * the pointer (on a phone, the tilt or your touch), and with nothing moving it
@@ -128,9 +123,6 @@ export function BossEye({
   wide,
   avoid = [],
   ring,
-  hp,
-  maxHp,
-  daysLeft,
   label,
   seed = 1,
   dormant = false,
@@ -154,9 +146,6 @@ export function BossEye({
   avoid?: Box[];
   /** What the turning ring of text says. */
   ring: string;
-  hp: number;
-  maxHp: number;
-  daysLeft: number;
   label: string;
   /** Shapes its tear, so each boss looks through its own. */
   seed?: number;
@@ -198,7 +187,6 @@ export function BossEye({
   const lidLine = useRef<SVGPathElement>(null);
   const lidOuter = useRef<SVGPathElement>(null);
   const lidShade = useRef<SVGPathElement>(null);
-  const bokeh = useRef<HTMLDivElement>(null);
   const streak = useRef<HTMLDivElement>(null);
   const flash = useRef<HTMLDivElement>(null);
   const beams = useRef<SVGSVGElement>(null);
@@ -618,7 +606,6 @@ export function BossEye({
       move(near, -t.x * k * 0.012, -t.y * k * 0.012);
       move(skyFar, -t.x * k * 0.03, -t.y * k * 0.03);
       move(skyNear, -t.x * k * 0.08, -t.y * k * 0.08);
-      move(bokeh, t.x * k * 0.2, t.y * k * 0.2);
       // The hands: they sweep to the hour as it opens, then keep the time; the seconds step, with a small recoil.
       const sec = Math.floor(Date.now() / 1000);
       if (sec !== lastSec) {
@@ -656,7 +643,6 @@ export function BossEye({
     const m = a0 + (a1 - a0) * whole;
     return [m - a0 > 0.5 ? arc(R_ARMOR, a0, m) : null, a1 - m > 0.5 ? arc(R_ARMOR, m, a1) : null];
   };
-  const days = dormant ? '--' : state === 'defeated' ? '00' : pad(Math.max(0, daysLeft));
   const textSize = px(9);
   const lidsNow = lids(dormant || state === 'defeated' ? 0.02 : 0.012);
   const grain = grainTile();
@@ -687,7 +673,7 @@ export function BossEye({
           <div ref={backShape} className="quest-tear-shape" style={{ transformOrigin: `${geo.cx + 40}px ${geo.cy + 40}px` }}>
             <canvas ref={tearBase} className="quest-tear-canvas" />
             {/* Its seam, and light streaming along it. */}
-            <div className="quest-seam-line" style={{ left: geo.cx + 40, top: geo.cy + 40, rotate: `${TEAR_TILT}deg` }}>
+            <div className="quest-seam-line" style={{ left: geo.cx + 40, top: geo.cy + 40 }}>
               <div className="quest-seam" style={{ width: 2 * TEAR_W * 0.9 * geo.k }} />
               <div className="quest-streams">
                 {STREAMS.map((s, i) => (
@@ -806,11 +792,6 @@ export function BossEye({
                   <rect x={-500} y={-290} width={1000} height={580} fill={`url(#${id}-sclera)`} />
                   {/* One disc on the eyeball: the iris, the rings round it, and the pupil at its centre. They turn as one. */}
                   <g ref={disc}>
-                    <circle r={300} className="eye-ring-dots" />
-                    <path d={arc(264, 196, 244)} className="eye-bracket" />
-                    <path d={arc(264, 16, 64)} className="eye-bracket" />
-                    <path d={arc(280, 100, 132)} className="eye-bracket-dash" />
-                    <path d={arc(280, 280, 312)} className="eye-bracket-dash" />
                     <g ref={spin}>
                       <circle r={RI} className="eye-iris-disc" />
                       <path d={FIBRES.faint} className="eye-fibre" />
@@ -850,16 +831,6 @@ export function BossEye({
                       <circle r={26} className="clk-inner" />
                       <path d={DIAL.reticle} className="clk-reticle" />
                       <path d={DIAL.numerals} className="clk-numerals" />
-                      <text y={-RC * 0.46} fontSize={6} textAnchor="middle" className="clk-mark">
-                        {dormant ? '' : `HP ${pad(hp)}/${pad(maxHp)}`}
-                      </text>
-                      <path
-                        d={`M${READOUT.x - READOUT.w + 3} ${-READOUT.h}H${READOUT.x - READOUT.w}V${READOUT.h}H${READOUT.x - READOUT.w + 3}M${READOUT.x + READOUT.w - 3} ${-READOUT.h}H${READOUT.x + READOUT.w}V${READOUT.h}H${READOUT.x + READOUT.w - 3}`}
-                        className="clk-bracket"
-                      />
-                      <text x={READOUT.x} y={3.3} fontSize={9.5} textAnchor="middle" className="clk-readout">
-                        {days}
-                      </text>
                       <circle cy={SUB.y} r={SUB.r} className="clk-sub" />
                       <path d={DIAL.subTicks} transform={`translate(0 ${SUB.y.toFixed(1)})`} className="clk-minutes" />
                       <g ref={secondHand}>
@@ -917,11 +888,7 @@ export function BossEye({
             <canvas ref={tearHalo} className="quest-tear-canvas quest-tear-glow" />
             <canvas ref={tearEdge} className="quest-tear-canvas" />
           </div>
-          <div
-            ref={crack}
-            className="quest-crack"
-            style={{ left: geo.cx, top: geo.cy, width: 2 * TEAR_W * geo.k, marginLeft: -TEAR_W * geo.k, rotate: `${TEAR_TILT}deg` }}
-          />
+          <div ref={crack} className="quest-crack" style={{ left: geo.cx, top: geo.cy, width: 2 * TEAR_W * geo.k, marginLeft: -TEAR_W * geo.k }} />
         </div>
         <svg className="quest-window" aria-hidden>
           <defs>
@@ -931,32 +898,10 @@ export function BossEye({
           </defs>
         </svg>
         {/* Light out of the tear as it breaks open, in our own space. */}
-        <div
-          ref={burst}
-          className="quest-burst"
-          style={{ left: geo.cx, top: geo.cy, width: 2 * TEAR_W * geo.k, height: 360 * geo.k, rotate: `${TEAR_TILT}deg` }}
-        />
+        <div ref={burst} className="quest-burst" style={{ left: geo.cx, top: geo.cy, width: 2 * TEAR_W * geo.k, height: 360 * geo.k }} />
         <div ref={flash} className="quest-flash" style={{ left: geo.cx, top: geo.cy, width: 2 * EW * 1.3 * geo.k, height: 2 * EW * 0.8 * geo.k }} />
 
-        {/* The lens: motes out of focus close to it, a streak through the pupil, grain. */}
-        <div ref={bokeh} className="quest-bokeh">
-          {BOKEH.map((b, i) => (
-            <span
-              key={i}
-              style={
-                {
-                  left: b.left,
-                  top: b.top,
-                  width: b.size,
-                  height: b.size,
-                  '--a': b.alpha,
-                  animationDuration: b.dur,
-                  animationDelay: b.delay,
-                } as CSSProperties
-              }
-            />
-          ))}
-        </div>
+        {/* The lens: a streak through the pupil, and grain. */}
         <div
           ref={streak}
           className="quest-streak"
