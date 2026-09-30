@@ -5,12 +5,15 @@ import { cn } from '../../lib/cn';
 import { clockParts } from '../../lib/dates';
 import {
   arc,
+  BOKEH,
+  CONTOUR,
   DIAL,
   EW,
   FIBRES,
   fitEye,
+  grainTile,
+  HORIZON,
   HOUR,
-  lashes,
   lids,
   MINUTE,
   paintStars,
@@ -22,22 +25,18 @@ import {
   RC,
   READOUT,
   RI,
-  riftCracks,
-  riftJags,
-  RIFT_W,
-  riftPath,
   ringText,
   seeded,
   segment,
-  SHARDS,
   spokes,
-  STREAKS,
+  paintTear,
+  STREAMS,
   SUB,
   TAU,
+  TEAR_TILT,
+  TEAR_W,
   ticks,
   turn,
-  upperLid,
-  WINGS,
   YAW,
   type Box,
 } from './eyeArt';
@@ -54,22 +53,20 @@ interface Plate {
 }
 
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
-const easeOut = (t: number) => 1 - (1 - t) ** 3;
 const backOut = (t: number) => 1 + 2.4 * (t - 1) ** 3 + 1.4 * (t - 1) ** 2;
 const clamp01 = (t: number) => Math.max(0, Math.min(1, t));
 const pad = (n: number) => String(n).padStart(2, '0');
 const NS = 'http://www.w3.org/2000/svg';
 
 /**
- * Its entrance, in ms from when it appears: a crack runs out along a line in
- * space, the rift tears open on another dimension (light rushing out, shards
- * thrown off), then the eye opens inside it and the rift seals behind it.
+ * Its arrival, in ms from when it appears. The tear in space is there from
+ * the start; out of its depth the eye comes forward, out of focus and dim,
+ * growing and pulling into focus (see .quest-emerge), its lids opening as it
+ * arrives, and it lands with a shock.
  */
-const CRACK = 380;
-const TORN = 620;
-const OPENS = 1000;
-const SEALED = 1600;
-const RIFT_OPEN = 64;
+const EMERGES = 90;
+const OPENS = 1250;
+const ARRIVES = 1500;
 
 /** A few stars that breathe, on top of the painted sky. */
 const TWINKLES = (() => {
@@ -78,34 +75,39 @@ const TWINKLES = (() => {
 })();
 
 /**
- * The boss: the eye of something vast in space, whose pupil is an old clock.
+ * The boss: the eye of something vast, looking into our space through a tear
+ * from another dimension. Its pupil is an old clock.
  *
- * The stage is a rig of layers around one centre. Behind, two painted skies
- * and a slow glow; then an orrery of rings that turns (its strength as the
- * ring of segments, a numbered segment per piece of work, dark once done; its
- * armor as plates further out; a line of text going round); then the eye. It
- * is placed as large as it can be without touching the text over it (`avoid`).
+ * The stage is a rig of layers around one centre, shot like a film: the lens
+ * is focused on the eye. Behind it, the painted sky (the far stars soft) and
+ * the tear, a long lens of another dimension torn open across space, its
+ * edges burning faintly, light streaming along its seam and its depths
+ * falling away inside; it stays, closes to a scar when the boss is beaten,
+ * and burns orange near its date. Then the eye, with its glow and an orrery
+ * of rings that turns (the far rings soft; its strength as the ring of
+ * segments, a numbered segment per piece of work, dark once done; its armor
+ * as plates further out; a line of text going round). In front: motes out
+ * of focus near the lens, a thin anamorphic streak through the pupil, and
+ * grain. The eye is placed as large as it can be without touching the text
+ * over it (`avoid`).
  *
- * The eye glares: a flat, heavy upper lid set lower than the lower one and
- * casting a deep shadow over the iris, sharp corners running on into lifted
- * wings, and spines along the upper lid like the ticks of an instrument. It
- * is a ball that turns: its iris
- * (a field of fibres with a spoke for each piece of work), the rings round
- * it and its pupil are one disc on the ball, so they always move together;
- * turning carries the disc across and foreshortens it, the pupil only
- * dilates about the iris's centre, and the light on the white follows. The
- * pupil is a clock drawn as one of the atlas's instruments, keeping the real
- * time in your zone, with the days left in its readout.
+ * The eye is a ball that turns: its iris (a field of fibres with a spoke for
+ * each piece of work), the rings round it and its pupil are one disc on the
+ * ball, so they always move together; turning carries the disc across and
+ * foreshortens it, the pupil only dilates about the iris's centre, and the
+ * light on the white follows. The pupil is a clock drawn as one of the
+ * atlas's instruments, keeping the real time in your zone, with the days
+ * left in its readout.
  *
- * It arrives through a rift (see CRACK..SEALED), then stares at you: it
- * follows the pointer (on a phone, the tilt or your touch), and with nothing
- * moving it looks straight out of the screen, never away, with the small
- * darts of a living eye. When you go to strike it narrows and the pupil
- * swells; it looks at the spoke of the piece of work you point to, where
- * that spoke is now; a strike is a beam, and it flinches, a shock going out
- * from its pupil. Near its date it narrows, burns orange and its light beats.
- * Beaten, it closes and its rings stop; got away, it half closes and looks
- * aside. Still, with reduced motion.
+ * It comes out of the tear (EMERGES..ARRIVES), then stares at you: it follows
+ * the pointer (on a phone, the tilt or your touch), and with nothing moving it
+ * looks straight out of the screen, never away, with the small darts of a
+ * living eye. When you go to strike it narrows and the pupil swells; it looks
+ * at the spoke of the piece of work you point to, where that spoke is now; a
+ * strike is a beam, and it flinches, a shock going out from its pupil. Near
+ * its date it narrows, burns orange and its light beats. Beaten, it closes,
+ * its rings stop and the tear seals to a scar; got away, it half closes and
+ * looks aside. Still, with reduced motion.
  */
 export function BossEye({
   parts,
@@ -148,9 +150,9 @@ export function BossEye({
   maxHp: number;
   daysLeft: number;
   label: string;
-  /** Shapes its rift, so each boss tears through its own way. */
+  /** Shapes its tear, so each boss looks through its own. */
   seed?: number;
-  /** No boss: a closed eye, asleep. */
+  /** No boss: a closed eye, asleep behind a sealed scar. */
   dormant?: boolean;
   ref?: Ref<EyeHandle>;
 }) {
@@ -161,6 +163,9 @@ export function BossEye({
   const skyNear = useRef<HTMLDivElement>(null);
   const starsFar = useRef<HTMLCanvasElement>(null);
   const starsNear = useRef<HTMLCanvasElement>(null);
+  const tear = useRef<HTMLDivElement>(null);
+  const tearBase = useRef<HTMLCanvasElement>(null);
+  const tearHalo = useRef<HTMLCanvasElement>(null);
   const far = useRef<HTMLDivElement>(null);
   const mid = useRef<HTMLDivElement>(null);
   const near = useRef<HTMLDivElement>(null);
@@ -175,33 +180,23 @@ export function BossEye({
   const secondHand = useRef<SVGGElement>(null);
   const lidClip = useRef<SVGPathElement>(null);
   const lidLine = useRef<SVGPathElement>(null);
+  const lidOuter = useRef<SVGPathElement>(null);
   const lidShade = useRef<SVGPathElement>(null);
-  const hoodShade = useRef<SVGPathElement>(null);
-  const spines = useRef<SVGPathElement>(null);
-  const wings = useRef<SVGPathElement>(null);
-  const rift = useRef<HTMLDivElement>(null);
-  const riftClip = useRef<SVGPathElement>(null);
-  const riftEdge = useRef<SVGPathElement>(null);
-  const riftCore = useRef<SVGPathElement>(null);
-  const riftSeam = useRef<SVGLineElement>(null);
-  const cracks = useRef<SVGPathElement>(null);
-  const streaks = useRef<SVGGElement>(null);
-  const shards = useRef<SVGGElement>(null);
+  const bokeh = useRef<HTMLDivElement>(null);
+  const streak = useRef<HTMLDivElement>(null);
   const flash = useRef<HTMLDivElement>(null);
   const beams = useRef<SVGSVGElement>(null);
   const shock = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState({ w: 0, h: 0, cx: 0, cy: 0, k: 1 });
   const layout = useMemo(() => spokes(parts), [parts]);
-  const jags = useMemo(() => riftJags(seed), [seed]);
-  const crackPath = useMemo(() => riftCracks(seed), [seed]);
   const id = `eye${useId().replace(/[^\w]/g, '')}`;
   const n = Math.max(parts.length, 1);
-  const rest = dormant || state === 'defeated' ? 0.02 : state === 'escaped' ? 0.42 : urgent ? 0.86 : 1;
+  const rest = dormant || state === 'defeated' ? 0.02 : state === 'escaped' ? 0.42 : urgent ? 0.84 : 1;
   const avoidKey = avoid.map((b) => `${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)},${Math.round(b.h)}`).join(';');
 
   // What the loop reads, so it never restarts when these change.
-  const live = useRef({ state, look, alert, urgent, rest, layout, jags, dormant, k: geo.k, hitAt: 0, reduced, px: 0, py: 0 });
-  Object.assign(live.current, { state, look, alert, urgent, rest, layout, jags, dormant, k: geo.k, reduced });
+  const live = useRef({ state, look, alert, urgent, rest, layout, dormant, k: geo.k, cy: geo.cy, hitAt: 0, reduced, px: 0, py: 0 });
+  Object.assign(live.current, { state, look, alert, urgent, rest, layout, dormant, k: geo.k, cy: geo.cy, reduced });
 
   useLayoutEffect(() => {
     const el = root.current;
@@ -228,11 +223,18 @@ export function BossEye({
     paintStars(starsNear.current, geo.w + 80, geo.h + 80, true);
   }, [geo.w, geo.h]);
 
-  /** A shock going out from the pupil (or, as it arrives, from the rift). */
-  const shockwave = (fromPupil: boolean, scale = 3.8) => {
+  // The tear is painted once per size, boss and mood (its edge burns orange near the date).
+  const hot = urgent && state === 'active';
+  useEffect(() => {
+    if (!geo.w || !tearBase.current || !tearHalo.current) return;
+    paintTear(tearBase.current, tearHalo.current, { w: geo.w + 80, h: geo.h + 80, cx: geo.cx + 40, cy: geo.cy + 40, k: geo.k, seed, urgent: hot });
+  }, [geo, seed, hot]);
+
+  /** A shock going out from the pupil. */
+  const shockwave = (scale = 3.8) => {
     const el = shock.current;
     if (!el) return;
-    const [x, y] = fromPupil ? [live.current.px, live.current.py] : [0, 0];
+    const { px: x, py: y } = live.current;
     el.style.translate = `calc(-50% + ${x.toFixed(1)}px) calc(-50% + ${y.toFixed(1)}px)`;
     el.animate(
       [
@@ -260,7 +262,7 @@ export function BossEye({
     if (!hit) return;
     live.current.hitAt = performance.now();
     if (reduced) return;
-    shockwave(true);
+    shockwave();
     shudder(5);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hit, reduced]);
@@ -332,7 +334,7 @@ export function BossEye({
     [],
   );
 
-  // The loop: its entrance, lids, gaze, pupil, depth and the hands of the clock. Nothing re-renders React.
+  // The loop: its arrival, lids, gaze, pupil, depth and the hands of the clock. Nothing re-renders React.
   useEffect(() => {
     const el = root.current;
     let lastLids = -1;
@@ -340,13 +342,7 @@ export function BossEye({
       if (Math.abs(o - lastLids) < 0.0004) return;
       lastLids = o;
       const d = lids(o);
-      for (const p of [lidClip, lidLine, lidShade]) p.current?.setAttribute('d', d);
-      hoodShade.current?.setAttribute('d', upperLid(o));
-      spines.current?.setAttribute('d', lashes(o));
-      // Spines and wings belong to an open eye: they fade as it closes.
-      const show = clamp01((o - 0.08) * 1.6).toFixed(3);
-      spines.current?.setAttribute('opacity', show);
-      wings.current?.setAttribute('opacity', show);
+      for (const p of [lidClip, lidLine, lidOuter, lidShade]) p.current?.setAttribute('d', d);
     };
     const last = { h: '', m: '', s: '' };
     const setHands = (h: number, m: number, s: number) => {
@@ -360,6 +356,9 @@ export function BossEye({
       const [h, m, s] = [Number(c.h), Number(c.m), Number(c.s)];
       return { h: ((h % 12) + m / 60) * 30, m: (m + s / 60) * 6, s: s * 6 };
     };
+    const move = (r: RefObject<HTMLElement | null>, x: number, y: number) => {
+      if (r.current) r.current.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`;
+    };
     // The eyeball turns: iris, its rings and the pupil are one disc on it, carried and foreshortened
     // together; the pupil only dilates about the same centre, and the light on the white follows.
     const carry = (yaw: number, pitch: number, dil: number) => {
@@ -370,23 +369,22 @@ export function BossEye({
       sclera.current?.setAttribute('cy', (0.5 + (t.y / 580) * 0.6).toFixed(4));
       live.current.px = t.x * live.current.k;
       live.current.py = t.y * live.current.k;
+      // The lens's streak runs level through the pupil.
+      move(streak, 0, live.current.cy + live.current.py);
       return t;
-    };
-    const hideRift = () => {
-      if (rift.current) rift.current.style.display = 'none';
     };
 
     if (reduced) {
       const { state: st, rest: r } = live.current;
       setLids(r);
       carry(st === 'escaped' ? -YAW * 0.8 : 0, st === 'escaped' ? PITCH * 0.3 : 0, 1);
-      hideRift();
       const tick = () => {
         const a = angles();
         setHands(a.h, a.m, a.s);
       };
       tick();
       el?.setAttribute('data-awake', '');
+      el?.setAttribute('data-arrived', '');
       const timer = window.setInterval(tick, 20000);
       return () => window.clearInterval(timer);
     }
@@ -423,11 +421,9 @@ export function BossEye({
 
     const wakeAt = performance.now();
     const dormant = live.current.dormant;
-    // The rings come out of the rift once it has torn open; asleep, they are simply there.
-    const awake = window.setTimeout(() => el?.setAttribute('data-awake', ''), dormant ? 60 : TORN);
-    if (dormant) hideRift();
-    let riftDone = dormant;
-    let torn = false;
+    // Out of the depth of the tear it comes (the emergence is CSS, started here); asleep, it is simply there.
+    const awake = window.setTimeout(() => el?.setAttribute('data-awake', ''), dormant ? 0 : EMERGES);
+    let arrived = dormant;
     let open = 0.012;
     let openV = 0;
     let dil = 0.55;
@@ -444,71 +440,6 @@ export function BossEye({
     let secFrom = a.s;
     let secTo = a.s;
     let secAt = 0;
-    const move = (r: RefObject<HTMLElement | null>, x: number, y: number) => {
-      if (r.current) r.current.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`;
-    };
-    const streakEls = Array.from(streaks.current?.children ?? []) as SVGLineElement[];
-    const shardEls = Array.from(shards.current?.children ?? []) as SVGPathElement[];
-
-    /** The rift: a crack along a line, torn open on light from elsewhere, sealing as the eye opens in it. */
-    const tear = (wake: number) => {
-      const L = live.current;
-      const reveal = easeOut(clamp01(wake / CRACK));
-      const opening =
-        wake < CRACK
-          ? 0
-          : wake < TORN
-            ? RIFT_OPEN * backOut(clamp01((wake - CRACK) / (TORN - CRACK)))
-            : wake < OPENS
-              ? RIFT_OPEN
-              : RIFT_OPEN * (1 - easeInOut(clamp01((wake - OPENS) / (SEALED - OPENS))));
-      const tremble = wake < OPENS ? 0.8 + Math.random() * 1.6 : 0.4;
-      const d = riftPath(L.jags, reveal, opening, tremble);
-      riftClip.current?.setAttribute('d', d);
-      riftEdge.current?.setAttribute('d', d);
-      riftCore.current?.setAttribute('d', d);
-      // The seam it tears along, and the cracks running on from its ends once it has run its length.
-      riftSeam.current?.setAttribute('x1', (-RIFT_W * reveal).toFixed(1));
-      riftSeam.current?.setAttribute('x2', (RIFT_W * reveal).toFixed(1));
-      cracks.current?.setAttribute('opacity', clamp01((reveal - 0.85) * 6.7).toFixed(3));
-      // A crack flickers; the torn rift burns steady, then fades as it seals.
-      const alpha = wake < CRACK ? 0.55 + Math.random() * 0.45 : wake < OPENS ? 1 : 1 - clamp01((wake - OPENS) / (SEALED - OPENS));
-      if (rift.current) rift.current.style.opacity = alpha.toFixed(3);
-      // Through it, light from the other side rushing out.
-      const ts = wake / 1000;
-      STREAKS.forEach((s, i) => {
-        const line = streakEls[i];
-        if (!line) return;
-        const r0 = (s.d0 + s.v * ts) % 460;
-        const r1 = r0 + s.len;
-        line.setAttribute('x1', (Math.cos(s.a) * r0).toFixed(1));
-        line.setAttribute('y1', (Math.sin(s.a) * r0 * 0.4).toFixed(1));
-        line.setAttribute('x2', (Math.cos(s.a) * r1).toFixed(1));
-        line.setAttribute('y2', (Math.sin(s.a) * r1 * 0.4).toFixed(1));
-      });
-      // Shards of this dimension, thrown off as it tears.
-      const st = (wake - CRACK) / 1000;
-      SHARDS.forEach((s, i) => {
-        const p = shardEls[i];
-        if (!p) return;
-        if (st < 0) return p.setAttribute('opacity', '0');
-        p.setAttribute('transform', `translate(${(s.x + s.vx * st).toFixed(1)} ${(s.vy * st).toFixed(1)}) rotate(${(s.spin * st).toFixed(1)})`);
-        p.setAttribute('opacity', clamp01(1 - st / 0.95).toFixed(3));
-      });
-      if (!torn && wake >= CRACK) {
-        torn = true;
-        shockwave(false, 5);
-        shudder(7);
-        flash.current?.animate(
-          [
-            { opacity: 0, transform: 'scale(0.5)' },
-            { opacity: 0.9, transform: 'scale(1)', offset: 0.18 },
-            { opacity: 0, transform: 'scale(1.5)' },
-          ],
-          { duration: 900, easing: 'ease-out' },
-        );
-      }
-    };
 
     let raf = 0;
     const step = (now: number) => {
@@ -519,12 +450,20 @@ export function BossEye({
       const active = L.state === 'active' && !L.dormant;
       const dt = Math.min(64, now - lastFrame);
       lastFrame = now;
-      if (!riftDone) {
-        if (wake < SEALED) tear(wake);
-        else {
-          riftDone = true;
-          hideRift();
-        }
+      // It lands: a shock from its pupil, the stage shudders, the tear flares behind it.
+      if (!arrived && wake >= ARRIVES) {
+        arrived = true;
+        el?.setAttribute('data-arrived', '');
+        shockwave(4.4);
+        shudder(4);
+        flash.current?.animate(
+          [
+            { opacity: 0, transform: 'scale(0.6)' },
+            { opacity: 0.8, transform: 'scale(1)', offset: 0.2 },
+            { opacity: 0, transform: 'scale(1.4)' },
+          ],
+          { duration: 900, easing: 'ease-out' },
+        );
       }
       // The iris turns slowly on itself (once in three minutes), until it is beaten.
       if (!L.dormant && L.state !== 'defeated') turned -= dt * 0.002;
@@ -534,14 +473,14 @@ export function BossEye({
         lastHit = L.hitAt;
         blinkAt = now;
       }
-      if (active && wake > SEALED + 2000 && now > nextBlink) {
+      if (active && wake > ARRIVES + 3000 && now > nextBlink) {
         blinkAt = now;
         nextBlink = now + 8000 + Math.random() * 7000;
       }
       const since = now - blinkAt;
       const blink = blinkAt && since < 280 ? Math.sin((since / 280) * Math.PI) : 0;
-      // Lids: shut until the rift is open, then heavily open (a little past, and back); narrowed when you go to strike.
-      const opensAt = L.dormant ? 300 : OPENS;
+      // Lids: shut while it comes, opening as it arrives (heavily, a little past, and back); narrowed when you go to strike.
+      const opensAt = L.dormant ? 0 : OPENS;
       let goal = wake < opensAt ? 0.012 : L.rest * (L.alert && active ? 0.78 : 1);
       goal *= 1 - blink * 0.97;
       if (blink) {
@@ -584,13 +523,15 @@ export function BossEye({
       const gy = gaze.y + dart.y + (j ? (Math.random() - 0.5) * 2 * j : 0);
       setLids(open);
       const t = carry(gx, gy, dil);
-      // Depth: the rings and the sky move against its gaze.
+      // Depth: what lies behind the eye moves against its gaze, and the motes near the lens with it, more.
       const k = L.k;
+      move(tear, -t.x * k * 0.04, -t.y * k * 0.04);
       move(far, -t.x * k * 0.06, -t.y * k * 0.06);
       move(mid, -t.x * k * 0.025, -t.y * k * 0.025);
       move(near, -t.x * k * 0.012, -t.y * k * 0.012);
-      move(skyFar, -t.x * k * 0.035, -t.y * k * 0.035);
-      move(skyNear, -t.x * k * 0.09, -t.y * k * 0.09);
+      move(skyFar, -t.x * k * 0.03, -t.y * k * 0.03);
+      move(skyNear, -t.x * k * 0.08, -t.y * k * 0.08);
+      move(bokeh, t.x * k * 0.2, t.y * k * 0.2);
       // The hands: they sweep to the hour as it opens, then keep the time; the seconds step, with a small recoil.
       const sec = Math.floor(Date.now() / 1000);
       if (sec !== lastSec) {
@@ -631,6 +572,7 @@ export function BossEye({
   const days = dormant ? '--' : state === 'defeated' ? '00' : pad(Math.max(0, daysLeft));
   const textSize = px(9);
   const lidsNow = lids(dormant || state === 'defeated' ? 0.02 : 0.012);
+  const grain = grainTile();
 
   return (
     <div
@@ -653,224 +595,263 @@ export function BossEye({
       ))}
 
       <div ref={body} className="quest-body">
-        <div className="quest-glow" style={{ left: geo.cx, top: geo.cy, width: 1200 * geo.k, height: 1200 * geo.k }} />
-
-        {/* Far: the great rings of the instrument, turning. */}
-        <div ref={far} className="quest-layer quest-ring-layer" style={box(660, 660)}>
-          <svg viewBox="-660 -660 1320 1320" className="quest-turn">
-            <circle r={600} className="eye-band" />
-            <circle r={520} className="eye-ring-faint" />
-            <circle r={548} className="eye-ring-dots" />
-            <circle r={572} className="eye-ring-faint" />
-            <circle r={640} className="eye-ring-faint" />
-            <path d={ticks(72, 628, 634)} className="eye-ticks" />
-            <path d={arc(520, -40, 58)} className="eye-arc" />
-            <path d={arc(640, 150, 206)} className="eye-arc eye-arc-thin" />
-            <circle cx={520 * Math.cos((58 * Math.PI) / 180)} cy={520 * Math.sin((58 * Math.PI) / 180)} r={4} className="eye-moon" />
-            <circle cx={640 * Math.cos((150 * Math.PI) / 180)} cy={640 * Math.sin((150 * Math.PI) / 180)} r={3} className="eye-moon" />
-            {[
-              [118, 600, 24],
-              [322, 600, 13],
-              [205, 520, 9],
-              [36, 572, 6],
-            ].map(([a, r, s]) => {
-              const [x, y] = [r * Math.cos((a * Math.PI) / 180), r * Math.sin((a * Math.PI) / 180)];
-              return (
-                <g key={a}>
-                  <circle cx={x} cy={y} r={s} className="eye-planet" />
-                  <circle cx={x} cy={y} r={s * 1.7} className="eye-ring-faint" />
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        {/* Middle: its ticks, its strength (a numbered segment per piece of work), its armor. */}
-        <div ref={mid} className="quest-layer quest-ring-layer" style={box(490, 490)}>
-          <svg viewBox="-490 -490 980 980">
-            <path d={ticks(120, R_TICKS, R_TICKS + 5, (i) => i % 10 === 0)} className="eye-ticks" />
-            <path d={ticks(12, R_TICKS - 2, R_TICKS + 12)} className="eye-ticks-major" />
-            {parts.map((p, i) => (
-              <path key={p.id} d={segment(i, n, R_HP)} className={cn('eye-hp', p.done && 'eye-hp-done', look === p.id && 'is-look')} />
-            ))}
-            {parts.map((p, i) => {
-              const a = -Math.PI / 2 + ((i + 0.5) * TAU) / n;
-              return (
-                <text
-                  key={p.id}
-                  x={Math.cos(a) * (R_HP + 24)}
-                  y={Math.sin(a) * (R_HP + 24) + px(10.5) * 0.36}
-                  fontSize={px(10.5)}
-                  textAnchor="middle"
-                  className={cn('eye-num', p.done && 'eye-num-done', look === p.id && 'is-look')}
-                >
-                  {pad(i + 1)}
-                </text>
-              );
-            })}
-            {armor.map((p, i) => {
-              const [whole, chipped] = plate(i, armor.length, p.broken || p.withdrawn ? 0 : p.integrity);
-              return (
-                <g key={i} className={p.broken || p.withdrawn ? 'eye-plate eye-plate-broken' : 'eye-plate'}>
-                  {whole && <path d={whole} className="eye-plate-whole" />}
-                  {chipped && <path d={chipped} className="eye-plate-chipped" />}
-                </g>
-              );
-            })}
-          </svg>
-        </div>
-
-        {/* The eye, inside its lids; its pupil is a clock. */}
-        <div className="quest-layer" style={box(500, 290)}>
-          <svg ref={eye} viewBox="-500 -290 1000 580" className="boss-eye" data-state={dormant ? 'dormant' : state}>
-            <defs>
-              <clipPath id={`${id}-lids`}>
-                <path ref={lidClip} d={lidsNow} />
-              </clipPath>
-              <radialGradient ref={sclera} id={`${id}-sclera`}>
-                <stop offset="0" className="eye-sclera-in" />
-                <stop offset="0.55" className="eye-sclera-mid" />
-                <stop offset="1" className="eye-sclera-out" />
-              </radialGradient>
-            </defs>
-            <g clipPath={`url(#${id}-lids)`}>
-              <rect x={-500} y={-290} width={1000} height={580} fill={`url(#${id}-sclera)`} />
-              {/* One disc on the eyeball: the iris, the rings round it, and the pupil at its centre. They turn as one. */}
-              <g ref={disc}>
-                <circle r={300} className="eye-ring-dots" />
-                <path d={arc(264, 196, 244)} className="eye-bracket" />
-                <path d={arc(264, 16, 64)} className="eye-bracket" />
-                <path d={arc(280, 100, 132)} className="eye-bracket-dash" />
-                <path d={arc(280, 280, 312)} className="eye-bracket-dash" />
-                <g ref={spin}>
-                  <circle r={RI} className="eye-iris-disc" />
-                  <path d={FIBRES.faint} className="eye-fibre" />
-                  <path d={FIBRES.bright} className="eye-fibre-bright" />
-                  <circle r={RI - 14} className="eye-ring-dash" />
-                  <circle r={RI * 0.74} className="eye-ring-dots" />
-                  <circle r={RC + 30} className="eye-ring" />
-                  {layout.map((s) => {
-                    const [c, si] = [Math.cos(s.angle), Math.sin(s.angle)];
-                    return (
-                      <g key={s.part.id} className={cn('eye-spoke', s.part.done && 'eye-spoke-done', look === s.part.id && 'is-look')} data-part={s.part.id}>
-                        <line x1={c * s.from} y1={si * s.from} x2={c * s.to} y2={si * s.to} />
-                        {s.beads.map((b, j) => (
-                          <circle key={j} cx={c * b} cy={si * b} r={2} className="eye-bead" />
-                        ))}
-                        {s.body > 0 && <circle cx={c * s.bodyAt} cy={si * s.bodyAt} r={s.body} className="eye-body" />}
-                        <circle cx={c * s.to} cy={si * s.to} r={s.part.kind === 'target' ? 6.5 : 4.5} className="eye-node" />
-                      </g>
-                    );
-                  })}
-                  <g ref={flares} />
-                </g>
-                <circle r={RI - 5} className="eye-limbus" />
-
-                {/* The pupil: an old clock, drawn as an instrument. */}
-                <g ref={pupil}>
-                  <circle r={RC + 19} className="clk-orbit" />
-                  <circle r={RC + 13} className="clk-rim" />
-                  <path d={DIAL.minutes} className="clk-minutes" />
-                  <path d={DIAL.hours} className="clk-hours" />
-                  <circle r={RC} className="clk-face" />
-                  <circle r={RC - 30} className="clk-dots" />
-                  <circle r={26} className="clk-inner" />
-                  <path d={DIAL.reticle} className="clk-reticle" />
-                  <path d={DIAL.numerals} className="clk-numerals" />
-                  <text y={-RC * 0.46} fontSize={6} textAnchor="middle" className="clk-mark">
-                    {dormant ? '' : `HP ${pad(hp)}/${pad(maxHp)}`}
-                  </text>
-                  <path
-                    d={`M${READOUT.x - READOUT.w + 3} ${-READOUT.h}H${READOUT.x - READOUT.w}V${READOUT.h}H${READOUT.x - READOUT.w + 3}M${READOUT.x + READOUT.w - 3} ${-READOUT.h}H${READOUT.x + READOUT.w}V${READOUT.h}H${READOUT.x + READOUT.w - 3}`}
-                    className="clk-bracket"
+        {/* The tear in space it looks through: there from the start, behind it. */}
+        <div ref={tear} className="quest-tear-move">
+          <div className="quest-tear-shape" style={{ transformOrigin: `${geo.cx + 40}px ${geo.cy + 40}px` }}>
+            <canvas ref={tearBase} className="quest-tear-canvas" />
+            {/* Its edge burns, and breathes. */}
+            <canvas ref={tearHalo} className="quest-tear-canvas quest-tear-glow" />
+            {/* Its seam, and light streaming along it. */}
+            <div className="quest-seam-line" style={{ left: geo.cx + 40, top: geo.cy + 40, rotate: `${TEAR_TILT}deg` }}>
+              <div className="quest-seam" style={{ width: 2 * TEAR_W * 0.9 * geo.k }} />
+              <div className="quest-streams">
+                {STREAMS.map((s, i) => (
+                  <span
+                    key={i}
+                    className="quest-stream"
+                    style={
+                      {
+                        top: s.y * geo.k,
+                        width: s.len * geo.k,
+                        '--reach': `${s.reach * TEAR_W * geo.k}px`,
+                        '--dir': s.left ? -1 : 1,
+                        animationDuration: `${s.dur}s`,
+                        animationDelay: `${s.delay}s`,
+                      } as CSSProperties
+                    }
                   />
-                  <text x={READOUT.x} y={3.3} fontSize={9.5} textAnchor="middle" className="clk-readout">
-                    {days}
-                  </text>
-                  <circle cy={SUB.y} r={SUB.r} className="clk-sub" />
-                  <path d={DIAL.subTicks} transform={`translate(0 ${SUB.y.toFixed(1)})`} className="clk-minutes" />
-                  <g ref={secondHand}>
-                    <line x1={0} y1={SUB.y} x2={0} y2={SUB.y - SUB.r + 3} className="clk-sweep" />
-                    <circle cy={SUB.y - SUB.r} r={2.3} className="clk-sec-moon" />
-                  </g>
-                  <g ref={hourHand}>
-                    <line x1={0} y1={7} x2={0} y2={-(HOUR.length - HOUR.node)} className="clk-hand" />
-                    <circle cy={-HOUR.length * 0.5} r={1.6} className="clk-bead" />
-                    <circle cy={-HOUR.length} r={HOUR.node} className="clk-hand-node" />
-                  </g>
-                  <g ref={minuteHand}>
-                    <line x1={0} y1={10} x2={0} y2={-MINUTE.length} className="clk-hand clk-hand-minute" />
-                    <circle cy={-MINUTE.length * 0.62} r={1.4} className="clk-bead" />
-                    <circle cy={-MINUTE.length} r={MINUTE.node} className="clk-hand-tip" />
-                  </g>
-                  <circle r={5.5} className="clk-core" />
-                  <circle r={1.9} className="clk-pin" />
-                </g>
-              </g>
-              <path ref={lidShade} d={lidsNow} className="eye-lid-shade" />
-              <path ref={hoodShade} d={upperLid(0.012)} className="eye-hood-shade" />
-            </g>
-            <path ref={spines} d={lashes(0.012)} opacity={0} className="eye-spines" />
-            <path ref={wings} d={WINGS} opacity={0} className="eye-wings" />
-            <path ref={lidLine} d={lidsNow} className="eye-lid" />
-          </svg>
-        </div>
-
-        {/* Near: a needle, and a line of text going round the other way. */}
-        <div ref={near} className="quest-layer quest-ring-layer" style={box(510, 510)}>
-          <svg viewBox="-510 -510 1020 1020" className="quest-turn-back">
-            <defs>
-              <path id={`${id}-ring`} d={`M0 ${-R_TEXT}A${R_TEXT} ${R_TEXT} 0 1 1 0 ${R_TEXT}A${R_TEXT} ${R_TEXT} 0 1 1 0 ${-R_TEXT}`} />
-            </defs>
-            {geo.w > 0 && (
-              <text fontSize={textSize} className="eye-ring-text">
-                <textPath href={`#${id}-ring`} textLength={TAU * R_TEXT * 0.995} lengthAdjust="spacing">
-                  {ringText(ring, R_TEXT, textSize)}
-                </textPath>
-              </text>
-            )}
-            <line x1={432} y1={0} x2={466} y2={0} className="eye-needle" />
-            <circle cx={432} cy={0} r={3} className="eye-moon" />
-          </svg>
-        </div>
-
-        {/* The rift it comes through. */}
-        <div ref={rift} className="quest-layer quest-rift" style={{ ...box(700, 340), opacity: 0 }}>
-          <svg viewBox="-700 -340 1400 680">
-            <defs>
-              <clipPath id={`${id}-rift`}>
-                <path ref={riftClip} d="" />
-              </clipPath>
-              <radialGradient id={`${id}-beyond`}>
-                <stop offset="0" className="rift-in" />
-                <stop offset="0.35" className="rift-mid" />
-                <stop offset="1" className="rift-out" />
-              </radialGradient>
-            </defs>
-            <g clipPath={`url(#${id}-rift)`}>
-              <rect x={-700} y={-340} width={1400} height={680} className="rift-void" />
-              <rect x={-700} y={-340} width={1400} height={680} fill={`url(#${id}-beyond)`} />
-              <g ref={streaks}>
-                {STREAKS.map((_, i) => (
-                  <line key={i} className="rift-streak" />
                 ))}
-              </g>
-            </g>
-            <path ref={cracks} d={crackPath} opacity={0} className="rift-crack" />
-            <path ref={riftEdge} d="" className="rift-edge" />
-            <path ref={riftCore} d="" className="rift-core" />
-            <line ref={riftSeam} x1={0} y1={0} x2={0} y2={0} className="rift-seam" />
-            <g ref={shards}>
-              {SHARDS.map((s, i) => (
-                <path key={i} d={s.d} opacity={0} className="rift-shard" />
-              ))}
-            </g>
-          </svg>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div ref={flash} className="quest-flash" style={{ left: geo.cx, top: geo.cy, width: 2 * EW * 1.3 * geo.k, height: 2 * EW * 0.8 * geo.k }} />
-        <div ref={shock} className="quest-shock" style={{ left: geo.cx, top: geo.cy, width: 2 * (RC + 16) * geo.k, height: 2 * (RC + 16) * geo.k }} />
+        {/* Everything that comes out of the tear: its light, its rings, the eye. */}
+        <div className="quest-emerge">
+          <div className="quest-glow" style={{ left: geo.cx, top: geo.cy, width: 1200 * geo.k, height: 1200 * geo.k }} />
+
+          {/* Far: the great rings of the instrument, turning. */}
+          <div ref={far} className="quest-layer quest-ring-layer" style={box(660, 660)}>
+            <svg viewBox="-660 -660 1320 1320" className="quest-turn">
+              <g>
+                <circle r={600} className="eye-band" />
+                <circle r={520} className="eye-ring-faint" />
+                <circle r={548} className="eye-ring-dots" />
+                <circle r={572} className="eye-ring-faint" />
+                <circle r={640} className="eye-ring-faint" />
+                <path d={ticks(72, 628, 634)} className="eye-ticks" />
+                <path d={arc(520, -40, 58)} className="eye-arc" />
+                <path d={arc(640, 150, 206)} className="eye-arc eye-arc-thin" />
+                <circle cx={520 * Math.cos((58 * Math.PI) / 180)} cy={520 * Math.sin((58 * Math.PI) / 180)} r={4} className="eye-moon" />
+                <circle cx={640 * Math.cos((150 * Math.PI) / 180)} cy={640 * Math.sin((150 * Math.PI) / 180)} r={3} className="eye-moon" />
+                {[
+                  [118, 600, 24],
+                  [322, 600, 13],
+                  [205, 520, 9],
+                  [36, 572, 6],
+                ].map(([a, r, s]) => {
+                  const [x, y] = [r * Math.cos((a * Math.PI) / 180), r * Math.sin((a * Math.PI) / 180)];
+                  return (
+                    <g key={a}>
+                      <circle cx={x} cy={y} r={s} className="eye-planet" />
+                      <circle cx={x} cy={y} r={s * 1.7} className="eye-ring-faint" />
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+          </div>
+
+          {/* Middle: its ticks, its strength (a numbered segment per piece of work), its armor, its horizon. */}
+          <div ref={mid} className="quest-layer quest-ring-layer" style={box(460, 460)}>
+            <svg viewBox="-460 -460 920 920">
+              <path d={ticks(120, R_TICKS, R_TICKS + 5, (i) => i % 10 === 0)} className="eye-ticks" />
+              <path d={ticks(12, R_TICKS - 2, R_TICKS + 12)} className="eye-ticks-major" />
+              {parts.map((p, i) => (
+                <path key={p.id} d={segment(i, n, R_HP)} className={cn('eye-hp', p.done && 'eye-hp-done', look === p.id && 'is-look')} />
+              ))}
+              {parts.map((p, i) => {
+                const a = -Math.PI / 2 + ((i + 0.5) * TAU) / n;
+                return (
+                  <text
+                    key={p.id}
+                    x={Math.cos(a) * (R_HP + 24)}
+                    y={Math.sin(a) * (R_HP + 24) + px(10.5) * 0.36}
+                    fontSize={px(10.5)}
+                    textAnchor="middle"
+                    className={cn('eye-num', p.done && 'eye-num-done', look === p.id && 'is-look')}
+                  >
+                    {pad(i + 1)}
+                  </text>
+                );
+              })}
+              {armor.map((p, i) => {
+                const [whole, chipped] = plate(i, armor.length, p.broken || p.withdrawn ? 0 : p.integrity);
+                return (
+                  <g key={i} className={p.broken || p.withdrawn ? 'eye-plate eye-plate-broken' : 'eye-plate'}>
+                    {whole && <path d={whole} className="eye-plate-whole" />}
+                    {chipped && <path d={chipped} className="eye-plate-chipped" />}
+                  </g>
+                );
+              })}
+              <path
+                d={`M${-HORIZON.from} 0L${-HORIZON.to} 0M${HORIZON.from} 0L${HORIZON.to} 0M${-HORIZON.to} -5L${-HORIZON.to} 5M${HORIZON.to} -5L${HORIZON.to} 5`}
+                className="eye-horizon"
+              />
+            </svg>
+          </div>
+
+          {/* The eye, inside its lids; its pupil is a clock. */}
+          <div className="quest-layer" style={box(500, 290)}>
+            <svg ref={eye} viewBox="-500 -290 1000 580" className="boss-eye" data-state={dormant ? 'dormant' : state}>
+              <defs>
+                <clipPath id={`${id}-lids`}>
+                  <path ref={lidClip} d={lidsNow} />
+                </clipPath>
+                <radialGradient ref={sclera} id={`${id}-sclera`}>
+                  <stop offset="0" className="eye-sclera-in" />
+                  <stop offset="0.55" className="eye-sclera-mid" />
+                  <stop offset="1" className="eye-sclera-out" />
+                </radialGradient>
+              </defs>
+              <g clipPath={`url(#${id}-lids)`}>
+                {/* The white of it is solid: it is in front of the tear, not a window onto it. */}
+                <rect x={-500} y={-290} width={1000} height={580} className="eye-sclera-base" />
+                <rect x={-500} y={-290} width={1000} height={580} fill={`url(#${id}-sclera)`} />
+                {/* One disc on the eyeball: the iris, the rings round it, and the pupil at its centre. They turn as one. */}
+                <g ref={disc}>
+                  <circle r={300} className="eye-ring-dots" />
+                  <path d={arc(264, 196, 244)} className="eye-bracket" />
+                  <path d={arc(264, 16, 64)} className="eye-bracket" />
+                  <path d={arc(280, 100, 132)} className="eye-bracket-dash" />
+                  <path d={arc(280, 280, 312)} className="eye-bracket-dash" />
+                  <g ref={spin}>
+                    <circle r={RI} className="eye-iris-disc" />
+                    <path d={FIBRES.faint} className="eye-fibre" />
+                    <path d={FIBRES.bright} className="eye-fibre-bright" />
+                    <circle r={RI - 14} className="eye-ring-dash" />
+                    <circle r={RI * 0.74} className="eye-ring-dots" />
+                    <circle r={RC + 30} className="eye-ring" />
+                    {layout.map((s) => {
+                      const [c, si] = [Math.cos(s.angle), Math.sin(s.angle)];
+                      return (
+                        <g key={s.part.id} className={cn('eye-spoke', s.part.done && 'eye-spoke-done', look === s.part.id && 'is-look')} data-part={s.part.id}>
+                          <line x1={c * s.from} y1={si * s.from} x2={c * s.to} y2={si * s.to} />
+                          {s.beads.map((b, j) => (
+                            <circle key={j} cx={c * b} cy={si * b} r={2} className="eye-bead" />
+                          ))}
+                          {s.body > 0 && <circle cx={c * s.bodyAt} cy={si * s.bodyAt} r={s.body} className="eye-body" />}
+                          <circle cx={c * s.to} cy={si * s.to} r={s.part.kind === 'target' ? 6.5 : 4.5} className="eye-node" />
+                        </g>
+                      );
+                    })}
+                    <g ref={flares} />
+                  </g>
+                  <circle r={RI - 5} className="eye-limbus" />
+
+                  {/* The pupil: an old clock, drawn as an instrument. */}
+                  <g ref={pupil}>
+                    <circle r={RC + 19} className="clk-orbit" />
+                    <circle r={RC + 13} className="clk-rim" />
+                    <path d={DIAL.minutes} className="clk-minutes" />
+                    <path d={DIAL.hours} className="clk-hours" />
+                    <circle r={RC} className="clk-face" />
+                    <circle r={RC - 30} className="clk-dots" />
+                    <circle r={26} className="clk-inner" />
+                    <path d={DIAL.reticle} className="clk-reticle" />
+                    <path d={DIAL.numerals} className="clk-numerals" />
+                    <text y={-RC * 0.46} fontSize={6} textAnchor="middle" className="clk-mark">
+                      {dormant ? '' : `HP ${pad(hp)}/${pad(maxHp)}`}
+                    </text>
+                    <path
+                      d={`M${READOUT.x - READOUT.w + 3} ${-READOUT.h}H${READOUT.x - READOUT.w}V${READOUT.h}H${READOUT.x - READOUT.w + 3}M${READOUT.x + READOUT.w - 3} ${-READOUT.h}H${READOUT.x + READOUT.w}V${READOUT.h}H${READOUT.x + READOUT.w - 3}`}
+                      className="clk-bracket"
+                    />
+                    <text x={READOUT.x} y={3.3} fontSize={9.5} textAnchor="middle" className="clk-readout">
+                      {days}
+                    </text>
+                    <circle cy={SUB.y} r={SUB.r} className="clk-sub" />
+                    <path d={DIAL.subTicks} transform={`translate(0 ${SUB.y.toFixed(1)})`} className="clk-minutes" />
+                    <g ref={secondHand}>
+                      <line x1={0} y1={SUB.y} x2={0} y2={SUB.y - SUB.r + 3} className="clk-sweep" />
+                      <circle cy={SUB.y - SUB.r} r={2.3} className="clk-sec-moon" />
+                    </g>
+                    <g ref={hourHand}>
+                      <line x1={0} y1={7} x2={0} y2={-(HOUR.length - HOUR.node)} className="clk-hand" />
+                      <circle cy={-HOUR.length * 0.5} r={1.6} className="clk-bead" />
+                      <circle cy={-HOUR.length} r={HOUR.node} className="clk-hand-node" />
+                    </g>
+                    <g ref={minuteHand}>
+                      <line x1={0} y1={10} x2={0} y2={-MINUTE.length} className="clk-hand clk-hand-minute" />
+                      <circle cy={-MINUTE.length * 0.62} r={1.4} className="clk-bead" />
+                      <circle cy={-MINUTE.length} r={MINUTE.node} className="clk-hand-tip" />
+                    </g>
+                    <circle r={5.5} className="clk-core" />
+                    <circle r={1.9} className="clk-pin" />
+                  </g>
+                </g>
+                <path ref={lidShade} d={lidsNow} className="eye-lid-shade" />
+              </g>
+              <g transform={`scale(${CONTOUR.x} ${CONTOUR.y})`}>
+                <path ref={lidOuter} d={lidsNow} className="eye-lid-contour" />
+              </g>
+              <path ref={lidLine} d={lidsNow} className="eye-lid" />
+            </svg>
+          </div>
+
+          {/* Near: brackets of light, a needle, and a line of text going round the other way. */}
+          <div ref={near} className="quest-layer quest-ring-layer" style={box(490, 490)}>
+            <svg viewBox="-490 -490 980 980" className="quest-turn-back">
+              <defs>
+                <path id={`${id}-ring`} d={`M0 ${-R_TEXT}A${R_TEXT} ${R_TEXT} 0 1 1 0 ${R_TEXT}A${R_TEXT} ${R_TEXT} 0 1 1 0 ${-R_TEXT}`} />
+              </defs>
+              {geo.w > 0 && (
+                <text fontSize={textSize} className="eye-ring-text">
+                  <textPath href={`#${id}-ring`} textLength={TAU * R_TEXT * 0.995} lengthAdjust="spacing">
+                    {ringText(ring, R_TEXT, textSize)}
+                  </textPath>
+                </text>
+              )}
+              <line x1={410} y1={0} x2={446} y2={0} className="eye-needle" />
+              <circle cx={410} cy={0} r={3} className="eye-moon" />
+            </svg>
+          </div>
+
+          <div ref={flash} className="quest-flash" style={{ left: geo.cx, top: geo.cy, width: 2 * EW * 1.3 * geo.k, height: 2 * EW * 0.8 * geo.k }} />
+          <div ref={shock} className="quest-shock" style={{ left: geo.cx, top: geo.cy, width: 2 * (RC + 16) * geo.k, height: 2 * (RC + 16) * geo.k }} />
+        </div>
+
+        {/* The lens: motes out of focus close to it, a streak through the pupil, grain. */}
+        <div ref={bokeh} className="quest-bokeh">
+          {BOKEH.map((b, i) => (
+            <span
+              key={i}
+              style={
+                {
+                  left: b.left,
+                  top: b.top,
+                  width: b.size,
+                  height: b.size,
+                  '--a': b.alpha,
+                  animationDuration: b.dur,
+                  animationDelay: b.delay,
+                } as CSSProperties
+              }
+            />
+          ))}
+        </div>
+        <div
+          ref={streak}
+          className="quest-streak"
+          style={
+            {
+              '--from': `${Math.max(0, geo.cx - EW * CONTOUR.x * geo.k)}px`,
+              '--to': `${geo.cx + EW * CONTOUR.x * geo.k}px`,
+            } as CSSProperties
+          }
+        />
       </div>
+      {grain && <div className="quest-grain" style={{ backgroundImage: `url(${grain})` }} />}
       <svg ref={beams} className="quest-beams" />
     </div>
   );

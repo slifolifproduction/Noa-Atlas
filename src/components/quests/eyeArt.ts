@@ -11,19 +11,18 @@ export const TAU = Math.PI * 2;
 export const RC = 92;
 /** The iris. */
 export const RI = 232;
-/**
- * Half the width of the eye, to its sharp corners, and how far each lid stands
- * from the middle when open: the upper lid flat, heavy and lower than the
- * lower one, so it glares from under it.
- */
-export const EW = 380;
-export const UP = 196;
-export const LO = 226;
+/** Half the width of the eye, and half its height when wide open. */
+export const EW = 350;
+export const EH = 236;
 /** The rings: its ticks, its strength, its armor, the text that turns. */
-export const R_TICKS = 398;
-export const R_HP = 416;
-export const R_ARMOR = 458;
-export const R_TEXT = 482;
+export const R_TICKS = 372;
+export const R_HP = 392;
+export const R_ARMOR = 436;
+export const R_TEXT = 462;
+/** The outer contour drawn round the lids, as a scale of them. */
+export const CONTOUR = { x: 1.07, y: 1.14 };
+/** The horizon it sits on: short lines running on from its corners. */
+export const HORIZON = { from: EW + 16, to: EW + 104 };
 
 const f = (n: number) => n.toFixed(1);
 
@@ -39,55 +38,30 @@ export function seeded(seed: number) {
 
 type P = [number, number];
 type Seg = [P, P, P];
-const cubic = (segs: Seg[]) => segs.map(([a, b, c]) => `C${f(a[0])} ${f(a[1])} ${f(b[0])} ${f(b[1])} ${f(c[0])} ${f(c[1])}`).join('');
 
-/**
- * The upper lid, left corner to right: it leaves each corner low and sharp,
- * rises steeply, and runs flat and heavy across the top.
- */
-function upperSegs(o: number): Seg[] {
-  const u = UP * Math.max(0.012, o);
-  return [
-    [
-      [-EW * 0.74, -u * 0.1],
-      [-EW * 0.6, -u],
-      [-EW * 0.3, -u],
-    ],
-    [
-      [-EW * 0.1, -u],
-      [EW * 0.1, -u],
-      [EW * 0.3, -u],
-    ],
-    [
-      [EW * 0.6, -u],
-      [EW * 0.74, -u * 0.1],
+/** The two lids as curves: the upper from the left corner, the lower back from the right. */
+function lidSegs(o: number): { upper: Seg; lower: Seg } {
+  const c = (-EH * Math.max(0.012, o)) / 0.75;
+  return {
+    upper: [
+      [-EW * 0.45, c],
+      [EW * 0.45, c],
       [EW, 0],
     ],
-  ];
-}
-/** The lower lid, right corner back to left: sharp at the corners, round beneath. */
-function lowerSegs(o: number): Seg[] {
-  const d = LO * Math.max(0.012, o);
-  return [
-    [
-      [EW * 0.7, d * 0.14],
-      [EW * 0.46, d],
-      [0, d],
-    ],
-    [
-      [-EW * 0.46, d],
-      [-EW * 0.7, d * 0.14],
+    lower: [
+      [EW * 0.45, -c],
+      [-EW * 0.45, -c],
       [-EW, 0],
     ],
-  ];
+  };
 }
 
-/** The eye's outline, open by `o` (0 closed, 1 open), as a closed shape for its lids. */
-export const lids = (o: number) => `M${-EW} 0${cubic(upperSegs(o))}${cubic(lowerSegs(o))}Z`;
-/** The upper lid alone, for the heavy shadow it casts. */
-export const upperLid = (o: number) => `M${-EW} 0${cubic(upperSegs(o))}`;
-/** Its corners run on into thin wings that lift a little: the look of something that hunts. */
-export const WINGS = `M${-EW - 10} -2L${-EW - 118} -28M${-EW - 118} -34L${-EW - 118} -22M${EW + 10} -2L${EW + 118} -28M${EW + 118} -34L${EW + 118} -22`;
+/** The eye's outline, open by `o` (0 closed, 1 wide open). */
+export function lids(o: number) {
+  const { upper: u, lower: l } = lidSegs(o);
+  const seg = ([a, b, c]: Seg) => `C${f(a[0])} ${f(a[1])} ${f(b[0])} ${f(b[1])} ${f(c[0])} ${f(c[1])}`;
+  return `M${-EW} 0${seg(u)}${seg(l)}Z`;
+}
 
 /* ---- Where the eye can go -------------------------------------------------- */
 
@@ -98,42 +72,17 @@ const bez = (p0: P, [a, b, c]: Seg, t: number): P => {
     m * m * m * p0[1] + 3 * m * m * t * a[1] + 3 * m * t * t * b[1] + t * t * t * c[1],
   ];
 };
-function sample(start: P, segs: Seg[], each: number) {
-  const out: P[] = [];
-  let p0 = start;
-  for (const s of segs) {
-    for (let i = 0; i < each; i++) out.push(bez(p0, s, i / each));
-    p0 = s[2];
-  }
-  out.push(p0);
-  return out;
-}
-/**
- * Spines along the upper lid, set outward like the ticks of an instrument:
- * longer over the middle, none at the corners.
- */
-export function lashes(o: number) {
-  const pts = sample([-EW, 0], upperSegs(o), 16);
-  let d = '';
-  for (let i = 2; i < pts.length - 2; i++) {
-    const [p, q] = [pts[i - 1], pts[i + 1]];
-    const [tx, ty] = [q[0] - p[0], q[1] - p[1]];
-    const len = Math.hypot(tx, ty) || 1;
-    const [nx, ny] = [ty / len, -tx / len];
-    const reach = (i % 2 ? 9 : 16) * Math.sin((Math.PI * i) / (pts.length - 1));
-    const [x, y] = pts[i];
-    d += `M${f(x + nx * 4)} ${f(y + ny * 4)}L${f(x + nx * (4 + reach))} ${f(y + ny * (4 + reach))}`;
-  }
-  return d;
+function sample(start: P, seg: Seg, n: number) {
+  return Array.from({ length: n + 1 }, (_, i) => bez(start, seg, i / n));
 }
 
-/** The eye's outer edge at its widest (the spines over the upper lid, the lower lid, a little past open), to keep it clear of text. */
-export const OUTLINE: P[] = (() => [
-  ...sample([-EW, 0], upperSegs(1.08), 10).map(([x, y]): P => [x, y - (y < -20 ? 22 : 0)]),
-  ...sample([EW, 0], lowerSegs(1.08), 10),
-  // The wings.
-  ...[-1, 1].flatMap((side): P[] => [0.25, 0.5, 0.75, 1].map((t): P => [side * (EW + 10 + 108 * t), -2 - 26 * t])),
-])();
+/** The eye's outer edge at its widest (its contour, a little past open, and its horizon), to keep it clear of text. */
+export const OUTLINE: P[] = (() => {
+  const { upper, lower } = lidSegs(1.08);
+  const contour = [...sample([-EW, 0], upper, 16), ...sample([EW, 0], lower, 16)].map(([x, y]): P => [x * CONTOUR.x, y * CONTOUR.y]);
+  const horizon = [-1, 1].flatMap((side): P[] => [0, 0.5, 1].map((t): P => [side * (HORIZON.from + (HORIZON.to - HORIZON.from) * t), t === 1 ? 5 : 0]));
+  return [...contour, ...horizon];
+})();
 
 export interface Box {
   x: number;
@@ -161,7 +110,7 @@ function clear(cx: number, cy: number, k: number, boxes: Box[], x0: number, x1: 
     ]) {
       const u = (X - cx) / k;
       const v = (Y - cy) / k;
-      if (Math.abs(u) < EW && Math.abs(v) < 230 * (1 - (u / EW) ** 2)) return false;
+      if (Math.abs(u) < EW * CONTOUR.x && Math.abs(v) < EH * CONTOUR.y * (1 - (u / (EW * CONTOUR.x)) ** 2)) return false;
     }
   }
   return true;
@@ -179,7 +128,7 @@ export function fitEye(w: number, h: number, boxes: Box[], wide: boolean) {
   const [x0, x1] = wide ? [8, w - 8] : [-Infinity, Infinity];
   const [y0, y1] = [6, h - 6];
   const kMin = 0.3;
-  const kMax = wide ? Math.min(2.4, (w * 0.95) / (2 * (EW + 34))) : Math.min(1.6, (w * 1.3) / (2 * EW));
+  const kMax = wide ? Math.min(2.4, (w * 0.95) / (2 * HORIZON.to)) : Math.min(1.6, (w * 1.3) / (2 * EW));
   const cxs = wide ? Array.from({ length: 19 }, (_, i) => w * (0.14 + (0.72 * i) / 18)) : [w / 2];
   const cys = Array.from({ length: 13 }, (_, i) => h * (0.24 + (0.52 * i) / 12));
   const [px, py] = [wide ? right / 2 : w / 2, h * 0.5];
@@ -201,71 +150,182 @@ export function fitEye(w: number, h: number, boxes: Box[], wide: boolean) {
   return { cx: best.cx, cy: best.cy, k: best.k };
 }
 
-/* ---- The rift it comes through --------------------------------------------- */
+/* ---- The tear in space it looks through ------------------------------------ */
 
-/** How far the rift runs either side of the middle. */
-export const RIFT_W = EW * 1.22;
-/** Cracks running on from the rift's ends into the space around it. */
-export function riftCracks(seed: number) {
+/** The tear runs far either side of the eye, and stands open a little wider than it in the middle. */
+export const TEAR_W = EW * 2.3;
+export const TEAR_H = 300;
+/** It lies a little off level, as a tear would. */
+export const TEAR_TILT = -4;
+
+/** Smooth noise along a line: a value every unit, eased between. */
+function noise(seed: number) {
+  const r = seeded(seed);
+  const v = Array.from({ length: 97 }, () => r() * 2 - 1);
+  return (x: number) => {
+    const i = Math.floor(x);
+    const t = x - i;
+    const [a, b] = [v[((i % 97) + 97) % 97], v[(((i + 1) % 97) + 97) % 97]];
+    return a + (b - a) * t * t * (3 - 2 * t);
+  };
+}
+
+/**
+ * The tear, in units round the eye: a long lens of another dimension that
+ * tapers to a crack at each end. Its edges are torn at every scale at once
+ * (a slow waver, smaller rips, fine fraying), each edge its own; the same for
+ * a boss every time. The top edge left to right, then the bottom back.
+ */
+export function tearOutline(seed: number) {
+  const layers = [0, 1].map((side) => [noise(seed + side * 31 + 1), noise(seed + side * 31 + 2), noise(seed + side * 31 + 3)]);
+  const step = 5;
+  const n = Math.round((2 * TEAR_W) / step);
+  const edge = (side: 0 | 1) =>
+    Array.from({ length: n + 1 }, (_, i): P => {
+      const x = -TEAR_W + i * step;
+      const u = x / TEAR_W;
+      const prof = Math.max(0, 1 - u * u) ** 1.3;
+      const [a, b, c] = layers[side];
+      const rough = (12 * a(x / 90) + 4.5 * b(x / 22) + 1.6 * c(x / 5)) * Math.min(1, prof * 3 + 0.25);
+      const y = i === 0 || i === n ? 0 : TEAR_H * prof + rough;
+      return [x, side ? Math.max(0.5, y) : -Math.max(0.5, y)];
+    });
+  return [...edge(0), ...edge(1).reverse()];
+}
+
+/** Cracks running on from the tear's ends into the space around it. */
+export function tearCracks(seed: number) {
   const r = seeded(seed + 7);
-  let d = '';
+  const out: P[][] = [];
   for (const side of [-1, 1]) {
-    for (let k = 0; k < 3; k++) {
-      let [x, y] = [side * RIFT_W * (0.92 - k * 0.12), (r() - 0.5) * 6];
-      d += `M${f(x)} ${f(y)}`;
-      const dir = (r() - 0.5) * 0.9;
-      for (let j = 0; j < 5; j++) {
-        x += side * (14 + r() * 26);
-        y += dir * 24 + (r() - 0.5) * 16;
-        d += `L${f(x)} ${f(y)}`;
+    for (let k = 0; k < 4; k++) {
+      let [x, y] = [side * TEAR_W * (0.98 - k * 0.06), (r() - 0.5) * 6];
+      const line: P[] = [[x, y]];
+      const dir = (r() - 0.5) * 1.1;
+      for (let j = 0; j < 6; j++) {
+        x += side * (16 + r() * 34);
+        y += dir * 20 + (r() - 0.5) * 14;
+        line.push([x, y]);
       }
+      out.push(line);
     }
   }
-  return d;
+  return out;
 }
-/** The rift's jagged edges: a pair of offsets for each step along it. */
-export function riftJags(seed: number, n = 56): [number, number][] {
-  const r = seeded(seed);
-  return Array.from({ length: n + 1 }, () => [r(), r()]);
-}
-/** The rift, grown out to `reveal` of its width and opened by `open` units, its edges trembling by `tremble`. */
-export function riftPath(jags: [number, number][], reveal: number, open: number, tremble: number) {
-  const RW = RIFT_W;
-  const n = jags.length - 1;
-  const pts = jags.map(([a, b], i) => {
-    const x = (-1 + (2 * i) / n) * RW * reveal;
-    const prof = Math.max(0, 1 - (x / RW) ** 2) ** 1.2;
-    const edge = i === 0 || i === n ? 0 : 1;
-    // Every other step bites deeper: the edge of something torn, not a smooth cut.
-    const bite = (i % 2 ? 0.55 : 0.85) + 0.35 * a;
-    const bite2 = (i % 2 ? 0.85 : 0.55) + 0.35 * b;
-    return [x, -edge * (open * prof * bite + (0.6 + 1.8 * a) * tremble), edge * (open * prof * bite2 + (0.6 + 1.8 * b) * tremble)];
+
+/** Specks of light on the other side, seen through the tear. */
+export function tearSpecks(seed: number) {
+  const r = seeded(seed + 13);
+  return Array.from({ length: 110 }, () => {
+    const u = (r() * 2 - 1) * 0.94;
+    const h = TEAR_H * Math.max(0, 1 - u * u) ** 1.3 * 0.9;
+    return { x: u * TEAR_W, y: (r() * 2 - 1) * h, r: 0.4 + r() ** 3 * 1.8, a: 0.2 + r() * 0.6 };
   });
-  let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
-  for (let i = 1; i <= n; i++) d += `L${f(pts[i][0])} ${f(pts[i][1])}`;
-  for (let i = n; i >= 0; i--) d += `L${f(pts[i][0])} ${f(pts[i][2])}`;
-  return `${d}Z`;
 }
-/** Shards of the broken dimension, thrown out from the rift. */
-export const SHARDS = (() => {
-  const r = seeded(77);
-  return Array.from({ length: 14 }, () => {
-    const up = r() < 0.5 ? -1 : 1;
-    const a = up * (Math.PI / 2) + (r() - 0.5) * 1.6;
-    const s = 5 + r() * 9;
-    return {
-      x: (r() - 0.5) * EW * 1.6,
-      vx: Math.cos(a) * (140 + r() * 320),
-      vy: Math.sin(a) * (140 + r() * 320),
-      spin: (r() - 0.5) * 720,
-      d: `M0 ${f(-s)}L${f(s * 0.7)} ${f(s * 0.5)}L${f(-s * 0.6)} ${f(s * 0.3)}Z`,
-    };
-  });
-})();
-/** The other side, seen through the rift: streaks of light rushing out. */
-export const STREAKS = (() => {
+
+/**
+ * Paint the tear once: the void of the other side with a warm light deep in
+ * it, its specks, the depths falling away inside it (echoes of its edge), the
+ * cracks at its ends and its edge. Its burning halo goes on a second canvas,
+ * so it can breathe and flare without being painted again.
+ */
+export function paintTear(
+  base: HTMLCanvasElement,
+  halo: HTMLCanvasElement,
+  o: { w: number; h: number; cx: number; cy: number; k: number; seed: number; urgent: boolean },
+) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const outline = tearOutline(o.seed);
+  const cracks = tearCracks(o.seed);
+  const trace = (ctx: CanvasRenderingContext2D, pts: P[], sx = 1, sy = 1) => {
+    ctx.beginPath();
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * sx, y * sy) : ctx.moveTo(x * sx, y * sy)));
+    ctx.closePath();
+  };
+  const setup = (c: HTMLCanvasElement) => {
+    c.width = Math.round(o.w * dpr);
+    c.height = Math.round(o.h * dpr);
+    const ctx = c.getContext('2d');
+    if (!ctx) return null;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, o.w, o.h);
+    ctx.translate(o.cx, o.cy);
+    ctx.rotate((TEAR_TILT * Math.PI) / 180);
+    ctx.scale(o.k, o.k);
+    return ctx;
+  };
+  const px = 1 / o.k;
+  const ctx = setup(base);
+  if (ctx) {
+    // The void, a little soft: it lies behind the plane in focus.
+    soft(ctx, 0.7 * dpr, (ctx) => {
+      trace(ctx, outline);
+      ctx.fillStyle = '#010203';
+      ctx.fill();
+      ctx.save();
+      trace(ctx, outline);
+      ctx.clip();
+      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, TEAR_W * 0.9);
+      glow.addColorStop(0, 'rgba(255,236,220,0.13)');
+      glow.addColorStop(0.25, 'rgba(255,150,100,0.05)');
+      glow.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.save();
+      ctx.scale(1, 0.3);
+      ctx.fillStyle = glow;
+      ctx.fillRect(-TEAR_W, -TEAR_H / 0.3, 2 * TEAR_W, (2 * TEAR_H) / 0.3);
+      ctx.restore();
+      for (const p of tearSpecks(o.seed)) {
+        ctx.fillStyle = `rgba(255,236,220,${p.a.toFixed(2)})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, TAU);
+        ctx.fill();
+      }
+      // Its depths: echoes of its edge, falling away inside it.
+      ctx.lineWidth = px;
+      [
+        [0.97, 0.7, 0.11],
+        [0.93, 0.44, 0.08],
+        [0.88, 0.2, 0.06],
+      ].forEach(([sx, sy, a]) => {
+        trace(ctx, outline, sx, sy);
+        ctx.strokeStyle = `rgba(255,232,214,${a})`;
+        ctx.stroke();
+      });
+      ctx.restore();
+    });
+    ctx.lineWidth = px;
+    ctx.strokeStyle = 'rgba(255,226,206,0.45)';
+    for (const line of cracks) {
+      ctx.beginPath();
+      line.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      ctx.stroke();
+    }
+    trace(ctx, outline);
+    ctx.strokeStyle = o.urgent ? 'rgba(255,176,130,0.95)' : 'rgba(255,240,228,0.8)';
+    ctx.lineWidth = px;
+    ctx.stroke();
+  }
+  const hx = setup(halo);
+  if (hx) {
+    trace(hx, outline);
+    hx.shadowColor = o.urgent ? 'rgba(255,90,31,0.9)' : 'rgba(255,150,100,0.6)';
+    hx.shadowBlur = 14 * dpr;
+    hx.strokeStyle = o.urgent ? 'rgba(255,90,31,0.7)' : 'rgba(255,190,150,0.35)';
+    hx.lineWidth = 2.2 * px;
+    hx.stroke();
+  }
+}
+/** Light streaming along the seam of the tear, out towards its ends. */
+export const STREAMS = (() => {
   const r = seeded(91);
-  return Array.from({ length: 40 }, () => ({ a: r() * TAU, d0: r() * 420, v: 380 + r() * 700, len: 14 + r() * 40 }));
+  return Array.from({ length: 22 }, () => ({
+    y: (r() - 0.5) * 70,
+    len: 30 + r() * 90,
+    reach: 0.35 + r() * 0.5,
+    dur: 3 + r() * 5,
+    delay: -r() * 8,
+    left: r() < 0.5,
+  }));
 })();
 
 /** Where each part of the boss sits on the iris: an angle, a reach, and a few bodies along it. */
@@ -422,6 +482,26 @@ export const DIAL = (() => {
 /* ---- The sky --------------------------------------------------------------- */
 
 /**
+ * Draw with `draw` onto a canvas the size of `ctx`'s, then lay it onto `ctx`
+ * blurred by `blur` pixels: one blur for the whole of it. (A filter set on the
+ * context itself would blur every stroke on its own, which is ruinous.)
+ */
+function soft(ctx: CanvasRenderingContext2D, blur: number, draw: (c: CanvasRenderingContext2D) => void) {
+  const off = document.createElement('canvas');
+  off.width = ctx.canvas.width;
+  off.height = ctx.canvas.height;
+  const o = off.getContext('2d');
+  if (!o) return draw(ctx);
+  o.setTransform(ctx.getTransform());
+  draw(o);
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.filter = `blur(${blur.toFixed(2)}px)`;
+  ctx.drawImage(off, 0, 0);
+  ctx.restore();
+}
+
+/**
  * Paint a layer of stars once. `near` stars are fewer, larger and brighter,
  * and a handful of them carry a faint cross of light.
  */
@@ -433,6 +513,11 @@ export function paintStars(canvas: HTMLCanvasElement, w: number, h: number, near
   if (!ctx) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
+  // Depth of field: the far sky lies behind the plane in focus, so it is a little soft.
+  if (near) sky(ctx, w, h, true);
+  else soft(ctx, 0.8 * dpr, (c) => sky(c, w, h, false));
+}
+function sky(ctx: CanvasRenderingContext2D, w: number, h: number, near: boolean) {
   const r = seeded(near ? 29 : 5);
   const count = Math.round((w * h) / (near ? 14000 : 1700));
   for (let i = 0; i < count; i++) {
@@ -465,4 +550,43 @@ export function ringText(phrase: string, r: number, size: number) {
   let s = '';
   while (s.length < need) s += `${phrase}  ·  `;
   return s.slice(0, need);
+}
+
+/* ---- The lens ---------------------------------------------------------------- */
+
+/** Out-of-focus motes drifting close to the lens, in front of everything. */
+export const BOKEH = (() => {
+  const r = seeded(63);
+  return Array.from({ length: 8 }, () => ({
+    left: `${r() * 100}%`,
+    top: `${8 + r() * 84}%`,
+    size: 50 + r() ** 1.5 * 170,
+    alpha: 0.025 + r() * 0.05,
+    dur: `${18 + r() * 16}s`,
+    delay: `${-r() * 20}s`,
+  }));
+})();
+
+let grain: string | undefined;
+/** A tile of film grain, made once. */
+export function grainTile() {
+  if (grain !== undefined) return grain;
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 128;
+    const ctx = c.getContext('2d');
+    if (!ctx) return (grain = '');
+    const img = ctx.createImageData(128, 128);
+    const r = seeded(3);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const v = Math.floor(r() * 255);
+      img.data[i] = img.data[i + 1] = img.data[i + 2] = v;
+      img.data[i + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    grain = c.toDataURL('image/png');
+  } catch {
+    grain = '';
+  }
+  return grain;
 }
