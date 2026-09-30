@@ -16,6 +16,7 @@ import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { NewExperimentModal } from './NewExperimentModal';
+import { OwnQuests } from './OwnQuests';
 import { t } from '../../i18n';
 
 export function NavigationPage() {
@@ -36,24 +37,27 @@ export function NavigationPage() {
         }
       />
       <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-        {nav ? (
-          <Route />
-        ) : (
-          <EmptyState
-            icon={PLACE_ICONS.ahead}
-            title={t('No direction chosen')}
-            action={
-              <a href={hrefFor('paths')} className={buttonClass('primary', 'md', 'gap-2')}>
-                <ArrowRight size={14} aria-hidden />
-                {t('See your options')}
-              </a>
-            }
-          >
-            {t(
-              'Your plan starts from an option you choose. Choosing one drafts a 12-month goal, an experiment, 30-day targets and this week’s steps, all of which you can edit.',
-            )}
-          </EmptyState>
-        )}
+        <div className="min-w-0">
+          {nav ? (
+            <Route />
+          ) : (
+            <EmptyState
+              icon={PLACE_ICONS.ahead}
+              title={t('No direction chosen')}
+              action={
+                <a href={hrefFor('paths')} className={buttonClass('primary', 'md', 'gap-2')}>
+                  <ArrowRight size={14} aria-hidden />
+                  {t('See your options')}
+                </a>
+              }
+            >
+              {t(
+                'Your plan starts from an option you choose. Choosing one drafts a 12-month goal, an experiment, 30-day targets and this week’s steps, all of which you can edit.',
+              )}
+            </EmptyState>
+          )}
+          <OwnQuests />
+        </div>
         <aside aria-label={t('Experiments')}>
           <ExperimentsColumn onCreate={() => setCreating(true)} />
         </aside>

@@ -31,6 +31,8 @@ export interface HistoryItem {
   ref: EntityRef;
   /** The record it traces back to. */
   source?: SourceRef;
+  /** A lens to go to instead of opening `ref` (what Quests keeps has no panel of its own). */
+  route?: 'quests';
 }
 
 /** The state elements that the energy and mood fields of notes are readings of. */
@@ -117,9 +119,12 @@ export function historyItems(data: AtlasData, opts: { records?: boolean; planned
     }
   }
 
-  if (opts.planned && data.navigation) {
+  // Plan steps, and the steps of quests you started on your own, as planned (never as history).
+  const own = data.quests?.own;
+  if (opts.planned && (data.navigation || own)) {
     const week = weekStart(today);
-    for (const a of data.navigation.actions) {
+    const steps = [...(data.navigation?.actions ?? []).map((a) => ({ a, own: false })), ...(own?.actions ?? []).map((a) => ({ a, own: true }))];
+    for (const { a, own: mine } of steps) {
       if (a.status !== 'todo' || a.week < week) continue;
       out.push({
         key: `step:${a.id}`,
@@ -128,35 +133,46 @@ export function historyItems(data: AtlasData, opts: { records?: boolean; planned
         label: a.title,
         mode: 'planned',
         about: [],
-        ref: { kind: 'path', id: data.navigation.pathId },
+        ref: { kind: 'path', id: data.navigation?.pathId ?? '' },
+        route: mine ? 'quests' : undefined,
       });
     }
   }
 
-  // Deadlines in the plan that passed with something still open (a boss that got away, on Quests):
-  // what was done by then is kept with it. Shown on Time only; never evidence about causes.
-  if (opts.quests && data.navigation) {
+  // Dates that passed with something still open (a boss that got away, on Quests), in the plan
+  // and in quests of your own: what was done by then is kept with it. Shown on Time only; never
+  // evidence about causes.
+  if (opts.quests && (data.navigation || own)) {
     const nav = data.navigation;
-    const stepsOf = (id?: ID) => nav.actions.filter((a) => a.status !== 'skipped' && (id ? a.targetId === id : true));
-    const passed: { key: string; title: string; due: ISODate; done: number; total: number }[] = nav.targets
-      .filter((x) => x.due < today && !x.done)
-      .map((x) => {
-        const steps = stepsOf(x.id);
-        return { key: `target:${x.id}`, title: x.title, due: x.due, done: steps.filter((a) => a.status === 'done').length, total: steps.length + 1 };
-      });
-    if (nav.milestone.title.trim() && nav.milestone.due < today) {
-      const targets = nav.targets.filter((x) => x.due <= nav.milestone.due);
-      const ids = new Set(targets.map((x) => x.id));
+    const passed: { key: string; title: string; due: ISODate; done: number; total: number; own: boolean }[] = [];
+    const targets = [...(nav?.targets ?? []).map((x) => ({ x, own: false })), ...(own?.targets ?? []).map((x) => ({ x, own: true }))];
+    const stepsOf = (id: ID, mine: boolean) => (mine ? (own?.actions ?? []) : (nav?.actions ?? [])).filter((a) => a.status !== 'skipped' && a.targetId === id);
+    for (const { x, own: mine } of targets) {
+      if (x.due < today && !x.done) {
+        const steps = stepsOf(x.id, mine);
+        passed.push({
+          key: `target:${x.id}`,
+          title: x.title,
+          due: x.due,
+          done: steps.filter((a) => a.status === 'done').length,
+          total: steps.length + 1,
+          own: mine,
+        });
+      }
+    }
+    if (nav && nav.milestone.title.trim() && nav.milestone.due < today) {
+      const mine = nav.targets.filter((x) => x.due <= nav.milestone.due);
+      const ids = new Set(mine.map((x) => x.id));
       const steps = nav.actions.filter((a) => a.status !== 'skipped' && (!a.targetId || ids.has(a.targetId)));
-      const done = targets.filter((x) => x.done).length + steps.filter((a) => a.status === 'done').length;
-      const total = targets.length + steps.length;
-      if (done < total) passed.push({ key: 'milestone', title: nav.milestone.title, due: nav.milestone.due, done, total });
+      const done = mine.filter((x) => x.done).length + steps.filter((a) => a.status === 'done').length;
+      const total = mine.length + steps.length;
+      if (done < total) passed.push({ key: 'milestone', title: nav.milestone.title, due: nav.milestone.due, done, total, own: false });
     }
     // Dates that passed before a new one was set keep how far things had got.
-    const again = (key: string, title: string, list: { due: ISODate; done: number; total: number }[] = []) =>
-      list.forEach((m, i) => passed.push({ key: `${key}:${i}`, title, due: m.due, done: m.done, total: m.total }));
-    again('milestone-was', nav.milestone.title, nav.milestone.missed);
-    for (const x of nav.targets) again(`target-was:${x.id}`, x.title, x.missed);
+    const again = (key: string, title: string, list: { due: ISODate; done: number; total: number }[] = [], mine = false) =>
+      list.forEach((m, i) => passed.push({ key: `${key}:${i}`, title, due: m.due, done: m.done, total: m.total, own: mine }));
+    if (nav) again('milestone-was', nav.milestone.title, nav.milestone.missed);
+    for (const { x, own: mine } of targets) again(`target-was:${x.id}`, x.title, x.missed, mine);
     for (const p of passed) {
       out.push({
         key: `deadline:${p.key}`,
@@ -165,7 +181,8 @@ export function historyItems(data: AtlasData, opts: { records?: boolean; planned
         label: t('Date passed: {title} ({done} of {total} done)', { title: p.title, done: p.done, total: p.total }),
         mode: 'actual',
         about: [],
-        ref: { kind: 'path', id: nav.pathId },
+        ref: { kind: 'path', id: nav?.pathId ?? '' },
+        route: 'quests',
       });
     }
   }

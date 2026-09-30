@@ -128,13 +128,18 @@ export function danglingReferences(d: AtlasData): string[] {
       }
     }
     for (const u of d.quests.upgrades) node(u.nodeId, `quest upgrade ${u.id}`);
+    const own = d.quests.own;
+    if (own)
+      for (const a of own.actions) if (a.targetId && !own.targets.some((x) => x.id === a.targetId)) out.push(`own quest step ${a.id} → quest ${a.targetId}`);
   }
   return out;
 }
 
 /** A Quests boss id: "milestone" while there is a plan, or "target:<id>" for a target in it. */
 const bossExists = (d: AtlasData, boss: string) =>
-  Boolean(d.navigation) && (boss === 'milestone' || (boss.startsWith('target:') && d.navigation!.targets.some((x) => `target:${x.id}` === boss)));
+  boss === 'milestone'
+    ? Boolean(d.navigation)
+    : boss.startsWith('target:') && [...(d.navigation?.targets ?? []), ...(d.quests?.own?.targets ?? [])].some((x) => `target:${x.id}` === boss);
 
 /* ---------------- repair ---------------- */
 
@@ -378,6 +383,15 @@ export function repairReferences(d: AtlasData): number {
           fixed += refs.length - kept.length;
           if (kept.length) d.quests.armor[boss] = kept;
           else delete d.quests.armor[boss];
+        }
+      }
+      // A step of your own quest whose quest is gone goes with it.
+      const own = d.quests.own;
+      if (own) {
+        const steps = own.actions.filter((a) => !a.targetId || own.targets.some((x) => x.id === a.targetId));
+        if (steps.length !== own.actions.length) {
+          fixed += own.actions.length - steps.length;
+          own.actions = steps;
         }
       }
       const upgrades = d.quests.upgrades.filter((u) => u.nodeId in d.nodes);

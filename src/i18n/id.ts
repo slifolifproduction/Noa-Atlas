@@ -1245,6 +1245,8 @@ export const ID: Record<string, string> = {
     'Rencanamu di Ke depan, sebagai boss yang harus dikalahkan: tonggaknya, tiap target bertanggal, dan langkah minggu ini sebagai minion. Kekuatan boss persis sama dengan apa yang masih terbuka.',
   'Strike marks a step done, or a target met: the same step in Ahead. Nothing else brings a boss down.':
     'Serang menandai langkah selesai, atau target tercapai: langkah yang sama di Ke depan. Tidak ada cara lain untuk menjatuhkan boss.',
+  'Start a quest of your own for anything with a date: a deadline, a task. With a plan, it goes into the plan as a target with its steps; without one, it is kept on its own and shows in Ahead under your own quests.':
+    'Mulai quest milikmu untuk apa pun yang bertanggal: tenggat, tugas. Kalau ada rencana, quest masuk ke rencana sebagai target beserta langkahnya; kalau tidak, disimpan tersendiri dan tampil di Ke depan di bagian quest milikmu.',
   'The forecast reads how much you finished in the last four weeks. If a date passes first, the boss gets away: it is kept on Time with how far you got, and you can take it on again with a new date. There is no penalty.':
     'Ramalan membaca berapa banyak yang kamu selesaikan dalam empat minggu terakhir. Kalau tanggalnya lewat duluan, boss kabur: tercatat di Waktu beserta sejauh mana kamu sampai, dan kamu bisa menantangnya lagi dengan tanggal baru. Tidak ada hukuman.',
   'Experience is counted from what your atlas holds: steps, targets, days you wrote, tests, repeats reviewed, decisions looked back on.':
@@ -2019,6 +2021,8 @@ export const ID: Record<string, string> = {
   'Completion rate\nFocus hours per week\nStress (1–5)': 'Tingkat penyelesaian\nJam fokus per minggu\nStres (1–5)',
   'Also bears on pattern': 'Juga berkaitan dengan pola',
   'Informs option': 'Memberi masukan untuk pilihan',
+  'Your own quests': 'Quest milikmu',
+  'Fight them in Quests': 'Lawan di Misi',
   '{n} possible reason, drawn by how sure it is. Tap anything to ask about it.':
     '{n} kemungkinan sebab, digambar menurut seberapa yakin. Ketuk apa saja untuk bertanya tentangnya.',
   '{n} possible reasons, drawn by how sure they are. Tap anything to ask about it.':
@@ -2349,6 +2353,23 @@ export const ID: Record<string, string> = {
   'Add to the Map': 'Tambahkan ke Peta',
   'Each level brings a point. A raise needs practice written about since the last one, and it changes the skill on your Map and in your direction, dated on Time.':
     'Tiap level memberi satu poin. Kenaikan butuh latihan yang ditulis sejak kenaikan terakhir, dan mengubah skill itu di Petamu dan di arahmu, bertanggal di Waktu.',
+  '{title} is on: a target in your plan, due {date}.': '{title} dimulai: sebuah target di rencanamu, jatuh tempo {date}.',
+  '{title} is on, due {date}. It is in Ahead under your own quests.': '{title} dimulai, jatuh tempo {date}. Ada di Ke depan, di bagian quest milikmu.',
+  'Start a quest': 'Mulai quest',
+  'Something with a date that stands in your way: a deadline, a task, a thing to get done. Its steps are what bring it down.':
+    'Sesuatu yang bertanggal dan menghadangmu: tenggat, tugas, hal yang harus selesai. Langkah-langkahnya yang menjatuhkannya.',
+  'Start the quest': 'Mulai quest-nya',
+  'What is it?': 'Apa itu?',
+  'e.g. Send the grant application': 'mis. Kirim proposal hibah',
+  'By when?': 'Paling lambat kapan?',
+  'Its steps, one per line': 'Langkah-langkahnya, satu per baris',
+  'Each step is one hit. The quest itself, marked done, is the last.':
+    'Tiap langkah adalah satu serangan. Quest itu sendiri, saat ditandai selesai, adalah yang terakhir.',
+  'Put it in your plan in Ahead, as a target with these steps': 'Masukkan ke rencanamu di Ke depan, sebagai target dengan langkah-langkah ini',
+  'Unticked, it is kept on its own, and shows in Ahead under your own quests.':
+    'Kalau tidak dicentang, disimpan tersendiri dan tampil di Ke depan di bagian quest milikmu.',
+  'No direction is chosen yet, so it is kept on its own and shows in Ahead under your own quests.':
+    'Belum ada arah yang dipilih, jadi quest ini disimpan tersendiri dan tampil di Ke depan di bagian quest milikmu.',
   'Steps finished': 'Langkah selesai',
   'Targets met': 'Target tercapai',
   'Days you wrote': 'Hari kamu menulis',
@@ -2358,6 +2379,7 @@ export const ID: Record<string, string> = {
   'Exceptions you wrote down': 'Pengecualian yang kamu catat',
   'Armor plates broken': 'Keping zirah yang pecah',
   Milestone: 'Tonggak',
+  'Your quest': 'Quest milikmu',
   Beaten: 'Kalah',
   'Got away': 'Kabur',
   Standing: 'Masih berdiri',
@@ -2373,8 +2395,8 @@ export const ID: Record<string, string> = {
   'Set aside: {title}. It no longer counts for or against you.': 'Disisihkan: {title}. Tidak lagi dihitung untuk atau melawanmu.',
   'No boss yet': 'Belum ada boss',
   'Choose a direction in Ahead': 'Pilih arah di Ke depan',
-  'Bosses come from the plan you choose in Ahead: its milestone, each target with a date, and this week’s steps. Choose a direction there, and they appear here.':
-    'Boss datang dari rencana yang kamu pilih di Ke depan: tonggaknya, tiap target bertanggal, dan langkah minggu ini. Pilih arah di sana, dan mereka muncul di sini.',
+  'Bosses come from the plan you choose in Ahead (its milestone, each target with a date, this week’s steps) and from quests you start yourself: something with a date and the steps that bring it down.':
+    'Boss datang dari rencana yang kamu pilih di Ke depan (tonggaknya, tiap target bertanggal, langkah minggu ini) dan dari quest yang kamu mulai sendiri: sesuatu yang bertanggal beserta langkah-langkah yang menjatuhkannya.',
   '{title}: {hp} of {max} still open, due {date}': '{title}: {hp} dari {max} masih terbuka, jatuh tempo {date}',
   'Beaten: everything it was made of is done.': 'Dikalahkan: semua yang membentuknya sudah selesai.',
   'It got away on {date}, with {done} of {total} done. No penalty: take it on again with a new date.':
@@ -2401,6 +2423,8 @@ export const ID: Record<string, string> = {
   'Already down ({n})': 'Sudah jatuh ({n})',
   'Its strength is what is still open in your plan. It only drops when something is really done, and doing it here does it in Ahead too.':
     'Kekuatannya adalah apa yang masih terbuka di rencanamu. Ia hanya turun kalau sesuatu benar-benar selesai, dan menyelesaikannya di sini juga menyelesaikannya di Ke depan.',
+  'Drop this quest': 'Batalkan quest ini',
+  'Drop it and its steps': 'Batalkan beserta langkahnya',
   'Bosses in your plan': 'Boss di rencanamu',
   'This is the only one.': 'Hanya ini satu-satunya.',
   'Level {n}': 'Level {n}',

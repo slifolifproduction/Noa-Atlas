@@ -1,4 +1,5 @@
 import { Plus, Search, Star, X } from 'lucide-react';
+import { navigate } from '../../app/router';
 import { useEffect, useMemo, useState } from 'react';
 import { CAPTURE_ICONS, HISTORY_ICONS, PLACE_ICONS } from '../../components/icons';
 import { NodeChip } from '../../components/inspector/parts';
@@ -231,7 +232,7 @@ export function TimelinePage({ preset }: { preset?: string }) {
               <h2 className="label mb-1">{t('Ahead: planned, not yet history')}</h2>
               <ul className="divide-y divide-line border-y border-dashed border-line">
                 {planned.map((h) => (
-                  <Row key={h.key} item={h} active={false} onOpen={() => open(h.ref)} />
+                  <Row key={h.key} item={h} active={false} onOpen={() => (h.route ? navigate(h.route) : open(h.ref))} />
                 ))}
               </ul>
             </section>
@@ -251,7 +252,7 @@ export function TimelinePage({ preset }: { preset?: string }) {
                 <ul className="divide-y divide-line border-y border-line">
                   {list.map((h) => {
                     const active = top?.kind === h.ref.kind && top.id === h.ref.id;
-                    const onOpen = () => open(h.ref);
+                    const onOpen = () => (h.route ? navigate(h.route) : open(h.ref));
                     return h.kind === 'record' ? (
                       <NoteRow key={h.key} item={h} active={active} onOpen={onOpen} />
                     ) : h.kind === 'decision' ? (

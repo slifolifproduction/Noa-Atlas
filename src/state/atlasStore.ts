@@ -180,6 +180,12 @@ interface AtlasActions {
   toggleTarget(id: ID): void;
   /** Quests: take on a boss that got away again, with a new date; the date that passed is kept with how far it had got. */
   retryDeadline(boss: 'milestone' | ID, due: string): void;
+  /**
+   * Quests: start a quest of your own, a target with a date and its steps. In
+   * the plan (when there is one and `inPlan`), or kept on its own; either way
+   * it is a boss, and it shows in Ahead and on Time. Returns the target's id.
+   */
+  createQuest(input: { title: string; due: string; steps: string[]; inPlan: boolean }): ID;
   /** Quests: a repeat or a cycle that stands in a boss's way, or no longer. */
   addArmor(bossId: string, ref: ArmorRef): void;
   removeArmor(bossId: string, ref: ArmorRef): void;
@@ -1377,7 +1383,7 @@ export const useAtlas = create<AtlasState>()(
 
         toggleTarget(id) {
           set((s) => {
-            const x = s.data.navigation?.targets.find((y) => y.id === id);
+            const x = s.data.navigation?.targets.find((y) => y.id === id) ?? s.data.quests?.own?.targets.find((y) => y.id === id);
             if (!x) return;
             x.done = !x.done;
             x.doneAt = x.done ? todayISO() : undefined;
@@ -1387,18 +1393,42 @@ export const useAtlas = create<AtlasState>()(
         retryDeadline(boss, due) {
           set((s) => {
             const nav = s.data.navigation;
-            if (!nav) return;
             const b = quests(s.data).bosses.find((x) => (boss === 'milestone' ? x.kind === 'milestone' : x.targetId === boss));
             if (!b) return;
             const missed = { due: b.due, done: b.maxHp - b.hp, total: b.maxHp };
-            if (boss === 'milestone') nav.milestone = { ...nav.milestone, due, missed: [...(nav.milestone.missed ?? []), missed] };
-            else {
-              const x = nav.targets.find((y) => y.id === boss);
+            if (boss === 'milestone') {
+              if (nav) nav.milestone = { ...nav.milestone, due, missed: [...(nav.milestone.missed ?? []), missed] };
+            } else {
+              const x = nav?.targets.find((y) => y.id === boss) ?? s.data.quests?.own?.targets.find((y) => y.id === boss);
               if (!x) return;
               x.missed = [...(x.missed ?? []), missed];
               x.due = due;
             }
           });
+        },
+
+        createQuest({ title, due, steps, inPlan }) {
+          const id = createId('tgt');
+          set((s) => {
+            const week = weekStart(todayISO());
+            const target = { id, title: title.trim(), due, done: false };
+            const actions = steps
+              .map((x) => x.trim())
+              .filter(Boolean)
+              .map((x) => ({ id: createId('act'), title: x, targetId: id, week, status: 'todo' as const }));
+            const nav = s.data.navigation;
+            if (inPlan && nav) {
+              nav.targets.push(target);
+              nav.actions.push(...actions);
+              if (!nav.currentActionId || !nav.actions.some((a) => a.id === nav.currentActionId && a.status === 'todo')) nav.currentActionId = actions[0]?.id;
+            } else {
+              const q = (s.data.quests ??= { armor: {}, upgrades: [] });
+              const own = (q.own ??= { targets: [], actions: [] });
+              own.targets.push(target);
+              own.actions.push(...actions);
+            }
+          });
+          return id;
         },
 
         addArmor(bossId, ref) {
@@ -1468,6 +1498,13 @@ export const useAtlas = create<AtlasState>()(
         deleteTarget(id) {
           set((s) => {
             const nav = s.data.navigation;
+            const own = s.data.quests?.own;
+            if (own?.targets.some((x) => x.id === id)) {
+              // A quest of your own goes with its steps: they belong to nothing else.
+              own.targets = own.targets.filter((x) => x.id !== id);
+              own.actions = own.actions.filter((a) => a.targetId !== id);
+              return;
+            }
             if (!nav) return;
             nav.targets = nav.targets.filter((x) => x.id !== id);
             nav.actions.forEach((a) => a.targetId === id && (a.targetId = undefined));
@@ -1477,8 +1514,13 @@ export const useAtlas = create<AtlasState>()(
         addAction(title, targetId) {
           set((s) => {
             const nav = s.data.navigation;
-            if (!nav) return;
+            const own = s.data.quests?.own;
             const id = createId('act');
+            if (targetId && own?.targets.some((x) => x.id === targetId)) {
+              own.actions.push({ id, title, targetId, week: weekStart(todayISO()), status: 'todo' });
+              return;
+            }
+            if (!nav) return;
             nav.actions.push({ id, title, targetId, week: weekStart(todayISO()), status: 'todo' });
             if (!nav.currentActionId || !nav.actions.some((a) => a.id === nav.currentActionId && a.status === 'todo')) nav.currentActionId = id;
           });
@@ -1487,6 +1529,12 @@ export const useAtlas = create<AtlasState>()(
         setActionStatus(id, status) {
           set((s) => {
             const nav = s.data.navigation;
+            const own = s.data.quests?.own?.actions.find((x) => x.id === id);
+            if (own) {
+              own.status = status;
+              own.doneAt = status === 'done' ? (own.doneAt ?? todayISO()) : undefined;
+              return;
+            }
             const a = nav?.actions.find((x) => x.id === id);
             if (!nav || !a) return;
             a.status = status;
@@ -1505,6 +1553,11 @@ export const useAtlas = create<AtlasState>()(
 
         deleteAction(id) {
           set((s) => {
+            const own = s.data.quests?.own;
+            if (own?.actions.some((a) => a.id === id)) {
+              own.actions = own.actions.filter((a) => a.id !== id);
+              return;
+            }
             const nav = s.data.navigation;
             if (!nav) return;
             nav.actions = nav.actions.filter((a) => a.id !== id);

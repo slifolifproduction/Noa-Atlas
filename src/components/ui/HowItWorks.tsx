@@ -78,6 +78,11 @@ const PAGE_HELP: Record<string, () => ReactNode[]> = {
     <>{t('Strike marks a step done, or a target met: the same step in Ahead. Nothing else brings a boss down.')}</>,
     <>
       {t(
+        'Start a quest of your own for anything with a date: a deadline, a task. With a plan, it goes into the plan as a target with its steps; without one, it is kept on its own and shows in Ahead under your own quests.',
+      )}
+    </>,
+    <>
+      {t(
         'The forecast reads how much you finished in the last four weeks. If a date passes first, the boss gets away: it is kept on Time with how far you got, and you can take it on again with a new date. There is no penalty.',
       )}
     </>,

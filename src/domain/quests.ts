@@ -77,6 +77,8 @@ export interface Boss {
   forecast: Forecast;
   /** The target behind a target boss. */
   targetId?: ID;
+  /** Where it lives: the plan in Ahead, or a quest you started on its own. */
+  source: 'plan' | 'own';
 }
 
 export interface Quests {
@@ -98,13 +100,22 @@ const actionPart = (a: NavAction): BossPart => ({
 });
 const targetPart = (x: NavTarget): BossPart => ({ id: x.id, kind: 'target', title: x.title, done: x.done, due: x.due, doneAt: x.doneAt });
 
+/** Every target and step, from the plan and from your own quests. */
+export function allWork(data: AtlasData): { targets: (NavTarget & { source: 'plan' | 'own' })[]; actions: NavAction[] } {
+  const nav = data.navigation;
+  const own = data.quests?.own;
+  return {
+    targets: [...(nav?.targets ?? []).map((x) => ({ ...x, source: 'plan' as const })), ...(own?.targets ?? []).map((x) => ({ ...x, source: 'own' as const }))],
+    actions: [...(nav?.actions ?? []), ...(own?.actions ?? [])],
+  };
+}
+
 /** Steps and targets finished a week, over the four weeks up to this one. */
 export function recentPace(data: AtlasData, today: ISODate = todayISO()): number {
-  const nav = data.navigation;
-  if (!nav) return 0;
+  const { targets, actions } = allWork(data);
   const from = addDays(weekStart(today), -21);
-  const doneSteps = nav.actions.filter((a) => a.status === 'done' && (a.doneAt ?? a.week) >= from && (a.doneAt ?? a.week) <= today).length;
-  const doneTargets = nav.targets.filter((x) => x.done && x.doneAt && x.doneAt >= from && x.doneAt <= today).length;
+  const doneSteps = actions.filter((a) => a.status === 'done' && (a.doneAt ?? a.week) >= from && (a.doneAt ?? a.week) <= today).length;
+  const doneTargets = targets.filter((x) => x.done && x.doneAt && x.doneAt >= from && x.doneAt <= today).length;
   return (doneSteps + doneTargets) / 4;
 }
 
@@ -115,33 +126,46 @@ function forecastFor(hp: number, due: ISODate, pace: number, today: ISODate): Fo
   return { pace, eta, inTime: eta <= due };
 }
 
-function makeBoss(kind: BossKind, id: string, title: string, due: ISODate, parts: BossPart[], pace: number, today: ISODate, targetId?: ID): Boss {
+function makeBoss(
+  kind: BossKind,
+  id: string,
+  title: string,
+  due: ISODate,
+  parts: BossPart[],
+  pace: number,
+  today: ISODate,
+  source: Boss['source'],
+  targetId?: ID,
+): Boss {
   const maxHp = parts.length;
   const hp = parts.filter((p) => !p.done).length;
   const daysLeft = daysBetween(today, due);
   const state: BossState = hp === 0 && maxHp > 0 ? 'defeated' : daysLeft < 0 ? 'escaped' : 'active';
-  return { id, kind, title, due, daysLeft, state, hp, maxHp, parts, forecast: forecastFor(hp, due, pace, today), targetId };
+  return { id, kind, title, due, daysLeft, state, hp, maxHp, parts, forecast: forecastFor(hp, due, pace, today), targetId, source };
 }
 
 export function quests(data: AtlasData, today: ISODate = todayISO()): Quests {
   const nav = data.navigation;
-  if (!nav) return { bosses: [], minions: [] };
+  const work = allWork(data);
+  if (!nav && !work.targets.length && !work.actions.length) return { bosses: [], minions: [] };
   const pace = recentPace(data, today);
   // Skipped steps are out of the fight: they neither hurt the boss nor count against you.
-  const steps = nav.actions.filter((a) => a.status !== 'skipped');
+  const steps = work.actions.filter((a) => a.status !== 'skipped');
   const bosses: Boss[] = [];
 
   // The milestone: its targets (those due by then) and every step toward them, plus the steps that serve no target.
-  const due = nav.milestone.due;
-  const mine = nav.targets.filter((x) => x.due <= due);
-  const ids = new Set(mine.map((x) => x.id));
-  const parts = [...mine.map(targetPart), ...steps.filter((a) => !a.targetId || ids.has(a.targetId)).map(actionPart)];
-  if (nav.milestone.title.trim()) bosses.push(makeBoss('milestone', 'milestone', nav.milestone.title, due, parts, pace, today));
+  if (nav && nav.milestone.title.trim()) {
+    const due = nav.milestone.due;
+    const mine = nav.targets.filter((x) => x.due <= due);
+    const ids = new Set(mine.map((x) => x.id));
+    const parts = [...mine.map(targetPart), ...nav.actions.filter((a) => a.status !== 'skipped' && (!a.targetId || ids.has(a.targetId))).map(actionPart)];
+    bosses.push(makeBoss('milestone', 'milestone', nav.milestone.title, due, parts, pace, today, 'plan'));
+  }
 
-  // Each dated target is a boss of its own: its steps, then the target itself as the finishing blow.
-  for (const x of nav.targets) {
+  // Each dated target is a boss of its own, in the plan or started on its own: its steps, then the target itself as the finishing blow.
+  for (const x of work.targets) {
     const own = steps.filter((a) => a.targetId === x.id).map(actionPart);
-    bosses.push(makeBoss('target', `target:${x.id}`, x.title, x.due, [...own, targetPart(x)], pace, today, x.id));
+    bosses.push(makeBoss('target', `target:${x.id}`, x.title, x.due, [...own, targetPart(x)], pace, today, x.source, x.id));
   }
 
   const week = weekStart(today);
@@ -178,11 +202,9 @@ export const levelFloor = (level: number) => 40 * (level - 1) ** 2;
 
 export function player(data: AtlasData, today: ISODate = todayISO()): Player {
   const count: Record<XpKind, number> = { step: 0, target: 0, note: 0, test: 0, repeat: 0, decision: 0, exception: 0, armor: 0 };
-  const nav = data.navigation;
-  if (nav) {
-    count.step = nav.actions.filter((a) => a.status === 'done').length;
-    count.target = nav.targets.filter((x) => x.done).length;
-  }
+  const work = allWork(data);
+  count.step = work.actions.filter((a) => a.status === 'done').length;
+  count.target = work.targets.filter((x) => x.done).length;
   // Days you wrote, not notes: writing ten notes in one day is still one day.
   count.note = new Set(
     Object.values(data.entries)

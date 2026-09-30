@@ -1,4 +1,4 @@
-import { Crosshair, SkipForward } from 'lucide-react';
+import { Crosshair, Plus, SkipForward } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { navigate } from '../../app/router';
 import { PLACE_ICONS } from '../../components/icons';
@@ -6,9 +6,11 @@ import { BossEye } from '../../components/quests/BossEye';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/primitives';
 import { HowItWorks } from '../../components/ui/HowItWorks';
+import { ConfirmButton } from '../../components/ui/ConfirmButton';
 import { VIEWS } from '../../domain/constants';
 import { bossArmor, player, quests, XP, type Boss, type BossPart, type XpKind } from '../../domain/quests';
 import { ArmorPanel } from './ArmorPanel';
+import { NewQuestModal } from './NewQuestModal';
 import { ArsenalPanel } from './ArsenalPanel';
 import { useElementWidth } from '../../hooks/useElementWidth';
 import { cn } from '../../lib/cn';
@@ -28,7 +30,7 @@ const SOURCE_LABEL: Record<XpKind, () => string> = {
   armor: () => t('Armor plates broken'),
 };
 
-const KIND_LABEL = (b: Boss) => (b.kind === 'milestone' ? t('Milestone') : t('Target'));
+const KIND_LABEL = (b: Boss) => (b.kind === 'milestone' ? t('Milestone') : b.source === 'own' ? t('Your quest') : t('Target'));
 const STATE_LABEL = (b: Boss) => (b.state === 'defeated' ? t('Beaten') : b.state === 'escaped' ? t('Got away') : t('Standing'));
 
 /** Days to go, or since it passed, as a countdown. */
@@ -72,6 +74,8 @@ export function QuestsPage() {
   const [look, setLook] = useState<string>();
   const [hit, setHit] = useState(0);
   const [again, setAgain] = useState('');
+  const [starting, setStarting] = useState(false);
+  const deleteTarget = useAtlas((s) => s.deleteTarget);
   const [arena, arenaWidth] = useElementWidth<HTMLDivElement>(560);
   const boss = q.bosses.find((b) => b.id === pick) ?? q.current ?? q.bosses[0];
   const armor = useMemo(() => (boss ? bossArmor(data, boss.id, today) : []), [data, boss, today]);
@@ -104,9 +108,15 @@ export function QuestsPage() {
         <p className="mt-1.5 max-w-[72ch] text-[13px] leading-snug text-ink-2">{VIEWS.quests.blurb}</p>
         <HowItWorks page="quests" className="mt-2" />
       </div>
-      <Button variant="ghost" icon={PLACE_ICONS.ahead} onClick={() => navigate('navigation')}>
-        {t('Open the plan')}
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="ghost" icon={PLACE_ICONS.ahead} onClick={() => navigate('navigation')}>
+          {t('Open the plan')}
+        </Button>
+        <Button variant="primary" icon={Plus} onClick={() => setStarting(true)}>
+          {t('Start a quest')}
+        </Button>
+      </div>
+      <NewQuestModal open={starting} onClose={() => setStarting(false)} onCreated={setPick} />
     </div>
   );
 
@@ -119,13 +129,16 @@ export function QuestsPage() {
           title={t('No boss yet')}
           className="mt-6"
           action={
-            <Button variant="primary" onClick={() => navigate('paths')}>
-              {t('Choose a direction in Ahead')}
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button variant="primary" icon={Plus} onClick={() => setStarting(true)}>
+                {t('Start a quest')}
+              </Button>
+              <Button onClick={() => navigate('paths')}>{t('Choose a direction in Ahead')}</Button>
+            </div>
           }
         >
           {t(
-            'Bosses come from the plan you choose in Ahead: its milestone, each target with a date, and this week’s steps. Choose a direction there, and they appear here.',
+            'Bosses come from the plan you choose in Ahead (its milestone, each target with a date, this week’s steps) and from quests you start yourself: something with a date and the steps that bring it down.',
           )}
         </EmptyState>
       </div>
@@ -292,6 +305,18 @@ export function QuestsPage() {
               {t('Its strength is what is still open in your plan. It only drops when something is really done, and doing it here does it in Ahead too.')}
             </p>
             <ArmorPanel boss={boss} />
+            {boss.source === 'own' && (
+              <div className="mt-6 border-t border-line pt-3">
+                <ConfirmButton
+                  label={t('Drop this quest')}
+                  confirmLabel={t('Drop it and its steps')}
+                  onConfirm={() => {
+                    deleteTarget(boss.targetId!);
+                    setPick(undefined);
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </section>

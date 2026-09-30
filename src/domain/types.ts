@@ -874,6 +874,12 @@ export interface QuestState {
   /** By boss: "milestone", or "target:<id>". */
   armor: Record<string, ArmorRef[]>;
   upgrades: SkillUpgrade[];
+  /**
+   * Quests you started yourself outside a plan (there is none, or you kept it
+   * apart): a target with a date and its steps, in the same shape as the
+   * plan's, so everything that reads targets and steps reads these too.
+   */
+  own?: { targets: NavTarget[]; actions: NavAction[] };
 }
 
 /** What the Atlas learned from the person: plain counts, all of them shown and forgettable (see `domain/learning.ts`). */
