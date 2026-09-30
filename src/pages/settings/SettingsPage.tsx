@@ -15,6 +15,7 @@ import { importWithBackup, restoreVersion } from '../../state/versionOps';
 import { t, LANGUAGES, setLang, type Lang, useLang } from '../../i18n';
 import { ZonePicker } from '../../components/shell/LocaleControls';
 import { AccountPanel } from '../../components/shell/AccountControls';
+import { LearnedPanel } from '../../components/shell/LearnedPanel';
 import { useAccount } from '../../state/accountStore';
 import { Trans } from '../../i18n/Trans';
 
@@ -99,6 +100,13 @@ export function SettingsPage() {
       <div className="mt-6">
         <Block title={t('Where your atlas is kept')}>
           <AccountPanel />
+        </Block>
+
+        <Block
+          title={t('What the Atlas has learned')}
+          description={t('Only from you: plain counts it uses to order and suggest, never to decide. Kept with your atlas.')}
+        >
+          <LearnedPanel />
         </Block>
 
         <Block

@@ -763,7 +763,9 @@ export type ModelUpdateKind =
   /** Derived: something counted against a claim (an exception, a failed prediction or test), whether or not its status moved. */
   | 'challenged'
   /** Derived: another way to read an outcome was set aside, or opened again, by what was recorded. */
-  | 'account_changed';
+  | 'account_changed'
+  | 'rule_changed'
+  | 'learning_forgotten';
 
 /** An append-only log of how the understanding changed and why. */
 export interface ModelUpdate {
@@ -827,12 +829,33 @@ export interface AtlasData {
   beliefs?: BeliefLedger;
   /** Checks the Atlas asked for and the person declined, with the day: not asked again for a while. */
   inquiry?: { declined: Record<string, ISODate> };
+  /** What the Atlas learned from the person (see `domain/learning.ts`); created on first use. */
+  learning?: LearningMemory;
   /**
    * Which revision of the logic of causes the data was prepared for
    * (3: claims on factors, episodes in order; 4: what changed, episodes,
    * expectations and revisions).
    */
   causesLogic?: number;
+}
+
+/** What the Atlas learned from the person: plain counts, all of them shown and forgettable (see `domain/learning.ts`). */
+export interface LearningMemory {
+  since: ISODate;
+  /** Per kind of suggestion: how often it was taken and set aside. */
+  suggestions: Partial<Record<AnalysisSuggestion['type'], { taken: number; dismissed: number }>>;
+  /** Element → word → notes linked to the element that used the word. */
+  words: Record<ID, Record<string, number>>;
+  /** Word → linked notes that used it, whatever they were linked to. */
+  wordNotes: Record<string, number>;
+  /** Word–element pairs the person asked to forget ("element:word"). */
+  forgotten: string[];
+  /** Rules the person changed after seeing how predictions went. */
+  rules: { supportedEpisodes?: number; since?: ISODate };
+  /** Kinds of question put away. */
+  declined: Partial<Record<'reread' | 'ask' | 'compare' | 'track' | 'test', number>>;
+  /** Searches that found nothing, most recent last. */
+  friction: { q: string; where: string; n: number; last: ISODate }[];
 }
 
 export interface BeliefLedger {

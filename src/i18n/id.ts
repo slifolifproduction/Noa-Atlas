@@ -39,6 +39,8 @@ export const ID: Record<string, string> = {
   'Matched {list}: cues for {code}.': 'Cocok dengan {list}: tanda yang mendukung {code}.',
   'Matched {list}: cues against {code}.': 'Cocok dengan {list}: tanda yang berlawanan dengan {code}.',
   'Mentions {what}.': 'Menyebut {what}.',
+  'You linked a note that uses “{word}” to this before.': 'Kamu pernah menautkan satu catatan yang memakai kata “{word}” ke sini.',
+  'You linked {n} notes that use “{word}” to this before.': 'Kamu pernah menautkan {n} catatan yang memakai kata “{word}” ke sini.',
   'Matched {list}.': 'Cocok dengan {list}.',
   'Optimising for {drivers}.': 'Mengutamakan {drivers}.',
   'Immediate opportunity over long-term focus': 'Peluang langsung di atas fokus jangka panjang',
@@ -1101,6 +1103,43 @@ export const ID: Record<string, string> = {
   'Open the example': 'Buka contoh',
   'Everything stays in this browser.': 'Semuanya tetap di browser ini.',
   Language: 'Bahasa',
+  'Elements a note is about': 'Elemen yang dibahas sebuah catatan',
+  'A note fitting a repeat': 'Catatan yang cocok dengan sebuah pengulangan',
+  'Happenings to add to Time': 'Kejadian untuk ditambahkan ke Waktu',
+  'Your own explanations': 'Penjelasanmu sendiri',
+  'What a note says changed': 'Yang menurut catatan berubah',
+  'What a note expects': 'Yang diperkirakan sebuah catatan',
+  'Nothing yet. It learns from the suggestions you take or set aside, the notes you link to elements, how its predictions turn out, and the questions you put away.':
+    'Belum ada. Atlas belajar dari saran yang kamu terima atau sisihkan, catatan yang kamu tautkan ke elemen, bagaimana prediksinya ternyata, dan pertanyaan yang kamu tunda.',
+  'Suggestions you take and set aside': 'Saran yang kamu terima dan sisihkan',
+  'taken {a}, set aside {b}': 'diterima {a}, disisihkan {b}',
+  'shown first': 'ditampilkan lebih dulu',
+  'shown later': 'ditampilkan belakangan',
+  'shown as usual': 'ditampilkan seperti biasa',
+  'Your words for things': 'Kata-katamu untuk sesuatu',
+  'one note': 'satu catatan',
+  '{n} notes': '{n} catatan',
+  Forget: 'Lupakan',
+  'A note that uses one of these words gets the element suggested, with the count as its reason.':
+    'Catatan yang memakai salah satu kata ini akan mendapat saran elemen tersebut, dengan jumlahnya sebagai alasan.',
+  'How its predictions went': 'Bagaimana prediksinya ternyata',
+  'held {a}, did not hold {b}': 'terbukti {a}, tidak terbukti {b}',
+  'Read by the status its reasons had on the day each prediction was written down.':
+    'Dibaca menurut status kemungkinan sebabnya pada hari setiap prediksi ditulis.',
+  'Predictions from “supported” reasons held {a} times and did not hold {b} times. Should “supported” ask for {to} separate episodes instead of {from}?':
+    'Prediksi dari kemungkinan sebab yang “didukung” terbukti {a} kali dan tidak terbukti {b} kali. Haruskah “didukung” meminta {to} episode terpisah, bukan {from}?',
+  'Reasons with fewer episodes would read “plausible” until more are recorded. You can go back at any time.':
+    'Kemungkinan sebab dengan episode lebih sedikit akan terbaca “masuk akal” sampai lebih banyak yang tercatat. Kamu bisa kembali kapan saja.',
+  'Ask for {n}': 'Minta {n}',
+  '“Supported” asks for {n} separate episodes (you set this on {date}).': '“Didukung” meminta {n} episode terpisah (kamu menetapkannya pada {date}).',
+  'Back to {n}': 'Kembali ke {n}',
+  'Questions you put away': 'Pertanyaan yang kamu tunda',
+  once: 'sekali',
+  '{n} times': '{n} kali',
+  'asked after the others': 'ditanyakan setelah yang lain',
+  'Forget what it learned': 'Lupakan yang sudah dipelajari',
+  'Forget it all': 'Lupakan semuanya',
+  'Rules you changed stay; your notes and elements are not touched.': 'Aturan yang kamu ubah tetap; catatan dan elemenmu tidak disentuh.',
   'Time zone: {zone}': 'Zona waktu: {zone}',
   'Time zone': 'Zona waktu',
   'Today, note dates, weeks and experiment days follow this clock.': 'Hari ini, tanggal catatan, minggu, dan hari eksperimen mengikuti jam ini.',
@@ -1188,7 +1227,6 @@ export const ID: Record<string, string> = {
   'Saved automatically before an import': 'Tersimpan otomatis sebelum impor',
   'Saved automatically before going back to another version': 'Tersimpan otomatis sebelum kembali ke versi lain',
   '{n} note': '{n} catatan',
-  '{n} notes': '{n} catatan',
   '{n} point': '{n} titik',
   '{n} points': '{n} titik',
   'This browser would not store the version. Use Export in Settings to keep a copy.':
@@ -1773,6 +1811,8 @@ export const ID: Record<string, string> = {
   'Observed once': 'Teramati sekali',
   '{n}× in {span}': '{n}× dalam {span}',
   '{a}, then {b}': '{a}, lalu {b}',
+  '{n} or more separate episodes, a time without it, exceptions well in the minority, and told apart from what else could produce it.':
+    '{n} episode terpisah atau lebih, satu kejadian tanpanya, pengecualian jauh lebih sedikit, dan sudah dibedakan dari hal lain yang bisa menimbulkannya.',
   'It held for a while, then stopped, or was revised into a new version.': 'Ia berlaku sementara, lalu berhenti, atau direvisi menjadi versi baru.',
   'Tests went against it at least as often as for it.': 'Uji menentangnya setidaknya sesering mendukungnya.',
   'What counts against it (exceptions, predictions that failed) outweighs what supports it.':
@@ -2110,7 +2150,6 @@ export const ID: Record<string, string> = {
   'Notes that might belong here, waiting for a yes or no': 'Catatan yang mungkin termasuk di sini, menunggu ya atau tidak',
   '{n} to confirm': '{n} perlu dikonfirmasi',
   '{n} time': '{n} kali',
-  '{n} times': '{n} kali',
   '{n} separate week': '{n} minggu berbeda',
   '{n} separate weeks': '{n} minggu berbeda',
   then: 'lalu',
@@ -2184,6 +2223,9 @@ export const ID: Record<string, string> = {
   'Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude.':
     'Semuanya tersimpan di browser ini. Tidak ada yang keluar kecuali kamu mengganti penyedia analisis ke Claude.',
   'Where your atlas is kept': 'Tempat atlasmu disimpan',
+  'What the Atlas has learned': 'Apa yang sudah dipelajari Atlas',
+  'Only from you: plain counts it uses to order and suggest, never to decide. Kept with your atlas.':
+    'Hanya darimu: hitungan sederhana untuk mengurutkan dan menyarankan, tidak pernah untuk memutuskan. Disimpan bersama atlasmu.',
   'Language and time': 'Bahasa dan waktu',
   'The language of the interface, and the clock the atlas keeps. What you write is never translated.':
     'Bahasa antarmuka, dan jam yang dipakai atlas. Apa yang kamu tulis tidak pernah diterjemahkan.',
@@ -2317,6 +2359,12 @@ export const ID: Record<string, string> = {
   '{exp} result recorded ({outcome}); no claim changed.': 'Hasil {exp} dicatat ({outcome}); tidak ada klaim yang berubah.',
   'You chose {path} ({title}) as your direction.': 'Kamu memilih {path} ({title}) sebagai arahmu.',
   'You chose a path as your direction.': 'Kamu memilih sebuah jalur sebagai arahmu.',
+  '“Supported” asks for {n} separate episodes again, as it did at first.': '“Didukung” kembali meminta {n} episode terpisah, seperti semula.',
+  '“Supported” now asks for {n} separate episodes (it asked for {m}): predictions from supported reasons held {held} times and did not hold {failed} times.':
+    '“Didukung” kini meminta {n} episode terpisah (sebelumnya {m}): prediksi dari kemungkinan sebab yang didukung terbukti {held} kali dan tidak terbukti {failed} kali.',
+  'The Atlas no longer suggests {element} from the word “{word}”.': 'Atlas tidak lagi menyarankan {element} dari kata “{word}”.',
+  'The Atlas forgot what it had learned from you (rules you changed stay).':
+    'Atlas melupakan apa yang sudah dipelajarinya darimu (aturan yang kamu ubah tetap).',
   'The Claude proxy is unavailable.': 'Proxy Claude tidak tersedia.',
   '{reason} Using local heuristics instead.': '{reason} Memakai heuristik lokal sebagai gantinya.',
   'Saved {code}.': '{code} disimpan.',

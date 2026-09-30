@@ -14,7 +14,19 @@
  * A trace is read from the same functions the status comes from, so the two
  * can never disagree.
  */
-import { claimGaps, claimRule, evidenceEpisode, evidenceProfile, historySource, LOGIC_VERSION, recordRows, RULE_STATUS, type StatusRule } from './claims';
+import {
+  claimGaps,
+  claimRule,
+  DEFAULT_SUPPORTED_EPISODES,
+  supportedEpisodes,
+  evidenceEpisode,
+  evidenceProfile,
+  historySource,
+  LOGIC_VERSION,
+  recordRows,
+  RULE_STATUS,
+  type StatusRule,
+} from './claims';
 import { caseRows, commonCauses, conditionsOf, isCumulative, lagRange, rivalsOf, untestedContexts } from './compare';
 import { expectationsFor } from './expect';
 import { coverage, sourceDate } from './factors';
@@ -45,6 +57,14 @@ export interface Trace {
   left: string[];
   assumes: string[];
   next: string[];
+}
+
+/** What a rule says, with the number of episodes the person asked for when it is not the usual three. */
+export function ruleText(rule: StatusRule, data?: AtlasData): string {
+  const n = data ? supportedEpisodes(data) : DEFAULT_SUPPORTED_EPISODES;
+  if (rule === 'supported' && n !== DEFAULT_SUPPORTED_EPISODES)
+    return t('{n} or more separate episodes, a time without it, exceptions well in the minority, and told apart from what else could produce it.', { n });
+  return RULE_TEXT[rule];
 }
 
 export const RULE_TEXT: Record<StatusRule, string> = {
@@ -178,7 +198,7 @@ export function claimTrace(data: AtlasData, claim: Claim): Trace {
     status: RULE_STATUS[rule],
     rule,
     version: LOGIC_VERSION,
-    says: RULE_TEXT[rule],
+    says: ruleText(rule, data),
     rests: rests.sort((x, y) => (y.date ?? '').localeCompare(x.date ?? '')),
     left,
     assumes,

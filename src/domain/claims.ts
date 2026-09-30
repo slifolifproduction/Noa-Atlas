@@ -245,7 +245,11 @@ export const RULE_STATUS: Record<StatusRule, ClaimStatus> = {
   proposed: 'proposed',
 };
 
-export function statusRule(p: EvidenceProfile, retired = false): StatusRule {
+/** Separate episodes a reason needs before it can read "supported" unless the person asked for more (see `domain/learning.ts`). */
+export const DEFAULT_SUPPORTED_EPISODES = 3;
+export const supportedEpisodes = (data: AtlasData) => data.learning?.rules?.supportedEpisodes ?? DEFAULT_SUPPORTED_EPISODES;
+
+export function statusRule(p: EvidenceProfile, retired = false, minEpisodes = DEFAULT_SUPPORTED_EPISODES): StatusRule {
   if (retired) return 'retired';
   const held = p.predictionsHeld ?? 0;
   const analysis = p.analysisFor ?? 0;
@@ -260,7 +264,7 @@ export function statusRule(p: EvidenceProfile, retired = false): StatusRule {
   const saysLittle = Boolean(p.happensAnyway) && p.contrast === 0 && !p.mechanism && held === 0 && analysis === 0;
   if (saysLittle) return 'anyway';
   // Keeps showing up: repeated, with a time without it, told apart from what else could produce it, and exceptions well in the minority.
-  if (p.episodes >= 3 && (p.contrast >= 1 || analysis >= 1) && p.episodes > 2 * p.counter && (!p.needsTellingApart || (p.toldApart ?? 0) >= 1))
+  if (p.episodes >= minEpisodes && (p.contrast >= 1 || analysis >= 1) && p.episodes > 2 * p.counter && (!p.needsTellingApart || (p.toldApart ?? 0) >= 1))
     return 'supported';
   if (p.episodes >= 2) return 'plausible.episodes';
   if (p.episodes >= 1 && p.mechanism) return 'plausible.mechanism';
@@ -273,8 +277,9 @@ export const statusFromProfile = (p: EvidenceProfile, retired = false): ClaimSta
 /** The rule a claim's status comes from. */
 export function claimRule(data: AtlasData, claim: Claim): StatusRule {
   // Keyed on what can change in place (in tests and drafts): the evidence and whether it was retired.
-  return cachedOn(data, claim, `rule:${claim.evidence.length}:${claim.retired ? 1 : 0}`, () =>
-    statusRule(evidenceProfile(data, claim), Boolean(claim.retired)),
+  const min = supportedEpisodes(data);
+  return cachedOn(data, claim, `rule:${claim.evidence.length}:${claim.retired ? 1 : 0}:${min}`, () =>
+    statusRule(evidenceProfile(data, claim), Boolean(claim.retired), min),
   );
 }
 

@@ -1,5 +1,6 @@
 import { Check, Pencil, Plus, RefreshCw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { sortSuggestions } from '../../domain/learning';
 import { claimSentence } from '../../domain/claims';
 import { AREA_META, CAPTURE_KIND_LABEL, ENERGY_LABELS, MOOD_LABELS, OCCURRENCE_KIND_LABEL, expectSentence, stateSentence } from '../../domain/constants';
 import { entryCode, mapElements, patternTitle, usagesOfSource } from '../../domain/selectors';
@@ -36,7 +37,8 @@ export function EntryView({ id }: { id: ID }) {
   const usages = usagesOfSource(data, { kind: 'entry', id });
   const ctx = entry.context;
   const analysis = entry.analysis;
-  const pending = analysis?.suggestions.filter((s) => s.state === 'pending') ?? [];
+  // Kinds of suggestion you usually take come first (see domain/learning).
+  const pending = sortSuggestions(data, analysis?.suggestions.filter((s) => s.state === 'pending') ?? []);
   const resolved = analysis?.suggestions.filter((s) => s.state !== 'pending') ?? [];
   const happenings = historyItems(data).filter((h) => h.source?.kind === 'entry' && h.source.id === id);
 

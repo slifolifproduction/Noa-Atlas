@@ -4,7 +4,7 @@
  */
 import { daysBetween, todayISO } from '../lib/dates';
 import { claimSentence } from './claims';
-import { inquiries } from './inquiry';
+import { inquiries, type InquiryKind } from './inquiry';
 import { currentAction, experimentCode, experimentProgress, pendingSuggestions, thinSpots } from './selectors';
 import type { AtlasData, CaptureKind, EntityRef, ID } from './types';
 import { t, tn } from '../i18n';
@@ -15,7 +15,7 @@ export type NextStepAction =
   | { kind: 'route'; route: 'patterns' | 'paths' | 'navigation' }
   | { kind: 'done'; actionId: ID }
   /** "Not now" to something the Atlas asked to find out. */
-  | { kind: 'decline'; key: string };
+  | { kind: 'decline'; key: string; inquiryKind?: InquiryKind };
 
 export interface NextStep {
   key: string;
@@ -127,7 +127,7 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
       detail: ask.between.length === 2 ? `${ask.question} ${t('It would tell “{a}” from “{b}”.', { a: ask.between[0], b: ask.between[1] })}` : ask.question,
       cta: t('Look into it'),
       action: { kind: 'open', ref: ask.open },
-      also: { label: t('Not now'), action: { kind: 'decline', key: ask.key } },
+      also: { label: t('Not now'), action: { kind: 'decline', key: ask.key, inquiryKind: ask.kind } },
     };
   }
 

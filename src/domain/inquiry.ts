@@ -250,7 +250,14 @@ export function inquiries(data: AtlasData, today: ISODate = todayISO()): Inquiry
       const when = declined[q.key];
       return !when || addDays(when, DECLINE_DAYS) <= today;
     })
-    .sort((x, y) => Number(y.decisive) - Number(x.decisive) || COST[x.kind] - COST[y.kind] || y.relevance - x.relevance || x.key.localeCompare(y.key));
+    .sort(
+      (x, y) =>
+        Number(y.decisive) - Number(x.decisive) ||
+        putAway(data, x.kind) - putAway(data, y.kind) ||
+        COST[x.kind] - COST[y.kind] ||
+        y.relevance - x.relevance ||
+        x.key.localeCompare(y.key),
+    );
 }
 
 /** Inquiries about one outcome or one claim, in order. */
@@ -264,8 +271,14 @@ export function inquiriesFor(data: AtlasData, about: { outcome?: ID; claimId?: I
   const pool = [...all, ...extra.filter((q) => !keys.has(q.key) && (!declined[q.key] || addDays(declined[q.key], DECLINE_DAYS) <= today))];
   return pool
     .filter((q) => (about.outcome && q.outcome === about.outcome) || (about.claimId && q.claimId === about.claimId))
-    .sort((x, y) => Number(y.decisive) - Number(x.decisive) || COST[x.kind] - COST[y.kind] || y.relevance - x.relevance);
+    .sort(
+      (x, y) =>
+        Number(y.decisive) - Number(x.decisive) || putAway(data, x.kind) - putAway(data, y.kind) || COST[x.kind] - COST[y.kind] || y.relevance - x.relevance,
+    );
 }
+
+/** Kinds of question the person put away three or more times are asked after the others (see `domain/learning.ts`). */
+const putAway = (data: AtlasData, kind: InquiryKind) => ((data.learning?.declined?.[kind] ?? 0) >= 3 ? 1 : 0);
 
 /** What an inquiry asks for, in a word. */
 export const INQUIRY_KIND_LABEL: Record<InquiryKind, () => string> = {

@@ -17,7 +17,9 @@ import type { ModelUpdateProposal, PatternCandidate } from '../ai/types';
 import { createEmptyData } from '../data/empty';
 import { createSeedData } from '../data/seed';
 import { beliefUpdates, currentLedger, sameLedger } from '../domain/beliefs';
-import { canBeEvidence, claimCode, claimSentence, claimStatus } from '../domain/claims';
+import { canBeEvidence, claimCode, claimSentence, claimStatus, DEFAULT_SUPPORTED_EPISODES, LOGIC_VERSION, supportedEpisodes } from '../domain/claims';
+import type { InquiryKind } from '../domain/inquiry';
+import { calibration, emptyLearning, learnLink, memory, noteSuggestion } from '../domain/learning';
 import { EFFECT_META, EXPERIMENT_OUTCOME_LABEL, STATUS_META } from '../domain/constants';
 import { repairReferences } from '../domain/integrity';
 import { decisionCode, entryCode, experimentCode, pathCode, patternCode, resolveSource, sameRef } from '../domain/selectors';
@@ -51,6 +53,7 @@ import type {
   Stance,
   StrategicPath,
   View,
+  LearningMemory,
 } from '../domain/types';
 import { addDays, formatDate, todayISO, weekStart } from '../lib/dates';
 import { createId } from '../lib/ids';
@@ -191,7 +194,14 @@ interface AtlasActions {
   loadWorld(data: AtlasData): void;
   setProfileName(name: string): void;
   /** "Not now" to something the Atlas asked to find out: not asked again for a while. */
-  declineInquiry(key: string): void;
+  /** Put a question away for a while (and remember its kind, so kinds often put away are asked later). */
+  declineInquiry(key: string, kind?: InquiryKind): void;
+  /** Ask for this many separate episodes before a reason reads "supported" (undefined: back to the usual). */
+  setSupportedEpisodes(n: number | undefined): void;
+  /** Stop suggesting an element from a word. */
+  forgetWord(nodeId: ID, word: string): void;
+  /** Forget the counts the Atlas learned from (rules you changed stay). */
+  forgetLearning(): void;
 }
 
 export interface AtlasState extends AtlasActions {
@@ -381,6 +391,18 @@ export const useAtlas = create<AtlasState>()(
         setDraft((s) => {
           for (const u of log) s.data.modelLog.push({ id: createId('log'), at: now(), ...u });
           s.data.beliefs = ledger;
+        });
+      };
+      // What the Atlas learns from the person is only counted: it changes no record, so it skips the checks above.
+      const learn = (fn: (mem: LearningMemory, d: AtlasData) => void) =>
+        setDraft((s) => {
+          fn(memory(s.data), s.data);
+        });
+      const learnLinks = (entryId: ID, nodeIds: ID[]) => {
+        const e = get().data.entries[entryId];
+        if (!e || !nodeIds.length) return;
+        learn((mem, d) => {
+          for (const id of nodeIds) if (d.nodes[id]) learnLink(mem, e, id, d.nodes[id].label);
         });
       };
       return {
@@ -842,10 +864,12 @@ export const useAtlas = create<AtlasState>()(
             },
             { kind: 'entry', id },
           );
+          learnLinks(id, input.nodeIds ?? []);
           return get().data.entries[id] ?? created;
         },
 
         updateEntry(id, patch) {
+          const before = get().data.entries[id]?.nodeIds ?? [];
           set(
             (s) => {
               const e = s.data.entries[id];
@@ -853,6 +877,11 @@ export const useAtlas = create<AtlasState>()(
             },
             { kind: 'entry', id },
           );
+          if (patch.nodeIds)
+            learnLinks(
+              id,
+              patch.nodeIds.filter((n) => !before.includes(n)),
+            );
         },
 
         deleteEntry(id) {
@@ -947,6 +976,8 @@ export const useAtlas = create<AtlasState>()(
             if (x.type === 'link_node' && !e.nodeIds.includes(x.nodeId)) e.nodeIds.push(x.nodeId);
             if (x.type === 'area' && !e.areas.includes(x.area)) e.areas.push(x.area);
           });
+          learn((mem) => noteSuggestion(mem, sug.type, accept));
+          if (accept && sug.type === 'link_node') learnLinks(entryId, [sug.nodeId]);
         },
 
         /* ---------------- decisions ---------------- */
@@ -1427,10 +1458,56 @@ export const useAtlas = create<AtlasState>()(
           });
         },
 
-        declineInquiry(key) {
+        declineInquiry(key, kind) {
           set((s) => {
             s.data.inquiry ??= { declined: {} };
             s.data.inquiry.declined[key] = todayISO();
+          });
+          if (kind) learn((mem) => void (mem.declined[kind] = (mem.declined[kind] ?? 0) + 1));
+        },
+
+        setSupportedEpisodes(n) {
+          const from = supportedEpisodes(get().data);
+          const row = calibration(get().data).find((c) => c.status === 'supported');
+          set((s) => {
+            const mem = memory(s.data);
+            if (n === undefined || n === DEFAULT_SUPPORTED_EPISODES) mem.rules = {};
+            else mem.rules = { supportedEpisodes: n, since: todayISO() };
+            logUpdate(s.data, {
+              kind: 'rule_changed',
+              summary:
+                n === undefined || n === DEFAULT_SUPPORTED_EPISODES
+                  ? t('“Supported” asks for {n} separate episodes again, as it did at first.', { n: DEFAULT_SUPPORTED_EPISODES })
+                  : t(
+                      '“Supported” now asks for {n} separate episodes (it asked for {m}): predictions from supported reasons held {held} times and did not hold {failed} times.',
+                      {
+                        n,
+                        m: from,
+                        held: row?.held ?? 0,
+                        failed: row?.failed ?? 0,
+                      },
+                    ),
+              rule: 'supported',
+              logicVersion: LOGIC_VERSION,
+            });
+          });
+        },
+
+        forgetWord(nodeId, word) {
+          learn((mem, d) => {
+            if (!mem.forgotten.includes(`${nodeId}:${word}`)) mem.forgotten.push(`${nodeId}:${word}`);
+            if (mem.words[nodeId]) delete mem.words[nodeId][word];
+            logUpdate(d, {
+              kind: 'learning_forgotten',
+              summary: t('The Atlas no longer suggests {element} from the word “{word}”.', { element: d.nodes[nodeId]?.label ?? '', word }),
+            });
+          });
+        },
+
+        forgetLearning() {
+          learn((mem, d) => {
+            d.learning = { ...emptyLearning(), rules: mem.rules };
+            logUpdate(d, { kind: 'learning_forgotten', summary: t('The Atlas forgot what it had learned from you (rules you changed stay).') });
           });
         },
       };

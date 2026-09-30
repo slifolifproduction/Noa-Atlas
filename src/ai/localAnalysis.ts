@@ -13,6 +13,7 @@
  * provider returns the same shapes; this module is also the offline fallback.
  */
 import { claimSentence, claimStatus } from '../domain/claims';
+import { linksFromWords } from '../domain/learning';
 import { OUTCOME_RATING_LABEL } from '../domain/constants';
 import { decisionCode, decisionHorizon, displayNode, mapElements, patternCode, patternLive, sortedDecisions } from '../domain/selectors';
 import type {
@@ -37,7 +38,7 @@ import { addDays, todayISO, weekStart } from '../lib/dates';
 import { createId } from '../lib/ids';
 import { excerpt as firstSentence, sentenceContaining } from '../lib/text';
 import type { ExperimentDraft, ModelUpdateProposal, PatternCandidate } from './types';
-import { t } from '../i18n';
+import { t, tn } from '../i18n';
 
 export const LOCAL_PROVIDER_LABEL = 'Local heuristics';
 
@@ -700,6 +701,19 @@ export function analyzeEntryLocally(entry: Entry, data: AtlasData, at: ISODateTi
       nodeId: node.id,
       reason: t('Mentions {what}.', { what: quote(hit) }),
       state: entry.nodeIds.includes(node.id) ? 'accepted' : 'pending',
+    });
+  }
+
+  // Elements this note may be about in the person's own words: what they linked notes using these words to before.
+  for (const { nodeId, words } of linksFromWords(data, entry)) {
+    if (mentioned.some((m) => m.node.id === nodeId) || !data.nodes[nodeId]) continue;
+    const w = words[0];
+    suggestions.push({
+      id: createId('sug'),
+      type: 'link_node',
+      nodeId,
+      reason: tn(w.notes, 'You linked a note that uses “{word}” to this before.', 'You linked {n} notes that use “{word}” to this before.', { word: w.word }),
+      state: 'pending',
     });
   }
 

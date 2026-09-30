@@ -39,7 +39,7 @@ export function InquiryList({ items, max = 2, here }: { items: Inquiry[]; max?: 
                 {t('Look into it')}
               </Button>
             )}
-            <button type="button" className="text-[11.5px] text-ink-3 hover:text-ink" onClick={() => decline(q.key)}>
+            <button type="button" className="text-[11.5px] text-ink-3 hover:text-ink" onClick={() => decline(q.key, q.kind)}>
               {t('Not now')}
             </button>
           </div>

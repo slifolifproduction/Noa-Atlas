@@ -22,7 +22,7 @@ export function NextStepCard({ className }: { className?: string }) {
     if (a.kind === 'capture') openCapture(a.capture);
     else if (a.kind === 'open') openEntity(a.ref);
     else if (a.kind === 'route') navigate(a.route);
-    else if (a.kind === 'decline') declineInquiry(a.key);
+    else if (a.kind === 'decline') declineInquiry(a.key, a.inquiryKind);
     else {
       setActionStatus(a.actionId, 'done');
       toast(t('Done. Here is what comes next.'), { tone: 'success' });

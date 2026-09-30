@@ -22,7 +22,7 @@
 import { accountsFor, accountLabel } from './accounts';
 import { claimCode, claimRule, evidenceProfile, LOGIC_VERSION, RULE_STATUS } from './claims';
 import { STATUS_META } from './constants';
-import { RULE_TEXT } from './trace';
+import { ruleText } from './trace';
 import { displayNode } from './selectors';
 import type { AtlasData, BeliefLedger, ClaimStatus, ID, ISODate, ModelUpdate, SourceRef } from './types';
 import { dateOf } from '../lib/dates';
@@ -92,7 +92,7 @@ export function beliefUpdates(data: AtlasData, cause?: SourceRef, since = data.m
           claim: code,
           after: label(now.status),
           before: label(before.status),
-          rule: RULE_TEXT[now.rule as keyof typeof RULE_TEXT] ?? '',
+          rule: ruleText(now.rule as Parameters<typeof ruleText>[0], data) ?? '',
         }),
         claimId: id,
         before: before.status,
