@@ -1180,7 +1180,7 @@ html body {
 .quest-rig[data-urgent] .quest-turn-back {
   animation-duration: 95s;
 }
-.quest-rig:is([data-state='defeated'], [data-state='dormant']) :is(.quest-turn, .quest-turn-back, .eye-iris) {
+.quest-rig:is([data-state='defeated'], [data-state='dormant']) :is(.quest-turn, .quest-turn-back, .clk-orbit) {
   animation-play-state: paused;
 }
 @keyframes quest-turn {
@@ -1312,11 +1312,6 @@ html body {
   stop-color: rgb(var(--eye));
   stop-opacity: 0.01;
 }
-.eye-iris {
-  transform-box: view-box;
-  transform-origin: 50% 50%;
-  animation: quest-turn 180s linear infinite reverse;
-}
 .eye-iris-disc {
   fill: rgb(var(--eye) / 0.035);
   stroke: rgb(var(--eye) / 0.38);
@@ -1400,104 +1395,113 @@ html body {
   stroke-width: 66;
   vector-effect: none;
 }
-/* The clock that is its pupil: engraved numerals, a railway track, Breguet hands. */
-.clk-halo {
+/* The clock that is its pupil, drawn as an instrument: hairline numerals, a
+ * ring of ticks on its rim, hands ending in nodes like the spokes, and the
+ * seconds a moon on a small orbit. The void inside burns at its rim. */
+.eye-limbus {
   fill: none;
-  stroke: rgb(var(--eye-hot) / 0.3);
+  stroke: #030405;
+  stroke-opacity: 0.45;
 }
-.clk-case {
-  fill: #040506;
-  stroke: rgb(var(--eye) / 0.85);
+.quest-rig .eye-limbus {
+  stroke-width: 12;
+  vector-effect: none;
+}
+.clk-orbit {
+  fill: none;
+  stroke: rgb(var(--eye-hot) / 0.45);
+  stroke-dasharray: 2 5;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: quest-turn 60s linear infinite;
+}
+.clk-rim {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.28);
+}
+.clk-minutes {
+  stroke: rgb(var(--eye) / 0.45);
+}
+.clk-hours {
+  stroke: rgb(var(--eye) / 0.9);
   stroke-width: 1.4;
 }
-.clk-knurl {
-  stroke: rgb(var(--eye) / 0.4);
-}
 .clk-face {
-  stroke: rgb(var(--eye) / 0.5);
+  fill: #030405;
+  stroke: rgb(var(--eye-hot) / 0.9);
+  stroke-width: 1.5;
 }
-.clk-rose {
+.clk-dots {
   fill: none;
-  stroke: rgb(var(--eye) / 0.08);
+  stroke: rgb(var(--eye) / 0.26);
+  stroke-dasharray: 1 5;
 }
-.clk-chapter {
+.clk-inner {
   fill: none;
   stroke: rgb(var(--eye) / 0.2);
 }
-.clk-track {
-  fill: none;
+.clk-reticle {
   stroke: rgb(var(--eye) / 0.55);
 }
-.clk-minutes {
-  stroke: rgb(var(--eye) / 0.6);
-}
-.clk-hours {
-  stroke: rgb(var(--eye) / 0.95);
-  stroke-width: 2;
-}
-.quest-rig .clk-num-heavy {
+.clk-numerals {
   fill: none;
-  stroke: rgb(var(--eye) / 0.95);
-  stroke-width: 1.6;
-  stroke-linecap: square;
-  vector-effect: none;
-}
-.quest-rig .clk-num-hair {
-  fill: none;
-  stroke: rgb(var(--eye) / 0.85);
-  stroke-width: 0.7;
-  vector-effect: none;
+  stroke: rgb(var(--eye) / 0.88);
+  stroke-width: 1.1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .clk-mark {
   font-family: var(--font-mono);
   letter-spacing: 0.14em;
-  fill: rgb(var(--eye) / 0.55);
+  fill: rgb(var(--eye) / 0.5);
 }
-.clk-window {
-  fill: #0b0d10;
+.clk-bracket {
+  fill: none;
   stroke: rgb(var(--eye) / 0.6);
 }
-.clk-window-text {
+.clk-readout {
   font-family: var(--font-mono);
   font-weight: 500;
   fill: rgb(var(--eye));
 }
-.quest-rig[data-urgent] .clk-window-text {
+.quest-rig[data-urgent] .clk-readout {
   fill: rgb(255 90 31);
 }
 .clk-sub {
-  fill: #030405;
-  stroke: rgb(var(--eye) / 0.4);
+  fill: none;
+  stroke: rgb(var(--eye) / 0.35);
 }
-.clk-sec {
-  stroke: rgb(var(--eye-hot));
+.clk-sweep {
+  stroke: rgb(var(--eye-hot) / 0.55);
 }
-.clk-sec-cap {
+.clk-sec-moon {
   fill: rgb(var(--eye-hot));
 }
 .clk-hand {
-  fill: rgb(var(--eye));
-  stroke: #05060a;
-  stroke-width: 0.6;
+  stroke: rgb(var(--eye) / 0.95);
+  stroke-width: 1.6;
+  stroke-linecap: round;
 }
-.quest-rig .clk-moon {
-  fill: none;
+.clk-hand-minute {
+  stroke-width: 1.1;
+}
+.clk-hand-node {
+  fill: #030405;
   stroke: rgb(var(--eye));
-  stroke-width: 1.7;
-  vector-effect: none;
+  stroke-width: 1.3;
 }
-.clk-cap {
+.clk-hand-tip {
   fill: rgb(var(--eye));
+}
+.clk-bead {
+  fill: rgb(var(--eye) / 0.8);
+}
+.clk-core {
+  fill: none;
+  stroke: rgb(var(--eye-hot) / 0.8);
 }
 .clk-pin {
-  fill: #05060a;
-}
-.quest-rig .clk-glass {
-  fill: none;
-  stroke: rgb(255 255 255 / 0.07);
-  stroke-width: 7;
-  stroke-linecap: round;
-  vector-effect: none;
+  fill: rgb(var(--eye));
 }
 /* A strike: a beam from your button to the part, a burst where it lands, a shock through the eye. */
 .quest-beams {
@@ -1620,7 +1624,7 @@ html body {
 @media (prefers-reduced-motion: reduce) {
   .quest-turn,
   .quest-turn-back,
-  .eye-iris,
+  .clk-orbit,
   .quest-twinkle,
   .quest-watch,
   .quest-hud-in,

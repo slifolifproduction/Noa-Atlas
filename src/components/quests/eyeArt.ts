@@ -14,8 +14,6 @@ export const RI = 232;
 /** Half the width of the eye, and half its height when wide open. */
 export const EW = 350;
 export const EH = 236;
-/** How far the iris travels when it looks. */
-export const GAZE = 70;
 /** The rings: its strength, its ticks, its armor, the text that turns. */
 export const R_HP = 392;
 export const R_TICKS = 372;
@@ -102,22 +100,64 @@ export function segment(i: number, n: number, r: number) {
   return arc(r, -90 + (i * 360) / n + gap / 2, -90 + ((i + 1) * 360) / n - gap / 2);
 }
 
-/* ---- The clock that is its pupil ------------------------------------------ */
-
-const NUMERALS = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
-const ADVANCE: Record<string, number> = { I: 3.6, V: 8.8, X: 8.8 };
+/* ---- The eyeball ------------------------------------------------------------ */
 
 /**
- * Roman numerals engraved as strokes, set radially as on an old dial (the
- * top of each numeral faces out). Heavy and hairline strokes are separate,
- * as in the old engraved faces; III and VI give way to the window and the
- * small seconds.
+ * The eye is a ball that turns. Its iris and pupil are one disc on its
+ * front, on a plane PLANE units in from its centre; turning it by (yaw,
+ * pitch) carries the disc across and foreshortens it, so iris and pupil
+ * always move as one.
+ */
+export const EYEBALL = 470;
+export const PLANE = Math.sqrt(EYEBALL ** 2 - RI ** 2);
+/** How far it turns, in radians: further sideways than up and down, as eyes do. */
+export const YAW = (21 * Math.PI) / 180;
+export const PITCH = (13 * Math.PI) / 180;
+
+/** Where the disc lands, and the SVG matrix that carries it there (with `scale` for the pupil's size). */
+export function turn(yaw: number, pitch: number) {
+  const nx = Math.sin(yaw) * Math.cos(pitch);
+  const ny = Math.sin(pitch);
+  const nz = Math.cos(yaw) * Math.cos(pitch);
+  const r = Math.hypot(nx, ny);
+  const [c, s] = r > 1e-6 ? [nx / r, ny / r] : [1, 0];
+  // Squash by nz along the direction it turned: R(phi) · S(nz, 1) · R(-phi).
+  const a = nz * c * c + s * s;
+  const b = (nz - 1) * c * s;
+  const d = nz * s * s + c * c;
+  const x = PLANE * nx;
+  const y = PLANE * ny;
+  return {
+    x,
+    y,
+    matrix: (scale = 1) =>
+      `matrix(${(a * scale).toFixed(4)} ${(b * scale).toFixed(4)} ${(b * scale).toFixed(4)} ${(d * scale).toFixed(4)} ${x.toFixed(1)} ${y.toFixed(1)})`,
+  };
+}
+
+/* ---- The clock that is its pupil ------------------------------------------ */
+
+/** The seconds at six o'clock: a moon going round a small orbit. The readout at three. */
+const SUB_R = 14;
+export const SUB = { y: RC * 0.5, r: SUB_R };
+export const READOUT = { x: RC * 0.6, w: 13, h: 8 };
+/** The hands: hairlines ending in a node, like the spokes of the iris. */
+export const HOUR = { length: 44, node: 4 };
+export const MINUTE = { length: 70, node: 2.6 };
+
+const NUMERALS = ['XII', 'I', 'II', 'III', 'IIII', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI'];
+const ADVANCE: Record<string, number> = { I: 3, V: 7, X: 7 };
+
+/**
+ * An old clock, drawn as one of the atlas's instruments: Roman numerals as
+ * single hairlines set round the dial (their tops facing out), a ring of
+ * ticks on the rim, dotted rings and a reticle inside. III gives way to a
+ * readout, VI to the seconds.
  */
 export const DIAL = (() => {
-  const h = 13;
-  const rn = RC - 28;
-  let heavy = '';
-  let hair = '';
+  const h = 9.5;
+  const rn = RC - 17;
+  let numerals = '';
   NUMERALS.forEach((text, i) => {
     if (i === 3 || i === 6) return;
     const th = (i * 30 * Math.PI) / 180;
@@ -128,55 +168,26 @@ export const DIAL = (() => {
     let x = -width / 2;
     const [y0, y1] = [-h / 2, h / 2];
     for (const c of text) {
-      if (c === 'I') {
-        const cx = x + 1;
-        heavy += line(cx, y0, cx, y1);
-        hair += line(cx - 1.7, y0, cx + 1.7, y0) + line(cx - 1.7, y1, cx + 1.7, y1);
-      } else {
-        const [l, r] = [x + 0.6, x + 7.2];
-        if (c === 'V') {
-          heavy += line(l, y0, (l + r) / 2, y1);
-          hair += line((l + r) / 2, y1, r, y0);
-        } else {
-          heavy += line(l, y0, r, y1);
-          hair += line(r, y0, l, y1) + line(l - 1.5, y1, l + 1.9, y1) + line(r - 1.9, y1, r + 1.5, y1);
-        }
-        hair += line(l - 1.5, y0, l + 1.9, y0) + line(r - 1.9, y0, r + 1.5, y0);
-      }
+      if (c === 'I') numerals += line(x + 0.7, y0, x + 0.7, y1);
+      else if (c === 'V') numerals += line(x + 0.4, y0, x + 2.9, y1) + line(x + 2.9, y1, x + 5.4, y0);
+      else numerals += line(x + 0.4, y0, x + 5.4, y1) + line(x + 5.4, y0, x + 0.4, y1);
       x += ADVANCE[c];
     }
   });
-  // A rose-engine pattern at the centre of the dial.
-  let rose = '';
-  for (let i = 0; i < 28; i++) {
-    const a = (i / 28) * TAU;
-    const [cx, cy, r] = [Math.cos(a) * RC * 0.13, Math.sin(a) * RC * 0.13, RC * 0.33];
-    rose += `M${f(cx + r)} ${f(cy)}A${r} ${r} 0 1 0 ${f(cx - r)} ${f(cy)}A${r} ${r} 0 1 0 ${f(cx + r)} ${f(cy)}`;
+  // A reticle: four short marks on the diagonals, between the inner rings.
+  let reticle = '';
+  for (const deg of [45, 135, 225, 315]) {
+    const a = (deg * Math.PI) / 180;
+    reticle += `M${f(Math.cos(a) * 34)} ${f(Math.sin(a) * 34)}L${f(Math.cos(a) * 46)} ${f(Math.sin(a) * 46)}`;
   }
   return {
-    heavy,
-    hair,
-    rose,
-    knurl: ticks(150, RC + 5, RC + 10),
-    minutes: ticks(60, RC - 7, RC - 12, (i) => i % 5 === 0),
-    hours: ticks(12, RC - 5, RC - 15),
-    subTicks: ticks(12, 14, 17),
+    numerals,
+    reticle,
+    minutes: ticks(60, RC + 4, RC + 8, (i) => i % 5 === 0),
+    hours: ticks(12, RC + 3, RC + 13),
+    subTicks: ticks(12, SUB_R - 3, SUB_R),
   };
 })();
-
-/** The small seconds, at six o'clock, and the window at three. */
-export const SUB = { y: RC * 0.47, r: 18.5 };
-export const WINDOW = { x: RC * 0.5, w: 25, h: 15 };
-
-/** A Breguet hand pointing up: a tapered shaft, an open moon near the tip, a needle point. */
-export function hand(length: number, moon: number, moonR: number, w: number) {
-  return (
-    `M${-w} 10L${w} 10L${f(w * 0.55)} ${f(-(moon - moonR))}L${f(-w * 0.55)} ${f(-(moon - moonR))}Z` +
-    `M${f(-w * 0.6)} ${f(-(moon + moonR))}L${f(w * 0.6)} ${f(-(moon + moonR))}L0 ${-length}Z`
-  );
-}
-export const HOUR = { length: RC * 0.5, moon: RC * 0.36, moonR: 4.6, w: 1.9 };
-export const MINUTE = { length: RC * 0.8, moon: RC * 0.6, moonR: 5, w: 1.5 };
 
 /* ---- The sky --------------------------------------------------------------- */
 

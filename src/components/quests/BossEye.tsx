@@ -9,12 +9,11 @@ import {
   EH,
   EW,
   FIBRES,
-  GAZE,
-  hand,
   HOUR,
   lids,
   MINUTE,
   paintStars,
+  PITCH,
   R_ARMOR,
   R_HP,
   R_TEXT,
@@ -25,10 +24,12 @@ import {
   seeded,
   segment,
   spokes,
+  READOUT,
   SUB,
   TAU,
   ticks,
-  WINDOW,
+  turn,
+  YAW,
 } from './eyeArt';
 
 export interface EyeHandle {
@@ -70,19 +71,27 @@ const TWINKLES = (() => {
  * The stage is a rig of layers around one centre. Behind, two painted skies
  * and a slow glow; then an orrery of rings that turns (its strength as the
  * ring of segments, a numbered segment per piece of work, dark once done; its
- * armor as plates further out; a line of text going round); then the eye, its
- * iris a field of fibres with a spoke for each piece of work, and at its
- * centre the clock, keeping the real time in your zone, the days left in its
- * window. The far rings move against its gaze, so it has depth.
+ * armor as plates further out; a line of text going round); then the eye.
  *
- * It wakes when you arrive (a slit, then it opens heavily and the hands sweep
- * to the hour), then stares at you: it follows the pointer (on a phone, the
- * tilt or your touch), and with nothing moving it looks straight out of the
- * screen, never away, with the small darts of a living eye. When you go to
- * strike it narrows and the clock swells; it looks at the piece of work you
- * point to; a strike is a beam, and it flinches. Near its date it narrows,
- * burns orange and its light beats. Beaten, it closes and its rings stop; got
- * away, it half closes and looks aside. Still, with reduced motion.
+ * The eye is a ball that turns. Its iris (a field of fibres with a spoke for
+ * each piece of work) and its pupil are one disc on the ball, so they always
+ * move together: turning carries the disc across and foreshortens it, the
+ * pupil only dilates about the iris's centre, and the light on the white
+ * follows. The pupil is a clock drawn as one of the atlas's instruments
+ * (hairline numerals, a ring of ticks, hands ending in nodes like the
+ * spokes, the seconds a moon on a small orbit), keeping the real time in
+ * your zone, with the days left in its readout. The far rings move against
+ * its gaze, so it has depth.
+ *
+ * It wakes when you arrive (a slit, then it opens heavily and the hands
+ * sweep to the hour), then stares at you: it follows the pointer (on a phone,
+ * the tilt or your touch), and with nothing moving it looks straight out of
+ * the screen, never away, with the small darts of a living eye. When you go
+ * to strike it narrows and the pupil swells; it looks at the spoke of the
+ * piece of work you point to, where that spoke is now; a strike is a beam,
+ * and it flinches. Near its date it narrows, burns orange and its light
+ * beats. Beaten, it closes and its rings stop; got away, it half closes and
+ * looks aside. Still, with reduced motion.
  */
 export function BossEye({
   parts,
@@ -136,9 +145,11 @@ export function BossEye({
   const mid = useRef<HTMLDivElement>(null);
   const near = useRef<HTMLDivElement>(null);
   const eye = useRef<SVGSVGElement>(null);
-  const iris = useRef<SVGGElement>(null);
+  const disc = useRef<SVGGElement>(null);
+  const spin = useRef<SVGGElement>(null);
   const flares = useRef<SVGGElement>(null);
-  const clock = useRef<SVGGElement>(null);
+  const pupil = useRef<SVGGElement>(null);
+  const sclera = useRef<SVGRadialGradientElement>(null);
   const hourHand = useRef<SVGGElement>(null);
   const minuteHand = useRef<SVGGElement>(null);
   const secondHand = useRef<SVGGElement>(null);
@@ -294,15 +305,21 @@ export function BossEye({
       const [h, m, s] = [Number(c.h), Number(c.m), Number(c.s)];
       return { h: ((h % 12) + m / 60) * 30, m: (m + s / 60) * 6, s: s * 6 };
     };
-    const setGaze = (gx: number, gy: number, dil: number) => {
-      iris.current?.setAttribute('transform', `translate(${gx.toFixed(1)} ${gy.toFixed(1)})`);
-      clock.current?.setAttribute('transform', `translate(${(gx * 1.12).toFixed(1)} ${(gy * 1.12).toFixed(1)}) scale(${dil.toFixed(3)})`);
+    // The eyeball turns: iris and pupil are one disc on it, carried and foreshortened together;
+    // the pupil only dilates about the same centre, and the light on the white follows the iris.
+    const carry = (yaw: number, pitch: number, dil: number) => {
+      const t = turn(yaw, pitch);
+      disc.current?.setAttribute('transform', t.matrix());
+      pupil.current?.setAttribute('transform', `scale(${dil.toFixed(3)})`);
+      sclera.current?.setAttribute('cx', (0.5 + (t.x / 1000) * 0.6).toFixed(4));
+      sclera.current?.setAttribute('cy', (0.5 + (t.y / 580) * 0.6).toFixed(4));
+      return t;
     };
 
     if (reduced) {
       const { state: st, rest: r } = live.current;
       setLids(r);
-      setGaze(st === 'escaped' ? -GAZE * 0.8 : 0, st === 'escaped' ? GAZE * 0.3 : 0, 1);
+      carry(st === 'escaped' ? -YAW * 0.8 : 0, st === 'escaped' ? PITCH * 0.3 : 0, 1);
       const tick = () => {
         const a = angles();
         setHands(a.h, a.m, a.s);
@@ -322,8 +339,8 @@ export function BossEye({
       const dy = clientY - (r.top + r.height / 2);
       const d = Math.hypot(dx, dy) || 1;
       const reach = Math.min(1, d / (r.width * 0.55));
-      pointer.x = (dx / d) * reach * GAZE;
-      pointer.y = (dy / d) * reach * GAZE * 0.62;
+      pointer.x = (dx / d) * reach * YAW;
+      pointer.y = (dy / d) * reach * PITCH;
       pointer.at = performance.now();
     };
     const onMove = (e: PointerEvent) => {
@@ -332,8 +349,8 @@ export function BossEye({
     const onDown = (e: PointerEvent) => aim(e.clientX, e.clientY);
     const onTilt = (e: DeviceOrientationEvent) => {
       if (e.gamma == null || e.beta == null) return;
-      tilt.x = Math.max(-1, Math.min(1, e.gamma / 30)) * GAZE;
-      tilt.y = Math.max(-1, Math.min(1, (e.beta - 45) / 30)) * GAZE * 0.62;
+      tilt.x = Math.max(-1, Math.min(1, e.gamma / 30)) * YAW;
+      tilt.y = Math.max(-1, Math.min(1, (e.beta - 45) / 30)) * PITCH;
       tilt.at = performance.now();
     };
     window.addEventListener('pointermove', onMove, { passive: true });
@@ -348,8 +365,11 @@ export function BossEye({
     let open = 0.012;
     let openV = 0;
     let dil = 0.55;
+    // Gaze and darts are angles of the eyeball (yaw, pitch), in radians.
     const gaze = { x: 0, y: 0 };
     const dart = { x: 0, y: 0, tx: 0, ty: 0, next: 0 };
+    let turned = 0;
+    let lastFrame = wakeAt;
     let blinkAt = 0;
     let nextBlink = wakeAt + 7000 + Math.random() * 6000;
     let lastHit = live.current.hitAt;
@@ -369,6 +389,11 @@ export function BossEye({
       const L = live.current;
       const wake = now - wakeAt;
       const active = L.state === 'active' && !L.dormant;
+      const dt = Math.min(64, now - lastFrame);
+      lastFrame = now;
+      // The iris turns slowly on itself (once in three minutes), until it is beaten.
+      if (!L.dormant && L.state !== 'defeated') turned -= dt * 0.002;
+      spin.current?.setAttribute('transform', `rotate(${turned.toFixed(2)})`);
       // Blinks: when hit, and rarely by itself; it has no need to.
       if (L.hitAt !== lastHit) {
         lastHit = L.hitAt;
@@ -398,9 +423,11 @@ export function BossEye({
       let ease = 0.05;
       const target = L.look ? L.layout.find((s) => s.part.id === L.look) : undefined;
       if (L.dormant || L.state === 'defeated' || wake < 1300) [tx, ty] = [0, 0];
-      else if (L.state === 'escaped') [tx, ty] = [-GAZE * 0.8, GAZE * 0.3];
+      else if (L.state === 'escaped') [tx, ty] = [-YAW * 0.8, PITCH * 0.3];
       else if (target) {
-        [tx, ty] = [Math.cos(target.angle) * GAZE, Math.sin(target.angle) * GAZE * 0.62];
+        // Where that spoke is now, as the iris has turned.
+        const a = target.angle + (turned * Math.PI) / 180;
+        [tx, ty] = [Math.cos(a) * YAW, Math.sin(a) * PITCH];
         ease = 0.08;
       } else if (now - pointer.at < 3200) [tx, ty] = [pointer.x, pointer.y];
       else if (now - tilt.at < 3200) [tx, ty] = [tilt.x, tilt.y];
@@ -408,26 +435,26 @@ export function BossEye({
       gaze.y += (ty - gaze.y) * ease;
       // Small quick darts, so it is never quite still.
       if (active && now > dart.next) {
-        dart.tx = (Math.random() - 0.5) * 10;
-        dart.ty = (Math.random() - 0.5) * 6;
+        dart.tx = (Math.random() - 0.5) * 0.05;
+        dart.ty = (Math.random() - 0.5) * 0.03;
         dart.next = now + 380 + Math.random() * 1300;
       }
       dart.x += (dart.tx - dart.x) * 0.35;
       dart.y += (dart.ty - dart.y) * 0.35;
       // A flinch when hit.
       const hs = now - L.hitAt;
-      const j = L.hitAt && hs < 340 ? (1 - hs / 340) * 11 : 0;
+      const j = L.hitAt && hs < 340 ? (1 - hs / 340) * 0.06 : 0;
       const gx = gaze.x + dart.x + (j ? (Math.random() - 0.5) * 2 * j : 0);
       const gy = gaze.y + dart.y + (j ? (Math.random() - 0.5) * 2 * j : 0);
       setLids(open);
-      setGaze(gx, gy, dil);
+      const t = carry(gx, gy, dil);
       // Depth: the rings and the sky move against its gaze.
       const k = L.k;
-      move(far, -gx * k * 0.12, -gy * k * 0.12);
-      move(mid, -gx * k * 0.05, -gy * k * 0.05);
-      move(near, -gx * k * 0.025, -gy * k * 0.025);
-      move(skyFar, -gx * k * 0.07, -gy * k * 0.07);
-      move(skyNear, -gx * k * 0.18, -gy * k * 0.18);
+      move(far, -t.x * k * 0.06, -t.y * k * 0.06);
+      move(mid, -t.x * k * 0.025, -t.y * k * 0.025);
+      move(near, -t.x * k * 0.012, -t.y * k * 0.012);
+      move(skyFar, -t.x * k * 0.035, -t.y * k * 0.035);
+      move(skyNear, -t.x * k * 0.09, -t.y * k * 0.09);
       // The hands: they sweep to the hour as it wakes, then keep the time; the seconds step, with a small recoil.
       const sec = Math.floor(Date.now() / 1000);
       if (sec !== lastSec) {
@@ -567,27 +594,24 @@ export function BossEye({
               <clipPath id={`${id}-lids`}>
                 <path ref={lidClip} d={lidsNow} />
               </clipPath>
-              <radialGradient id={`${id}-sclera`}>
+              <radialGradient ref={sclera} id={`${id}-sclera`}>
                 <stop offset="0" className="eye-sclera-in" />
                 <stop offset="0.55" className="eye-sclera-mid" />
                 <stop offset="1" className="eye-sclera-out" />
-              </radialGradient>
-              <radialGradient id={`${id}-dial`}>
-                <stop offset="0" stopColor="#0d0f13" />
-                <stop offset="1" stopColor="#040506" />
               </radialGradient>
             </defs>
             <g clipPath={`url(#${id}-lids)`}>
               <rect x={-500} y={-290} width={1000} height={580} fill={`url(#${id}-sclera)`} />
               <circle r={300} className="eye-ring-dots" />
-              <g ref={iris}>
-                <g className="eye-iris">
+              {/* One disc on the eyeball: the iris, and the pupil at its centre. They turn as one. */}
+              <g ref={disc}>
+                <g ref={spin}>
                   <circle r={RI} className="eye-iris-disc" />
                   <path d={FIBRES.faint} className="eye-fibre" />
                   <path d={FIBRES.bright} className="eye-fibre-bright" />
                   <circle r={RI - 14} className="eye-ring-dash" />
                   <circle r={RI * 0.74} className="eye-ring-dots" />
-                  <circle r={RC + 26} className="eye-ring" />
+                  <circle r={RC + 30} className="eye-ring" />
                   {layout.map((s) => {
                     const [c, si] = [Math.cos(s.angle), Math.sin(s.angle)];
                     return (
@@ -603,45 +627,48 @@ export function BossEye({
                   })}
                   <g ref={flares} />
                 </g>
-              </g>
+                <circle r={RI - 5} className="eye-limbus" />
 
-              <g ref={clock} className="eye-clock">
-                <circle r={RC + 22} className="clk-halo" />
-                <circle r={RC + 10} className="clk-case" />
-                <path d={DIAL.knurl} className="clk-knurl" />
-                <circle r={RC} fill={`url(#${id}-dial)`} className="clk-face" />
-                <path d={DIAL.rose} className="clk-rose" />
-                <circle r={RC * 0.5} className="clk-chapter" />
-                <circle r={RC - 7} className="clk-track" />
-                <circle r={RC - 12} className="clk-track" />
-                <path d={DIAL.minutes} className="clk-minutes" />
-                <path d={DIAL.hours} className="clk-hours" />
-                <path d={DIAL.heavy} className="clk-num-heavy" />
-                <path d={DIAL.hair} className="clk-num-hair" />
-                <text y={-RC * 0.38} fontSize={6.2} textAnchor="middle" className="clk-mark">
-                  {dormant ? '' : `HP ${pad(hp)}/${pad(maxHp)}`}
-                </text>
-                <rect x={WINDOW.x} y={-WINDOW.h / 2} width={WINDOW.w} height={WINDOW.h} className="clk-window" />
-                <text x={WINDOW.x + WINDOW.w / 2} y={3.7} fontSize={10.5} textAnchor="middle" className="clk-window-text">
-                  {days}
-                </text>
-                <circle cy={SUB.y} r={SUB.r} className="clk-sub" />
-                <path d={DIAL.subTicks} transform={`translate(0 ${SUB.y.toFixed(1)})`} className="clk-minutes" />
-                <g ref={secondHand}>
-                  <line x1={0} y1={SUB.y + 5} x2={0} y2={SUB.y - 16} className="clk-sec" />
-                  <circle cy={SUB.y} r={1.8} className="clk-sec-cap" />
+                {/* The pupil: an old clock, drawn as an instrument. */}
+                <g ref={pupil}>
+                  <circle r={RC + 19} className="clk-orbit" />
+                  <circle r={RC + 13} className="clk-rim" />
+                  <path d={DIAL.minutes} className="clk-minutes" />
+                  <path d={DIAL.hours} className="clk-hours" />
+                  <circle r={RC} className="clk-face" />
+                  <circle r={RC - 30} className="clk-dots" />
+                  <circle r={26} className="clk-inner" />
+                  <path d={DIAL.reticle} className="clk-reticle" />
+                  <path d={DIAL.numerals} className="clk-numerals" />
+                  <text y={-RC * 0.46} fontSize={6} textAnchor="middle" className="clk-mark">
+                    {dormant ? '' : `HP ${pad(hp)}/${pad(maxHp)}`}
+                  </text>
+                  <path
+                    d={`M${READOUT.x - READOUT.w + 3} ${-READOUT.h}H${READOUT.x - READOUT.w}V${READOUT.h}H${READOUT.x - READOUT.w + 3}M${READOUT.x + READOUT.w - 3} ${-READOUT.h}H${READOUT.x + READOUT.w}V${READOUT.h}H${READOUT.x + READOUT.w - 3}`}
+                    className="clk-bracket"
+                  />
+                  <text x={READOUT.x} y={3.3} fontSize={9.5} textAnchor="middle" className="clk-readout">
+                    {days}
+                  </text>
+                  <circle cy={SUB.y} r={SUB.r} className="clk-sub" />
+                  <path d={DIAL.subTicks} transform={`translate(0 ${SUB.y.toFixed(1)})`} className="clk-minutes" />
+                  <g ref={secondHand}>
+                    <line x1={0} y1={SUB.y} x2={0} y2={SUB.y - SUB.r + 3} className="clk-sweep" />
+                    <circle cy={SUB.y - SUB.r} r={2.3} className="clk-sec-moon" />
+                  </g>
+                  <g ref={hourHand}>
+                    <line x1={0} y1={7} x2={0} y2={-(HOUR.length - HOUR.node)} className="clk-hand" />
+                    <circle cy={-HOUR.length * 0.5} r={1.6} className="clk-bead" />
+                    <circle cy={-HOUR.length} r={HOUR.node} className="clk-hand-node" />
+                  </g>
+                  <g ref={minuteHand}>
+                    <line x1={0} y1={10} x2={0} y2={-MINUTE.length} className="clk-hand clk-hand-minute" />
+                    <circle cy={-MINUTE.length * 0.62} r={1.4} className="clk-bead" />
+                    <circle cy={-MINUTE.length} r={MINUTE.node} className="clk-hand-tip" />
+                  </g>
+                  <circle r={5.5} className="clk-core" />
+                  <circle r={1.9} className="clk-pin" />
                 </g>
-                <g ref={hourHand}>
-                  <path d={hand(HOUR.length, HOUR.moon, HOUR.moonR, HOUR.w)} className="clk-hand" />
-                  <circle cy={-HOUR.moon} r={HOUR.moonR} className="clk-moon" />
-                </g>
-                <g ref={minuteHand}>
-                  <path d={hand(MINUTE.length, MINUTE.moon, MINUTE.moonR, MINUTE.w)} className="clk-hand" />
-                  <circle cy={-MINUTE.moon} r={MINUTE.moonR} className="clk-moon" />
-                </g>
-                <circle r={4.4} className="clk-cap" />
-                <circle r={1.7} className="clk-pin" />
-                <path d={arc(RC * 0.84, 198, 252)} className="clk-glass" />
               </g>
               <path ref={lidShade} d={lidsNow} className="eye-lid-shade" />
             </g>
