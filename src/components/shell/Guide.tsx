@@ -4,6 +4,7 @@ import { navigate } from '../../app/router';
 import { isExampleAtlas } from '../../data/seed';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
+import { useAccount } from '../../state/accountStore';
 import { toast, useUI } from '../../state/uiStore';
 import { startFresh, versionStamp } from '../../state/versionOps';
 import { AREA_ICONS, CAPTURE_ICONS, KIND_ICONS } from '../icons';
@@ -37,8 +38,10 @@ export function Guide() {
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const example = isExampleAtlas(data);
-  // The choice is offered on the first visit, while the atlas is still the example nobody has made their own.
-  const choosing = !seen && example;
+  const account = useAccount((s) => s.mode);
+  // The choice is offered on the first visit, while the atlas is still the example nobody has made their own
+  // (an account that already holds an atlas opens with it instead, so there is nothing to choose).
+  const choosing = !seen && example && account !== 'account';
 
   // The first visit starts with the welcome.
   useEffect(() => {
@@ -100,7 +103,15 @@ export function Guide() {
       initialFocus="#guide-start"
       footer={
         choosing ? (
-          <Button id="guide-start" variant="primary" icon={ArrowRight} loading={busy} onClick={() => void begin()}>
+          <Button
+            id="guide-start"
+            variant="primary"
+            icon={ArrowRight}
+            loading={busy}
+            // Until it is known whether the account already holds an atlas, starting a blank one could replace it.
+            disabled={choosing && choice === 'blank' && account === 'checking'}
+            onClick={() => void begin()}
+          >
             {choice === 'example' ? t('Explore the example') : t('Start my atlas')}
           </Button>
         ) : (

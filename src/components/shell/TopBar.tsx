@@ -9,6 +9,7 @@ import { PLACE_ICONS } from '../icons';
 import { Button, IconButton } from '../ui/Button';
 import { Menu, MenuItem, MenuLabel, MenuSeparator } from '../ui/Menu';
 import { Kbd } from '../ui/primitives';
+import { SyncIndicator } from './AccountControls';
 import { FocusChip } from './Focus';
 import { LanguageItems, LanguageMenu, WorldClock } from './LocaleControls';
 import { LogoMark, Wordmark } from './Logo';
@@ -59,6 +60,7 @@ export function TopBar({ active }: { active: RouteKey }) {
 
       <div className="ml-auto flex items-center gap-1.5">
         <WorldClock />
+        <SyncIndicator />
         <LanguageMenu className="hidden sm:inline-flex" />
         <button
           type="button"

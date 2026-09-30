@@ -1017,6 +1017,41 @@ export const ID: Record<string, string> = {
   'Relies on': 'Bergantung pada',
   'No claims attached. What would have to be true for this path to work?': 'Belum ada klaim terlampir. Apa yang harus benar agar jalur ini berhasil?',
   You: 'Kamu',
+  'Saved to your account at {when}.': 'Tersimpan di akunmu pukul {when}.',
+  'Up to date with your account.': 'Sudah sama dengan akunmu.',
+  'Saving to your account…': 'Menyimpan ke akunmu…',
+  'Your account was saved by a newer version of this app. Reload the page to keep working with it; nothing is saved from here until then.':
+    'Akunmu disimpan oleh versi aplikasi yang lebih baru. Muat ulang halaman untuk melanjutkan; sampai saat itu tidak ada yang disimpan dari sini.',
+  'Your account cannot be reached right now. Everything stays on this device and is saved when it can be.':
+    'Akunmu tidak bisa dijangkau saat ini. Semuanya tetap di perangkat ini dan disimpan begitu bisa.',
+  'Could not save to your account ({code}). Everything stays on this device.': 'Tidak bisa menyimpan ke akunmu ({code}). Semuanya tetap di perangkat ini.',
+  'Checking whether your claude.ai account can keep it…': 'Memeriksa apakah akun claude.ai-mu bisa menyimpannya…',
+  'Your claude.ai account can keep it too, the same on every device where you sign in.':
+    'Akun claude.ai-mu juga bisa menyimpannya, sama di setiap perangkat tempat kamu masuk.',
+  'Opened inside claude.ai while signed in, it can be kept in your account and used on every device.':
+    'Jika dibuka di dalam claude.ai dalam keadaan masuk, atlas ini bisa disimpan di akunmu dan dipakai di setiap perangkat.',
+  'Sign in to claude.ai to keep it in your account and use it on every device.':
+    'Masuk ke claude.ai untuk menyimpannya di akunmu dan memakainya di setiap perangkat.',
+  'This link lets you use the atlas but not save it to your account (people from outside the owner’s workspace cannot). Export a copy to move it.':
+    'Tautan ini membolehkanmu memakai atlas, tetapi tidak menyimpannya ke akunmu (orang di luar ruang kerja pemilik tidak bisa). Ekspor salinan untuk memindahkannya.',
+  'Your account could not be reached just now; it is asked again next time.': 'Akunmu tidak bisa dijangkau barusan; akan dicoba lagi lain kali.',
+  'Saved to your account. It opens the same on every device where you sign in.':
+    'Tersimpan di akunmu. Atlas ini terbuka sama di setiap perangkat tempat kamu masuk.',
+  'Could not save to your account just now. Your atlas is still on this device.': 'Belum bisa menyimpan ke akunmu. Atlasmu masih ada di perangkat ini.',
+  'Keep this atlas in your claude.ai account, to open it on any device where you sign in.':
+    'Simpan atlas ini di akun claude.ai-mu, agar bisa dibuka di perangkat mana pun tempat kamu masuk.',
+  'Save to my account': 'Simpan ke akunku',
+  'In your claude.ai account': 'Di akun claude.ai-mu',
+  'On this device only': 'Hanya di perangkat ini',
+  'The same on every device where you sign in. A copy stays on this device, so it opens at once and works offline.':
+    'Sama di setiap perangkat tempat kamu masuk. Salinannya tetap di perangkat ini, jadi langsung terbuka dan tetap jalan tanpa internet.',
+  'One record had been changed on two devices; the later edit was kept.': 'Satu catatan diubah di dua perangkat; perubahan yang lebih baru yang dipakai.',
+  '{n} records had been changed on two devices; the later edit was kept each time.':
+    '{n} catatan diubah di dua perangkat; setiap kali, perubahan yang lebih baru yang dipakai.',
+  'The example stays on the device. Start your own atlas to keep it in your account.':
+    'Atlas contoh tetap di perangkat. Mulai atlasmu sendiri untuk menyimpannya di akunmu.',
+  'Saved versions, the language, the time zone and how the map is arranged stay on each device.':
+    'Versi tersimpan, bahasa, zona waktu, dan susunan peta tetap di masing-masing perangkat.',
   'Back in your atlas. What you did in the example is saved in Versions.': 'Kembali ke atlasmu. Apa yang kamu lakukan di contoh tersimpan di Versi.',
   'Your saved atlas could not be found. Look in Versions.': 'Atlasmu yang tersimpan tidak ditemukan. Lihat di Versi.',
   'The example atlas': 'Atlas contoh',
@@ -2144,8 +2179,11 @@ export const ID: Record<string, string> = {
   'Atlas imported. What you had before is saved in Versions.': 'Atlas diimpor. Yang kamu punya sebelumnya tersimpan di Versi.',
   'Could not save a version first, so the import was not applied. Export a copy, then try again.':
     'Tidak bisa menyimpan versi terlebih dahulu, jadi impor tidak diterapkan. Ekspor salinannya, lalu coba lagi.',
+  'Your atlas is kept in your claude.ai account and on this device. Nothing else leaves it unless you ask Claude.':
+    'Atlasmu disimpan di akun claude.ai-mu dan di perangkat ini. Tidak ada hal lain yang keluar kecuali kamu bertanya ke Claude.',
   'Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude.':
     'Semuanya tersimpan di browser ini. Tidak ada yang keluar kecuali kamu mengganti penyedia analisis ke Claude.',
+  'Where your atlas is kept': 'Tempat atlasmu disimpan',
   'Language and time': 'Bahasa dan waktu',
   'The language of the interface, and the clock the atlas keeps. What you write is never translated.':
     'Bahasa antarmuka, dan jam yang dipakai atlas. Apa yang kamu tulis tidak pernah diterjemahkan.',

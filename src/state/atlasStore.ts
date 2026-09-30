@@ -183,6 +183,12 @@ interface AtlasActions {
   resetToSample(): void;
   clearAll(name?: string): void;
   replaceData(data: AtlasData): void;
+  /**
+   * Show another copy of the same atlas (the account's, from another device):
+   * nothing is logged, since nothing was decided here; what the Atlas
+   * believes is taken again silently from what it now reads.
+   */
+  loadWorld(data: AtlasData): void;
   setProfileName(name: string): void;
   /** "Not now" to something the Atlas asked to find out: not asked again for a while. */
   declineInquiry(key: string): void;
@@ -1403,6 +1409,15 @@ export const useAtlas = create<AtlasState>()(
           // Imported files and restored versions are made whole on the way in (a copy, so the source stays as it was).
           set((s) => {
             s.data = structuredClone(data);
+          });
+        },
+
+        loadWorld(data) {
+          const next = structuredClone(data);
+          repairReferences(next);
+          next.beliefs = currentLedger(next);
+          setDraft((s) => {
+            s.data = next;
           });
         },
 

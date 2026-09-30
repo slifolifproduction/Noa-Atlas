@@ -9,6 +9,7 @@ import { loadLanguage, useLang } from './i18n';
 import { safeLocalStorage, STORAGE_KEYS } from './persistence/storage';
 import { useAtlas } from './state/atlasStore';
 import { startFollowingAtlas } from './state/follow';
+import { connectAccount } from './sync/connect';
 
 // Persist the sample atlas on first visit, so what the user sees is what is saved.
 if (!safeLocalStorage.getItem(STORAGE_KEYS.data)) useAtlas.setState((s) => ({ data: s.data }));
@@ -22,10 +23,12 @@ function Root() {
 }
 
 // Start once the interface language is ready (Indonesian is fetched on demand).
-void loadLanguage().finally(() =>
+void loadLanguage().finally(() => {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <Root />
     </StrictMode>,
-  ),
-);
+  );
+  // Inside claude.ai, a signed-in viewer's atlas can be their account's (see sync/connect).
+  void connectAccount();
+});

@@ -14,6 +14,8 @@ import { toast, useUI, type SpaceMode } from '../../state/uiStore';
 import { importWithBackup, restoreVersion } from '../../state/versionOps';
 import { t, LANGUAGES, setLang, type Lang, useLang } from '../../i18n';
 import { ZonePicker } from '../../components/shell/LocaleControls';
+import { AccountPanel } from '../../components/shell/AccountControls';
+import { useAccount } from '../../state/accountStore';
 import { Trans } from '../../i18n/Trans';
 
 function Block({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
@@ -43,10 +45,14 @@ export function SettingsPage() {
   const [checking, setChecking] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const lang = useLang();
+  const inAccount = useAccount((s) => s.mode === 'account');
   const counts = modelCounts(data);
   const bytes = (() => {
     try {
-      return (window.localStorage.getItem(STORAGE_KEYS.data)?.length ?? 0) + (window.localStorage.getItem(STORAGE_KEYS.ui)?.length ?? 0);
+      return (
+        (window.localStorage.getItem(useAtlas.persist.getOptions().name ?? STORAGE_KEYS.data)?.length ?? 0) +
+        (window.localStorage.getItem(STORAGE_KEYS.ui)?.length ?? 0)
+      );
     } catch {
       return 0;
     }
@@ -83,10 +89,18 @@ export function SettingsPage() {
     <div className="mx-auto max-w-[920px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
         title={t('Settings')}
-        description={t('Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude.')}
+        description={
+          inAccount
+            ? t('Your atlas is kept in your claude.ai account and on this device. Nothing else leaves it unless you ask Claude.')
+            : t('Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude.')
+        }
       />
 
       <div className="mt-6">
+        <Block title={t('Where your atlas is kept')}>
+          <AccountPanel />
+        </Block>
+
         <Block
           title={t('Language and time')}
           description={t('The language of the interface, and the clock the atlas keeps. What you write is never translated.')}
