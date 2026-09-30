@@ -1,4 +1,4 @@
-import { CircleHelp, FoldVertical, Plus, RotateCcw, SlidersHorizontal, UnfoldVertical, X } from 'lucide-react';
+import { CircleHelp, Dna, FoldVertical, Globe, Plus, RotateCcw, SlidersHorizontal, UnfoldVertical, X } from 'lucide-react';
 import type { FitViewOptions } from '@xyflow/react';
 import { useCallback, useMemo, useState } from 'react';
 import { AddNodeModal } from '../../components/graph/AddNodeModal';
@@ -172,7 +172,7 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
         persistViewport={!isMobile && lens === 'map'}
         fitPadding={padding}
         // A new shape glides into view, fitted to the screen.
-        refitKey={`${startCard ? 'start' : 'map'}-${lens === 'map' ? shape : ''}`}
+        refitKey={`${startCard ? 'start' : 'map'}-${lens === 'map' ? shape : (causes.shape ?? 'helix')}`}
         draggable={!isMobile && lens === 'map'}
         savePositions={lens === 'map' ? savePositions : undefined}
         occludedLeft={sideVisible ? leftInset : 0}
@@ -266,6 +266,28 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
               </>
             ) : (
               <>
+                <MenuLabel>{t('Shape')}</MenuLabel>
+                {(
+                  [
+                    ['helix', Dna, t('Helix'), t('A double helix read from top to bottom: you on one strand, what surrounds you on the other')],
+                    ['globe', Globe, t('Globe'), t('A turning globe: what may lead at the north, what may follow at the south, each area on its own meridian')],
+                  ] as const
+                ).map(([value, Icon, label, hint]) => (
+                  <MenuItem
+                    key={value}
+                    radio
+                    keepOpen
+                    checked={(causes.shape ?? 'helix') === value}
+                    hint={hint}
+                    onSelect={() => setNetworkView({ shape: value })}
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      <Icon size={13} strokeWidth={1.8} className="text-ink-3" aria-hidden />
+                      {label}
+                    </span>
+                  </MenuItem>
+                ))}
+                <MenuSeparator />
                 <MenuLabel>{t('Trace from what you are looking at')}</MenuLabel>
                 {(
                   [
@@ -401,15 +423,29 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
             ) : (
               <Legend
                 extra={
-                  <>
-                    <p className="text-[11.5px] leading-snug text-ink-3">
-                      {t('Read from top to bottom: each element sits below what may lead to it. Only the step that closes a cycle arcs back up.')}
-                    </p>
-                    <p className="text-[11.5px] leading-snug text-ink-3">
-                      {t('Two strands: you (what you hold and do) and what surrounds you. Each rung pairs the two things at the same step of the chain.')}
-                    </p>
-                    <p className="text-[11.5px] leading-snug text-ink-3">{t('Only what a shown reason joins is on the helix. The map keeps everything.')}</p>
-                  </>
+                  causes.shape === 'globe' ? (
+                    <>
+                      <p className="text-[11.5px] leading-snug text-ink-3">
+                        {t('Read from north to south: each element sits south of what may lead to it. Only the step that closes a cycle bends back north.')}
+                      </p>
+                      <p className="text-[11.5px] leading-snug text-ink-3">
+                        {t(
+                          'Each area of life has its own meridian, named on the equator; you face the front. The globe turns slowly, holds still under the pointer and turns to face what you choose.',
+                        )}
+                      </p>
+                      <p className="text-[11.5px] leading-snug text-ink-3">{t('Only what a shown reason joins is on the globe. The map keeps everything.')}</p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-[11.5px] leading-snug text-ink-3">
+                        {t('Read from top to bottom: each element sits below what may lead to it. Only the step that closes a cycle arcs back up.')}
+                      </p>
+                      <p className="text-[11.5px] leading-snug text-ink-3">
+                        {t('Two strands: you (what you hold and do) and what surrounds you. Each rung pairs the two things at the same step of the chain.')}
+                      </p>
+                      <p className="text-[11.5px] leading-snug text-ink-3">{t('Only what a shown reason joins is on the helix. The map keeps everything.')}</p>
+                    </>
+                  )
                 }
               />
             )}

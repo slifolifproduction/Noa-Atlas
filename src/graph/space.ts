@@ -32,7 +32,8 @@ import type { ReactFlowState } from '@xyflow/react';
 import { createContext, useCallback, useContext, useRef } from 'react';
 import { YOU_ID } from '../domain/constants';
 import type { ID, LayerKey } from '../domain/types';
-import { helixDrawing, helixSpan, scanStep, type HelixDrawing, type HelixSpec } from './helix';
+import { globeDrawing, type GlobeDrawing } from './globe';
+import { helixDrawing, helixSpan, scanStep, type HelixDrawing, type HelixProjector, type HelixSpec } from './helix';
 import { hash01, HOP_MS, waveBus, type Wave } from './motion';
 import type { AtlasFlowNode, SemanticEdge } from './types';
 
@@ -73,6 +74,9 @@ const HELIX_SWAY = (16 * Math.PI) / 180;
 const HELIX_PERIOD = 40;
 /** The camera turns less around the helix, so no step ever passes the next and every name stays clear. */
 const HELIX_CAMERA = 0.6;
+/** The globe turns all the way round (radians per second), and eases round to face what is chosen. */
+const GLOBE_SPIN = (Math.PI * 2) / 150;
+const GLOBE_FACE = 2.4;
 
 /**
  * Set when automatic mode found this device too slow for depth. Kept for the
@@ -134,7 +138,7 @@ interface Body {
    * Elements on the Causes helix: their seat (angle at rest, which side the
    * name is on, which base pair), and what the engine last wrote for them.
    */
-  helix?: { phase: number; side: 1 | -1; slot: number; flipped: boolean; hz: number; scanned: boolean };
+  helix?: { phase: number; side: 1 | -1; slot: number; r?: number; flipped: boolean; hz: number; scanned: boolean; back?: boolean };
 }
 
 /** The helix backbone's SVG and its parts, drawn by the engine while the space is live. */
@@ -195,6 +199,8 @@ export class SpaceEngine {
   private helixSpec: HelixSpec | null = null;
   /** The helix's current turn about its axis (radians). */
   private sway = 0;
+  /** How far the globe's layout is turned at rest; when it changes, the turn makes up for it, so nothing jumps. */
+  private facing: number | undefined;
   private readonly bodies = new Map<ID, Body>();
   private readonly proj = new Map<ID, Projection>();
   private readonly listeners = new Set<() => void>();
@@ -252,6 +258,11 @@ export class SpaceEngine {
     const backbone = nodes.find((n) => n.type === 'helix');
     const helix = backbone?.type === 'helix' ? backbone.data.spec : null;
     this.helixSpec = helix;
+    if (helix?.kind === 'globe') {
+      const facing = helix.facing ?? 0;
+      if (this.facing !== undefined) this.sway += this.facing - facing;
+      this.facing = facing;
+    } else this.facing = undefined;
     for (const n of nodes) {
       if (n.type === 'rings' || n.type === 'figure' || n.type === 'helix') continue;
       seen.add(n.id);
@@ -275,7 +286,7 @@ export class SpaceEngine {
       } else if (n.type === 'item' && n.data.helix && helix) {
         // On the helix: at its seat's depth, turning with the whole helix about the axis.
         kind = 'item';
-        base = helix.deep * helix.R * Math.cos(n.data.helix.phase) * q;
+        base = helix.deep * (n.data.helix.r ?? helix.R) * Math.cos(n.data.helix.phase) * q;
         amp = 7;
         wander = 1.5;
       } else if (n.type === 'item') {
@@ -335,6 +346,7 @@ export class SpaceEngine {
                 flipped: prev?.helix?.flipped ?? false,
                 hz: prev?.helix?.hz ?? -1,
                 scanned: prev?.helix?.scanned ?? false,
+                back: prev?.helix?.back ?? false,
               }
             : undefined,
       });
@@ -380,7 +392,7 @@ export class SpaceEngine {
     if (prev && prev !== el) {
       clearNode(prev);
       const h = this.bodies.get(id)?.helix;
-      if (h) [h.flipped, h.hz, h.scanned] = [false, -1, false];
+      if (h) [h.flipped, h.hz, h.scanned, h.back] = [false, -1, false, false];
     }
     if (el) {
       this.nodeEls.set(id, el);
@@ -425,7 +437,7 @@ export class SpaceEngine {
     }
     this.helix = helixEls(svg, spec);
     this.lastFull = 0;
-    if (!this.depthOn) paintHelix(this.helix, helixDrawing(spec));
+    if (!this.depthOn) paintBackbone(this.helix, spec);
   }
 
   /** Current projected offset of a node (graph units), for overlays that track it. */
@@ -623,9 +635,18 @@ export class SpaceEngine {
       const persp = F / Math.max(F * 0.2, F - z2);
       return { X: Cx + x1 * persp, Y: Cy + y2 * persp, z2, persp, m0 };
     };
-    // The helix turns back and forth about its axis as one body; the scanning ring sweeps it.
+    // The helix turns back and forth about its axis as one body; the globe turns all the way
+    // round, holds still under the pointer and turns to face what is chosen. The scanning ring sweeps both.
     const helix = this.helixSpec;
-    this.sway = helix ? q * HELIX_SWAY * Math.sin((t * TAU) / HELIX_PERIOD) : 0;
+    const globe = helix?.kind === 'globe';
+    if (globe) {
+      const chosen = this.selected ? this.bodies.get(this.selected)?.helix : undefined;
+      if (chosen) {
+        const gap = Math.atan2(Math.sin(-chosen.phase - this.sway), Math.cos(-chosen.phase - this.sway));
+        this.sway += gap * Math.min(1, dt * GLOBE_FACE);
+        if (Math.abs(gap) > 0.002) active = true;
+      } else if (!this.hovered) this.sway = (this.sway + dt * GLOBE_SPIN) % TAU;
+    } else this.sway = helix ? q * HELIX_SWAY * Math.sin((t * TAU) / HELIX_PERIOD) : 0;
     const scan = helix ? scanStep(helix, t) : NaN;
 
     // Signal impulses that are due.
@@ -753,9 +774,10 @@ export class SpaceEngine {
       let depth = b.base;
       if (b.helix && helix) {
         const th = b.helix.phase + this.sway;
-        ox += helix.R * (Math.sin(th) - Math.sin(b.helix.phase));
-        oy += helix.tilt * helix.R * (Math.cos(th) - Math.cos(b.helix.phase));
-        depth = q * helix.deep * helix.R * Math.cos(th);
+        const r = b.helix.r ?? helix.R;
+        ox += r * (Math.sin(th) - Math.sin(b.helix.phase));
+        oy += helix.tilt * r * (Math.cos(th) - Math.cos(b.helix.phase));
+        depth = q * helix.deep * r * Math.cos(th);
       }
 
       const bx = hx + ox + b.ox + b.pullX;
@@ -764,7 +786,7 @@ export class SpaceEngine {
       const { X, Y, persp, m0 } = see(bx, by, z, b.base);
       // Farther is smaller, but only a little: text stays readable.
       const s = clamp((persp / m0) * m0 ** 0.6, 0.66, 1.22);
-      if (b.helix && helix) markHelixNode(el, b.helix, (bx - helix.axis) / m0, z, cy, sy, q * helix.deep * helix.R, scan);
+      if (b.helix && helix) markHelixNode(el, b.helix, (bx - helix.axis) / m0, z, cy, sy, q * helix.deep * helix.R, scan, globe);
 
       // Pointer gravity: what is near the pointer leans toward it and rises.
       let tpx = 0;
@@ -812,19 +834,17 @@ export class SpaceEngine {
       }
     }
 
-    // The helix backbone: every strand point through the same camera as the elements on it.
+    // The backbone: every point of it through the same camera as the elements on it.
     if (this.helix) {
-      paintHelix(
+      paintBackbone(
         this.helix,
-        helixDrawing(
-          this.helix.spec,
-          this.sway,
-          (x, y, d, rest) => {
-            const p = see(x, y, q * d, q * rest);
-            return { x: p.X, y: p.Y, z: p.z2 };
-          },
-          scan,
-        ),
+        this.helix.spec,
+        this.sway,
+        (x, y, d, rest) => {
+          const p = see(x, y, q * d, q * rest);
+          return { x: p.X, y: p.Y, z: p.z2 };
+        },
+        scan,
       );
     }
   }
@@ -860,6 +880,13 @@ export class SpaceEngine {
     const m = `matrix(${A.toFixed(5)}, ${B.toFixed(5)}, ${(-B).toFixed(5)}, ${A.toFixed(5)}, ${E.toFixed(2)}, ${F.toFixed(2)})`;
     if (e.svg) e.svg.style.transform = m;
     if (e.html) e.html.style.transform = m;
+    // On the globe, a line to or from the far side fades with it.
+    if (this.helixSpec?.kind === 'globe') {
+      const near = Math.min(this.bodies.get(e.source)?.helix?.hz ?? 1, this.bodies.get(e.target)?.helix?.hz ?? 1);
+      const o = near < 0 ? '' : (0.18 + 0.82 * clamp((near - 0.3) / 0.4, 0, 1)).toFixed(2);
+      if (e.svg) e.svg.style.opacity = o;
+      if (e.html) e.html.style.opacity = o;
+    }
   }
 
   private flatten() {
@@ -869,13 +896,13 @@ export class SpaceEngine {
     }
     for (const el of this.followers.keys()) clearNode(el);
     for (const e of this.edgeEls.values()) {
-      if (e.svg) e.svg.style.transform = '';
-      if (e.html) e.html.style.transform = '';
+      if (e.svg) [e.svg.style.transform, e.svg.style.opacity] = ['', ''];
+      if (e.html) [e.html.style.transform, e.html.style.opacity] = ['', ''];
     }
     for (const el of this.ringEls.values()) el.style.transform = '';
-    for (const b of this.bodies.values()) if (b.helix) [b.helix.flipped, b.helix.hz, b.helix.scanned] = [false, -1, false];
+    for (const b of this.bodies.values()) if (b.helix) [b.helix.flipped, b.helix.hz, b.helix.scanned, b.helix.back] = [false, -1, false, false];
     this.sway = 0;
-    if (this.helix) paintHelix(this.helix, helixDrawing(this.helix.spec));
+    if (this.helix) paintBackbone(this.helix, this.helix.spec);
     this.proj.clear();
     this.kicks = [];
   }
@@ -887,7 +914,17 @@ export class SpaceEngine {
  * near), and it lights as the scanning ring passes its base pair. Written only
  * when something changes. `rx` is its offset from the axis before perspective.
  */
-function markHelixNode(el: HTMLElement, h: NonNullable<Body['helix']>, rx: number, z: number, cy: number, sy: number, radius: number, scan: number) {
+function markHelixNode(
+  el: HTMLElement,
+  h: NonNullable<Body['helix']>,
+  rx: number,
+  z: number,
+  cy: number,
+  sy: number,
+  radius: number,
+  scan: number,
+  globe = false,
+) {
   const across = (rx * cy + z * sy) * h.side;
   const flipped = h.flipped ? across < 4 : across < -4;
   if (flipped !== h.flipped) {
@@ -900,6 +937,13 @@ function markHelixNode(el: HTMLElement, h: NonNullable<Body['helix']>, rx: numbe
   if (hz !== h.hz) {
     h.hz = hz;
     el.style.setProperty('--hz', String(hz));
+  }
+  // On the globe, what is round the far side steps back: its name hides and it cannot be picked through the front.
+  const back = globe && (h.back ? hz < 0.42 : hz < 0.36);
+  if (back !== Boolean(h.back)) {
+    h.back = back;
+    if (back) el.dataset.back = '';
+    else delete el.dataset.back;
   }
   const scanned = Math.abs(h.slot - scan) < 0.45;
   if (scanned !== h.scanned) {
@@ -915,6 +959,36 @@ function helixEls(svg: SVGSVGElement, spec: HelixSpec): HelixEls {
   svg.querySelectorAll<SVGPathElement>('path[data-part]').forEach((p) => paths.set(p.dataset.part!, p));
   svg.querySelectorAll<SVGTextElement>('text[data-part]').forEach((p) => texts.set(p.dataset.part!, p));
   return { spec, svg, paths, texts, emitter: svg.querySelector<SVGEllipseElement>('ellipse[data-part]') };
+}
+
+/** Draws the backbone, helix or globe, turned and through the camera (flat when `project` is omitted). */
+export function paintBackbone(els: Pick<HelixEls, 'paths' | 'texts' | 'emitter'>, spec: HelixSpec, turn = 0, project?: HelixProjector, scan?: number) {
+  if (spec.kind === 'globe') paintGlobe(els, globeDrawing(spec, turn, project, scan));
+  else paintHelix(els, helixDrawing(spec, turn, project, scan));
+}
+
+/** Writes a drawing of the globe into its SVG. */
+function paintGlobe(els: Pick<HelixEls, 'paths' | 'texts'>, d: GlobeDrawing) {
+  const path = (key: string, value: string) => els.paths.get(key)?.setAttribute('d', value);
+  path('grid-front', d.front);
+  path('grid-back', d.back);
+  path('equator-front', d.equatorFront);
+  path('equator-back', d.equatorBack);
+  path('limb', d.limb);
+  path('limb-glow', d.limb);
+  path('bands', d.bands);
+  path('axis', d.axis);
+  path('scan', d.scan);
+  const place = (key: string, p: { x: number; y: number }) => {
+    const el = els.texts.get(key);
+    el?.setAttribute('x', p.x.toFixed(1));
+    el?.setAttribute('y', p.y.toFixed(1));
+    return el;
+  };
+  place('lead', d.lead);
+  place('follow', d.follow);
+  place('empty', d.centre);
+  d.areas.forEach((a, i) => place(`area-${i}`, a)?.setAttribute('opacity', a.facing.toFixed(2)));
 }
 
 /** Writes a drawing of the helix into its SVG. */
@@ -964,6 +1038,7 @@ function clearNode(el: HTMLElement) {
   el.style.removeProperty('--hz');
   delete el.dataset.flip;
   delete el.dataset.scan;
+  delete el.dataset.back;
 }
 
 /**
@@ -1033,7 +1108,7 @@ export function useSpaceHelix(spec: HelixSpec) {
   return useCallback(
     (el: SVGSVGElement | null) => {
       if (space) space.registerHelix(el, spec);
-      else if (el) paintHelix(helixEls(el, spec), helixDrawing(spec));
+      else if (el) paintBackbone(helixEls(el, spec), spec);
     },
     [space, spec],
   );

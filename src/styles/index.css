@@ -968,3 +968,73 @@ html body {
   border-radius: 50%;
   background: rgb(var(--gold-hi) / 0.85);
 }
+
+/* ---- Causes globe: the same hologram, as a turning sphere ------------------
+ * The graticule's near half is drawn, its far half faint; each step of the
+ * chain has its own faint parallel; the areas are named on the equator in
+ * their colours as their meridians come round. What is round the far side
+ * (data-back, written by the engine; data-far on a still globe) steps back:
+ * dim, unnamed, and not pickable through the front. */
+.globe-limb,
+.globe-limb-glow,
+.globe-grid,
+.globe-grid-back,
+.globe-equator,
+.globe-bands {
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.globe-grid,
+.globe-grid-back,
+.globe-equator,
+.globe-bands,
+.globe-limb-glow {
+  fill: none;
+}
+.globe-limb {
+  stroke: rgb(var(--holo-b) / 0.42);
+  stroke-width: 1.2;
+}
+.globe-limb-glow {
+  stroke: rgb(var(--holo-b) / 0.07);
+  stroke-width: 16;
+}
+.globe-grid {
+  stroke: rgb(var(--holo-b) / 0.2);
+  stroke-width: 1;
+}
+.globe-grid-back {
+  stroke: rgb(var(--holo-b) / 0.07);
+  stroke-width: 1;
+  stroke-dasharray: 2 5;
+}
+.globe-equator {
+  stroke: rgb(var(--holo-a) / 0.34);
+  stroke-width: 1.2;
+}
+.globe-bands {
+  stroke: rgb(var(--holo-a) / 0.1);
+  stroke-width: 1;
+  stroke-dasharray: 1 6;
+}
+.globe-area {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 2px;
+  transition: opacity 120ms linear;
+}
+.lens-globe .react-flow__node[data-back] {
+  pointer-events: none;
+}
+.lens-globe .react-flow__node[data-back] .node-label,
+.lens-globe:not(.atlas-3d) .node-body[data-far] .node-label {
+  opacity: 0 !important;
+}
+.lens-globe .react-flow__node[data-back] .item-mark,
+.lens-globe:not(.atlas-3d) .node-body[data-far] .item-mark {
+  opacity: 0.28 !important;
+}
+.lens-globe:not(.atlas-3d) .react-flow__node:has(.node-body[data-far]) {
+  pointer-events: none;
+}

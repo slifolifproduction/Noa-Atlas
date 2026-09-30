@@ -48,7 +48,11 @@ export interface NetworkView {
   trace?: 'back' | 'forward' | 'both';
   /** A loop to highlight. */
   loopId?: string;
+  /** How the possible reasons are drawn: the helix (the default) or the globe. */
+  shape?: CausesShape;
 }
+
+export type CausesShape = 'helix' | 'globe';
 
 export interface Toast {
   id: string;

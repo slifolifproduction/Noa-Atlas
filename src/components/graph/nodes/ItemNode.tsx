@@ -39,6 +39,7 @@ export const ItemNodeView = memo(function ItemNodeView({ id, data, selected }: N
       ref={spaceRef}
       className={cn('node-body group relative h-[26px] w-[26px]', faded && 'opacity-50')}
       style={{ '--node-color': data.color } as CSSProperties}
+      data-far={data.far ? '' : undefined}
       title={KIND_META[data.kind].label}
     >
       {/* Elements move in depth with the space engine (graph/space.ts); the body itself is still. */}

@@ -49,6 +49,13 @@ const END_GAP = 1.6;
 const EMPTY_PAIRS = 8;
 
 export interface HelixSpec {
+  /** The helix (the default), or the globe drawn about the same axis (graph/globe.ts). */
+  kind?: 'helix' | 'globe';
+  /** On the globe: the latitude of each step of the chain (radians, north positive), and each area's meridian. */
+  bands?: number[];
+  meridians?: number[];
+  /** On the globe: how far it is turned at rest to face what is chosen (radians). */
+  facing?: number;
   /** x of the axis. */
   axis: number;
   /** y of the first base pair's step. */
@@ -77,6 +84,8 @@ export interface HelixSeat {
   x: number;
   y: number;
   side: 'left' | 'right';
+  /** Distance from the axis, when it is not the helix's radius (on the globe, smaller toward the poles). */
+  r?: number;
 }
 
 export interface HelixMember {
@@ -95,6 +104,14 @@ export const phaseOf = (spec: Pick<HelixSpec, 'phase0' | 'twist'>, u: number, st
  * still reads downward and only the step that closes the cycle points up.
  */
 export function chainOrder(members: HelixMember[], arrows: [ID, ID][]): ID[] {
+  const key = new Map(members.map((m) => [m.id, m.key]));
+  const rank = chainRanks(members, arrows);
+  const byKey = (a: ID, b: ID) => key.get(a)!.localeCompare(key.get(b)!) || a.localeCompare(b);
+  return [...rank.keys()].sort((a, b) => rank.get(a)! - rank.get(b)! || byKey(a, b));
+}
+
+/** Each element's step along the chain (see `chainOrder`). */
+export function chainRanks(members: HelixMember[], arrows: [ID, ID][]): Map<ID, number> {
   const ids = new Set(members.map((m) => m.id));
   const key = new Map(members.map((m) => [m.id, m.key]));
   const preds = new Map<ID, Set<ID>>(members.map((m) => [m.id, new Set()]));
@@ -120,7 +137,7 @@ export function chainOrder(members: HelixMember[], arrows: [ID, ID][]): ID[] {
       remaining.delete(id);
     }
   }
-  return [...ids].sort((a, b) => rank.get(a)! - rank.get(b)! || byKey(a, b));
+  return rank;
 }
 
 /**
@@ -289,6 +306,7 @@ export function helixDrawing(spec: HelixSpec, sway = 0, project: HelixProjector 
 
 /** How far the helix reaches along its axis, ring to ring (graph y). */
 export function helixSpan(spec: HelixSpec): { from: number; to: number } {
+  if (spec.kind === 'globe') return { from: -spec.R, to: spec.R };
   return { from: spec.top - END_GAP * spec.step, to: spec.top + (spec.pairs - 1 + END_GAP) * spec.step };
 }
 

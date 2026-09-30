@@ -2031,6 +2031,12 @@ export const ID: Record<string, string> = {
   'Fold all areas': 'Lipat semua area',
   'Something to look at, and the next step': 'Sesuatu untuk dilihat, dan langkah berikutnya',
   'Overview panel': 'Panel ringkasan',
+  Helix: 'Heliks',
+  'A double helix read from top to bottom: you on one strand, what surrounds you on the other':
+    'Heliks ganda dibaca dari atas ke bawah: kamu di satu untai, yang mengelilingimu di untai lain',
+  Globe: 'Globe',
+  'A turning globe: what may lead at the north, what may follow at the south, each area on its own meridian':
+    'Globe yang berputar: yang mungkin memicu di utara, yang mungkin menyusul di selatan, tiap area di garis bujurnya sendiri',
   'Trace from what you are looking at': 'Telusuri dari yang sedang kamu lihat',
   'Back along possible reasons: what may contribute to it, and to those':
     'Mundur lewat kemungkinan sebab: apa yang mungkin ikut menyebabkannya, dan yang menyebabkan itu',
@@ -2060,6 +2066,12 @@ export const ID: Record<string, string> = {
   'Each area shows its key elements; +n beside its name is what is folded inside. A dashed line to another area’s marker ties an element to what is folded there.':
     'Setiap area menampilkan elemen utamanya; +n di samping namanya adalah yang terlipat di dalamnya. Garis putus-putus ke penanda area lain menghubungkan sebuah elemen dengan yang terlipat di sana.',
   'Second ring around a mark: something you want explained or changed.': 'Cincin kedua di sekitar tanda: sesuatu yang ingin kamu pahami atau ubah.',
+  'Read from north to south: each element sits south of what may lead to it. Only the step that closes a cycle bends back north.':
+    'Dibaca dari utara ke selatan: tiap elemen berada di selatan hal yang mungkin memicunya. Hanya langkah yang menutup siklus yang melengkung kembali ke utara.',
+  'Each area of life has its own meridian, named on the equator; you face the front. The globe turns slowly, holds still under the pointer and turns to face what you choose.':
+    'Tiap area hidup punya garis bujurnya sendiri, dinamai di khatulistiwa; kamu menghadap ke depan. Globe berputar pelan, diam saat ditunjuk, dan berputar menghadap apa yang kamu pilih.',
+  'Only what a shown reason joins is on the globe. The map keeps everything.':
+    'Hanya yang dihubungkan oleh sebab yang tampil yang ada di globe. Peta tetap menyimpan semuanya.',
   'Read from top to bottom: each element sits below what may lead to it. Only the step that closes a cycle arcs back up.':
     'Baca dari atas ke bawah: setiap elemen berada di bawah apa yang mungkin memicunya. Hanya langkah yang menutup sebuah siklus yang melengkung kembali ke atas.',
   'Two strands: you (what you hold and do) and what surrounds you. Each rung pairs the two things at the same step of the chain.':

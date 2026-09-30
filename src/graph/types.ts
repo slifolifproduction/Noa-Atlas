@@ -58,7 +58,9 @@ export type ItemNodeData = {
   /** Worth naming without being asked: something you care about, or that moved lately. */
   salient: boolean;
   /** On the Causes helix: its seat, which the space engine turns about the axis. */
-  helix?: { slot: number; phase: number; side: 1 | -1 };
+  helix?: { slot: number; phase: number; side: 1 | -1; r?: number };
+  /** On a still globe: round the far side, so its name hides (with depth on, the space engine decides as it turns). */
+  far?: boolean;
   /** On a constellation shape: the star (hub) it orbits. */
   orbitHub?: ID;
 };
@@ -84,6 +86,8 @@ export type FigureNodeData = {
 export type HelixNodeData = {
   spec: HelixSpec;
   captions: { lead: string; follow: string; inner: string; around: string; empty?: string };
+  /** On the globe: each meridian's area, named on the equator in its colour (same order as spec.meridians). */
+  areas?: { label: string; color: string }[];
 };
 
 export type SemanticEdgeData = {

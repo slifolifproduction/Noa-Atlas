@@ -676,6 +676,7 @@ function Canvas({
 
   const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : undefined;
   const helix = built.nodes.some((n) => n.type === 'helix');
+  const globe = built.nodes.some((n) => n.type === 'helix' && n.data.spec.kind === 'globe');
 
   const labelsFor = useMemo(() => new Map(built.nodes.map((n) => [n.id, n])), [built.nodes]);
   // Fit to the content, not to decorative backdrops such as the orbit rings. The helix's box is
@@ -724,6 +725,7 @@ function Canvas({
             depthOn && 'atlas-3d',
             revealing && 'atlas-reveal',
             helix && 'lens-helix',
+            globe && 'lens-globe',
           )}
           onPointerMove={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
           onPointerUp={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}

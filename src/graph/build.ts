@@ -33,6 +33,7 @@ import type { AreaKey, AtlasData, AtlasNode, Claim, ClaimStatus, ID, LayerKey } 
 import { t, tn } from '../i18n';
 import type { NetworkView, XY } from '../state/uiStore';
 import { HELIX_DESKTOP, HELIX_PORTRAIT, helixLayout } from './helix';
+import { areaMeridian, GLOBE_DESKTOP, GLOBE_PORTRAIT, globeLayout } from './globe';
 import { orbitLayout } from './layout';
 import { isBackdrop, type AtlasFlowNode, type ItemNode, type LabelSide, type SemanticEdge, type SemanticEdgeData } from './types';
 import { constellationLayout, ZODIAC_NAME, type MapShape } from './shapes';
@@ -200,7 +201,7 @@ export type CanvasLens = 'map' | 'causes';
 export interface OrbitOptions {
   lens?: CanvasLens;
   /** Causes lens: which possible reasons to draw. */
-  causes?: Pick<NetworkView, 'hiddenStatuses' | 'hiddenAreas' | 'showSuggested' | 'focusDepth' | 'loopId' | 'trace'>;
+  causes?: Pick<NetworkView, 'hiddenStatuses' | 'hiddenAreas' | 'showSuggested' | 'focusDepth' | 'loopId' | 'trace' | 'shape'>;
   /** Elements named on the map without being hovered. */
   salient?: Set<ID>;
   /** Map lens at rest: show only each area's essentials (see `essentialElements`). */
@@ -422,16 +423,27 @@ function buildHelix(data: AtlasData, opts: OrbitOptions): BuiltGraph {
   const selected = opts.selectedId && data.nodes[opts.selectedId] ? opts.selectedId : undefined;
   const members = elements.filter((n) => touched.has(n.id) || n.id === selected);
   const visible = new Set(members.map((n) => n.id));
-  const { seats, spec } = helixLayout(
-    members.map((n) => ({
-      id: n.id,
-      // One strand is you (what defines you, what you hold, what you do), the other what surrounds you.
-      strand: n.area !== 'self' && layerOf(n.kind) === 'around' ? 1 : 0,
-      key: `${String(AREA_ORDER.indexOf(n.area)).padStart(2, '0')} ${n.label.toLowerCase()}`,
-    })),
-    edges.map((e) => [e.source, e.target] as [ID, ID]),
-    opts.geometry && opts.geometry !== ORBIT_DESKTOP ? HELIX_PORTRAIT : HELIX_DESKTOP,
-  );
+  const portrait = Boolean(opts.geometry && opts.geometry !== ORBIT_DESKTOP);
+  const arrows = edges.map((e) => [e.source, e.target] as [ID, ID]);
+  const helixMembers = members.map((n) => ({
+    id: n.id,
+    // One strand is you (what defines you, what you hold, what you do), the other what surrounds you.
+    strand: (n.area !== 'self' && layerOf(n.kind) === 'around' ? 1 : 0) as 0 | 1,
+    key: `${String(AREA_ORDER.indexOf(n.area)).padStart(2, '0')} ${n.label.toLowerCase()}`,
+  }));
+  // The globe: the same chain north to south, each area on its own meridian (you face the viewer).
+  const globe = view.shape === 'globe';
+  const sectors: AreaKey[] = [...SECTOR_KEYS];
+  const lonOf = (area: AreaKey) => areaMeridian(sectors.indexOf(area), sectors.length);
+  const { seats, spec } = globe
+    ? globeLayout(
+        helixMembers.map((m, i) => ({ ...m, lon: lonOf(members[i].area) })),
+        arrows,
+        portrait ? GLOBE_PORTRAIT : GLOBE_DESKTOP,
+        sectors.map(lonOf),
+        selected,
+      )
+    : helixLayout(helixMembers, arrows, portrait ? HELIX_PORTRAIT : HELIX_DESKTOP);
   const nodes: AtlasFlowNode[] = [
     {
       id: '__helix',
@@ -446,6 +458,7 @@ function buildHelix(data: AtlasData, opts: OrbitOptions): BuiltGraph {
           around: t('Around you'),
           empty: members.length ? undefined : t('No possible reasons to show'),
         },
+        areas: globe ? sectors.map((a) => ({ label: AREA_META[a].label, color: AREA_META[a].color })) : undefined,
       },
       draggable: false,
       selectable: false,
@@ -464,7 +477,9 @@ function buildHelix(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     // The helix builds from the top down; every element is named.
     const node = elementNode(data, n, { x: seat.x, y: seat.y }, seat.side, 240 + seat.slot * 70, matched, true, opts.today);
     node.draggable = false;
-    node.data.helix = { slot: seat.slot, phase: seat.phase, side: seat.side === 'right' ? 1 : -1 };
+    node.data.helix = { slot: seat.slot, phase: seat.phase, side: seat.side === 'right' ? 1 : -1, r: seat.r };
+    // Still, the globe's far side stays back (with depth on, the space engine decides as it turns).
+    if (globe && Math.cos(seat.phase) < -0.25) node.data.far = true;
     if (!touched.has(n.id) || (loopNodes && !loopNodes.has(n.id)) || (around && !around.has(n.id))) node.className = 'is-soft';
     nodes.push(node);
   }
@@ -477,7 +492,11 @@ function buildHelix(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     // Only the step that closes a cycle rises; it arcs out on its own side instead of through the helix.
     const a = seats.get(e.source);
     const b = seats.get(e.target);
-    if (a && b && a.slot > b.slot) {
+    if (globe && a && b) {
+      // Over the globe, a reason bends outward from its axis, like a route on a map of the world.
+      const mid = (a.x + b.x) / 2;
+      e.data!.arc = (a.slot > b.slot ? 1 : Math.sign(mid || 1) * Math.sign(b.y - a.y || 1)) * Math.min(Math.hypot(b.x - a.x, b.y - a.y) * 0.18, spec.R * 0.4);
+    } else if (a && b && a.slot > b.slot) {
       const mid = (a.x + b.x) / 2 || a.x;
       e.data!.arc = Math.sign(mid || 1) * Math.min(Math.hypot(b.x - a.x, b.y - a.y) * 0.35, spec.R * 2);
     }

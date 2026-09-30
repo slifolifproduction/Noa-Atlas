@@ -12,7 +12,11 @@ import type { HelixNode } from '../../../graph/types';
  * the elements stay on their strands and the light under them as the helix
  * turns.
  */
-export const HelixNodeView = memo(function HelixNodeView({ data }: NodeProps<HelixNode>) {
+export const HelixNodeView = memo(function HelixNodeView(props: NodeProps<HelixNode>) {
+  return props.data.spec.kind === 'globe' ? <GlobeBody data={props.data} /> : <HelixBody data={props.data} />;
+});
+
+function HelixBody({ data }: { data: HelixNode['data'] }) {
   const { spec, captions } = data;
   const ref = useSpaceHelix(spec);
   const { R } = spec;
@@ -62,4 +66,54 @@ export const HelixNodeView = memo(function HelixNodeView({ data }: NodeProps<Hel
       </svg>
     </div>
   );
-});
+}
+
+/**
+ * The globe: a sphere of light turning about the same axis, its graticule
+ * split into near and far halves, a faint parallel for each step of the chain
+ * (what may lead at the north, what may follow at the south), the areas named
+ * on the equator as their meridians come round, and the scanning ring
+ * sweeping north to south. Written by the space engine like the helix.
+ */
+function GlobeBody({ data }: { data: HelixNode['data'] }) {
+  const { spec, captions, areas = [] } = data;
+  const ref = useSpaceHelix(spec);
+  return (
+    <div className="helix-body globe-body pointer-events-none relative" style={{ width: spec.width, height: spec.height }} aria-hidden>
+      <svg ref={ref} width={spec.width} height={spec.height} className="absolute inset-0 overflow-visible">
+        <defs>
+          <radialGradient id="globe-shade" cx="0.4" cy="0.34" r="0.72">
+            <stop offset="0" stopColor="rgb(var(--holo-b))" stopOpacity="0.1" />
+            <stop offset="0.7" stopColor="rgb(var(--holo-b))" stopOpacity="0.03" />
+            <stop offset="1" stopColor="rgb(var(--holo-b))" stopOpacity="0.09" />
+          </radialGradient>
+        </defs>
+        <path data-part="limb-glow" className="globe-limb-glow" />
+        <path data-part="limb" className="globe-limb" fill="url(#globe-shade)" />
+        <path data-part="grid-back" className="globe-grid-back" />
+        <path data-part="equator-back" className="globe-grid-back" />
+        <path data-part="bands" className="globe-bands" />
+        <path data-part="axis" className="helix-axis" />
+        <path data-part="grid-front" className="globe-grid" />
+        <path data-part="equator-front" className="globe-equator" />
+        <path data-part="scan" className="helix-scan" />
+        <text data-part="lead" className="helix-caption" textAnchor="middle">
+          {captions.lead.toUpperCase()}
+        </text>
+        <text data-part="follow" className="helix-caption" textAnchor="middle">
+          {captions.follow.toUpperCase()}
+        </text>
+        {areas.map((a, i) => (
+          <text key={a.label} data-part={`area-${i}`} className="globe-area" textAnchor="middle" style={{ fill: a.color }}>
+            {a.label.toUpperCase()}
+          </text>
+        ))}
+        {captions.empty && (
+          <text data-part="empty" className="helix-caption helix-empty" textAnchor="middle" dominantBaseline="middle">
+            {captions.empty.toUpperCase()}
+          </text>
+        )}
+      </svg>
+    </div>
+  );
+}
