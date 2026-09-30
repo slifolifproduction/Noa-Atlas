@@ -30,6 +30,12 @@ export function Modal({
 }) {
   const panel = useRef<HTMLDivElement>(null);
   const restore = useRef<HTMLElement | null>(null);
+  // The latest onClose, read when needed. Most callers pass a new function on
+  // every render; if the effect below depended on it, every keystroke in a
+  // field that re-renders the caller would send focus back to where it came
+  // from and in again, dropping or misdirecting what was typed.
+  const close = useRef(onClose);
+  close.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -41,7 +47,7 @@ export function Modal({
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        close.current();
       }
       if (e.key === 'Tab' && el) {
         const focusables = [
@@ -64,7 +70,7 @@ export function Modal({
       window.removeEventListener('keydown', onKey, true);
       restore.current?.focus?.();
     };
-  }, [open, onClose, initialFocus]);
+  }, [open, initialFocus]);
 
   if (!open) return null;
   return createPortal(
