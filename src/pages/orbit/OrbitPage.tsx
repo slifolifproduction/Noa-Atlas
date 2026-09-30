@@ -21,6 +21,8 @@ import { useUI } from '../../state/uiStore';
 import { CausesRail } from './CausesRail';
 import { StatusHud } from './StatusHud';
 import { t } from '../../i18n';
+import { useFrictionNote } from '../../hooks/useFriction';
+import { mapElements } from '../../domain/selectors';
 
 const RAIL_WIDTH = 280;
 
@@ -81,6 +83,13 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
       }),
     [data, lens, causes, salient, stored, isMobile, collapsed, hiddenLayers, view.showAll, view.showClaims, selectedId, view.focus, query, today],
   );
+
+  // A search on the map that finds no element is kept, to see where the app falls short.
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return q ? mapElements(data).filter((n) => n.label.toLowerCase().includes(q)).length : 0;
+  }, [data, query]);
+  useFrictionNote(query, matches, lens === 'map' ? 'map' : 'causes');
 
   const links = useMemo(() => {
     const seen = new Set<LinkType>(built.edges.flatMap((e) => (e.data?.linkType ? [e.data.linkType] : [])));

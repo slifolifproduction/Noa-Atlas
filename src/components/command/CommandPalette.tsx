@@ -30,6 +30,7 @@ import { saveCurrentVersion, versionStamp } from '../../state/versionOps';
 import { toast, useUI } from '../../state/uiStore';
 import { AREA_ICONS, CAPTURE_ICONS, ClaimIcon, HISTORY_ICONS, KIND_ICONS, LoopIcon, PatternIcon } from '../icons';
 import { Kbd } from '../ui/primitives';
+import { useFrictionNote } from '../../hooks/useFriction';
 import { t, tn } from '../../i18n';
 
 interface Item {
@@ -261,6 +262,7 @@ function Palette({ onClose }: { onClose(): void }) {
   }, [index, query]);
 
   useEffect(() => setActive(0), [query]);
+  useFrictionNote(query, results.length, 'search');
   useEffect(() => {
     list.current?.querySelector(`[data-index="${active}"]`)?.scrollIntoView({ block: 'nearest' });
   }, [active]);

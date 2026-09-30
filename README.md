@@ -128,6 +128,28 @@ The Atlas models the person, and also how its understanding of the person was fo
 - **Formal methods, gated** (`src/domain/readiness.ts`). An evidence kind for a formal comparison exists, with its method and assumptions, and counts like a contrast, never as a test. None runs in this version. A claim's panel says whether its record could bear one, and if not, why. Checks: at least twelve separate episodes, enough variation in the cause, both factors recorded regularly, exact dates written as they happened, told apart from a common cause at least twice, and a stated delay. Until then a number would only mislead.
 - **The analysis follows the same rules** (`src/ai/schemas.ts`). No traits, types, diagnoses, probabilities or effect sizes; order, co-occurrence and the person's own "because" are reasons to look, never proof; nothing written is not the same as nothing happening; regularities are described in situations, not dispositions; and a change is only ever suggested if it is yours to make, reversible, and away from health and money.
 
+## One world per account, learning, and Claude on your own account
+
+Inside claude.ai the app can do three things a plain web page cannot. Opened anywhere else, it works exactly as before, on the device, with its own rules.
+
+- **An atlas per account, the same on every device** (`src/sync/`). A signed-in viewer who may save to their private part of the artifact's store (`data/users/<id>/`) gets one atlas per claude.ai account. It is cached on the device under a key of its own, so the device's own atlas is never mixed in, and it opens at once, even offline.
+  - **How it is stored.** The atlas is written as gzip + base64 text cut into hashed parts (`atlas/parts/p0…`), with a manifest (`atlas`) holding the revision, the part hashes, which device saved it and when. A typical atlas is one part, so an account costs two documents.
+  - **Saving and reading.** A save takes a short lease on the manifest, so two devices never write at once, and writes only the parts that changed, manifest last. Other devices watch the manifest and take in a newer revision.
+  - **Two devices at once.** Edits made on two devices before either saw the other's are merged per record, three ways against the revision both started from (`sync/merge.ts`). Additions and deletions from both sides are kept, the later edit wins a real conflict and the conflict is counted, the model log is kept from both, and counters only go up.
+  - **What stays per device.** The belief ledger is derived and stays per device. So do saved versions, the language, the time zone and map arrangements.
+  - **First use.** An account with no atlas is never filled on its own: the app offers to move this device's atlas in (not the example).
+  - **Who can save.** Viewers who cannot save to their account are told why: people from outside the owner's workspace who open a public link can use the atlas but not save it there, and signed-out viewers have no account at all.
+- **What the Atlas learns from you** (`src/domain/learning.ts`, Settings → "What the Atlas has learned"). The Atlas keeps plain counts, shown and forgettable, that it uses to order and suggest, never to decide:
+  - **Suggestions you take and set aside,** which order pending suggestions by (taken + 1) / (taken + set aside + 2). Nothing is hidden.
+  - **Your own words.** A word that went with the same element in three or more linked notes, and mostly with that one, suggests the element on the next note, with the count as its reason.
+  - **How its predictions went,** by the status their reasons had on the day each was written. When "supported" reasons fail at least as often as they hold, it proposes asking for one more separate episode. You decide, it is logged, and it can be taken back.
+  - **The kinds of question you put away.** Those asked away three times or more come after the others.
+  - **Searches that found nothing** (the words and where, nothing else). These are kept so the app can be improved where it falls short.
+- **Claude on your own claude.ai account** (`src/ai/account.ts`, `src/ai/review.ts`). No key and no proxy: the page asks Claude with the viewer's own account and usage, and claude.ai asks them first.
+  - **As the analysis provider.** "Claude, with your claude.ai account" in Settings runs the same tasks as the proxy, from the same Zod schemas sent as JSON Schema, with every answer checked again. It falls back to the local rules when it cannot.
+  - **Weekly review with Claude** (⋯ menu). What is sent is said first. Claude reads a compact copy of the atlas and may search and read older notes through two read-only tools. It returns a neutral summary, possible reasons not on the map, what does not fit together, and questions that would tell readings apart, each citing records.
+  - **Nothing enters the atlas unless you keep it.** A reason becomes a suggested claim, off the map until adopted; a question becomes a question element.
+
 ## Architecture
 
 ```
@@ -140,6 +162,8 @@ src/
   graph/         the layouts (the map by area × layer, the Causes helix), one graph builder with two lenses (Map, Causes), motion and 3D space engine
   components/    graph canvas and nodes, inspector panel, capture form, command palette, UI primitives
   pages/         one folder per section
+  runtime/       what claude.ai offers a page it hosts (db, user, sample), absent anywhere else
+  sync/          codec (compressed, hashed parts), merge (three-way, per record), accountSync (manifest, lease, live pull), connect (device or account at start-up)
   i18n/          t()/tn() and the Indonesian dictionary (English text is the key; loaded only when needed)
   lib/dates.ts   the clock: chosen time zone, today, calendar arithmetic, date and time formatting
 server/
@@ -158,7 +182,7 @@ server/
 
 ### The analysis layer and Claude
 
-`src/ai/types.ts` defines `AnalysisProvider`: `analyzeEntry`, `detectDecisionPatterns`, `proposeExperiments`, `evaluateExperiment`, `draftNavigationPlan`. Every method returns structured objects the UI renders directly.
+`src/ai/types.ts` defines `AnalysisProvider` (local rules, Claude via your proxy, or Claude on the viewer's claude.ai account): `analyzeEntry`, `detectDecisionPatterns`, `proposeExperiments`, `evaluateExperiment`, `draftNavigationPlan`. Every method returns structured objects the UI renders directly.
 
 - `localProvider` — deterministic, transparent heuristics (default, offline).
 - `createClaudeProvider` — posts compact context to `server/claude-proxy.ts`, which calls the Messages API with the task's Zod schema as the structured output format (`src/ai/schemas.ts`, shared by browser and server). Responses are validated again in the browser, and any id the model returns that does not exist in the atlas is dropped. If the proxy is unreachable, calls fall back to local heuristics with a notice.

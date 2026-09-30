@@ -202,6 +202,8 @@ interface AtlasActions {
   forgetWord(nodeId: ID, word: string): void;
   /** Forget the counts the Atlas learned from (rules you changed stay). */
   forgetLearning(): void;
+  /** A search that found nothing: kept (a few dozen, most recent) so the app can be improved where it falls short. */
+  noteFriction(query: string, where: string): void;
 }
 
 export interface AtlasState extends AtlasActions {
@@ -1501,6 +1503,21 @@ export const useAtlas = create<AtlasState>()(
               kind: 'learning_forgotten',
               summary: t('The Atlas no longer suggests {element} from the word “{word}”.', { element: d.nodes[nodeId]?.label ?? '', word }),
             });
+          });
+        },
+
+        noteFriction(query, where) {
+          const q = query.trim().toLowerCase().replace(/\s+/g, ' ').slice(0, 80);
+          if (q.length < 3) return;
+          learn((mem) => {
+            const today = todayISO();
+            const found = mem.friction.find((f) => f.q === q && f.where === where);
+            if (found) {
+              found.n++;
+              found.last = today;
+            } else mem.friction.push({ q, where, n: 1, last: today });
+            mem.friction.sort((a, b) => a.last.localeCompare(b.last));
+            if (mem.friction.length > 40) mem.friction.splice(0, mem.friction.length - 40);
           });
         },
 

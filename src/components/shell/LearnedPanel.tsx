@@ -20,6 +20,13 @@ const SUGGESTION_LABEL: Record<SuggestionType, () => string> = {
   expectation: () => t('What a note expects'),
 };
 
+const WHERE_LABEL: Record<string, () => string> = {
+  search: () => t('Search'),
+  map: () => t('Map'),
+  causes: () => t('Causes'),
+  time: () => t('Time'),
+};
+
 const STATUS_ORDER: ClaimStatus[] = ['tested', 'supported', 'plausible', 'proposed', 'weakened', 'retired'];
 
 function Part({ title, children }: { title: string; children: React.ReactNode }) {
@@ -52,7 +59,8 @@ export function LearnedPanel() {
   const proposal = useMemo(() => ruleProposal(data, today), [data, today]);
   const rule = mem?.rules?.supportedEpisodes;
   const declined = Object.entries(mem?.declined ?? {}).filter(([, n]) => (n ?? 0) > 0) as [keyof typeof INQUIRY_KIND_LABEL, number][];
-  const nothing = !kinds.length && !words.length && !cal.length && !declined.length && !rule;
+  const friction = [...(mem?.friction ?? [])].reverse().slice(0, 8);
+  const nothing = !kinds.length && !words.length && !cal.length && !declined.length && !rule && !friction.length;
 
   return (
     <div className="text-[12.5px] leading-snug">
@@ -155,6 +163,22 @@ export function LearnedPanel() {
               </li>
             ))}
           </ul>
+        </Part>
+      )}
+
+      {friction.length > 0 && (
+        <Part title={t('Looked for and not found')}>
+          <ul className="space-y-1">
+            {friction.map((f) => (
+              <li key={`${f.where}:${f.q}`} className="text-ink-2">
+                <span className="text-ink">“{f.q}”</span>{' '}
+                <span className="text-ink-3">
+                  · {WHERE_LABEL[f.where]?.() ?? f.where} · {tn(f.n, 'once', '{n} times')} · {formatDate(f.last)}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1 text-ink-3">{t('Kept so the app can be improved where it falls short: the words searched for and where, nothing else.')}</p>
         </Part>
       )}
 

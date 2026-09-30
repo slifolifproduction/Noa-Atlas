@@ -16,6 +16,7 @@ import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { t, tn } from '../../i18n';
+import { useFrictionNote } from '../../hooks/useFriction';
 
 type Show = 'all' | 'notes' | 'decisions' | 'happenings';
 
@@ -82,6 +83,7 @@ export function TimelinePage({ preset }: { preset?: string }) {
       return true;
     });
   }, [inFocus, show, review, landmarks, area, query, data]);
+  useFrictionNote(query, items.length, 'time');
   const count = (k: Show) => inFocus.filter((h) => h.mode === 'actual' && SHOWS[k](h)).length;
   const toReview = inFocus.filter((h) => pendingIn(data, h) > 0).length;
   const gaps = recordGaps(data, today);

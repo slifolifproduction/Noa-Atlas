@@ -1140,6 +1140,8 @@ export const ID: Record<string, string> = {
   'Your own explanations': 'Penjelasanmu sendiri',
   'What a note says changed': 'Yang menurut catatan berubah',
   'What a note expects': 'Yang diperkirakan sebuah catatan',
+  Map: 'Peta',
+  Causes: 'Sebab',
   'Nothing yet. It learns from the suggestions you take or set aside, the notes you link to elements, how its predictions turn out, and the questions you put away.':
     'Belum ada. Atlas belajar dari saran yang kamu terima atau sisihkan, catatan yang kamu tautkan ke elemen, bagaimana prediksinya ternyata, dan pertanyaan yang kamu tunda.',
   'Suggestions you take and set aside': 'Saran yang kamu terima dan sisihkan',
@@ -1168,6 +1170,9 @@ export const ID: Record<string, string> = {
   once: 'sekali',
   '{n} times': '{n} kali',
   'asked after the others': 'ditanyakan setelah yang lain',
+  'Looked for and not found': 'Dicari tetapi tidak ditemukan',
+  'Kept so the app can be improved where it falls short: the words searched for and where, nothing else.':
+    'Disimpan agar aplikasi bisa diperbaiki di bagian yang masih kurang: hanya kata yang dicari dan tempatnya, tidak ada yang lain.',
   'Forget what it learned': 'Lupakan yang sudah dipelajari',
   'Forget it all': 'Lupakan semuanya',
   'Rules you changed stay; your notes and elements are not touched.': 'Aturan yang kamu ubah tetap; catatan dan elemenmu tidak disentuh.',
@@ -1695,13 +1700,11 @@ export const ID: Record<string, string> = {
   Have: 'Punya',
   Developing: 'Berkembang',
   Gap: 'Kurang',
-  Map: 'Peta',
   'What is my life made of?': 'Hidupku terbuat dari apa?',
   'Everything in your atlas, from you outward.': 'Semua yang ada di atlasmu, dari dirimu ke luar.',
   'What happened, and when?': 'Apa yang terjadi, dan kapan?',
   'Your notes, what happened and what you decided, in order. Every moment points back to what you wrote.':
     'Catatanmu, apa yang terjadi dan apa yang kamu putuskan, berurutan. Setiap momen merujuk kembali ke yang kamu tulis.',
-  Causes: 'Sebab',
   'What seems to affect what?': 'Apa yang tampaknya memengaruhi apa?',
   'The possible reasons behind things, on the same map, drawn by how sure they are.':
     'Kemungkinan sebab di balik berbagai hal, di peta yang sama, digambar menurut seberapa yakin.',
