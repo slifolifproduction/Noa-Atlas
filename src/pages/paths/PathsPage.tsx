@@ -11,7 +11,7 @@ import { EXPERIMENT_STATUS_LABEL, SKILL_STATUS_LABEL } from '../../domain/consta
 import { currentAction, currentExperiment, experimentCode, pathCode, patternStats, patternTitle } from '../../domain/selectors';
 import { RegularityTag } from '../../components/evidence/Status';
 import type { SkillStatus, StrategicPath } from '../../domain/types';
-import { formatDate } from '../../lib/dates';
+import { formatDate, useToday } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { adoptExperimentDraft, commitDirection } from '../../state/operations';
@@ -20,6 +20,8 @@ import { CurrentStateEditor } from './CurrentStateEditor';
 import { PathEditor } from './PathEditor';
 import { FocusBanner, useFocusFilter } from '../../components/shell/Focus';
 import { focusElements, optionsTouching } from '../../domain/ask';
+import { expectations } from '../../domain/expect';
+import { ExpectationLine } from '../../components/inspector/Changes';
 import { t } from '../../i18n';
 
 const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns' | 'assumptions'; label: string; hint: string }[] = [
@@ -165,6 +167,7 @@ export function PathsPage() {
       />
 
       <ChosenStrip />
+      <Expecting />
       <FocusBanner focus={focus} on={on} setOn={setOn} shown={paths.length} total={all.length} className="mt-5" />
 
       {all.length > 0 && paths.length === 0 ? (
@@ -185,6 +188,46 @@ export function PathsPage() {
       {editing && data.paths[editing] && <PathEditor path={data.paths[editing]} onClose={() => setEditing(null)} />}
       {editingState && <CurrentStateEditor onClose={() => setEditingState(false)} />}
     </div>
+  );
+}
+
+/**
+ * What you expect: predictions written down before their window, and how
+ * they went. Possibility, never history; a held or failed one is what the
+ * Atlas learns from.
+ */
+function Expecting() {
+  const data = useAtlas((s) => s.data);
+  const open = useUI((s) => s.openEntity);
+  const today = useToday();
+  const views = useMemo(() => expectations(data, today), [data, today]);
+  if (!views.length) return null;
+  const openOnes = views.filter((v) => v.verdict === 'open');
+  const settled = views.filter((v) => v.verdict !== 'open');
+  const held = settled.filter((v) => v.verdict === 'held').length;
+  const failed = settled.filter((v) => v.verdict === 'failed').length;
+  return (
+    <section aria-labelledby="expecting-title" className="mt-5 rounded-[2px] border border-line bg-surface px-4 py-3.5">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 id="expecting-title" className="label text-ink-2!">
+          {t('What you expect')}
+        </h2>
+        {settled.length > 0 && (
+          <span className="text-[12px] text-ink-3">
+            {t('So far: {held} held, {failed} did not, {unobserved} not recorded either way.', { held, failed, unobserved: settled.length - held - failed })}
+          </span>
+        )}
+      </div>
+      <ul className="mt-2 grid gap-x-8 gap-y-1 sm:grid-cols-2">
+        {[...openOnes, ...settled].slice(0, 6).map((v) => (
+          <li key={v.occurrence.id}>
+            <button type="button" className="w-full text-left hover:opacity-90" onClick={() => open({ kind: 'occurrence', id: v.occurrence.id })}>
+              <ExpectationLine view={v} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 

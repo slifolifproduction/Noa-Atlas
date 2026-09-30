@@ -7,10 +7,22 @@
  * an odd number it is balancing (it self-corrects, or resists change).
  * Loops are never drawn by hand; they appear when the claims close a circle,
  * and they are only as supported as their weakest link.
+ *
+ * Two different places matter in a loop, and they are kept apart:
+ *   least certain  the links with the weakest evidence: where to test;
+ *   where to act   links whose cause is something the person does, with at
+ *                  least a few times behind it: where a change can be made.
+ * A loop with a link that only makes something possible or limits it is
+ * gated: it turns only while that holds, and passes no amount through it.
+ * Turns are the times the record shows the loop going all the way round, in
+ * order, from recorded states (never mentions).
  */
 import { claimSentence, claimStatus } from './claims';
+import { isGate, lagWindow, pushes } from './compare';
 import { EFFECT_META, STATUS_META } from './constants';
-import type { AtlasData, Claim, ClaimStatus, ID } from './types';
+import { factorStates, isBackgroundLevel, type FactorState, type Lean } from './factors';
+import { addDays, daysBetween } from '../lib/dates';
+import type { AtlasData, Claim, ClaimStatus, ID, ISODate } from './types';
 import { t } from '../i18n';
 
 export interface Loop {
@@ -22,8 +34,12 @@ export interface Loop {
   type: 'reinforcing' | 'balancing';
   /** The status of the weakest link. */
   weakest: ClaimStatus;
-  /** Links with the weakest status: where a loop is least certain, and often where to intervene. */
-  breakpoints: ID[];
+  /** Links with the weakest status: where the loop is least certain, and where a test would tell most. */
+  leastCertain: ID[];
+  /** Links whose cause is something the person does, seen at least a few times: where a change can be made. */
+  leverage: ID[];
+  /** A link only makes something possible or limits it: the loop turns only while it holds. */
+  gated: boolean;
   name?: string;
 }
 
@@ -75,9 +91,60 @@ function describe(data: AtlasData, members: Claim[], id: string): Loop {
     nodeIds: members.map((m) => m.from),
     type: negatives % 2 === 0 ? 'reinforcing' : 'balancing',
     weakest,
-    breakpoints: statuses.filter((s) => STATUS_META[s.status].rank === low).map((s) => s.id),
+    leastCertain: statuses.filter((s) => STATUS_META[s.status].rank === low).map((s) => s.id),
+    leverage: members
+      .filter((m) => {
+        const cause = data.nodes[m.from];
+        return cause && cause.kind === 'behaviour' && !cause.external && STATUS_META[claimStatus(data, m)].rank >= STATUS_META.plausible.rank;
+      })
+      .map((m) => m.id),
+    gated: members.some((m) => isGate(m.effect)),
     name: data.loopNames[id],
   };
+}
+
+export interface Turn {
+  from: ISODate;
+  to: ISODate;
+  days: number;
+  /** The recorded states, one per step, in order. */
+  states: FactorState[];
+}
+
+/**
+ * Times the record shows the loop going all the way round: a recorded state
+ * of one element, then each next element going the way its link says, within
+ * the link's delay, back to the first.
+ */
+export function loopTurns(data: AtlasData, loop: Loop): Turn[] {
+  const members = loop.claimIds.map((id) => data.claims[id]).filter((c): c is Claim => Boolean(c));
+  if (members.length !== loop.claimIds.length) return [];
+  const turns: Turn[] = [];
+  let busyUntil = '';
+  for (let s = 0; s < members.length; s++) {
+    for (const first of factorStates(data, members[s].from)) {
+      if (first.lean === 'usual' || isBackgroundLevel(first) || first.date <= busyUntil) continue;
+      const steps: FactorState[] = [first];
+      let lean: Lean = first.lean;
+      let at = first;
+      for (let i = 0; i < members.length; i++) {
+        const c = members[(s + i) % members.length];
+        lean = pushes(c.effect, lean);
+        const until = addDays(at.date, lagWindow(c));
+        const next = factorStates(data, c.to).find(
+          (x) => x.date >= at.date && x.date <= until && x.key !== at.key && x.item?.key !== at.item?.key && x.lean === lean && !isBackgroundLevel(x),
+        );
+        if (!next) break;
+        steps.push(next);
+        at = next;
+      }
+      if (steps.length === members.length + 1) {
+        turns.push({ from: first.date, to: at.date, days: daysBetween(first.date, at.date), states: steps });
+        busyUntil = at.date;
+      }
+    }
+  }
+  return turns.sort((a, b) => a.from.localeCompare(b.from));
 }
 
 export function loopsThrough(data: AtlasData, nodeId: ID): Loop[] {

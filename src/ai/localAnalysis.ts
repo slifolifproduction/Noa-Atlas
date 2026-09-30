@@ -12,7 +12,7 @@
  * carries its basis (the phrases or metadata that triggered it). The Claude
  * provider returns the same shapes; this module is also the offline fallback.
  */
-import { claimSentence, claimStatus, evidenceProfile, statusFromProfile } from '../domain/claims';
+import { claimSentence, claimStatus } from '../domain/claims';
 import { OUTCOME_RATING_LABEL } from '../domain/constants';
 import { decisionCode, decisionHorizon, displayNode, mapElements, patternCode, patternLive, sortedDecisions } from '../domain/selectors';
 import type {
@@ -26,6 +26,7 @@ import type {
   EntryAnalysis,
   Experiment,
   ExperimentResult,
+  FactorReading,
   ISODateTime,
   NavigationPlan,
   Observation,
@@ -438,6 +439,102 @@ const ATTRIBUTION_CUES = [
   'alasannya',
 ];
 
+/**
+ * What changed: words for a direction near an element's name. A mention alone
+ * is never read as a change; only a sentence that says which way it went. A
+ * sentence about the future is an expectation, never history.
+ */
+const CHANGE_CUES: { reads: FactorReading; phrases: string[] }[] = [
+  {
+    reads: 'down',
+    phrases: [
+      'dropped',
+      'drop',
+      'fell',
+      'fall',
+      'went down',
+      'go down',
+      'decreased',
+      'decrease',
+      'declined',
+      'slipped',
+      'stalled',
+      'shrank',
+      'turun',
+      'menurun',
+      'berkurang',
+      'macet',
+    ],
+  },
+  {
+    reads: 'up',
+    phrases: ['went up', 'go up', 'rose', 'rise', 'grew', 'grow', 'increased', 'increase', 'picked up', 'pick up', 'naik', 'meningkat', 'bertambah'],
+  },
+  { reads: 'low', phrases: ['was low', 'low', 'flat', 'drained', 'exhausted', 'depleted', 'rendah', 'lemas', 'lelah', 'capek'] },
+  { reads: 'high', phrases: ['was high', 'high', 'full of', 'tinggi', 'penuh'] },
+  { reads: 'absent', phrases: ['no', 'without', 'skipped', "didn't", 'did not', 'tidak ada', 'tanpa', 'belum', 'tidak'] },
+];
+/** Better or worse: which way that is depends on whether more of the element is better or worse. */
+const VALENCE_CUES: { better: boolean; phrases: string[] }[] = [
+  { better: false, phrases: ['got worse', 'worse', 'worsened', 'memburuk', 'makin parah'] },
+  { better: true, phrases: ['got better', 'better', 'improved', 'improve', 'membaik'] },
+];
+const FUTURE_CUES = ['will', 'expect', 'going to', 'should', 'hope to', 'predict', 'akan', 'harusnya', 'semoga', 'berharap', 'diperkirakan'];
+const withinDays = (text: string) =>
+  has(text, 'tomorrow') || has(text, 'besok')
+    ? 2
+    : has(text, 'next week') || has(text, 'minggu depan')
+      ? 7
+      : has(text, 'this month') || has(text, 'bulan ini')
+        ? 30
+        : 28;
+
+function readChanges(entry: Entry, elements: AtlasNode[]): AnalysisSuggestion[] {
+  const out: AnalysisSuggestion[] = [];
+  const factors = elements.filter((n) => n.kind === 'state' || n.kind === 'behaviour');
+  const sentences = entry.content.split(/(?<=[.!?])\s+/).filter((x) => x.trim());
+  const taken = new Set<string>();
+  for (const sentence of sentences) {
+    const text = norm(sentence);
+    const future = FUTURE_CUES.some((c) => has(text, c));
+    for (const { node, hit } of matchNodes(text, factors)) {
+      if (taken.has(node.id)) continue;
+      const at = text.indexOf(norm(hit));
+      let best: { reads: FactorReading; cue: string; distance: number } | undefined;
+      const consider = (reads: FactorReading, cue: string) => {
+        if (!has(text, cue)) return;
+        const distance = Math.abs(text.indexOf(norm(cue)) - at);
+        if (!best || distance < best.distance) best = { reads, cue, distance };
+      };
+      for (const { reads, phrases } of CHANGE_CUES) {
+        // Behaviours happen or not; states go up or down, or are high or low.
+        if ((node.kind === 'behaviour') !== (reads === 'absent')) continue;
+        for (const cue of phrases) consider(reads, cue);
+      }
+      if (node.kind === 'state') {
+        const higherIsWorse = node.scale?.higherIs === 'worse';
+        for (const { better, phrases } of VALENCE_CUES) for (const cue of phrases) consider(better !== higherIsWorse ? 'up' : 'down', cue);
+      }
+      if (!best || best.distance > 60) continue;
+      taken.add(node.id);
+      const reason = t('Matched {cue} near {name}.', { cue: quote(best.cue), name: quote(hit) });
+      if (future)
+        out.push({
+          id: createId('sug'),
+          type: 'expectation',
+          factor: node.id,
+          reads: best.reads,
+          within: withinDays(text),
+          excerpt: sentence.trim(),
+          reason,
+          state: 'pending',
+        });
+      else out.push({ id: createId('sug'), type: 'change', factor: node.id, reads: best.reads, excerpt: sentence.trim(), reason, state: 'pending' });
+    }
+  }
+  return [...out.filter((x) => x.type === 'change').slice(0, 4), ...out.filter((x) => x.type === 'expectation').slice(0, 2)];
+}
+
 function contextObservation(entry: Entry): Observation | null {
   const { energy, mood } = entry.context ?? {};
   if (energy === undefined || mood === undefined) return null;
@@ -567,6 +664,9 @@ export function analyzeEntryLocally(entry: Entry, data: AtlasData, at: ISODateTi
       state: 'pending',
     });
   }
+
+  // What changed, and what the note expects: only where a sentence says which way.
+  suggestions.push(...readChanges(entry, elements));
 
   // Instances of a pattern: cue phrases for and against each live pattern.
   for (const p of Object.values(data.patterns)) {
@@ -764,14 +864,20 @@ export function evaluateExperimentLocally(experiment: Experiment, result: Experi
     claim && result.outcome !== 'inconclusive'
       ? (() => {
           const stance = result.outcome === 'supports' ? ('supports' as const) : ('counters' as const);
-          const p = evidenceProfile(data, claim);
-          const next = stance === 'supports' ? { ...p, testsFor: p.testsFor + 1 } : { ...p, testsAgainst: p.testsAgainst + 1, counter: p.counter + 1 };
+          // The status after is read exactly as the store will read it: the same claim with the test added.
+          const after = claimStatus(data, {
+            ...claim,
+            evidence: [
+              ...claim.evidence,
+              { id: 'preview', source: { kind: 'experiment', id: experiment.id }, stance, kind: 'intervention', excerpt: '', addedBy: 'user', addedAt: '' },
+            ],
+          });
           return [
             {
               claimId: claim.id,
               stance,
               before: claimStatus(data, claim),
-              after: statusFromProfile(next, Boolean(claim.retired)),
+              after,
               excerpt:
                 result.summary ||
                 t(result.outcome === 'supports' ? '{title}: hypothesis supported.' : '{title}: hypothesis not supported.', { title: experiment.title }),

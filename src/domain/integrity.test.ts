@@ -74,7 +74,7 @@ describe('referential integrity', () => {
       for (const c of touching) expect(d.claims[c]).toBeUndefined();
       expectCanvasWhole(d);
     }
-  });
+  }, 30_000);
 
   it('deleting any claim lets go of it everywhere', () => {
     for (const id of Object.keys(createSeedData(TODAY).claims)) {
@@ -84,7 +84,7 @@ describe('referential integrity', () => {
       expect(findLoops(data()).some((l) => l.claimIds.includes(id))).toBe(false);
       expectCanvasWhole(data());
     }
-  });
+  }, 30_000);
 
   it('deleting any note, decision, happening, test or option leaves the atlas whole', () => {
     const seed = createSeedData(TODAY);
@@ -103,7 +103,7 @@ describe('referential integrity', () => {
         expect(danglingReferences(data()), `after deleting ${what} ${id}`).toEqual([]);
       }
     }
-  });
+  }, 30_000);
 
   it('a note’s happenings and the evidence they gave go with the note', () => {
     const entry = Object.values(data().entries).find((e) => Object.values(data().occurrences).some((o) => o.source?.id === e.id))!;

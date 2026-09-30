@@ -264,7 +264,7 @@ export function convertV1(v1: V1): AtlasData {
     modelLog: ((v1.modelLog as V1[]) ?? []).map(({ before: _b, after: _a, ...u }) => u as AtlasData['modelLog'][number]),
     counters: { ...v1.counters, claim: claimCode },
     loopNames: {},
-    causesLogic: 3,
+    causesLogic: 4,
   };
 }
 
@@ -343,9 +343,59 @@ export function correctSampleCauses(data: AtlasData): AtlasData {
   return { ...data, claims, causesLogic: 3, counters: { ...data.counters, claim: Math.max(data.counters?.claim ?? 0, maxCode) } };
 }
 
+/**
+ * v3 → v4: what changed, episodes, expectations and revisions. A stored
+ * sample gets, once, what the sample now records: what changed with its
+ * happenings, the predictions written before their windows, the link from
+ * Night Ferry progress to Night Ferry, and which element each test measures.
+ * Only what is missing is added; nothing the person wrote or changed is
+ * touched. The person's own atlas only gets the marker: nothing can be
+ * derived for it that it did not record.
+ */
+export function upgradeSampleLogic(data: AtlasData): AtlasData {
+  if ((data.causesLogic ?? 0) >= 4) return data;
+  const sample = data.profile?.name === SEED_PROFILE_NAME && Boolean(data.claims?.c01) && Boolean(data.entries?.ent_01);
+  if (!sample) return { ...data, causesLogic: 4 };
+  const fresh = createSeedData();
+  const occurrences = { ...data.occurrences };
+  for (const [id, f] of Object.entries(fresh.occurrences)) {
+    const mine = occurrences[id];
+    if (mine) {
+      if (!mine.changes && f.changes && f.changes.every((c) => data.nodes[c.factor])) occurrences[id] = { ...mine, changes: f.changes };
+    } else if (f.mode === 'expected' && f.changes?.every((c) => data.nodes[c.factor]) && (f.expectation?.basis ?? []).every((c) => data.claims[c])) {
+      const sourceKept =
+        !f.source || (f.source.kind === 'experiment' ? f.source.id in data.experiments : f.source.kind === 'decision' ? f.source.id in data.decisions : true);
+      if (sourceKept) occurrences[id] = f;
+    }
+  }
+  const edges = { ...data.edges };
+  const partOf = Object.values(fresh.edges).find((e) => e.source === 'n_nf_progress' && e.type === 'part_of');
+  if (
+    partOf &&
+    data.nodes[partOf.source] &&
+    data.nodes[partOf.target] &&
+    !Object.values(edges).some((e) => e.source === partOf.source && e.target === partOf.target)
+  ) {
+    edges[`${partOf.id}_v4`] = { ...partOf, id: `${partOf.id}_v4` };
+  }
+  const experiments = { ...data.experiments };
+  for (const [id, f] of Object.entries(fresh.experiments)) {
+    const mine = experiments[id];
+    if (!mine) continue;
+    experiments[id] = {
+      ...mine,
+      measures: mine.measures.map((m) => {
+        const factor = f.measures.find((x) => x.id === m.id && x.label === m.label)?.factor;
+        return m.factor || !factor || !data.nodes[factor] ? m : { ...m, factor };
+      }),
+    };
+  }
+  return { ...data, occurrences, edges, experiments, causesLogic: 4 };
+}
+
 /** Any stored or imported atlas, in the current shape. */
 export function toCurrentShape(data: unknown): AtlasData {
-  if (isV2(data)) return correctSampleCauses({ ...data, loopNames: data.loopNames ?? {} });
+  if (isV2(data)) return upgradeSampleLogic(correctSampleCauses({ ...data, loopNames: data.loopNames ?? {} }));
   const v1 = data as V1;
   return isSample(v1) ? upgradeSample(v1) : convertV1(v1);
 }

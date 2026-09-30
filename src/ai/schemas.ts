@@ -13,6 +13,7 @@ import { z } from 'zod';
 const AREA_KEYS = ['self', 'work', 'projects', 'money', 'people', 'health', 'place', 'growth'] as const;
 const STANCES = ['supports', 'counters'] as const;
 const OCCURRENCE_KINDS = ['event', 'action', 'experience', 'reading'] as const;
+const READINGS = ['up', 'down', 'high', 'low', 'present', 'absent'] as const;
 
 export const EntryAnalysisOutput = z.object({
   observations: z
@@ -43,6 +44,29 @@ export const EntryAnalysisOutput = z.object({
   attributions: z
     .array(z.object({ excerpt: z.string(), reason: z.string() }))
     .describe('Sentences where the note explains a cause in its own words. These are the person’s hypotheses, not evidence.'),
+  changes: z
+    .array(
+      z.object({
+        node_id: z.string().describe('Id of the element, from the input only.'),
+        reads: z.enum(READINGS),
+        excerpt: z.string().describe('The exact sentence that says it.'),
+        reason: z.string(),
+      }),
+    )
+    .describe(
+      'What the note says an element did: went up or down, was high or low, happened or did not. Only when the note says which way; a mention alone is not a change.',
+    ),
+  expectations: z
+    .array(
+      z.object({
+        node_id: z.string().describe('Id of the element, from the input only.'),
+        reads: z.enum(READINGS),
+        within_days: z.number().describe('How soon the note expects it, in days.'),
+        excerpt: z.string().describe('The exact sentence that expects it.'),
+        reason: z.string(),
+      }),
+    )
+    .describe('What the note expects to happen to an element later. A prediction to check, never history.'),
 });
 
 export const DecisionPatternsOutput = z.object({
@@ -105,7 +129,7 @@ export const TASKS = {
   entry_analysis: {
     schema: EntryAnalysisOutput,
     system: `${SHARED_RULES}
-Task: read one note. Report neutral observations with their basis; which existing elements it mentions; whether it is an instance of, or a counter-case to, any listed pattern (quote the exact sentence); which life areas it touches; the happenings it reports, for the person's timeline; and any sentence where the note explains a cause in its own words. Only use element and pattern ids from the input.`,
+Task: read one note. Report neutral observations with their basis; which existing elements it mentions; whether it is an instance of, or a counter-case to, any listed pattern (quote the exact sentence); which life areas it touches; the happenings it reports, for the person's timeline; any sentence where the note explains a cause in its own words; what the note says an element did (went up or down, was high or low, happened or did not), only where it says which way; and anything the note expects to happen later. Only use element and pattern ids from the input.`,
   },
   decision_patterns: {
     schema: DecisionPatternsOutput,

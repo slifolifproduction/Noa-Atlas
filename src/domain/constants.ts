@@ -9,6 +9,7 @@ import type {
   EvidenceKind,
   ExperimentOutcome,
   ExperimentStatus,
+  FactorReading,
   Knowledge,
   LayerKey,
   LinkType,
@@ -874,6 +875,87 @@ export const KNOWLEDGE_HINT: Record<Knowledge, string> = {
     return t('Proposed by the analysis. Not on your map until you adopt it.');
   },
 };
+
+/* ------------------------------------------------------------------ what changed */
+
+/** What a record says a factor did, as a short label for choosing. */
+export const READS_LABEL: Record<FactorReading, string> = {
+  get up() {
+    return t('Went up');
+  },
+  get down() {
+    return t('Went down');
+  },
+  get high() {
+    return t('Was high');
+  },
+  get low() {
+    return t('Was low');
+  },
+  get present() {
+    return t('Happened');
+  },
+  get absent() {
+    return t('Did not happen');
+  },
+};
+
+/** "Energy went down", "Saying yes on the spot did not happen". */
+export function stateSentence(name: string, reads: FactorReading | 'usual'): string {
+  switch (reads) {
+    case 'up':
+      return t('{name} went up', { name });
+    case 'down':
+      return t('{name} went down', { name });
+    case 'high':
+      return t('{name} was high', { name });
+    case 'low':
+      return t('{name} was low', { name });
+    case 'present':
+      return t('{name} happened', { name });
+    case 'absent':
+      return t('{name} did not happen', { name });
+    default:
+      return t('{name} was at its usual level', { name });
+  }
+}
+
+/** An expectation, in the present tense: "Energy goes down", "Saying yes on the spot does not happen". */
+export function expectSentence(name: string, reads: FactorReading): string {
+  switch (reads) {
+    case 'up':
+      return t('{name} goes up', { name });
+    case 'down':
+      return t('{name} goes down', { name });
+    case 'high':
+      return t('{name} is high', { name });
+    case 'low':
+      return t('{name} is low', { name });
+    case 'present':
+      return t('{name} happens', { name });
+    default:
+      return t('{name} does not happen', { name });
+  }
+}
+
+/** "only when Afternoon interruptions is high". */
+export function conditionPhrase(name: string, reads: FactorReading): string {
+  switch (reads) {
+    case 'up':
+    case 'high':
+      return t('only when {name} is high', { name });
+    case 'down':
+    case 'low':
+      return t('only when {name} is low', { name });
+    case 'present':
+      return t('only when {name} happens', { name });
+    default:
+      return t('only when {name} does not happen', { name });
+  }
+}
+
+/** Which readings suit a kind of factor: behaviours happen or not; states move and have levels. */
+export const readingsFor = (kind: ElementKind | undefined): FactorReading[] => (kind === 'behaviour' ? ['present', 'absent'] : ['up', 'down', 'high', 'low']);
 
 export const MODE_LABEL: Record<Mode, string> = {
   get actual() {

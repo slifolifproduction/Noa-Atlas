@@ -11,7 +11,7 @@ describe('loops', () => {
     expect(cycle?.type).toBe('reinforcing');
     expect(brake?.type).toBe('balancing');
     for (const l of loops) {
-      expect(l.breakpoints.length).toBeGreaterThan(0);
+      expect(l.leastCertain.length).toBeGreaterThan(0);
       expect(l.nodeIds.length).toBe(l.claimIds.length);
     }
   });

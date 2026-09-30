@@ -252,6 +252,34 @@ export type Mode = 'actual' | 'expected' | 'planned' | 'possible';
 
 export type OccurrenceKind = 'event' | 'action' | 'experience' | 'reading';
 
+/**
+ * What a record says about a factor at that time: that it went up or down,
+ * was high or low, happened or did not. "Not recorded" is never one of these:
+ * a factor nothing says anything about is unknown, not absent.
+ */
+export type FactorReading = 'up' | 'down' | 'high' | 'low' | 'present' | 'absent';
+
+/** What changed: a factor (a state or behaviour element) and what the record says about it. */
+export interface FactorChange {
+  factor: ID;
+  reads: FactorReading;
+  /** A level on the factor's scale, when one was given. */
+  level?: number;
+}
+
+/**
+ * A prediction written down before its window: what should happen to a
+ * factor, by when, and what it follows from. Kept apart from history (the
+ * occurrence carrying it is in the "expected" mode) and checked against what
+ * is recorded in the window.
+ */
+export interface Expectation {
+  /** The claims it follows from. One claim: a direct check of it. Several: a chain, checked together. */
+  basis: ID[];
+  /** The person's own verdict, when they give one; otherwise it is read from what was recorded. */
+  verdict?: { outcome: 'held' | 'failed' | 'unobserved'; note?: string; at: ISODateTime };
+}
+
 /** Something that happened at a time, read from a record. */
 export interface Occurrence {
   id: ID;
@@ -272,9 +300,19 @@ export interface Occurrence {
   external?: boolean;
   /** A formative episode worth keeping in view. */
   landmark?: boolean;
-  /** The trail back to the record it was read from. */
+  /** The trail back to the record it was read from (for an expectation: the test or decision it belongs to). */
   source?: SourceRef;
   excerpt?: string;
+  /** What changed, according to the record. */
+  changes?: FactorChange[];
+  /**
+   * Which episode it belongs to, when the person says so. Records that share
+   * a key are one episode; a key of its own keeps it apart. Otherwise
+   * episodes are read from dates, records and shared elements.
+   */
+  episode?: string;
+  /** Expected mode only: the prediction. */
+  expectation?: Expectation;
   mode: Mode;
   origin: Origin;
   createdAt: ISODateTime;
@@ -320,6 +358,8 @@ export interface Evidence {
   /** The exact passage. */
   excerpt: string;
   note?: string;
+  /** Carried over from the version of the claim this one revises. */
+  carriedFrom?: ID;
   addedBy: Origin;
   addedAt: ISODateTime;
 }
@@ -361,8 +401,10 @@ export interface Claim {
   effect: Effect;
   /** How it may work, in words: an explanation to check, never evidence by itself. */
   via?: string;
-  /** When it holds, e.g. "in deadline weeks". */
+  /** When it holds, in words, e.g. "in deadline weeks". */
   when?: string;
+  /** When it holds, as a factor the record can check: "only when afternoons are interrupted". */
+  condition?: { factor: ID; reads: FactorReading };
   /** Typical delay, e.g. "2–6 weeks". */
   lag?: string;
   author: Origin;
@@ -371,8 +413,10 @@ export interface Claim {
   evidence: Evidence[];
   /** Competing explanations of the same effect. */
   rivalIds: ID[];
-  /** People change: a claim can stop holding. */
-  retired?: { at: ISODate; note?: string };
+  /** People change: a claim can stop holding, or be revised into a new version. */
+  retired?: { at: ISODate; note?: string; revisedInto?: ID };
+  /** The earlier version this claim revises. The earlier one stays, retired, with its evidence. */
+  revises?: ID;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
@@ -498,6 +542,8 @@ export type ExperimentOutcome = 'supports' | 'contradicts' | 'inconclusive';
 export interface Measure {
   id: ID;
   label: string;
+  /** The element this measures, so the test can read it from history. */
+  factor?: ID;
   baseline?: string;
   target?: string;
   result?: string;
@@ -612,6 +658,28 @@ export type AnalysisSuggestion =
       excerpt: string;
       reason: string;
       state: SuggestionState;
+    }
+  | {
+      /** "This note says a factor went up, went down, happened or did not": what changed, kept with the note's happening. */
+      id: ID;
+      type: 'change';
+      factor: ID;
+      reads: FactorReading;
+      excerpt: string;
+      reason: string;
+      state: SuggestionState;
+    }
+  | {
+      /** "This note expects something": a prediction to check later, never history. */
+      id: ID;
+      type: 'expectation';
+      factor: ID;
+      reads: FactorReading;
+      /** Days from the note until it should show. */
+      within: number;
+      excerpt: string;
+      reason: string;
+      state: SuggestionState;
     };
 
 /** The persisted output of reading one note. */
@@ -634,6 +702,10 @@ export type ModelUpdateKind =
   | 'claim_adopted'
   | 'claim_view'
   | 'claim_retired'
+  | 'claim_edited'
+  | 'claim_revised'
+  | 'expectation_added'
+  | 'expectation_checked'
   | 'element_adopted'
   | 'investigation_concluded';
 
@@ -688,7 +760,11 @@ export interface AtlasData {
   counters: Counters;
   /** Names the person gave to loops (loops themselves are derived from claims). */
   loopNames: Record<string, string>;
-  /** Which revision of the logic of causes the data was prepared for (3: claims on factors, episodes in order). */
+  /**
+   * Which revision of the logic of causes the data was prepared for
+   * (3: claims on factors, episodes in order; 4: what changed, episodes,
+   * expectations and revisions).
+   */
   causesLogic?: number;
 }
 

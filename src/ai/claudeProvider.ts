@@ -132,6 +132,23 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
       for (const a of out.attributions.slice(0, 2)) {
         suggestions.push({ id: createId('sug'), type: 'attribution', excerpt: a.excerpt, reason: a.reason, state: 'pending' });
       }
+      for (const c of out.changes.slice(0, 4)) {
+        if (!data.nodes[c.node_id]) continue;
+        suggestions.push({ id: createId('sug'), type: 'change', factor: c.node_id, reads: c.reads, excerpt: c.excerpt, reason: c.reason, state: 'pending' });
+      }
+      for (const e of out.expectations.slice(0, 2)) {
+        if (!data.nodes[e.node_id]) continue;
+        suggestions.push({
+          id: createId('sug'),
+          type: 'expectation',
+          factor: e.node_id,
+          reads: e.reads,
+          within: Math.max(1, Math.min(365, Math.round(e.within_days))),
+          excerpt: e.excerpt,
+          reason: e.reason,
+          state: 'pending',
+        });
+      }
       return {
         generatedAt: new Date().toISOString(),
         provider: 'Claude',

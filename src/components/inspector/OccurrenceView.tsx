@@ -11,6 +11,7 @@ import { KnowledgeTag } from '../evidence/Status';
 import { HISTORY_ICONS } from '../icons';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
+import { ChangeEditor, EpisodeSection, ExpectationPanel } from './Changes';
 import { MomentExplanation } from './Explanation';
 import { HistoryRow, Muted, NodeChip, PanelSection } from './parts';
 import { t } from '../../i18n';
@@ -100,9 +101,24 @@ export function OccurrenceView({ id }: { id: ID }) {
           !o.instanceOf && <Muted>{t('Not linked to anything on the map.')}</Muted>
         )}
       </PanelSection>
+      {o.mode === 'expected' && o.expectation && (
+        <PanelSection title={t('A prediction')}>
+          <ExpectationPanel occurrenceId={id} />
+        </PanelSection>
+      )}
+      {o.mode === 'actual' && (
+        <PanelSection title={t('What changed')} count={o.changes?.length ?? 0}>
+          <ChangeEditor occurrenceId={id} />
+        </PanelSection>
+      )}
       {o.mode === 'actual' && (o.instanceOf || o.about.length > 0) && (
         <PanelSection title={t('Why might this have happened?')}>
           <MomentExplanation item={historyItems(data).find((h) => h.key === `occ:${id}`)!} />
+        </PanelSection>
+      )}
+      {o.mode === 'actual' && (
+        <PanelSection title={t('Episode')}>
+          <EpisodeSection occurrenceId={id} />
         </PanelSection>
       )}
 

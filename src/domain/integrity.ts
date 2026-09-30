@@ -53,6 +53,9 @@ export function danglingReferences(d: AtlasData): string[] {
       source(ev.source, `claim ${c.id}.evidence`);
       if (ev.cause) source(ev.cause, `claim ${c.id}.evidence.cause`);
     });
+    node(c.condition?.factor, `claim ${c.id}.condition`);
+    claim(c.revises, `claim ${c.id}.revises`);
+    claim(c.retired?.revisedInto, `claim ${c.id}.revisedInto`);
   }
   for (const n of Object.values(d.nodes)) {
     claim(n.claimId, `element ${n.id}.claim`);
@@ -63,6 +66,8 @@ export function danglingReferences(d: AtlasData): string[] {
     o.about.forEach((a) => node(a, `happening ${o.id}.about`));
     node(o.instanceOf, `happening ${o.id}.instanceOf`);
     if (o.source) source(o.source, `happening ${o.id}.source`);
+    o.changes?.forEach((c) => node(c.factor, `happening ${o.id}.changes`));
+    o.expectation?.basis.forEach((c) => claim(c, `expectation ${o.id}.basis`));
   }
   for (const e of Object.values(d.entries)) {
     e.nodeIds.forEach((n) => node(n, `note ${e.id}`));
@@ -73,6 +78,7 @@ export function danglingReferences(d: AtlasData): string[] {
         s.about.forEach((a) => node(a, `note ${e.id}.suggestion`));
         node(s.instanceOf, `note ${e.id}.suggestion`);
       }
+      if (s.type === 'change' || s.type === 'expectation') node(s.factor, `note ${e.id}.suggestion`);
     }
   }
   for (const x of Object.values(d.decisions)) {
@@ -97,6 +103,7 @@ export function danglingReferences(d: AtlasData): string[] {
   }
   for (const x of Object.values(d.experiments)) {
     claim(x.claimId, `test ${x.id}.claim`);
+    x.measures.forEach((m) => node(m.factor, `test ${x.id}.measure`));
     x.patternIds.forEach((p) => pattern(p, `test ${x.id}.patterns`));
     x.questionIds.forEach((q) => node(q, `test ${x.id}.questions`));
     for (const p of x.pathIds) {
@@ -169,6 +176,19 @@ export function repairReferences(d: AtlasData): number {
       // An instance drawn from two records rests on both: without its cause record, its order is unknown.
       const ev = keep(c.evidence, (e) => sourceExists(d, e.source) && (!e.cause || sourceExists(d, e.cause)));
       if (ev !== c.evidence) c.evidence = ev;
+      // A condition about something gone can no longer be checked; a version gone is no longer a link in the line.
+      if (c.condition && !hasNode(c.condition.factor)) {
+        c.condition = undefined;
+        fixed++;
+      }
+      if (c.revises && !hasClaim(c.revises)) {
+        c.revises = undefined;
+        fixed++;
+      }
+      if (c.retired?.revisedInto && !hasClaim(c.retired.revisedInto)) {
+        c.retired = { ...c.retired, revisedInto: undefined };
+        fixed++;
+      }
     }
     for (const n of Object.values(d.nodes)) {
       if (n.claimId && !hasClaim(n.claimId)) {
@@ -192,6 +212,21 @@ export function repairReferences(d: AtlasData): number {
         o.instanceOf = undefined;
         fixed++;
       }
+      if (o.changes) {
+        const ch = keep(o.changes, (c) => hasNode(c.factor));
+        if (ch !== o.changes) o.changes = ch.length ? ch : undefined;
+      }
+      if (o.expectation) {
+        const basis = keep(o.expectation.basis, hasClaim);
+        if (basis !== o.expectation.basis) o.expectation.basis = basis;
+      }
+    }
+    // An expectation about something gone has nothing left to check.
+    for (const [id, o] of Object.entries(d.occurrences)) {
+      if (o.mode === 'expected' && o.expectation && !o.changes?.length) {
+        delete d.occurrences[id];
+        fixed++;
+      }
     }
     for (const e of Object.values(d.entries)) {
       const ids = keep(e.nodeIds, hasNode);
@@ -199,7 +234,15 @@ export function repairReferences(d: AtlasData): number {
       const a = e.analysis;
       if (a) {
         // A suggestion about something that is gone can no longer be answered.
-        const sug = keep(a.suggestions, (s) => (s.type === 'link_node' ? hasNode(s.nodeId) : s.type === 'pattern_evidence' ? s.patternId in d.patterns : true));
+        const sug = keep(a.suggestions, (s) =>
+          s.type === 'link_node'
+            ? hasNode(s.nodeId)
+            : s.type === 'pattern_evidence'
+              ? s.patternId in d.patterns
+              : s.type === 'change' || s.type === 'expectation'
+                ? hasNode(s.factor)
+                : true,
+        );
         if (sug !== a.suggestions) a.suggestions = sug;
         for (const s of a.suggestions) {
           if (s.type !== 'occurrence') continue;
@@ -252,6 +295,12 @@ export function repairReferences(d: AtlasData): number {
       if (x.claimId && !hasClaim(x.claimId)) {
         x.claimId = undefined;
         fixed++;
+      }
+      for (const m of x.measures) {
+        if (m.factor && !hasNode(m.factor)) {
+          m.factor = undefined;
+          fixed++;
+        }
       }
       const pt = keep(x.patternIds, (p) => p in d.patterns);
       if (pt !== x.patternIds) x.patternIds = pt;

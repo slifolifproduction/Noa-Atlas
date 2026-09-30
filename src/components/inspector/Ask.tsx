@@ -10,6 +10,7 @@ import type { AreaKey, Claim, Effect, ID, View } from '../../domain/types';
 import { t } from '../../i18n';
 import { daysBetween, formatDate } from '../../lib/dates';
 import { cn } from '../../lib/cn';
+import type { RouteNote } from '../../domain/explain';
 import { useAtlas } from '../../state/atlasStore';
 import { adoptExperimentDraft, proposeExperiments } from '../../state/operations';
 import { toast, useUI } from '../../state/uiStore';
@@ -59,7 +60,7 @@ export function Question({ id, title, hint, children }: { id: string; title: str
  * one depth at a time: why the Atlas thinks so, then the moments, then the
  * original words.
  */
-export function Reason({ claim }: { claim: Claim }) {
+export function Reason({ claim, route }: { claim: Claim; route?: RouteNote }) {
   const data = useAtlas((s) => s.data);
   const setView = useAtlas((s) => s.setClaimView);
   const adopt = useAtlas((s) => s.adoptClaim);
@@ -76,6 +77,16 @@ export function Reason({ claim }: { claim: Claim }) {
     <li className={cn('rounded-[2px] border', depth ? 'border-line-strong bg-canvas/40' : 'border-line', suggested && 'border-dashed')}>
       <button type="button" onClick={() => setDepth(depth ? 0 : 1)} aria-expanded={depth > 0} className="w-full px-3 py-2.5 text-left">
         <span className="block text-[13.5px] leading-snug text-ink">{claimSentence(data, claim, status)}</span>
+        {route && (
+          <span className="mt-0.5 block text-[11.5px] text-ink-3">
+            {[
+              route.through.length ? t('Also acts through {names}.', { names: route.through.map((id) => data.nodes[id]?.label).join(', ') }) : '',
+              route.partOf.length ? t('One of the routes of {names}.', { names: route.partOf.map((id) => data.nodes[id]?.label).join(', ') }) : '',
+            ]
+              .filter(Boolean)
+              .join(' ')}
+          </span>
+        )}
         <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5">
           <StatusBadge status={status} />
           {suggested && <span className="text-[11.5px] text-ink-3">{t('suggested by the Atlas')}</span>}

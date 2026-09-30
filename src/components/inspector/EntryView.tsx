@@ -1,7 +1,7 @@
 import { Check, Pencil, Plus, RefreshCw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { claimSentence } from '../../domain/claims';
-import { AREA_META, CAPTURE_KIND_LABEL, ENERGY_LABELS, MOOD_LABELS, OCCURRENCE_KIND_LABEL } from '../../domain/constants';
+import { AREA_META, CAPTURE_KIND_LABEL, ENERGY_LABELS, MOOD_LABELS, OCCURRENCE_KIND_LABEL, expectSentence, stateSentence } from '../../domain/constants';
 import { entryCode, mapElements, patternTitle, usagesOfSource } from '../../domain/selectors';
 import type { AnalysisSuggestion, ID } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
@@ -283,10 +283,26 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
         <span className="font-mono text-[10.5px] tracking-wide text-ink-3 uppercase">{OCCURRENCE_KIND_LABEL[s.kind]}</span>
       </>
     );
+  } else if (s.type === 'change') {
+    title = (
+      <>
+        {t('What changed')}: <span className="text-ink">{stateSentence(data.nodes[s.factor]?.label ?? '', s.reads)}</span>
+      </>
+    );
+  } else if (s.type === 'expectation') {
+    title = (
+      <>
+        {t('You expect')}: <span className="text-ink">{expectSentence(data.nodes[s.factor]?.label ?? '', s.reads)}</span>{' '}
+        <span className="text-ink-3">{t('within {n} days', { n: s.within })}</span>
+      </>
+    );
   } else {
     title = t('Your note explains a cause in its own words');
   }
-  const excerpt = s.type === 'pattern_evidence' || s.type === 'occurrence' || s.type === 'attribution' ? s.excerpt : undefined;
+  const excerpt =
+    s.type === 'pattern_evidence' || s.type === 'occurrence' || s.type === 'attribution' || s.type === 'change' || s.type === 'expectation'
+      ? s.excerpt
+      : undefined;
   return (
     <li className="px-2.5 py-2">
       <div className="flex items-start gap-2">

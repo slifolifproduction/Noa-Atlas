@@ -1,11 +1,13 @@
 import { Check, Pencil, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { claimCode, claimSentence, claimsOutOf, claimsTouching } from '../../domain/claims';
-import { OUTCOME_RATING_LABEL } from '../../domain/constants';
+import { expectSentence, OUTCOME_RATING_LABEL } from '../../domain/constants';
+import { expectationsOfSource } from '../../domain/expect';
+import { mapElements } from '../../domain/selectors';
 import { windowAfter } from '../../domain/history';
 import { decisionCode, decisionHorizon, patternCode, patternTitle, usagesOfSource } from '../../domain/selectors';
 import type { Decision, ID, OutcomeRating } from '../../domain/types';
-import { formatDate } from '../../lib/dates';
+import { addDays, formatDate } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
@@ -14,6 +16,7 @@ import { KnowledgeTag } from '../evidence/Status';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
+import { ExpectationLine, FactorReadingPicker } from './Changes';
 import { ClaimRow, HistoryRow, Muted, NodeChip, PanelSection } from './parts';
 import { t } from '../../i18n';
 
@@ -167,6 +170,7 @@ export function DecisionView({ id }: { id: ID }) {
 
       <PanelSection title={t('What you expected')}>
         <p className="text-[13px] text-ink-2">{d.expectedOutcome || <span className="text-ink-3">{t('Not recorded.')}</span>}</p>
+        <DecisionExpectations decision={d} />
       </PanelSection>
 
       <OutcomeSection id={id} />
@@ -436,5 +440,76 @@ function OutcomeSection({ id }: { id: ID }) {
         <p className="text-[13px] text-ink-2">{d.learned || <span className="text-ink-3">{t('Nothing recorded.')}</span>}</p>
       </PanelSection>
     </>
+  );
+}
+
+/**
+ * What was expected, as something the record can check: an element, which
+ * way, and by when. Checked later against what you record, it tells how well
+ * the consequences were foreseen, one decision at a time.
+ */
+function DecisionExpectations({ decision: d }: { decision: Decision }) {
+  const data = useAtlas((s) => s.data);
+  const addExpectation = useAtlas((s) => s.addExpectation);
+  const open = useUI((s) => s.openEntity);
+  const [adding, setAdding] = useState(false);
+  const [days, setDays] = useState('28');
+  const views = expectationsOfSource(data, 'decision', d.id);
+  const choices = [
+    ...new Set([
+      ...d.nodeIds.filter((id) => data.nodes[id]),
+      ...mapElements(data)
+        .filter((n) => n.kind === 'state' || n.kind === 'behaviour')
+        .map((n) => n.id),
+    ]),
+  ];
+  return (
+    <div className="mt-2">
+      {views.length > 0 && (
+        <ul className="-mx-1.5">
+          {views.map((v) => (
+            <li key={v.occurrence.id}>
+              <button
+                type="button"
+                className="w-full rounded-[2px] px-1.5 py-1 text-left hover:bg-ink/[0.035]"
+                onClick={() => open({ kind: 'occurrence', id: v.occurrence.id })}
+              >
+                <ExpectationLine view={v} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {adding ? (
+        <div className="mt-1.5 space-y-2 rounded-[2px] border border-line p-2.5">
+          <label className="flex items-center gap-2 text-[12px] text-ink-3">
+            {t('Within')}
+            <input className="field w-[72px]" inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} />
+            {t('days of deciding')}
+          </label>
+          <FactorReadingPicker
+            factorIds={choices}
+            submitLabel={t('Write it down')}
+            onPick={(factor, reads) => {
+              addExpectation({
+                factor,
+                reads,
+                from: d.date,
+                until: addDays(d.date, Math.max(1, Math.round(Number(days) || 28))),
+                label: expectSentence(data.nodes[factor]?.label ?? '', reads),
+                basis: d.claimIds.filter((c) => data.claims[c] && data.claims[c].to === factor),
+                source: { kind: 'decision', id: d.id },
+                excerpt: d.expectedOutcome || undefined,
+              });
+              setAdding(false);
+            }}
+          />
+        </div>
+      ) : (
+        <Button size="sm" variant="ghost" icon={Plus} className="mt-1" onClick={() => setAdding(true)}>
+          {t('Make an expectation checkable')}
+        </Button>
+      )}
+    </div>
   );
 }

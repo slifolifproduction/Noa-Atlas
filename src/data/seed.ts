@@ -35,6 +35,7 @@ import type {
   Evidence,
   EvidenceKind,
   Experiment,
+  FactorReading,
   LinkType,
   ModelUpdate,
   Occurrence,
@@ -272,6 +273,8 @@ export function createSeedData(today: string = todayISO()): AtlasData {
   link('n_brightline', 'conflicts', 'n_nightferry', 'They compete for the same weekdays.');
   link('n_juna', 'part_of', 'n_nightferry');
   link('n_marta', 'part_of', 'n_podcast');
+  // A factor of a whole thing is its own element, part of it: the project is not the cause, its progress is.
+  link('n_nf_progress', 'part_of', 'n_nightferry');
   link('n_q_slip', 'about', 'n_nf_progress');
   link('n_q_stop', 'about', 'n_yes');
   link('n_q_optimize', 'about', 'n_craft');
@@ -866,7 +869,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     source: SourceRef,
     excerpt: string,
     about: string[],
-    opts: Partial<Pick<Occurrence, 'instanceOf' | 'value' | 'external' | 'landmark' | 'approx'>> & { until?: string } = {},
+    opts: Partial<Pick<Occurrence, 'instanceOf' | 'value' | 'external' | 'landmark' | 'approx' | 'changes'>> & { until?: string } = {},
   ) => {
     occurrences[id] = {
       id,
@@ -882,6 +885,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
       landmark: opts.landmark,
       source,
       excerpt,
+      changes: opts.changes,
       mode: 'actual',
       origin: 'user',
       createdAt: T(date, '20:05:00'),
@@ -900,11 +904,22 @@ export function createSeedData(today: string = todayISO()): AtlasData {
       instanceOf: 'n_yes',
     },
   );
-  occ('o02', 'event', '2026-03-09', 'Night Ferry got 2 of 19 hours', E(2), 'Counted it: 11 hours on Brightline, 6 on podcast prep, 2 on Night Ferry.', [
-    'n_nightferry',
-    'n_nf_progress',
-    'n_load',
-  ]);
+  occ(
+    'o02',
+    'event',
+    '2026-03-09',
+    'Night Ferry got 2 of 19 hours',
+    E(2),
+    'Counted it: 11 hours on Brightline, 6 on podcast prep, 2 on Night Ferry.',
+    ['n_nightferry', 'n_nf_progress', 'n_load'],
+    {
+      changes: [
+        { factor: 'n_nf_progress', reads: 'low' },
+        { factor: 'n_fragment', reads: 'high' },
+        { factor: 'n_behind', reads: 'high' },
+      ],
+    },
+  );
   occ(
     'o03',
     'event',
@@ -913,6 +928,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     E(3),
     'Brightline v2, the podcast episode 1 edit and the grant application all land on Friday.',
     ['n_brightline', 'n_podcast', 'n_grant'],
+    { changes: [{ factor: 'n_fragment', reads: 'high' }] },
   );
   occ('o04', 'action', '2026-03-16', 'Grant sprint in the last four days', E(3), 'I left the grant to the last four days again.', ['n_grant'], {
     instanceOf: 'n_sprint',
@@ -920,11 +936,13 @@ export function createSeedData(today: string = todayISO()): AtlasData {
   });
   occ('o05', 'action', '2026-03-23', 'Took the Lowlight video, paused Night Ferry', E(4), 'I’m pausing Night Ferry for it.', ['n_lowlight', 'n_nightferry'], {
     instanceOf: 'n_yes',
+    changes: [{ factor: 'n_nf_progress', reads: 'down' }],
   });
   occ('o06', 'experience', '2026-03-30', 'Burnout week', E(5), 'Couldn’t start anything on Monday. Slept ten hours, cancelled two calls.', ['n_energy'], {
     landmark: true,
     until: '2026-04-03',
     approx: true,
+    changes: [{ factor: 'n_energy', reads: 'low' }],
   });
   occ(
     'o07',
@@ -934,7 +952,13 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     E(6),
     'Finished the Lowlight video on time. It was the only project I touched for those three weeks.',
     ['n_lowlight', 'n_quality'],
-    { landmark: true },
+    {
+      landmark: true,
+      changes: [
+        { factor: 'n_quality', reads: 'high' },
+        { factor: 'n_fragment', reads: 'low' },
+      ],
+    },
   );
   occ('o08', 'action', '2026-04-18', 'Declined the Northlight role', E(7), 'Turned down the in-house creative lead role.', ['n_offers', 'n_freelance'], {
     instanceOf: 'n_no',
@@ -943,6 +967,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     external: true,
     until: '2026-04-28',
     approx: true,
+    changes: [{ factor: 'n_afternoons', reads: 'high' }],
   });
   occ('o10', 'action', '2026-05-06', 'Asked Brightline for a scope-change fee', E(9), 'They agreed without pushback.', ['n_brightline']);
   occ('o11', 'action', '2026-05-12', 'Said yes to the Fieldwork edit: five active things', E(10), 'That’s five active things now.', ['n_fieldwork', 'n_load'], {
@@ -958,6 +983,10 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     ['n_nf_progress', 'n_nightferry'],
     {
       value: 30,
+      changes: [
+        { factor: 'n_nf_progress', reads: 'low' },
+        { factor: 'n_behind', reads: 'high' },
+      ],
     },
   );
   occ(
@@ -976,10 +1005,21 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     instanceOf: 'n_deepwork',
     until: '2026-06-16',
   });
-  occ('o15', 'event', '2026-06-16', 'Animatic act one finished', E(14), 'Finished animatic act one and the Fieldwork rough cut.', [
-    'n_nf_progress',
-    'n_nightferry',
-  ]);
+  occ(
+    'o15',
+    'event',
+    '2026-06-16',
+    'Animatic act one finished',
+    E(14),
+    'Finished animatic act one and the Fieldwork rough cut.',
+    ['n_nf_progress', 'n_nightferry'],
+    {
+      changes: [
+        { factor: 'n_nf_progress', reads: 'up' },
+        { factor: 'n_afternoons', reads: 'high' },
+      ],
+    },
+  );
   occ('o16', 'event', '2026-06-24', 'Podcast stalled for three weeks', E(15), 'I haven’t opened the project in three weeks.', ['n_podcast']);
   occ(
     'o17',
@@ -992,6 +1032,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     {
       external: true,
       landmark: true,
+      changes: [{ factor: 'n_f_judged', reads: 'up' }],
     },
   );
   occ(
@@ -1010,7 +1051,10 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     'n_q_stop',
     'n_ruth',
   ]);
-  occ('o20', 'event', '2026-07-05', 'Weekly review lapsed', E(19), 'No Sunday review since early July.', ['n_review'], { approx: true });
+  occ('o20', 'event', '2026-07-05', 'Weekly review lapsed', E(19), 'No Sunday review since early July.', ['n_review'], {
+    approx: true,
+    changes: [{ factor: 'n_review', reads: 'absent' }],
+  });
   occ('o21', 'reading', '2026-07-29', 'Runway 3.5 months', E(20), 'Ran the numbers: 3.5 months of runway.', ['n_runway'], {
     instanceOf: 'n_runway',
     value: 3.5,
@@ -1025,11 +1069,13 @@ export function createSeedData(today: string = todayISO()): AtlasData {
   });
   occ('o24', 'experience', '2026-08-06', 'Three flat days after the grant', E(22), 'Three flat days after the grant. Admin only.', ['n_energy'], {
     until: '2026-08-09',
+    changes: [{ factor: 'n_energy', reads: 'low' }],
   });
   occ('o25', 'action', '2026-08-19', 'Raised the day rate by 15%', E(24), 'Raised my day rate by 15% for new clients.', ['n_runway']);
   occ('o26', 'event', '2026-08-26', 'Two enquiries arrived', E(24), 'Two enquiries since; one accepted without question.', ['n_offers'], {
     external: true,
     approx: true,
+    changes: [{ factor: 'n_offers', reads: 'up' }],
   });
   occ(
     'o27',
@@ -1039,9 +1085,11 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     E(27),
     'Scenes 1–3 locked using the Tuesday and Thursday blocks, steady rather than rushed.',
     ['n_nf_progress', 'n_nightferry'],
+    { changes: [{ factor: 'n_nf_progress', reads: 'up' }] },
   );
   occ('o28', 'action', '2026-09-12', 'Declined a startup pitch video', E(28), 'I said no without agonising: the commitment cap made it easy.', ['n_cap'], {
     instanceOf: 'n_no',
+    changes: [{ factor: 'n_yes', reads: 'absent' }],
   });
   occ(
     'o29',
@@ -1053,12 +1101,19 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     ['n_load'],
     {
       instanceOf: 'n_cap',
+      changes: [{ factor: 'n_fragment', reads: 'down' }],
     },
   );
-  occ('o30', 'event', '2026-09-22', 'Workshop prep took both Night Ferry days', E(30), 'Workshop prep took both Night Ferry days this week.', [
-    'n_workshop',
-    'n_nf_progress',
-  ]);
+  occ(
+    'o30',
+    'event',
+    '2026-09-22',
+    'Workshop prep took both Night Ferry days',
+    E(30),
+    'Workshop prep took both Night Ferry days this week.',
+    ['n_workshop', 'n_nf_progress'],
+    { changes: [{ factor: 'n_nf_progress', reads: 'down' }] },
+  );
 
   /* ------------------------------------------------------------ understanding: claims */
 
@@ -1359,7 +1414,14 @@ export function createSeedData(today: string = todayISO()): AtlasData {
   /* ------------------------------------------------------------ tests */
 
   const experiments: Record<string, Experiment> = {};
-  const m = (id: string, label: string, baseline?: string, target?: string, result?: string) => ({ id, label, baseline, target, result });
+  const m = (id: string, label: string, baseline?: string, target?: string, result?: string, factor?: string) => ({
+    id,
+    label,
+    baseline,
+    target,
+    result,
+    factor,
+  });
 
   experiments.exp_01 = {
     id: 'exp_01',
@@ -1376,7 +1438,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     baseline: '0–1 deliverables a fortnight; mornings shared with email and calls.',
     measures: [
       m('m1', 'Mornings kept', '—', '10 of 10', '10 of 10'),
-      m('m2', 'Deliverables finished', '0–1 per fortnight', '2', '2'),
+      m('m2', 'Deliverables finished', '0–1 per fortnight', '2', '2', 'n_nf_progress'),
       m('m3', 'Stress (1–5)', '4', '3', '3'),
     ],
     result: {
@@ -1406,8 +1468,8 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     criteria: 'Fewer than two scenes locked, or the cap broken twice.',
     baseline: 'Four to five active commitments; the animatic at 30% after three months.',
     measures: [
-      m('m1', 'Active commitments', '4–5', '≤ 3'),
-      m('m2', 'Night Ferry scenes locked', '3', '6'),
+      m('m1', 'Active commitments', '4–5', '≤ 3', undefined, 'n_load'),
+      m('m2', 'Night Ferry scenes locked', '3', '6', undefined, 'n_nf_progress'),
       m('m3', 'Focus hours per week', '9', '15'),
       m('m4', 'Stress (1–5)', '4', '3'),
     ],
@@ -1431,8 +1493,8 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     criteria: 'Runway below three months, or fewer than 20 of 26 protected days kept.',
     baseline: '3.5 months of runway; no protected days.',
     measures: [
-      m('m1', 'Runway (months)', '3.5', '≥ 4'),
-      m('m2', 'Night Ferry animatic locked', '30%', '100%'),
+      m('m1', 'Runway (months)', '3.5', '≥ 4', undefined, 'n_runway'),
+      m('m2', 'Night Ferry animatic locked', '30%', '100%', undefined, 'n_nf_progress'),
       m('m3', 'Protected days kept', '—', '24 of 26'),
     ],
     patternIds: ['pat_09'],
@@ -1441,6 +1503,58 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     createdAt: T('2026-09-01'),
     updatedAt: T('2026-09-01'),
   };
+
+  /* ------------------------------------------------------------ expectations: predictions to check */
+
+  // Written down before their window, kept in the expected mode, never evidence of what happened.
+  const expect = (
+    id: string,
+    label: string,
+    from: string,
+    until: string,
+    factor: string,
+    reads: FactorReading,
+    basis: string[],
+    written: string,
+    opts: { source?: SourceRef; excerpt?: string; verdict?: NonNullable<Occurrence['expectation']>['verdict'] } = {},
+  ) => {
+    occurrences[id] = {
+      id,
+      kind: 'event',
+      label,
+      date: D(from),
+      until: D(until),
+      about: [factor],
+      source: opts.source,
+      excerpt: opts.excerpt,
+      changes: [{ factor, reads }],
+      expectation: { basis, verdict: opts.verdict },
+      mode: 'expected',
+      origin: 'user',
+      createdAt: T(written, '21:00:00'),
+    };
+  };
+  expect('x01', 'Night Ferry moves during the protected mornings', '2026-06-02', '2026-06-16', 'n_nf_progress', 'up', ['c13'], '2026-06-01', {
+    source: X(1),
+    excerpt: 'If uninterrupted mornings matter, at least two deliverables finish in the two weeks.',
+  });
+  expect('x02', 'Energy drops after the August grant sprint', '2026-08-03', '2026-08-12', 'n_energy', 'low', ['c09'], '2026-07-30', {
+    excerpt: 'If March is anything to go by, the grant sprint will flatten me for a few days.',
+  });
+  expect('x03', 'Back on Night Ferry by the end of April', '2026-04-01', '2026-04-30', 'n_nf_progress', 'up', [], '2026-03-23', {
+    source: Dc(3),
+    excerpt: 'A three-week detour, back on Night Ferry by mid-April.',
+    verdict: { outcome: 'failed', note: 'Night Ferry lost six weeks, not three.', at: T('2026-05-20') },
+  });
+  expect('x04', 'Night Ferry moves during the commitment cap', '2026-09-15', '2026-10-15', 'n_nf_progress', 'up', ['c01'], '2026-09-14', {
+    source: X(2),
+    excerpt: 'With at most three commitments, Night Ferry advances every week.',
+  });
+  expect('x05', 'Feeling behind eases with the cap', '2026-09-15', '2026-10-27', 'n_behind', 'down', ['c19', 'c02', 'c01', 'c05'], '2026-09-15');
+  expect('x06', 'Runway grows during the Hybrid Quarter', '2026-09-01', '2026-11-30', 'n_runway', 'up', ['c20'], '2026-09-01', {
+    source: Dc(8),
+    excerpt: 'Runway at four months or more.',
+  });
 
   /* ------------------------------------------------------------ patterns: regularities */
 
@@ -1905,7 +2019,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     navigation,
     modelLog: log,
     counters: { entry: 30, decision: 8, pattern: 9, experiment: 3, claim: 25 },
-    causesLogic: 3,
+    causesLogic: 4,
     loopNames: {
       [loopId('c02', 'c03', 'c04', 'c05', 'c06')]: 'Overcommitment cycle',
       [loopId('c02', 'c17', 'c18')]: 'The exhaustion brake',

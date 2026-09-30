@@ -2,22 +2,24 @@ import { Check, Crosshair, Ellipsis, Link2, Pencil, Plus, Sparkle, X } from 'luc
 import { useMemo, useState } from 'react';
 import { useRoute } from '../../app/router';
 import { showOnMap } from '../../app/showOnMap';
-import { aroundInTime, followOn, momentsOf, optionsTouching, reasonsFor, strongestPattern, type Neighbour } from '../../domain/ask';
+import { aroundInTime, momentsOf, optionsTouching, reasonsFor, strongestPattern, type Neighbour } from '../../domain/ask';
 import { byStrength, claimsInto, claimsOutOf } from '../../domain/claims';
-import { AREA_META, AREAS, KIND_META, KINDS, QUESTION_STATUS_LABEL } from '../../domain/constants';
+import { AREA_META, AREAS, KIND_META, KINDS, QUESTION_STATUS_LABEL, expectSentence } from '../../domain/constants';
+import { coverage, usualLevel } from '../../domain/factors';
+import { basisOf, whatIf, type Consequence } from '../../domain/whatif';
 import { readingsOf } from '../../domain/history';
 import { loopName, loopsThrough } from '../../domain/loops';
 import { displayNode, neighbors, patternsForNode } from '../../domain/selectors';
 import type { AreaKey, ElementKind, ID, Investigation, QuestionStatus } from '../../domain/types';
-import { formatDate, formatMonth } from '../../lib/dates';
+import { addDays, formatDate, formatMonth, todayISO } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
-import { KnowledgeTag } from '../evidence/Status';
+import { KnowledgeTag, StatusBadge } from '../evidence/Status';
 import { KIND_ICONS, LoopIcon, PLACE_ICONS } from '../icons';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
-import { AddReason, Lately, Question, Reason, RepeatRow, SeeIn, TryIt } from './Ask';
+import { AddReason, Lately, Question, RepeatRow, SeeIn, TryIt } from './Ask';
 import { ClaimComposer, ConnectForm, ElementSelect } from './ClaimComposer';
 import { Explanation } from './Explanation';
 import { ClaimRow, Muted, NodeChip, PanelSection } from './parts';
@@ -233,6 +235,7 @@ function Happening({ id }: { id: ID }) {
   return (
     <>
       {node.kind === 'state' && <Readings id={id} />}
+      <RecordCoverage id={id} />
       <Lately items={moments.slice(0, 8)} empty={t('Nothing in your notes is about this yet. Write about it, and it shows up here.')} />
       {moments.length > 8 && <p className="mt-1 text-[11.5px] text-ink-3">{t('+{n} more', { n: moments.length - 8 })}</p>}
       <SeeIn route="timeline">{t('See it all in Time')}</SeeIn>
@@ -313,35 +316,115 @@ function Before({ id }: { id: ID }) {
 function WhatIf({ id }: { id: ID }) {
   const data = useAtlas((s) => s.data);
   const open = useUI((s) => s.openEntity);
+  const addExpectation = useAtlas((s) => s.addExpectation);
   const node = data.nodes[id]!;
-  const { direct, further } = useMemo(() => followOn(data, id), [data, id]);
+  const [change, setChange] = useState<'more' | 'less'>('more');
+  const consequences = useMemo(() => whatIf(data, id, change), [data, id, change]);
   const loops = useMemo(() => loopsThrough(data, id), [data, id]);
   const options = useMemo(() => optionsTouching(data, [id]), [data, id]);
   const [adding, setAdding] = useState(false);
+  const [kept, setKept] = useState<ID[]>([]);
+  const direct = claimsOutOf(data, id);
   const test = direct[0] ?? claimsInto(data, id).sort(byStrength(data))[0];
+  const behaviour = node.kind === 'behaviour';
+  const label = (c: Consequence) => data.nodes[c.id]?.label ?? '';
+  const readsFor = (c: Consequence) =>
+    data.nodes[c.id]?.kind === 'behaviour' ? (c.lean === 'more' ? 'present' : 'absent') : c.lean === 'more' ? 'up' : 'down';
   return (
     <>
-      {direct.length ? (
+      <Segmented<'more' | 'less'>
+        label={t('Which way it changes')}
+        size="sm"
+        value={change}
+        onChange={setChange}
+        options={[
+          { value: 'more', label: behaviour ? t('If you did it more') : t('If it went up') },
+          { value: 'less', label: behaviour ? t('If you did it less') : t('If it went down') },
+        ]}
+      />
+      {consequences.length ? (
         <>
-          <p className="mb-1.5 text-[12px] text-ink-3">{t('If it changed, these might change with it:')}</p>
-          <ul className="space-y-1.5">
-            {direct.map((c) => (
-              <Reason key={c.id} claim={c} />
+          <p className="mt-2 mb-1.5 text-[12px] text-ink-3">
+            {t('Following the reasons on your map, one step at a time. An estimate from the model as it stands, not a forecast.')}
+          </p>
+          <ul className="space-y-2">
+            {consequences.slice(0, 8).map((c) => (
+              <li key={c.id} className="rounded-[2px] border border-line p-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <NodeChip id={c.id} />
+                  <span className="text-[12.5px] text-ink-2">
+                    {c.lean === 'mixed'
+                      ? t('can’t tell which way: the routes disagree')
+                      : c.lean === 'more'
+                        ? t('would go up')
+                        : c.lean === 'less'
+                          ? t('would go down')
+                          : ''}
+                  </span>
+                  <span className="ml-auto">
+                    <StatusBadge status={c.weakest} />
+                  </span>
+                </div>
+                <p className="mt-1 text-[11.5px] text-ink-3">
+                  {c.routes
+                    .slice(0, 3)
+                    .map((r) =>
+                      r.claims.length === 1
+                        ? t('directly')
+                        : t('through {names}', {
+                            names: r.claims
+                              .slice(0, -1)
+                              .map((m) => data.nodes[m.to]?.label)
+                              .join(', '),
+                          }),
+                    )
+                    .join(' · ')}
+                  {' · '}
+                  {c.window[1] <= c.window[0] || c.window[0] === 0
+                    ? t('within about {n} days', { n: c.window[1] })
+                    : t('within about {a}–{b} days', { a: c.window[0], b: c.window[1] })}
+                  {c.routes.some((r) => r.gated) && ` · ${t('one step only makes it possible, or limits it')}`}
+                </p>
+                <p className="mt-0.5 text-[11.5px] text-ink-3">
+                  {tn(basisOf(c).length, 'It rests on one reason, as sure as it is.', 'It rests on {n} reasons, only as sure as the least sure of them.')}
+                </p>
+                {c.lean !== 'mixed' && c.lean !== 'usual' && (
+                  <div className="mt-1.5">
+                    {kept.includes(c.id) ? (
+                      <span className="text-[11.5px] text-ink-3">{t('Written down: it will be checked against what you record.')}</span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          const today = todayISO();
+                          const occ = addExpectation({
+                            factor: c.id,
+                            reads: readsFor(c),
+                            from: today,
+                            until: addDays(today, Math.max(7, c.window[1])),
+                            label: t('{what}, if {cause} {change}', {
+                              what: expectSentence(label(c), readsFor(c)),
+                              cause: node.label,
+                              change: change === 'more' ? t('goes up') : t('goes down'),
+                            }),
+                            basis: basisOf(c),
+                          });
+                          setKept([...kept, c.id]);
+                          open({ kind: 'occurrence', id: occ });
+                        }}
+                      >
+                        {t('Keep it as a prediction')}
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </li>
             ))}
           </ul>
         </>
       ) : (
         <Muted>{t('Nothing on the map says what this changes yet.')}</Muted>
-      )}
-      {further.length > 0 && (
-        <>
-          <div className="label mt-3 mb-1">{t('And one step further')}</div>
-          <ul className="space-y-1.5">
-            {further.map((c) => (
-              <Reason key={c.id} claim={c} />
-            ))}
-          </ul>
-        </>
       )}
       {loops.length > 0 && (
         <>
@@ -556,6 +639,28 @@ function QuestionSection({ id }: { id: ID }) {
       </PanelSection>
     </>
   );
+}
+
+/**
+ * How well something is recorded, which decides how far "no record" can be
+ * read: recorded regularly, a missing reading is unknown; recorded when
+ * notable, a week without it is unknown, never "it did not happen".
+ */
+function RecordCoverage({ id }: { id: ID }) {
+  const data = useAtlas((s) => s.data);
+  const c = coverage(data, id);
+  const usual = usualLevel(data, id);
+  const node = data.nodes[id];
+  if (!node || c === 'none') return null;
+  const text =
+    c === 'tracked'
+      ? usual
+        ? t('Recorded regularly. Its usual level is {v}; high and low are read against that, not against anyone else.', { v: usual.value })
+        : t('Recorded regularly.')
+      : c === 'recorded'
+        ? t('What it did is written down now and then, when it was notable. Times without a record are unknown, not absent.')
+        : t('It comes up in your notes, but nothing says which way it went. Saying what changed lets the Atlas compare it.');
+  return <p className="mb-2 text-[11.5px] leading-snug text-ink-3">{text}</p>;
 }
 
 /** A state is read over time: its readings as a small line. */

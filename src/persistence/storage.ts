@@ -12,14 +12,15 @@ import { toCurrentShape } from './migrate';
 export { safeLocalStorage, STORAGE_KEYS } from './local';
 
 /** Bump when AtlasData changes shape, and add a step to `migrateData`. */
-export const DATA_VERSION = 3;
+export const DATA_VERSION = 4;
 
 /** Step-wise migrations from older persisted versions. */
 export function migrateData(persisted: unknown, fromVersion: number): unknown {
   const state = persisted as { data?: unknown } | undefined;
-  if (!state?.data || fromVersion >= 3) return persisted;
+  if (!state?.data || fromVersion >= 4) return persisted;
   // v1 → v2: the layered model (areas × layers, links vs claims, history).
   // v2 → v3: the logic of causes (a stored sample gets its corrected claims).
+  // v3 → v4: what changed, episodes, expectations (a stored sample gets what it now records).
   return { ...state, data: toCurrentShape(state.data) };
 }
 

@@ -34,13 +34,16 @@ const ev = (id: string, n: number, stance: Evidence['stance'], kind: Evidence['k
   ...extra,
 });
 
-/** A bare claim between two sample elements, with the evidence given. */
+/**
+ * A bare claim with the evidence given. Its cause (running) has nothing
+ * recorded about it, so only the evidence given here counts.
+ */
 function withClaim(evidence: Evidence[], opts: Partial<Claim> = {}): { data: AtlasData; claim: Claim } {
   const data = createSeedData(TODAY);
   const claim: Claim = {
     id: 'cx',
     code: 99,
-    from: 'n_load',
+    from: 'n_running',
     with: [],
     to: 'n_nf_progress',
     effect: 'lowers',
@@ -74,8 +77,8 @@ describe('what counts as evidence for a possible cause', () => {
     expect(claimStatus(data, claim)).toBe('proposed');
   });
 
-  it('only "the cause was there and the outcome did not follow" is an exception, counted once per week', () => {
-    // Notes 10 and 11 fall in different weeks; several records of one week count once.
+  it('only "the cause was there and the outcome did not follow" is an exception, counted once per episode', () => {
+    // Notes 10 and 11 are different episodes; several records of one episode count once.
     const oneWeek = withClaim([ev('a', 10, 'counters', 'counter_case'), ev('b', 10, 'counters', 'counter_case', { id: 'b2' })]);
     expect(evidenceProfile(oneWeek.data, oneWeek.claim).counter).toBe(1);
     const twoWeeks = withClaim([ev('a', 10, 'counters', 'counter_case'), ev('b', 11, 'counters', 'counter_case')]);
@@ -172,7 +175,8 @@ describe('explanations stay open', () => {
     const moment = items.find((h) => h.ref.kind === 'occurrence' && (h.instanceOf || h.about.length) && explainMoment(data, h).present.length);
     expect(moment).toBeDefined();
     const ex = explainMoment(data, moment!);
-    for (const { moment: m } of ex.present) expect(m.date <= moment!.date).toBe(true);
+    // Only what was recorded before that day counts as there before it.
+    for (const { state } of [...ex.present, ...ex.against]) expect(state.date < moment!.date || state.basis === 'lifespan').toBe(true);
   });
 });
 

@@ -115,7 +115,7 @@ describe('v2 → v3: the logic of causes', () => {
     old.claims.c22 = { ...old.claims.c22, rivalIds: [], evidence: old.claims.c22.evidence.map((e) => ({ ...e, stance: 'counters', kind: 'counter_case' })) };
     old.claims.c01 = { ...old.claims.c01, evidence: [...old.claims.c01.evidence, { ...old.claims.c01.evidence[0], id: 'ev_mine' }] };
     const up = toCurrentShape(old);
-    expect(up.causesLogic).toBe(3);
+    expect(up.causesLogic).toBe(4);
     expect(up.claims.c22.evidence.every((e) => e.kind === 'elsewhere' && e.stance === 'neutral')).toBe(true);
     expect(up.claims.c25).toBeDefined();
     expect(up.claims.c01.evidence.some((e) => e.id === 'ev_mine')).toBe(true);
@@ -129,6 +129,6 @@ describe('v2 → v3: the logic of causes', () => {
     delete (own as Partial<AtlasData>).causesLogic;
     const up = toCurrentShape(own);
     expect(up.claims).toEqual(own.claims);
-    expect(up.causesLogic).toBe(3);
+    expect(up.causesLogic).toBe(4);
   });
 });

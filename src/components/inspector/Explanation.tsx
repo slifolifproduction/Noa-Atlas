@@ -1,10 +1,11 @@
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { explainMoment, explainOutcome } from '../../domain/explain';
-import { ROLE_META } from '../../domain/constants';
+import { ROLE_META, stateSentence } from '../../domain/constants';
 import { claimSentence, claimStatus } from '../../domain/claims';
 import type { HistoryItem } from '../../domain/history';
-import type { ID } from '../../domain/types';
+import type { FactorState } from '../../domain/factors';
+import type { Claim, ID } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
 import { t, tn } from '../../i18n';
 import { useAtlas } from '../../state/atlasStore';
@@ -38,7 +39,7 @@ export function Explanation({ id }: { id: ID }) {
             </h4>
             <ul className="space-y-1.5">
               {g.items.map((c) => (
-                <Reason key={c.claim.id} claim={c.claim} />
+                <Reason key={c.claim.id} claim={c.claim} route={ex.routes[c.claim.id]} />
               ))}
             </ul>
           </section>
@@ -53,6 +54,7 @@ export function Explanation({ id }: { id: ID }) {
       {count > 1 && (
         <p className="text-[11.5px] text-ink-3">
           {t('Several of these can be true at once. None of them has a share: they are possibilities, each with its own evidence.')}
+          {Object.keys(ex.routes).length > 0 && ` ${t('Some are one cause acting through another: routes of one cause, not separate causes.')}`}
         </p>
       )}
 
@@ -82,10 +84,22 @@ export function Explanation({ id }: { id: ID }) {
         <ul className="space-y-1 text-[12.5px] leading-snug text-ink-2">
           {ex.moments > 0 &&
             (ex.unexplained > 0 ? (
-              <li>{t('{n} of the {m} times it came up, none of its possible reasons came up first.', { n: ex.unexplained, m: ex.moments })}</li>
+              <li>
+                {t('{n} of the {m} recorded times it moved, nothing on this list was recorded pushing it that way first.', {
+                  n: ex.unexplained,
+                  m: ex.moments,
+                })}
+              </li>
             ) : (
-              <li>{t('Each time it came up, at least one of these came up first. That shows they were recorded, not that they caused it.')}</li>
+              <li>
+                {t(
+                  'Each recorded time it moved, at least one of these was recorded pushing it that way first. That shows they were there, not that they caused it.',
+                )}
+              </li>
             ))}
+          {ex.unrecorded > 0 && (
+            <li>{tn(ex.unrecorded, 'Once it came up with no record of which way it went.', '{n} times it came up with no record of which way it went.')}</li>
+          )}
           {ex.elsewhere > 0 && <li>{tn(ex.elsewhere, 'Once it happened without one of these.', '{n} times it happened without one of these.')}</li>}
           <li className="text-ink-3">{t('Some of it may be chance, or something that is not on the map.')}</li>
         </ul>
@@ -138,31 +152,39 @@ export function MomentExplanation({ item }: { item: HistoryItem }) {
   const open = useUI((s) => s.openEntity);
   const ex = useMemo(() => explainMoment(data, item), [data, item]);
   if (!ex.outcomes.length) return <Muted>{t('Not linked to anything on the map, so there is nothing to explain it against yet.')}</Muted>;
-  if (!ex.present.length && !ex.absent.length)
+  if (!ex.present.length && !ex.against.length && !ex.absent.length)
     return <Muted>{t('Nothing on the map is a possible reason for {name} yet.', { name: ex.outcomes.map((id) => data.nodes[id]?.label).join(', ') })}</Muted>;
+  const row = ({ claim, state }: { claim: Claim; state: FactorState }) => (
+    <li key={claim.id}>
+      <button type="button" onClick={() => open({ kind: 'claim', id: claim.id })} className="w-full text-left">
+        <span className="block text-[12.5px] leading-snug text-ink-2 hover:text-ink">{claimSentence(data, claim)}</span>
+        <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-3">
+          <StatusBadge status={claimStatus(data, claim)} />
+          {t('{what}, {date}', { what: stateSentence(data.nodes[state.factor]?.label ?? '', state.reads), date: formatDate(state.date) })}
+        </span>
+      </button>
+    </li>
+  );
   return (
     <div className="space-y-3">
+      {ex.moved.length > 0 && (
+        <p className="text-[12.5px] text-ink-2">{ex.moved.map((m) => stateSentence(data.nodes[m.factor]?.label ?? '', m.reads)).join('; ')}.</p>
+      )}
       {ex.present.length > 0 && (
         <div>
-          <div className="mb-1 text-[11.5px] text-ink-3">{t('Came up in the weeks before it')}</div>
-          <ul className="space-y-1.5">
-            {ex.present.map(({ claim, moment }) => (
-              <li key={claim.id}>
-                <button type="button" onClick={() => open({ kind: 'claim', id: claim.id })} className="w-full text-left">
-                  <span className="block text-[12.5px] leading-snug text-ink-2 hover:text-ink">{claimSentence(data, claim)}</span>
-                  <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-3">
-                    <StatusBadge status={claimStatus(data, claim)} />
-                    {t('{what}, {date}', { what: moment.label, date: formatDate(moment.date) })}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div className="mb-1 text-[11.5px] text-ink-3">{ex.moved.length ? t('Recorded before it, pushing the way it went') : t('Recorded before it')}</div>
+          <ul className="space-y-1.5">{ex.present.map(row)}</ul>
+        </div>
+      )}
+      {ex.against.length > 0 && (
+        <div>
+          <div className="mb-1 text-[11.5px] text-ink-3">{t('Recorded before it, but pointing the other way')}</div>
+          <ul className="space-y-1.5">{ex.against.map(row)}</ul>
         </div>
       )}
       {ex.absent.length > 0 && (
         <div>
-          <div className="mb-1 text-[11.5px] text-ink-3">{t('Did not come up before it this time')}</div>
+          <div className="mb-1 text-[11.5px] text-ink-3">{t('Not recorded either way before it')}</div>
           <ul className="space-y-0.5">
             {ex.absent.map((c) => (
               <li key={c.id} className="text-[12.5px] leading-snug text-ink-3">
@@ -180,8 +202,8 @@ export function MomentExplanation({ item }: { item: HistoryItem }) {
       )}
       <p className="text-[11.5px] text-ink-3">
         {ex.present.length
-          ? t('Coming up before it is not proof that it caused it: check what each record says. Some of it may be chance, or something not on the map.')
-          : t('None of the possible reasons came up before it this time: something else may have been at work.')}
+          ? t('Being recorded before it is not proof that it caused it. Some of it may be chance, or something not on the map.')
+          : t('None of the possible reasons was recorded pushing this way before it: something else may have been at work.')}
       </p>
     </div>
   );

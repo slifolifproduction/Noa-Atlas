@@ -27,6 +27,7 @@ export const ID: Record<string, string> = {
   'Records a question that was hard to answer.': 'Mencatat pertanyaan yang sulit dijawab.',
   'References financial conditions.': 'Menyinggung kondisi keuangan.',
   'States a count of active commitments.': 'Menyebut jumlah komitmen yang sedang berjalan.',
+  'Matched {cue} near {name}.': 'Cocok dengan {cue} di dekat {name}.',
   'Logged with low energy and low mood.': 'Dicatat dengan energi dan suasana hati yang rendah.',
   'Energy {e}/5, mood {m}': 'Energi {e}/5, suasana hati {m}',
   'Logged with good energy and mood.': 'Dicatat dengan energi dan suasana hati yang baik.',
@@ -395,6 +396,8 @@ export const ID: Record<string, string> = {
   'Nothing on the map says this area reaches the others yet.': 'Belum ada di peta yang menyatakan area ini menjangkau area lain.',
   'Directions that count on it': 'Arah yang bergantung padanya',
   'See what could come next': 'Lihat apa yang mungkin terjadi berikutnya',
+  'Also acts through {names}.': 'Juga bekerja lewat {names}.',
+  'One of the routes of {names}.': 'Salah satu jalur dari {names}.',
   'suggested by the Atlas': 'disarankan oleh Atlas',
   'How it may work:': 'Cara kerjanya, mungkin:',
   'Your explanation. It counts once a note shows it happening.': 'Penjelasanmu. Baru dihitung setelah sebuah catatan menunjukkannya terjadi.',
@@ -427,6 +430,40 @@ export const ID: Record<string, string> = {
   'Try a change and see': 'Coba ubah sesuatu dan lihat hasilnya',
   'What should happen': 'Yang seharusnya terjadi',
   'Use this test': 'Pakai uji ini',
+  'Which element': 'Elemen yang mana',
+  'What it did': 'Apa yang terjadi padanya',
+  Remove: 'Hapus',
+  'Nothing says which way things went here. The Atlas compares what changed, not what was mentioned, so this happening does not count yet.':
+    'Tidak ada yang menyebut ke arah mana hal-hal bergerak di sini. Atlas membandingkan apa yang berubah, bukan apa yang disebut, jadi kejadian ini belum dihitung.',
+  'Say what changed': 'Sebutkan apa yang berubah',
+  'One episode with these ({range}). Everything in one episode counts once.':
+    'Satu episode dengan ini ({range}). Semua yang ada dalam satu episode dihitung sekali.',
+  'An episode of its own.': 'Episode tersendiri.',
+  'Let the Atlas group it again': 'Biarkan Atlas mengelompokkannya lagi',
+  'It was a separate thing: count it on its own.': 'Itu hal yang terpisah: hitung sendiri.',
+  'Keep it apart': 'Pisahkan',
+  'It held': 'Terbukti',
+  'It did not hold': 'Tidak terbukti',
+  'Nothing was recorded to tell': 'Tidak ada catatan yang bisa menjawab',
+  'Still open': 'Masih terbuka',
+  'by {date}': 'paling lambat {date}',
+  'written after it began': 'ditulis setelah dimulai',
+  'Expected: {what}, between {from} and {until}.': 'Diperkirakan: {what}, antara {from} dan {until}.',
+  'Written down before its window began, so it can count.': 'Ditulis sebelum jendelanya dimulai, jadi bisa dihitung.',
+  'Written down after its window began: it is shown, but it does not count for or against anything.':
+    'Ditulis setelah jendelanya dimulai: ditampilkan, tapi tidak dihitung untuk mendukung atau melawan apa pun.',
+  'How it went': 'Bagaimana hasilnya',
+  'your verdict': 'penilaianmu',
+  '{what}, {date}': '{what}, {date}',
+  'So far it went the other way; the window is still open.': 'Sejauh ini arahnya berlawanan; jendelanya masih terbuka.',
+  'Not recorded is not the same as not happening: this counts neither way.':
+    'Tidak tercatat tidak sama dengan tidak terjadi: ini tidak dihitung ke arah mana pun.',
+  'It rests on these together': 'Bersandar pada semua ini bersama-sama',
+  'It rests on': 'Bersandar pada',
+  'A chain is checked together. If it fails, one of these did not hold, and the Atlas cannot tell which: test the least certain first ({claim}).':
+    'Sebuah rantai dicek bersama-sama. Kalau gagal, salah satunya tidak berlaku, dan Atlas tidak bisa tahu yang mana: uji yang paling tidak pasti dulu ({claim}).',
+  'One reason: a direct check of it. If it holds it strengthens the reason; if it fails it counts against it.':
+    'Satu sebab: pengecekan langsung atasnya. Kalau terbukti, sebabnya menguat; kalau gagal, dihitung melawannya.',
   'Choose…': 'Pilih…',
   This: 'Ini',
   'What acts': 'Yang memengaruhi',
@@ -452,12 +489,17 @@ export const ID: Record<string, string> = {
   'Seen happening in what you wrote.': 'Terlihat terjadi dalam tulisanmu.',
   'Your explanation: described, not yet seen happening.': 'Penjelasanmu: sudah digambarkan, belum terlihat terjadi.',
   'Only when': 'Hanya saat',
+  'Times when this was not so are left out, not counted against it.': 'Saat-saat ketika ini tidak berlaku disisihkan, tidak dihitung melawannya.',
   Delay: 'Jeda',
   'Suggested by the Atlas from your notes. It stays off the map until you keep it, and keeping it does not make it true.':
     'Disarankan Atlas dari catatanmu. Tetap di luar peta sampai kamu menyimpannya, dan menyimpannya tidak membuatnya benar.',
   'Put aside for now. Kept for reference, off the map.': 'Disisihkan dulu. Disimpan sebagai rujukan, di luar peta.',
+  'An earlier version, revised on {date}. Its evidence stays here as it was.': 'Versi sebelumnya, direvisi pada {date}. Buktinya tetap di sini seperti semula.',
   'No longer holds, since {date}.': 'Tak lagi berlaku, sejak {date}.',
   'It holds again': 'Berlaku lagi',
+  'Revises an earlier version:': 'Merevisi versi sebelumnya:',
+  'one piece of evidence came along': 'satu bukti ikut terbawa',
+  '{n} pieces of evidence came along': '{n} bukti ikut terbawa',
   'People change: mark that it held for a while, then stopped': 'Orang berubah: tandai bahwa ini sempat berlaku, lalu berhenti',
   'It stopped holding': 'Sudah tak berlaku',
   'What would make it surer': 'Yang akan membuatnya lebih yakin',
@@ -475,6 +517,19 @@ export const ID: Record<string, string> = {
   missing: 'belum ada',
   '{a} for · {b} against': '{a} mendukung · {b} menentang',
   none: 'tidak ada',
+  'From what was recorded': 'Dari yang tercatat',
+  'Episodes the record shows by itself, from what changed, apart from the ones you judged':
+    'Episode yang ditunjukkan catatan dengan sendirinya, dari apa yang berubah, selain yang kamu nilai sendiri',
+  Predictions: 'Prediksi',
+  '{a} held · {b} did not': '{a} terbukti · {b} tidak',
+  'Goes that way anyway': 'Memang cenderung ke arah itu',
+  '{a} of {b} episodes': '{a} dari {b} episode',
+  'How often the outcome went the way this predicts, with or without the cause':
+    'Seberapa sering hasilnya bergerak sesuai perkiraan ini, dengan atau tanpa sebabnya',
+  'Told apart': 'Bisa dibedakan',
+  'Times it happened while what else could produce it was not doing the same':
+    'Saat-saat ini terjadi ketika hal lain yang bisa menimbulkannya tidak sedang melakukan hal yang sama',
+  'What the record shows': 'Yang ditunjukkan catatan',
   'The moments behind it': 'Momen di baliknya',
   'Nothing behind it yet. It stays a hunch until your notes show it.': 'Belum ada yang mendukungnya. Tetap dugaan sampai catatanmu menunjukkannya.',
   'Times it may have happened': 'Saat-saat yang mungkin menunjukkannya',
@@ -499,10 +554,12 @@ export const ID: Record<string, string> = {
   'Mark as competing': 'Tandai bersaing',
   'Nothing else explains the same outcome yet. What else could produce it? Part of it may also be chance.':
     'Belum ada hal lain yang menjelaskan hasil yang sama. Apa lagi yang bisa menimbulkannya? Sebagian mungkin juga kebetulan.',
+  'Predictions from it': 'Prediksi darinya',
   'Try it and see': 'Coba dan lihat',
   'Thinking…': 'Sedang berpikir…',
   'Cycles it is part of': 'Siklus yang melibatkannya',
   'least sure step': 'langkah paling tidak yakin',
+  'where you can act': 'tempat kamu bisa bertindak',
   'Stated {date}': 'Dinyatakan {date}',
   'by you': 'olehmu',
   'your view: {v}': 'pandanganmu: {v}',
@@ -515,8 +572,68 @@ export const ID: Record<string, string> = {
   'e.g. in deadline weeks': 'mis. di minggu tenggat',
   'Typical delay': 'Jeda biasanya',
   'e.g. 2–6 weeks': 'mis. 2–6 minggu',
-  'Editing the claim keeps its evidence. If the claim changes meaning, check the evidence still fits.':
-    'Mengubah klaim tetap menyimpan buktinya. Jika makna klaim berubah, cek apakah buktinya masih cocok.',
+  'Only when, as something the record can check': 'Hanya saat, sebagai sesuatu yang bisa dicek catatan',
+  'No condition': 'Tanpa syarat',
+  'Changing what it connects, which way it acts, or when it holds makes a new version. The earlier one is kept, with its evidence; the evidence that still bears on the new one comes along.':
+    'Mengubah apa yang dihubungkannya, ke arah mana ia bekerja, atau kapan ia berlaku akan membuat versi baru. Versi sebelumnya disimpan bersama buktinya; bukti yang masih relevan untuk versi baru ikut terbawa.',
+  'Nothing is behind it yet, so it is simply changed.': 'Belum ada apa pun di baliknya, jadi cukup diubah.',
+  'It was there, and this followed': 'Ia ada, dan ini menyusul',
+  'It was there, and this did not follow': 'Ia ada, dan ini tidak menyusul',
+  'Without it, this did not happen either': 'Tanpanya, ini juga tidak terjadi',
+  'Without it, this happened anyway': 'Tanpanya, ini tetap terjadi',
+  'Its condition was not met: left out': 'Syaratnya tidak terpenuhi: disisihkan',
+  'Nothing recorded compares them yet. When a note says which way {cause} went, and later which way {outcome} went, the Atlas can compare the two.':
+    'Belum ada catatan yang membandingkan keduanya. Saat sebuah catatan menyebut ke arah mana {cause} bergerak, lalu ke arah mana {outcome} bergerak, Atlas bisa membandingkan keduanya.',
+  'Read from what changed, never from what was only mentioned. Episodes you judged yourself keep your judgement.':
+    'Dibaca dari apa yang berubah, tidak pernah dari apa yang hanya disebut. Episode yang kamu nilai sendiri tetap memakai penilaianmu.',
+  'Does not tell it apart from {names}: they could have done this too.': 'Tidak bisa membedakannya dari {names}: mereka juga bisa menimbulkan ini.',
+  'You read this episode the other way. Your judgement stands; the record is shown so you can look again.':
+    'Kamu membaca episode ini ke arah sebaliknya. Penilaianmu tetap berlaku; catatannya ditampilkan agar kamu bisa melihat lagi.',
+  'You judged this episode yourself: it counts once, with your judgement.': 'Kamu menilai episode ini sendiri: dihitung sekali, dengan penilaianmu.',
+  'Not counted either way.': 'Tidak dihitung ke arah mana pun.',
+  '{c} may drive both {a} and {b}: when it moves, both can move together without one causing the other.':
+    '{c} mungkin menggerakkan {a} dan {b} sekaligus: saat ia bergerak, keduanya bisa bergerak bersama tanpa yang satu menyebabkan yang lain.',
+  'It may run the other way: {b} may change {a} too.': 'Mungkin arahnya terbalik: {b} mungkin juga mengubah {a}.',
+  'One of its episodes is also behind “{other}”: the same time read two ways.':
+    'Salah satu episodenya juga ada di balik “{other}”: saat yang sama dibaca dua cara.',
+  '{n} of its episodes are also behind “{other}”: the same times read two ways.':
+    '{n} episodenya juga ada di balik “{other}”: saat-saat yang sama dibaca dua cara.',
+  'Once, {b} moved right after being at its other extreme: some of that comes anyway, as things drift back toward usual.':
+    'Sekali, {b} bergerak tepat setelah berada di titik ekstrem sebaliknya: sebagian memang datang dengan sendirinya, karena hal-hal cenderung kembali ke biasanya.',
+  '{n} times, {b} moved right after being at its other extreme: some of that comes anyway, as things drift back toward usual.':
+    '{n} kali, {b} bergerak tepat setelah berada di titik ekstrem sebaliknya: sebagian memang datang dengan sendirinya, karena hal-hal cenderung kembali ke biasanya.',
+  'It held until {month}; the latest time, it did not.': 'Berlaku sampai {month}; terakhir kali, tidak.',
+  'It held until {month}; the latest {n} times, it did not.': 'Berlaku sampai {month}; {n} kali terakhir, tidak.',
+  'The latest times, it did not hold.': 'Beberapa kali terakhir, tidak berlaku.',
+  'Every time it held, {f} was {state}; the times it did not, it was not. Maybe it only holds then.':
+    'Setiap kali berlaku, {f} sedang {state}; saat tidak berlaku, tidak begitu. Mungkin hanya berlaku saat itu.',
+  high: 'tinggi',
+  low: 'rendah',
+  'Only when {f} is {state}?': 'Hanya saat {f} {state}?',
+  '{n} days': '{n} hari',
+  '{a}–{b} days': '{a}–{b} hari',
+  'It took {took} in the times recorded; you said {lag}.': 'Butuh {took} di saat-saat yang tercatat; kamu menyebut {lag}.',
+  'It took {took} in the times recorded.': 'Butuh {took} di saat-saat yang tercatat.',
+  'One supporting moment was written down days after it happened, when the outcome may already have been known.':
+    'Satu momen pendukung ditulis beberapa hari setelah terjadi, ketika hasilnya mungkin sudah diketahui.',
+  '{n} supporting moments were written down days after they happened, when the outcome may already have been known.':
+    '{n} momen pendukung ditulis beberapa hari setelah terjadi, ketika hasilnya mungkin sudah diketahui.',
+  'Other ways to read it': 'Cara lain membacanya',
+  'No prediction from it yet. A prediction written down before, then checked, is the surest way to learn whether it holds.':
+    'Belum ada prediksi darinya. Prediksi yang ditulis lebih dulu lalu dicek adalah cara paling pasti untuk tahu apakah ia berlaku.',
+  'Part of a chain': 'Bagian dari rantai',
+  'A chain is checked together: if it fails, one of its reasons did not hold, not necessarily this one.':
+    'Sebuah rantai dicek bersama-sama: kalau gagal, salah satu sebabnya tidak berlaku, belum tentu yang ini.',
+  'If this holds, and {cause} is as it is now, what should happen to {outcome}?':
+    'Kalau ini berlaku, dan {cause} seperti sekarang, apa yang seharusnya terjadi pada {outcome}?',
+  Within: 'Dalam',
+  days: 'hari',
+  'Write it down': 'Tuliskan',
+  'Write down a prediction': 'Tulis sebuah prediksi',
+  'Make it': 'Buat',
+  'The thing itself is not the cause: what changes about it can be its own element, part of it, recorded and compared.':
+    'Hal itu sendiri bukan sebabnya: apa yang berubah darinya bisa menjadi elemen tersendiri, bagian darinya, dicatat dan dibandingkan.',
+  'Make “{aspect}” its own element': 'Jadikan “{aspect}” elemen tersendiri',
   'Near-term drivers': 'Pendorong jangka pendek',
   'Long-term drivers': 'Pendorong jangka panjang',
   'Mixed drivers': 'Pendorong campuran',
@@ -553,7 +670,6 @@ export const ID: Record<string, string> = {
   'Next time': 'Lain kali',
   'If … then I will …': 'Jika … maka aku akan …',
   'What may explain how it turned out': 'Yang mungkin menjelaskan hasilnya',
-  Remove: 'Hapus',
   'No explanation attached. Which claims might account for how it went?': 'Belum ada penjelasan terlampir. Klaim mana yang mungkin menjelaskan jalannya?',
   'Not reviewed yet. Recording what actually happened is what lets decision patterns emerge.':
     'Belum ditinjau. Mencatat apa yang benar-benar terjadi adalah yang memungkinkan pola keputusan muncul.',
@@ -565,6 +681,8 @@ export const ID: Record<string, string> = {
   'Save outcome': 'Simpan hasil',
   Revise: 'Ubah',
   'Nothing recorded.': 'Belum ada yang dicatat.',
+  'days of deciding': 'hari setelah memutuskan',
+  'Make an expectation checkable': 'Jadikan perkiraan bisa dicek',
   'Link to something on the map': 'Tautkan ke sesuatu di peta',
   Unlink: 'Lepas tautan',
   'Not linked to anything on the map yet. Linking says what the note is about, so it can count as a moment for it.':
@@ -590,6 +708,9 @@ export const ID: Record<string, string> = {
   'an element': 'sebuah elemen',
   'Also touches {area}': 'Juga menyentuh {area}',
   'Add to the timeline': 'Tambahkan ke linimasa',
+  'What changed': 'Yang berubah',
+  'You expect': 'Kamu memperkirakan',
+  'within {n} days': 'dalam {n} hari',
   'Your note explains a cause in its own words': 'Catatanmu menjelaskan suatu sebab dengan kata-katanya sendiri',
   'Add as a reason': 'Tambahkan sebagai sebab',
   Dismiss: 'Abaikan',
@@ -605,8 +726,20 @@ export const ID: Record<string, string> = {
   'Start today': 'Mulai hari ini',
   'Record result': 'Catat hasil',
   'Open the plan': 'Buka rencana',
+  'The prediction, as a check': 'Prediksinya, sebagai pengecekan',
+  'Written down after the test began. The result will count as a time it happened, not as a test.':
+    'Ditulis setelah tes dimulai. Hasilnya akan dihitung sebagai satu kali kejadian, bukan sebagai tes.',
+  'Written down before the test began, so the result can count as a test.': 'Ditulis sebelum tes dimulai, jadi hasilnya bisa dihitung sebagai tes.',
+  'The prediction is in words. Saying which element should move, and which way, lets the Atlas check it against what you record.':
+    'Prediksinya berupa kata-kata. Menyebut elemen mana yang seharusnya bergerak, dan ke arah mana, membuat Atlas bisa mengeceknya dengan apa yang kamu catat.',
+  'Make it checkable': 'Jadikan bisa dicek',
+  'It began just after {what} ({date}). Things tend to drift back toward usual from there, so some of the change may have come anyway.':
+    'Tes ini dimulai tepat setelah {what} ({date}). Dari titik itu, hal-hal cenderung kembali ke biasanya, jadi sebagian perubahan mungkin datang dengan sendirinya.',
   Measure: 'Ukuran',
   Baseline: 'Awal',
+  'Which element it measures': 'Elemen yang diukurnya',
+  'Link to an element…': 'Hubungkan ke elemen…',
+  'Recorded during the test': 'Tercatat selama tes',
   'Learning:': 'Pelajaran:',
   'Also changed:': 'Ikut berubah:',
   'The reason it tests': 'Sebab yang diujinya',
@@ -616,15 +749,19 @@ export const ID: Record<string, string> = {
   'Nothing on the map explains this yet.': 'Belum ada di peta yang menjelaskan ini.',
   'Several of these can be true at once. None of them has a share: they are possibilities, each with its own evidence.':
     'Beberapa di antaranya bisa benar sekaligus. Tidak ada yang punya porsi: semuanya kemungkinan, masing-masing dengan buktinya sendiri.',
+  'Some are one cause acting through another: routes of one cause, not separate causes.':
+    'Sebagian adalah satu sebab yang bekerja lewat yang lain: jalur dari satu sebab, bukan sebab yang terpisah.',
   '“{a}” or “{b}”: if one holds, the other may not be needed.': '“{a}” atau “{b}”: jika yang satu berlaku, yang lain mungkin tidak diperlukan.',
   'From outside': 'Dari luar',
   'Things that happened to you in the weeks before it came up. They can contribute too.':
     'Hal-hal yang menimpamu dalam minggu-minggu sebelum ini muncul. Hal-hal itu juga bisa ikut berperan.',
   'Still unexplained': 'Masih belum terjelaskan',
-  '{n} of the {m} times it came up, none of its possible reasons came up first.':
-    '{n} dari {m} kali ini muncul, tidak ada kemungkinan sebabnya yang muncul lebih dulu.',
-  'Each time it came up, at least one of these came up first. That shows they were recorded, not that they caused it.':
-    'Setiap kali ini muncul, setidaknya satu di antaranya muncul lebih dulu. Itu menunjukkan mereka tercatat, bukan bahwa mereka menyebabkannya.',
+  '{n} of the {m} recorded times it moved, nothing on this list was recorded pushing it that way first.':
+    '{n} dari {m} kali tercatat ia bergerak, tidak ada yang di daftar ini tercatat mendorongnya ke arah itu lebih dulu.',
+  'Each recorded time it moved, at least one of these was recorded pushing it that way first. That shows they were there, not that they caused it.':
+    'Setiap kali tercatat ia bergerak, setidaknya satu di antaranya tercatat mendorongnya ke arah itu lebih dulu. Itu menunjukkan mereka ada, bukan bahwa mereka menyebabkannya.',
+  'Once it came up with no record of which way it went.': 'Sekali ia muncul tanpa catatan ke arah mana ia bergerak.',
+  '{n} times it came up with no record of which way it went.': '{n} kali ia muncul tanpa catatan ke arah mana ia bergerak.',
   'Once it happened without one of these.': 'Sekali ini terjadi tanpa salah satu dari ini.',
   '{n} times it happened without one of these.': '{n} kali ini terjadi tanpa salah satu dari ini.',
   'Some of it may be chance, or something that is not on the map.': 'Sebagian mungkin kebetulan, atau sesuatu yang tidak ada di peta.',
@@ -635,14 +772,15 @@ export const ID: Record<string, string> = {
   'Not linked to anything on the map, so there is nothing to explain it against yet.':
     'Belum tertaut ke apa pun di peta, jadi belum ada pembanding untuk menjelaskannya.',
   'Nothing on the map is a possible reason for {name} yet.': 'Belum ada apa pun di peta yang menjadi kemungkinan sebab untuk {name}.',
-  'Came up in the weeks before it': 'Muncul dalam minggu-minggu sebelumnya',
-  '{what}, {date}': '{what}, {date}',
-  'Did not come up before it this time': 'Tidak muncul sebelumnya kali ini',
+  'Recorded before it, pushing the way it went': 'Tercatat sebelumnya, mendorong ke arah yang terjadi',
+  'Recorded before it': 'Tercatat sebelumnya',
+  'Recorded before it, but pointing the other way': 'Tercatat sebelumnya, tapi menunjuk ke arah sebaliknya',
+  'Not recorded either way before it': 'Tidak tercatat ke arah mana pun sebelumnya',
   'From outside, in the weeks before': 'Dari luar, dalam minggu-minggu sebelumnya',
-  'Coming up before it is not proof that it caused it: check what each record says. Some of it may be chance, or something not on the map.':
-    'Muncul lebih dulu bukan bukti bahwa ia menyebabkannya: periksa isi setiap catatan. Sebagian mungkin kebetulan, atau sesuatu yang tidak ada di peta.',
-  'None of the possible reasons came up before it this time: something else may have been at work.':
-    'Tidak satu pun kemungkinan sebab muncul sebelumnya kali ini: mungkin ada hal lain yang berperan.',
+  'Being recorded before it is not proof that it caused it. Some of it may be chance, or something not on the map.':
+    'Tercatat lebih dulu bukan bukti bahwa ia menyebabkannya. Sebagian mungkin kebetulan, atau sesuatu yang tidak ada di peta.',
+  'None of the possible reasons was recorded pushing this way before it: something else may have been at work.':
+    'Tidak satu pun kemungkinan sebab tercatat mendorong ke arah ini sebelumnya: mungkin ada hal lain yang berperan.',
   'Back (Alt + ←)': 'Kembali (Alt + ←)',
   Inspector: 'Inspektor',
   'Close panel (Esc)': 'Tutup panel (Esc)',
@@ -657,11 +795,22 @@ export const ID: Record<string, string> = {
   'The circle pushes back on itself: it corrects, or it resists change, and tends to settle.':
     'Lingkarannya menahan dirinya sendiri: ia mengoreksi, atau menolak perubahan, dan cenderung mereda.',
   'Only as sure as its least sure step:': 'Hanya seyakin langkahnya yang paling tidak yakin:',
+  'One step only makes the next possible, or limits it: the cycle turns only while that holds.':
+    'Satu langkah hanya memungkinkan atau membatasi langkah berikutnya: siklus ini berputar hanya selama itu berlaku.',
   'Show it in Causes': 'Tampilkan di Sebab',
   'The steps': 'Langkah-langkahnya',
-  'Where to look first': 'Di mana melihat lebih dulu',
-  'The least sure steps are often the easiest place to break the cycle, or to test it:':
-    'Langkah yang paling tidak yakin sering jadi tempat termudah untuk memutus siklus, atau mengujinya:',
+  'Seen going round': 'Terlihat berputar',
+  'Once, the record shows every step in order, back to the start.': 'Sekali, catatan menunjukkan setiap langkah berurutan, kembali ke awal.',
+  '{n} times, the record shows every step in order, back to the start.': '{n} kali, catatan menunjukkan setiap langkah berurutan, kembali ke awal.',
+  'Each took {range} days.': 'Masing-masing butuh {range} hari.',
+  'The record does not yet show it going all the way round. Each step can be seen on its own; the full circle is still an idea.':
+    'Catatan belum menunjukkannya berputar penuh. Setiap langkah bisa dilihat sendiri-sendiri; lingkaran penuhnya masih sebuah gagasan.',
+  'Where you can act': 'Tempat kamu bisa bertindak',
+  'Steps that start from something you do, seen at least a few times: a change there can travel round.':
+    'Langkah yang berawal dari sesuatu yang kamu lakukan, terlihat setidaknya beberapa kali: perubahan di situ bisa merambat berputar.',
+  'Least certain': 'Paling tidak pasti',
+  'The steps with the least behind them: where a test would tell you most. Least certain is not the same as where to act.':
+    'Langkah dengan dasar paling sedikit: tempat sebuah tes akan paling banyak memberi tahu. Paling tidak pasti tidak sama dengan tempat untuk bertindak.',
   'Something like this has happened {n} times since {month}.': 'Hal seperti ini sudah terjadi {n} kali sejak {month}.',
   'It sits in a cycle that feeds itself.': 'Ini berada dalam siklus yang memperkuat dirinya sendiri.',
   'It sits in a cycle that holds itself back.': 'Ini berada dalam siklus yang menahan dirinya sendiri.',
@@ -698,9 +847,29 @@ export const ID: Record<string, string> = {
   'Often after': 'Sering sesudahnya',
   'Coming before is not the same as causing. It is worth a look, not a conclusion.':
     'Terjadi lebih dulu tidak sama dengan menyebabkan. Layak dilihat, bukan kesimpulan.',
-  'If it changed, these might change with it:': 'Jika ini berubah, hal-hal ini mungkin ikut berubah:',
+  'Which way it changes': 'Ke arah mana ia berubah',
+  'If you did it more': 'Kalau kamu lebih sering melakukannya',
+  'If it went up': 'Kalau ia naik',
+  'If you did it less': 'Kalau kamu lebih jarang melakukannya',
+  'If it went down': 'Kalau ia turun',
+  'Following the reasons on your map, one step at a time. An estimate from the model as it stands, not a forecast.':
+    'Mengikuti sebab-sebab di petamu, selangkah demi selangkah. Perkiraan dari model sebagaimana adanya, bukan ramalan.',
+  'can’t tell which way: the routes disagree': 'tidak bisa tahu arahnya: jalurnya saling bertentangan',
+  'would go up': 'akan naik',
+  'would go down': 'akan turun',
+  directly: 'langsung',
+  'through {names}': 'lewat {names}',
+  'within about {n} days': 'dalam sekitar {n} hari',
+  'within about {a}–{b} days': 'dalam sekitar {a}–{b} hari',
+  'one step only makes it possible, or limits it': 'satu langkah hanya memungkinkan atau membatasinya',
+  'It rests on one reason, as sure as it is.': 'Bersandar pada satu sebab, seyakin sebab itu.',
+  'It rests on {n} reasons, only as sure as the least sure of them.': 'Bersandar pada {n} sebab, hanya seyakin yang paling tidak yakin di antaranya.',
+  'Written down: it will be checked against what you record.': 'Sudah ditulis: akan dicek dengan apa yang kamu catat.',
+  '{what}, if {cause} {change}': '{what}, kalau {cause} {change}',
+  'goes up': 'naik',
+  'goes down': 'turun',
+  'Keep it as a prediction': 'Simpan sebagai prediksi',
   'Nothing on the map says what this changes yet.': 'Belum ada di peta yang menyatakan apa yang diubah oleh ini.',
-  'And one step further': 'Dan satu langkah lebih jauh',
   'It comes back around': 'Kembali berputar',
   '{n} thing in the cycle': '{n} hal dalam siklus',
   '{n} things in the cycle': '{n} hal dalam siklus',
@@ -733,6 +902,13 @@ export const ID: Record<string, string> = {
   'Claims on the map that could belong here:': 'Klaim di peta yang mungkin termasuk di sini:',
   'What you conclude, for now': 'Kesimpulanmu, untuk sementara',
   'A provisional answer, and what would change it.': 'Jawaban sementara, dan apa yang bisa mengubahnya.',
+  'Recorded regularly. Its usual level is {v}; high and low are read against that, not against anyone else.':
+    'Dicatat rutin. Tingkat biasanya {v}; tinggi dan rendah dibaca terhadap itu, bukan terhadap orang lain.',
+  'Recorded regularly.': 'Dicatat rutin.',
+  'What it did is written down now and then, when it was notable. Times without a record are unknown, not absent.':
+    'Apa yang terjadi padanya ditulis sesekali, saat terasa penting. Saat tanpa catatan berarti tidak diketahui, bukan tidak ada.',
+  'It comes up in your notes, but nothing says which way it went. Saying what changed lets the Atlas compare it.':
+    'Ia muncul di catatanmu, tapi tidak ada yang menyebut ke arah mana ia bergerak. Menyebut apa yang berubah membuat Atlas bisa membandingkannya.',
   'Readings over time': 'Bacaan dari waktu ke waktu',
   'From {a} to {b}. Latest {v} of {max}.': 'Dari {a} sampai {b}. Terakhir {v} dari {max}.',
   'What kind of thing it is': 'Jenis hal apa ini',
@@ -748,7 +924,9 @@ export const ID: Record<string, string> = {
   'A reading of': 'Bacaan dari',
   'One time of': 'Satu kali dari',
   'Not linked to anything on the map.': 'Tidak tertaut ke apa pun di peta.',
+  'A prediction': 'Sebuah prediksi',
   'Why might this have happened?': 'Kenapa ini bisa terjadi?',
+  Episode: 'Episode',
   'Just before': 'Tepat sebelumnya',
   'Nothing recorded in the four weeks before.': 'Tidak ada yang tercatat dalam empat minggu sebelumnya.',
   'Just after': 'Tepat sesudahnya',
@@ -905,8 +1083,17 @@ export const ID: Record<string, string> = {
   'Something you believe that your notes have never checked.': 'Sesuatu yang kamu yakini tapi belum pernah diperiksa catatanmu.',
   'You tested it, and what you predicted happened.': 'Kamu mengujinya, dan yang kamu perkirakan terjadi.',
   'A test did not go as predicted.': 'Sebuah tes tidak berjalan sesuai perkiraan.',
-  'Seen in {n} separate week, in that order.': 'Terlihat di {n} minggu berbeda, dalam urutan itu.',
-  'Seen in {n} separate weeks, in that order.': 'Terlihat di {n} minggu berbeda, dalam urutan itu.',
+  '{n} tests did not go as predicted.': '{n} tes tidak berjalan sesuai prediksi.',
+  'A prediction you wrote down from it held.': 'Satu prediksi yang kamu tulis darinya terbukti.',
+  '{n} predictions you wrote down from it held.': '{n} prediksi yang kamu tulis darinya terbukti.',
+  'A prediction you wrote down from it did not hold.': 'Satu prediksi yang kamu tulis darinya tidak terbukti.',
+  '{n} predictions you wrote down from it did not hold.': '{n} prediksi yang kamu tulis darinya tidak terbukti.',
+  'Seen in {n} separate episode, in that order.': 'Terlihat di {n} episode berbeda, dalam urutan itu.',
+  'Seen in {n} separate episodes, in that order.': 'Terlihat di {n} episode berbeda, dalam urutan itu.',
+  'One of them comes from what was recorded changing, not only from your reading.':
+    'Salah satunya berasal dari apa yang tercatat berubah, bukan hanya dari bacaanmu.',
+  '{n} of them come from what was recorded changing, not only from your reading.':
+    '{n} di antaranya berasal dari apa yang tercatat berubah, bukan hanya dari bacaanmu.',
   'Once, without it, this did not happen either.': 'Sekali, tanpanya, ini juga tidak terjadi.',
   '{n} times, without it, this did not happen either.': '{n} kali, tanpanya, ini juga tidak terjadi.',
   'The “how” shows in what you wrote.': '“Cara kerjanya” terlihat dalam tulisanmu.',
@@ -916,8 +1103,17 @@ export const ID: Record<string, string> = {
   '{n} times this happened without it: something else can bring it about too.': '{n} kali ini terjadi tanpanya: hal lain juga bisa menimbulkannya.',
   '{n} sequence does not count: the order or the delay does not fit.': '{n} urutan tidak dihitung: urutan atau jedanya tidak cocok.',
   '{n} sequences do not count: the order or the delay does not fit.': '{n} urutan tidak dihitung: urutan atau jedanya tidak cocok.',
-  'One of these weeks is also part of the repeat “{title}”.': 'Salah satu minggu ini juga bagian dari pengulangan “{title}”.',
-  '{n} of these weeks are also part of the repeat “{title}”.': '{n} dari minggu-minggu ini juga bagian dari pengulangan “{title}”.',
+  '{outcome} went this way in {same} of {known} recorded episodes anyway, so a time it followed says little on its own.':
+    '{outcome} memang bergerak ke arah ini di {same} dari {known} episode yang tercatat, jadi satu kali ia menyusul tidak banyak berarti dengan sendirinya.',
+  'Once, it happened with nothing recorded showing {others} doing the same.':
+    'Sekali, ini terjadi tanpa catatan yang menunjukkan {others} melakukan hal yang sama.',
+  '{n} times, it happened with nothing recorded showing {others} doing the same.':
+    '{n} kali, ini terjadi tanpa catatan yang menunjukkan {others} melakukan hal yang sama.',
+  'Nothing yet tells it apart from {others}.': 'Belum ada yang membedakannya dari {others}.',
+  'In {n} episode, your reading and what was recorded point different ways.': 'Di {n} episode, bacaanmu dan yang tercatat menunjuk ke arah berbeda.',
+  'In {n} episodes, your reading and what was recorded point different ways.': 'Di {n} episode, bacaanmu dan yang tercatat menunjuk ke arah berbeda.',
+  'One of these episodes is also part of the repeat “{title}”.': 'Salah satu episode ini juga bagian dari pengulangan “{title}”.',
+  '{n} of these episodes are also part of the repeat “{title}”.': '{n} episode ini juga bagian dari pengulangan “{title}”.',
   'Nothing in your notes shows it yet: for now it is a hunch.': 'Belum ada catatanmu yang menunjukkannya: untuk sekarang ini dugaan.',
   'Say what about “{name}” changes: the thing itself is not the cause.': 'Sebutkan apa dari “{name}” yang berubah: hal itu sendiri bukan sebabnya.',
   'No time yet where A came first and then B.': 'Belum ada saat ketika A datang lebih dulu lalu B.',
@@ -932,9 +1128,14 @@ export const ID: Record<string, string> = {
   '{n} sequences do not fit: B came first, or too long after.': '{n} urutan tidak cocok: B datang lebih dulu, atau terlalu lama sesudahnya.',
   '{n} rival explanation is still open.': '{n} penjelasan pesaing masih terbuka.',
   '{n} rival explanations are still open.': '{n} penjelasan pesaing masih terbuka.',
+  '{outcome} goes that way most times anyway: a time without the cause would tell more than another time with it.':
+    '{outcome} memang biasanya bergerak ke arah itu: satu kali tanpa sebabnya akan memberi tahu lebih banyak daripada satu kali lagi dengannya.',
+  'Nothing yet tells it apart from {names}: a time when this was there and they were not.':
+    'Belum ada yang membedakannya dari {names}: satu kali ketika ini ada dan mereka tidak.',
   '(deleted)': '(dihapus)',
   '{thing} ({aspect})': '{thing} ({aspect})',
   '{a}, together with {b},': '{a}, bersama {b},',
+  'when you tested it, though not every time': 'saat kamu mengujinya, meski tidak setiap kali',
   'when you tested it': 'saat kamu mengujinya',
   'Reason {code}': 'Sebab {code}',
   Identity: 'Identitas',
@@ -1119,7 +1320,29 @@ export const ID: Record<string, string> = {
   'Checked by a deliberate change.': 'Dicek lewat perubahan yang disengaja.',
   'A possibility. Never evidence for anything.': 'Sebuah kemungkinan. Tidak pernah menjadi bukti apa pun.',
   'Proposed by the analysis. Not on your map until you adopt it.': 'Diusulkan oleh analisis. Tidak masuk petamu sampai kamu mengadopsinya.',
+  'Went up': 'Naik',
+  'Went down': 'Turun',
+  'Was high': 'Tinggi',
+  'Was low': 'Rendah',
   Happened: 'Terjadi',
+  'Did not happen': 'Tidak terjadi',
+  '{name} went up': '{name} naik',
+  '{name} went down': '{name} turun',
+  '{name} was high': '{name} tinggi',
+  '{name} was low': '{name} rendah',
+  '{name} happened': '{name} terjadi',
+  '{name} did not happen': '{name} tidak terjadi',
+  '{name} was at its usual level': '{name} di tingkat biasanya',
+  '{name} goes up': '{name} naik',
+  '{name} goes down': '{name} turun',
+  '{name} is high': '{name} tinggi',
+  '{name} is low': '{name} rendah',
+  '{name} happens': '{name} terjadi',
+  '{name} does not happen': '{name} tidak terjadi',
+  'only when {name} is high': 'hanya saat {name} tinggi',
+  'only when {name} is low': 'hanya saat {name} rendah',
+  'only when {name} happens': 'hanya saat {name} terjadi',
+  'only when {name} does not happen': 'hanya saat {name} tidak terjadi',
   Expected: 'Diharapkan',
   Planned: 'Direncanakan',
   Possible: 'Mungkin',
@@ -1215,6 +1438,8 @@ export const ID: Record<string, string> = {
   'No time without any of these yet: what happened to it then?': 'Belum ada saat tanpa semua ini: apa yang terjadi padanya waktu itu?',
   'None of these has been tested: changing one on purpose would tell you more.':
     'Belum ada yang diuji: mengubah salah satunya dengan sengaja akan memberi tahu lebih banyak.',
+  'Most times it comes up, nothing says which way it went: noting that (up, down, happened or not) would tell more.':
+    'Kebanyakan kali ia muncul, tidak ada yang menyebut ke arah mana ia bergerak: mencatatnya (naik, turun, terjadi atau tidak) akan memberi tahu lebih banyak.',
   'Energy {n}/5': 'Energi {n}/5',
   '{code} started: {title}': '{code} dimulai: {title}',
   'A cycle that feeds itself': 'Siklus yang memperkuat dirinya',
@@ -1280,7 +1505,6 @@ export const ID: Record<string, string> = {
   '{n} months': '{n} bulan',
   '{n} weeks': '{n} minggu',
   '{n} day': '{n} hari',
-  '{n} days': '{n} hari',
   "Your chosen direction, broken down into a goal, this month's targets and this week's steps.":
     'Arah yang kamu pilih, dipecah menjadi tujuan, target bulan ini, dan langkah minggu ini.',
   'Change direction →': 'Ganti arah →',
@@ -1369,8 +1593,8 @@ export const ID: Record<string, string> = {
   '{n} off': '{n} disembunyikan',
   'Why might {name} be happening?': 'Kenapa {name} bisa terjadi?',
   'Nothing on the map explains it yet.': 'Belum ada di peta yang menjelaskannya.',
-  '{n} of the {m} times it came up, none of its possible reasons came up first. Some of it may be chance.':
-    '{n} dari {m} kali ini muncul, tidak ada kemungkinan sebabnya yang muncul lebih dulu. Sebagian mungkin kebetulan.',
+  '{n} of the {m} recorded times it moved, nothing on the list was recorded pushing it that way first. Some of it may be chance.':
+    '{n} dari {m} kali tercatat ia bergerak, tidak ada yang di daftar tercatat mendorongnya ke arah itu lebih dulu. Sebagian mungkin kebetulan.',
   'Some of it may be chance, or something not on the map.': 'Sebagian mungkin kebetulan, atau sesuatu yang tidak ada di peta.',
   'Trace on the map': 'Telusuri di peta',
   'What may lead to it': 'Yang mungkin mengarah kepadanya',
@@ -1474,6 +1698,9 @@ export const ID: Record<string, string> = {
   'No options yet': 'Belum ada pilihan',
   'Describe two or three genuinely different directions. The same questions are asked of each (requirements, capital, time, risks, unknowns) so they can be compared without a verdict.':
     'Gambarkan dua atau tiga arah yang benar-benar berbeda. Pertanyaan yang sama diajukan untuk masing-masing (syarat, modal, waktu, risiko, hal yang belum diketahui) agar bisa dibandingkan tanpa vonis.',
+  'What you expect': 'Yang kamu perkirakan',
+  'So far: {held} held, {failed} did not, {unobserved} not recorded either way.':
+    'Sejauh ini: {held} terbukti, {failed} tidak, {unobserved} tidak tercatat ke arah mana pun.',
   'Nothing open. Add the next step to your plan.': 'Tidak ada yang terbuka. Tambahkan langkah berikutnya ke rencanamu.',
   'Trying now': 'Sedang dicoba',
   'No test running.': 'Tidak ada tes yang berjalan.',
@@ -1588,10 +1815,10 @@ export const ID: Record<string, string> = {
   'No explanation attached yet.': 'Belum ada penjelasan terlampir.',
   'Link the steps to things on your map to ask why each one follows the last.':
     'Tautkan langkah-langkahnya ke hal-hal di petamu untuk bertanya kenapa tiap langkah menyusul yang sebelumnya.',
-  'Shares {n} week with this repeat: the same episode, not a second confirmation.':
-    'Berbagi {n} minggu dengan pengulangan ini: episode yang sama, bukan konfirmasi kedua.',
-  'Shares {n} weeks with this repeat: the same episodes, not a second confirmation.':
-    'Berbagi {n} minggu dengan pengulangan ini: episode yang sama, bukan konfirmasi kedua.',
+  'Shares {n} episode with this repeat: the same time, not a second confirmation.':
+    'Berbagi {n} episode dengan pengulangan ini: saat yang sama, bukan konfirmasi kedua.',
+  'Shares {n} episodes with this repeat: the same times, not a second confirmation.':
+    'Berbagi {n} episode dengan pengulangan ini: saat-saat yang sama, bukan konfirmasi kedua.',
   'No possible reason for this step yet.': 'Belum ada kemungkinan sebab untuk langkah ini.',
   'Add one': 'Tambahkan',
   'Proposed by analysis · review before it counts': 'Diusulkan oleh analisis · tinjau sebelum dihitung',
@@ -1710,11 +1937,16 @@ export const ID: Record<string, string> = {
   'Missing “{key}” in the imported file.': '“{key}” tidak ada di file yang diimpor.',
   'The file is missing the model log, counters or current state.': 'File ini tidak memiliki log model, penghitung, atau kondisi saat ini.',
   'Untitled version': 'Versi tanpa judul',
+  'You edited {claim}. Before: {before}. Now: {after}.': 'Kamu mengubah {claim}. Sebelumnya: {before}. Sekarang: {after}.',
+  'Revised into {claim}.': 'Direvisi menjadi {claim}.',
+  '{old} revised into {claim}: {sentence}. {carried} of its {total} pieces of evidence still bear on it and came along; the earlier version is kept, retired.':
+    '{old} direvisi menjadi {claim}: {sentence}. {carried} dari {total} buktinya masih relevan dan ikut terbawa; versi sebelumnya disimpan, dinonaktifkan.',
   '{code} was deleted and removed from {pattern}.': '{code} dihapus dan dikeluarkan dari {pattern}.',
   '{code} was deleted and removed from {claim}.': '{code} dihapus dan dikeluarkan dari {claim}.',
   'You confirmed “{label}”, proposed by the analysis. It is now on your map.':
     'Kamu mengonfirmasi “{label}”, yang diusulkan oleh analisis. Sekarang ada di petamu.',
   'You added {claim}: {sentence}.': 'Kamu menambahkan {claim}: {sentence}.',
+  'What changes about {thing}: {aspect}.': 'Yang berubah dari {thing}: {aspect}.',
   'You adopted {claim} as a hypothesis: {sentence}.': 'Kamu mengadopsi {claim} sebagai hipotesis: {sentence}.',
   'You said {claim} matches your experience.': 'Kamu bilang {claim} cocok dengan pengalamanmu.',
   'You said {claim} does not match your experience.': 'Kamu bilang {claim} tidak cocok dengan pengalamanmu.',
@@ -1725,6 +1957,10 @@ export const ID: Record<string, string> = {
   '{code} added as counter-evidence to {claim}.': '{code} ditambahkan sebagai bukti tandingan untuk {claim}.',
   'You removed {code} from {claim}.': 'Kamu menghapus {code} dari {claim}.',
   'You marked {claim} as no longer holding.': 'Kamu menandai {claim} tak lagi berlaku.',
+  'You expect: {label}, by {date}. It rests on {n} reasons together.':
+    'Kamu memperkirakan: {label}, paling lambat {date}. Bersandar pada {n} sebab bersama-sama.',
+  'You expect: {label}, by {date}.': 'Kamu memperkirakan: {label}, paling lambat {date}.',
+  'You checked an expectation: {label}. {verdict}.': 'Kamu mengecek sebuah perkiraan: {label}. {verdict}.',
   '{code} added as an instance of {pattern}.': '{code} ditambahkan sebagai kemunculan dari {pattern}.',
   '{code} added as a counter-case to {pattern}.': '{code} ditambahkan sebagai kasus tandingan bagi {pattern}.',
   'You removed {code} from {pattern}.': 'Kamu mengeluarkan {code} dari {pattern}.',

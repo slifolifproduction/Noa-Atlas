@@ -511,8 +511,8 @@ function StepReasons({ pattern: p }: { pattern: Pattern }) {
                         <p className="px-1.5 text-[11px] text-ink-3">
                           {tn(
                             shared,
-                            'Shares {n} week with this repeat: the same episode, not a second confirmation.',
-                            'Shares {n} weeks with this repeat: the same episodes, not a second confirmation.',
+                            'Shares {n} episode with this repeat: the same time, not a second confirmation.',
+                            'Shares {n} episodes with this repeat: the same times, not a second confirmation.',
                           )}
                         </p>
                       )}

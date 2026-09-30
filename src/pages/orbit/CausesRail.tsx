@@ -239,7 +239,10 @@ function Investigation() {
       )}
       <p className="mt-2 text-[11.5px] leading-snug text-ink-3">
         {ex.moments > 0 && ex.unexplained > 0
-          ? t('{n} of the {m} times it came up, none of its possible reasons came up first. Some of it may be chance.', { n: ex.unexplained, m: ex.moments })
+          ? t('{n} of the {m} recorded times it moved, nothing on the list was recorded pushing it that way first. Some of it may be chance.', {
+              n: ex.unexplained,
+              m: ex.moments,
+            })
           : t('Some of it may be chance, or something not on the map.')}
       </p>
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5">

@@ -6,6 +6,7 @@
 import { addDays, dateOf, daysBetween, formatSpan, todayISO, weekStart } from '../lib/dates';
 import { pad2 } from '../lib/text';
 import { claimStatus } from './claims';
+import { episodeKeyOf } from './factors';
 import { AREA_META, areaHubKey, DRIVER_HORIZON, isAreaHubId, KIND_META, SECTOR_KEYS, YOU_ID } from './constants';
 import type {
   AreaKey,
@@ -110,7 +111,11 @@ export function patternStats(data: AtlasData, pattern: Pattern, today: ISODate =
     .filter((p): p is { date: ISODate; stance: Evidence['stance']; evidenceId: string } => Boolean(p.date))
     .sort((a, b) => a.date.localeCompare(b.date));
   const supporting = points.filter((p) => p.stance === 'supports');
-  const episodes = new Set(supporting.map((p) => weekStart(p.date))).size;
+  const episodes = new Set(
+    pattern.evidence
+      .filter((e) => e.stance === 'supports' && resolveSource(data, e.source).date)
+      .map((e) => episodeKeyOf(data, e.source, resolveSource(data, e.source).date)),
+  ).size;
   const first = supporting[0]?.date;
   const last = supporting[supporting.length - 1]?.date;
   const latest = points[points.length - 1];

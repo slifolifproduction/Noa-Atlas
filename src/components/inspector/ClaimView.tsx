@@ -8,15 +8,34 @@ import {
   evidenceCandidates,
   evidenceProfile,
   historySource,
+  lagWindow,
   orderedEpisodes,
   otherExplanations,
+  recordRows,
 } from '../../domain/claims';
-import { EFFECT_META, EFFECTS, EVIDENCE_KIND_HINT, EVIDENCE_KIND_LABEL, EXPERIMENT_STATUS_LABEL, VIEW_LABEL } from '../../domain/constants';
+import { caseRows, pushes, type CaseRow } from '../../domain/compare';
+import {
+  conditionPhrase,
+  expectSentence,
+  EFFECT_META,
+  EFFECTS,
+  EVIDENCE_KIND_HINT,
+  EVIDENCE_KIND_LABEL,
+  EXPERIMENT_STATUS_LABEL,
+  isFactorKind,
+  READS_LABEL,
+  readingsFor,
+  stateSentence,
+  VIEW_LABEL,
+} from '../../domain/constants';
+import { expectationsFor } from '../../domain/expect';
+import { scrutinize } from '../../domain/scrutiny';
 import { loopName, loopsWithClaim } from '../../domain/loops';
 import { experimentCode, testsOfClaim } from '../../domain/selectors';
-import type { Effect, EvidenceKind, ID, View } from '../../domain/types';
+import type { Claim, Effect, EvidenceKind, FactorReading, ID, View } from '../../domain/types';
 import type { ExperimentDraft } from '../../ai/types';
-import { formatDate } from '../../lib/dates';
+import { addDays, formatDate, formatMonth, todayISO } from '../../lib/dates';
+import { cn } from '../../lib/cn';
 import { ROLE_META } from '../../domain/constants';
 import { useAtlas } from '../../state/atlasStore';
 import { adoptExperimentDraft, proposeExperiments } from '../../state/operations';
@@ -28,8 +47,9 @@ import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
 import { whyWeThink } from '../../domain/ask';
+import { ExpectationLine } from './Changes';
 import { ClaimRow, Fold, Muted, NodeChip, PanelSection } from './parts';
-import { t } from '../../i18n';
+import { t, tn } from '../../i18n';
 
 const firstSentence = (text: string) => {
   const s = text.split(/(?<=[.!?])\s/)[0] ?? text;
@@ -59,7 +79,10 @@ export function ClaimView({ id }: { id: ID }) {
   const others = useMemo(() => (claim ? otherExplanations(data, claim) : []), [data, claim]);
   const tests = claim ? testsOfClaim(data, id) : [];
   const loops = useMemo(() => (claim ? loopsWithClaim(data, id) : []), [data, claim, id]);
-  if (!claim || !profile) return null;
+  const rows = useMemo(() => (claim ? recordRows(data, claim) : null), [data, claim]);
+  const scrutiny = useMemo(() => (claim ? scrutinize(data, claim) : null), [data, claim]);
+  const predictions = useMemo(() => (claim ? expectationsFor(data, id) : null), [data, claim, id]);
+  if (!claim || !profile || !rows || !scrutiny || !predictions) return null;
 
   const sources = new Set(claim.evidence.map((e) => `${e.source.kind}:${e.source.id}`)).size;
   const knowledge = claim.state === 'suggested' ? 'suggested' : status === 'tested' ? 'tested' : 'claimed';
@@ -110,6 +133,7 @@ export function ClaimView({ id }: { id: ID }) {
               <NodeChip id={claim.to} />
               {claim.aspect?.to && <span className="text-ink-2">({claim.aspect.to})</span>}
             </div>
+            {!claim.retired && claim.state === 'adopted' && <PromoteAspects claim={claim} />}
             <dl className="mt-2.5 space-y-1 text-[12.5px]">
               <div className="flex gap-2">
                 <dt className="w-[72px] shrink-0 text-ink-3">{t('How')}</dt>
@@ -122,10 +146,17 @@ export function ClaimView({ id }: { id: ID }) {
                   )}
                 </dd>
               </div>
-              {claim.when && (
+              {(claim.when || claim.condition) && (
                 <div className="flex gap-2">
                   <dt className="w-[72px] shrink-0 text-ink-3">{t('Only when')}</dt>
-                  <dd className="text-ink-2">{claim.when}</dd>
+                  <dd className="text-ink-2">
+                    {[claim.when, claim.condition && conditionPhrase(data.nodes[claim.condition.factor]?.label ?? '', claim.condition.reads)]
+                      .filter(Boolean)
+                      .join('; ')}
+                    {claim.condition && (
+                      <span className="block text-[11.5px] text-ink-3">{t('Times when this was not so are left out, not counted against it.')}</span>
+                    )}
+                  </dd>
                 </div>
               )}
               {claim.lag && (
@@ -154,15 +185,39 @@ export function ClaimView({ id }: { id: ID }) {
           </div>
         )}
         {claim.state === 'set_aside' && <p className="mt-3 text-[12px] text-ink-3">{t('Put aside for now. Kept for reference, off the map.')}</p>}
-        {claim.retired && (
-          <div className="mt-3 rounded-[2px] border border-line p-3">
-            <p className="text-[12.5px] text-ink-2">
-              {t('No longer holds, since {date}.', { date: formatDate(claim.retired.at, { year: true }) })} {claim.retired.note}
-            </p>
-            <Button size="sm" variant="ghost" icon={RotateCcw} className="mt-2" onClick={() => a.restoreClaim(id)}>
-              {t('It holds again')}
-            </Button>
-          </div>
+        {claim.retired &&
+          (claim.retired.revisedInto && data.claims[claim.retired.revisedInto] ? (
+            <div className="mt-3 rounded-[2px] border border-line p-3">
+              <p className="text-[12.5px] text-ink-2">
+                {t('An earlier version, revised on {date}. Its evidence stays here as it was.', { date: formatDate(claim.retired.at, { year: true }) })}
+              </p>
+              <ul className="-mx-1.5 mt-1">
+                <ClaimRow id={claim.retired.revisedInto} />
+              </ul>
+            </div>
+          ) : (
+            <div className="mt-3 rounded-[2px] border border-line p-3">
+              <p className="text-[12.5px] text-ink-2">
+                {t('No longer holds, since {date}.', { date: formatDate(claim.retired.at, { year: true }) })} {claim.retired.note}
+              </p>
+              <Button size="sm" variant="ghost" icon={RotateCcw} className="mt-2" onClick={() => a.restoreClaim(id)}>
+                {t('It holds again')}
+              </Button>
+            </div>
+          ))}
+        {claim.revises && data.claims[claim.revises] && (
+          <p className="mt-3 text-[12px] text-ink-3">
+            {t('Revises an earlier version:')}{' '}
+            <button
+              type="button"
+              className="text-ink-2 underline decoration-line-strong underline-offset-2 hover:text-ink"
+              onClick={() => open({ kind: 'claim', id: claim.revises! })}
+            >
+              {claimCode(data.claims[claim.revises].code)}
+            </button>
+            {claim.evidence.some((e) => e.carriedFrom) &&
+              ` · ${tn(claim.evidence.filter((e) => e.carriedFrom).length, 'one piece of evidence came along', '{n} pieces of evidence came along')}`}
+          </p>
         )}
         {!editing && (
           <div className="mt-3.5 flex flex-wrap items-center gap-1.5">
@@ -235,8 +290,41 @@ export function ClaimView({ id }: { id: ID }) {
             label={t('Tests')}
             value={profile.testsFor + profile.testsAgainst ? t('{a} for · {b} against', { a: profile.testsFor, b: profile.testsAgainst }) : t('none')}
           />
+          <Fact
+            label={t('From what was recorded')}
+            value={String((profile.fromRecord?.fits ?? 0) + (profile.fromRecord?.contrast ?? 0))}
+            hint={t('Episodes the record shows by itself, from what changed, apart from the ones you judged')}
+          />
+          <Fact
+            label={t('Predictions')}
+            value={
+              (profile.predictionsHeld ?? 0) + (profile.predictionsFailed ?? 0)
+                ? t('{a} held · {b} did not', { a: profile.predictionsHeld ?? 0, b: profile.predictionsFailed ?? 0 })
+                : t('none')
+            }
+          />
+          {profile.baseRate && (
+            <Fact
+              label={t('Goes that way anyway')}
+              value={t('{a} of {b} episodes', { a: profile.baseRate.same, b: profile.baseRate.known })}
+              hint={t('How often the outcome went the way this predicts, with or without the cause')}
+            />
+          )}
+          {profile.needsTellingApart && (
+            <Fact
+              label={t('Told apart')}
+              value={String(profile.toldApart ?? 0)}
+              hint={t('Times it happened while what else could produce it was not doing the same')}
+            />
+          )}
         </dl>
       </Fold>
+
+      <Fold title={t('What the record shows')} count={caseRows(data, claim).length}>
+        <RecordComparison claim={claim} judged={rows.judged} />
+      </Fold>
+
+      <OtherReadings claim={claim} scrutiny={scrutiny} />
 
       <Fold title={t('The moments behind it')} count={claim.evidence.length} defaultOpen={claim.evidence.length > 0 && claim.evidence.length <= 3}>
         {claim.evidence.length ? (
@@ -394,6 +482,10 @@ export function ClaimView({ id }: { id: ID }) {
         )}
       </PanelSection>
 
+      <PanelSection title={t('Predictions from it')} count={predictions.direct.length + predictions.chains.length}>
+        <Predictions claim={claim} direct={predictions.direct} chains={predictions.chains} />
+      </PanelSection>
+
       <PanelSection title={t('Try it and see')} count={tests.length}>
         {tests.length > 0 && (
           <ul className="-mx-1.5 mb-2">
@@ -458,7 +550,8 @@ export function ClaimView({ id }: { id: ID }) {
                 >
                   <LoopIcon size={13} className="shrink-0 text-ink-3" aria-hidden />
                   <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2 group-hover:text-ink">{loopName(l)}</span>
-                  {l.breakpoints.includes(id) && <span className="text-[11px] text-ink-3">{t('least sure step')}</span>}
+                  {l.leastCertain.includes(id) && <span className="text-[11px] text-ink-3">{t('least sure step')}</span>}
+                  {l.leverage.includes(id) && <span className="text-[11px] text-ink-3">{t('where you can act')}</span>}
                 </button>
               </li>
             ))}
@@ -494,7 +587,13 @@ function ClaimEditForm({ id, onDone }: { id: ID; onDone(): void }) {
   const [lag, setLag] = useState(claim?.lag ?? '');
   const [fromAspect, setFromAspect] = useState(claim?.aspect?.from ?? '');
   const [toAspect, setToAspect] = useState(claim?.aspect?.to ?? '');
+  const [condFactor, setCondFactor] = useState<ID>(claim?.condition?.factor ?? '');
+  const [condReads, setCondReads] = useState<FactorReading>(claim?.condition?.reads ?? 'high');
+  const openEntity = useUI((s) => s.openEntity);
   if (!claim) return null;
+  const factors = Object.values(data.nodes)
+    .filter((n) => n.adopted && isFactorKind(n.kind) && n.id !== claim.from && n.id !== claim.to)
+    .sort((x, y) => x.label.localeCompare(y.label));
   const fromLabel = data.nodes[claim.from]?.label ?? '';
   const toLabel = data.nodes[claim.to]?.label ?? '';
   return (
@@ -502,14 +601,16 @@ function ClaimEditForm({ id, onDone }: { id: ID; onDone(): void }) {
       className="mt-3 space-y-2"
       onSubmit={(e) => {
         e.preventDefault();
-        updateClaim(id, {
+        const next = updateClaim(id, {
           effect,
           via: via.trim() || undefined,
           when: when.trim() || undefined,
           lag: lag.trim() || undefined,
           aspect: fromAspect.trim() || toAspect.trim() ? { from: fromAspect.trim() || undefined, to: toAspect.trim() || undefined } : undefined,
+          condition: condFactor ? { factor: condFactor, reads: condReads } : undefined,
         });
         onDone();
+        if (next !== id) openEntity({ kind: 'claim', id: next });
       }}
     >
       <label className="block">
@@ -550,7 +651,37 @@ function ClaimEditForm({ id, onDone }: { id: ID; onDone(): void }) {
           <input className="field mt-1" value={lag} onChange={(e) => setLag(e.target.value)} placeholder={t('e.g. 2–6 weeks')} />
         </label>
       </div>
-      <p className="text-[11.5px] text-ink-3">{t('Editing the claim keeps its evidence. If the claim changes meaning, check the evidence still fits.')}</p>
+      <div>
+        <span className="label">{t('Only when, as something the record can check')}</span>
+        <div className="mt-1 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+          <select className="field" value={condFactor} onChange={(e) => setCondFactor(e.target.value)} aria-label={t('Only when')}>
+            <option value="">{t('No condition')}</option>
+            {factors.map((n) => (
+              <option key={n.id} value={n.id}>
+                {n.label}
+              </option>
+            ))}
+          </select>
+          {condFactor && (
+            <select className="field" value={condReads} onChange={(e) => setCondReads(e.target.value as FactorReading)} aria-label={t('What it did')}>
+              {readingsFor(data.nodes[condFactor]?.kind)
+                .filter((r) => r !== 'up' && r !== 'down')
+                .map((r) => (
+                  <option key={r} value={r}>
+                    {READS_LABEL[r]}
+                  </option>
+                ))}
+            </select>
+          )}
+        </div>
+      </div>
+      <p className="text-[11.5px] text-ink-3">
+        {claim.evidence.length
+          ? t(
+              'Changing what it connects, which way it acts, or when it holds makes a new version. The earlier one is kept, with its evidence; the evidence that still bears on the new one comes along.',
+            )
+          : t('Nothing is behind it yet, so it is simply changed.')}
+      </p>
       <div className="flex gap-2">
         <Button size="sm" variant="primary" type="submit" icon={Check}>
           {t('Save')}
@@ -560,5 +691,352 @@ function ClaimEditForm({ id, onDone }: { id: ID; onDone(): void }) {
         </Button>
       </div>
     </form>
+  );
+}
+
+const VERDICT_TEXT = {
+  get fits() {
+    return t('It was there, and this followed');
+  },
+  get exception() {
+    return t('It was there, and this did not follow');
+  },
+  get contrast() {
+    return t('Without it, this did not happen either');
+  },
+  get elsewhere() {
+    return t('Without it, this happened anyway');
+  },
+  get outside() {
+    return t('Its condition was not met: left out');
+  },
+};
+
+/** The episodes the record itself compares: what the cause did, and what the outcome did after. */
+function RecordComparison({ claim, judged }: { claim: Claim; judged: Set<string> }) {
+  const data = useAtlas((s) => s.data);
+  const { conflicts } = recordRows(data, claim);
+  const clash = new Set(conflicts.map((r) => r.outcome.key));
+  const all: (CaseRow & { conflict?: boolean })[] = caseRows(data, claim)
+    .map((r) => ({ ...r, conflict: clash.has(r.outcome.key) }))
+    .sort((x, y) => y.outcome.date.localeCompare(x.outcome.date));
+  const name = (id: ID) => data.nodes[id]?.label ?? '';
+  if (!all.length)
+    return (
+      <Muted>
+        {t('Nothing recorded compares them yet. When a note says which way {cause} went, and later which way {outcome} went, the Atlas can compare the two.', {
+          cause: name(claim.from),
+          outcome: name(claim.to),
+        })}
+      </Muted>
+    );
+  return (
+    <>
+      <Muted>{t('Read from what changed, never from what was only mentioned. Episodes you judged yourself keep your judgement.')}</Muted>
+      <ul className="mt-2 space-y-2">
+        {all.map((r) => (
+          <li
+            key={`${r.episode}:${r.outcome.key}`}
+            className={cn('rounded-[2px] border p-2 text-[12.5px]', r.conflict ? 'border-line-strong border-dashed' : 'border-line')}
+          >
+            <p className="text-ink-2">{VERDICT_TEXT[r.verdict]}</p>
+            <p className="mt-0.5 text-[11.5px] text-ink-3">
+              {stateSentence(name(r.cause.factor), r.cause.reads)} <span className="num">({formatDate(r.cause.date)})</span> →{' '}
+              {stateSentence(name(r.outcome.factor), r.outcome.reads)} <span className="num">({formatDate(r.outcome.date)})</span>
+            </p>
+            {r.verdict === 'fits' && !r.toldApart && r.others.length > 0 && (
+              <p className="mt-0.5 text-[11.5px] text-ink-3">
+                {t('Does not tell it apart from {names}: they could have done this too.', {
+                  names: r.others
+                    .filter((o) => o.explains || (o.kind === 'common' && !o.state))
+                    .map((o) => name(o.factor))
+                    .join(', '),
+                })}
+              </p>
+            )}
+            {r.conflict && (
+              <p className="mt-0.5 text-[11.5px] text-ink-2">
+                {t('You read this episode the other way. Your judgement stands; the record is shown so you can look again.')}
+              </p>
+            )}
+            {!r.conflict && judged.has(r.episode) && (
+              <p className="mt-0.5 text-[11.5px] text-ink-3">{t('You judged this episode yourself: it counts once, with your judgement.')}</p>
+            )}
+            {r.verdict === 'outside' && <p className="mt-0.5 text-[11.5px] text-ink-3">{t('Not counted either way.')}</p>}
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+/** Holding it up to what else could explain the same, and to time. */
+function OtherReadings({ claim, scrutiny: s }: { claim: Claim; scrutiny: ReturnType<typeof scrutinize> }) {
+  const data = useAtlas((st) => st.data);
+  const retire = useAtlas((st) => st.retireClaim);
+  const updateClaim = useAtlas((st) => st.updateClaim);
+  const open = useUI((st) => st.openEntity);
+  const name = (id: ID) => data.nodes[id]?.label ?? '';
+  const lines: { key: string; text: string; action?: { label: string; run(): void } }[] = [];
+  for (const c of s.commons)
+    lines.push({
+      key: `c:${c.factor}`,
+      text: t('{c} may drive both {a} and {b}: when it moves, both can move together without one causing the other.', {
+        c: name(c.factor),
+        a: name(claim.from),
+        b: name(claim.to),
+      }),
+    });
+  for (const r of s.reverse)
+    lines.push({ key: `r:${r.id}`, text: t('It may run the other way: {b} may change {a} too.', { a: name(claim.from), b: name(claim.to) }) });
+  for (const x of s.shared)
+    lines.push({
+      key: `s:${x.claim.id}`,
+      text: tn(
+        x.episodes,
+        'One of its episodes is also behind “{other}”: the same time read two ways.',
+        '{n} of its episodes are also behind “{other}”: the same times read two ways.',
+        {
+          other: claimSentence(data, x.claim),
+        },
+      ),
+    });
+  if (s.backFromExtreme)
+    lines.push({
+      key: 'b',
+      text: tn(
+        s.backFromExtreme,
+        'Once, {b} moved right after being at its other extreme: some of that comes anyway, as things drift back toward usual.',
+        '{n} times, {b} moved right after being at its other extreme: some of that comes anyway, as things drift back toward usual.',
+        { b: name(claim.to) },
+      ),
+    });
+  if (s.stopped)
+    lines.push({
+      key: 'stop',
+      text: tn(s.stopped.since, 'It held until {month}; the latest time, it did not.', 'It held until {month}; the latest {n} times, it did not.', {
+        month: formatMonth(s.stopped.heldUntil),
+      }),
+      action: { label: t('It stopped holding'), run: () => retire(claim.id, t('The latest times, it did not hold.')) },
+    });
+  if (s.condition) {
+    const cond = s.condition;
+    lines.push({
+      key: 'cond',
+      text: t('Every time it held, {f} was {state}; the times it did not, it was not. Maybe it only holds then.', {
+        f: name(cond.factor),
+        state: cond.reads === 'high' ? t('high') : t('low'),
+      }),
+      action: {
+        label: t('Only when {f} is {state}?', { f: name(cond.factor), state: cond.reads === 'high' ? t('high') : t('low') }),
+        run: () => {
+          const next = updateClaim(claim.id, { condition: { factor: cond.factor, reads: cond.reads } });
+          if (next !== claim.id) open({ kind: 'claim', id: next });
+        },
+      },
+    });
+  }
+  if (s.delays) {
+    const took = s.delays[0] === s.delays[1] ? t('{n} days', { n: s.delays[0] }) : t('{a}–{b} days', { a: s.delays[0], b: s.delays[1] });
+    const outside = claim.lag && (s.delays[1] > s.stated[1] || s.delays[0] < s.stated[0]);
+    lines.push({
+      key: 'lag',
+      text: outside
+        ? t('It took {took} in the times recorded; you said {lag}.', { took, lag: claim.lag! })
+        : t('It took {took} in the times recorded.', { took }),
+    });
+  }
+  if (s.writtenLater)
+    lines.push({
+      key: 'late',
+      text: tn(
+        s.writtenLater,
+        'One supporting moment was written down days after it happened, when the outcome may already have been known.',
+        '{n} supporting moments were written down days after they happened, when the outcome may already have been known.',
+      ),
+    });
+  if (!lines.length) return null;
+  return (
+    <PanelSection title={t('Other ways to read it')} count={lines.length}>
+      <ul className="space-y-2">
+        {lines.map((l) => (
+          <li key={l.key} className="text-[12.5px] leading-snug text-ink-2">
+            {l.text}
+            {l.action && (
+              <Button size="sm" variant="ghost" className="mt-1 block" onClick={l.action.run}>
+                {l.action.label}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </PanelSection>
+  );
+}
+
+/** Predictions resting on a claim, and writing a new one down before the window. */
+function Predictions({
+  claim,
+  direct,
+  chains,
+}: {
+  claim: Claim;
+  direct: ReturnType<typeof expectationsFor>['direct'];
+  chains: ReturnType<typeof expectationsFor>['chains'];
+}) {
+  const data = useAtlas((s) => s.data);
+  const addExpectation = useAtlas((s) => s.addExpectation);
+  const open = useUI((s) => s.openEntity);
+  const [writing, setWriting] = useState(false);
+  const kind = data.nodes[claim.to]?.kind;
+  const withCause = pushes(claim.effect, 'more');
+  const defaultReads: FactorReading = kind === 'behaviour' ? (withCause === 'more' ? 'present' : 'absent') : withCause === 'more' ? 'up' : 'down';
+  const [reads, setReads] = useState<FactorReading>(defaultReads);
+  const [days, setDays] = useState(String(Math.max(7, Math.min(90, lagWindow(claim)))));
+  const list = (items: typeof direct) => (
+    <ul className="-mx-1.5">
+      {items.map((v) => (
+        <li key={v.occurrence.id}>
+          <button
+            type="button"
+            className="w-full rounded-[2px] px-1.5 py-1 text-left hover:bg-ink/[0.035]"
+            onClick={() => open({ kind: 'occurrence', id: v.occurrence.id })}
+          >
+            <ExpectationLine view={v} />
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+  return (
+    <>
+      {direct.length > 0 ? (
+        list(direct)
+      ) : (
+        <Muted>{t('No prediction from it yet. A prediction written down before, then checked, is the surest way to learn whether it holds.')}</Muted>
+      )}
+      {chains.length > 0 && (
+        <>
+          <div className="label mt-2.5 mb-1">{t('Part of a chain')}</div>
+          {list(chains)}
+          <p className="mt-1 text-[11.5px] text-ink-3">
+            {t('A chain is checked together: if it fails, one of its reasons did not hold, not necessarily this one.')}
+          </p>
+        </>
+      )}
+      {!claim.retired && claim.state === 'adopted' && (
+        <div className="mt-2">
+          {writing ? (
+            <form
+              className="space-y-2 rounded-[2px] border border-line p-2.5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const n = Math.max(1, Math.round(Number(days) || 28));
+                const today = todayISO();
+                const occ = addExpectation({
+                  factor: claim.to,
+                  reads,
+                  from: today,
+                  until: addDays(today, n),
+                  label: expectSentence(data.nodes[claim.to]?.label ?? '', reads),
+                  basis: [claim.id],
+                });
+                setWriting(false);
+                open({ kind: 'occurrence', id: occ });
+              }}
+            >
+              <p className="text-[12px] text-ink-3">
+                {t('If this holds, and {cause} is as it is now, what should happen to {outcome}?', {
+                  cause: data.nodes[claim.from]?.label ?? '',
+                  outcome: data.nodes[claim.to]?.label ?? '',
+                })}
+              </p>
+              <div className="flex flex-wrap gap-1">
+                {readingsFor(kind).map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    aria-pressed={reads === r}
+                    onClick={() => setReads(r)}
+                    className={cn(
+                      'rounded-[2px] border px-2 py-0.5 text-[12px]',
+                      reads === r ? 'border-ink/50 bg-ink/[0.07] text-ink' : 'border-line text-ink-3 hover:text-ink',
+                    )}
+                  >
+                    {READS_LABEL[r]}
+                  </button>
+                ))}
+              </div>
+              <label className="flex items-center gap-2 text-[12px] text-ink-3">
+                {t('Within')}
+                <input className="field w-[72px]" inputMode="numeric" value={days} onChange={(e) => setDays(e.target.value)} />
+                {t('days')}
+              </label>
+              <div className="flex gap-2">
+                <Button size="sm" variant="primary" type="submit" icon={Check}>
+                  {t('Write it down')}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setWriting(false)}>
+                  {t('Cancel')}
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <Button size="sm" variant="ghost" icon={Plus} onClick={() => setWriting(true)}>
+              {t('Write down a prediction')}
+            </Button>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+/** A whole thing at either end, with what about it changes: offer to make that its own element. */
+function PromoteAspects({ claim }: { claim: Claim }) {
+  const data = useAtlas((s) => s.data);
+  const promote = useAtlas((s) => s.promoteAspect);
+  const open = useUI((s) => s.openEntity);
+  const [end, setEnd] = useState<'from' | 'to' | null>(null);
+  const [label, setLabel] = useState('');
+  const ends = (['from', 'to'] as const).filter((e) => claim.aspect?.[e]?.trim() && data.nodes[claim[e]] && !isFactorKind(data.nodes[claim[e]].kind));
+  if (!ends.length) return null;
+  return (
+    <div className="mt-2">
+      {end ? (
+        <form
+          className="flex flex-wrap items-center gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const next = promote(claim.id, end, label);
+            setEnd(null);
+            if (next) open({ kind: 'claim', id: next });
+          }}
+        >
+          <input className="field min-w-0 flex-1" value={label} onChange={(e) => setLabel(e.target.value)} aria-label={t('Name')} autoFocus />
+          <Button size="sm" variant="primary" type="submit" icon={Check}>
+            {t('Make it')}
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setEnd(null)}>
+            {t('Cancel')}
+          </Button>
+        </form>
+      ) : (
+        ends.map((e) => (
+          <Button
+            key={e}
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setEnd(e);
+              setLabel(`${data.nodes[claim[e]].label}: ${claim.aspect![e]!.trim()}`);
+            }}
+            title={t('The thing itself is not the cause: what changes about it can be its own element, part of it, recorded and compared.')}
+          >
+            {t('Make “{aspect}” its own element', { aspect: claim.aspect![e]!.trim() })}
+          </Button>
+        ))
+      )}
+    </div>
   );
 }

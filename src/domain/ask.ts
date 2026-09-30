@@ -5,12 +5,13 @@
  * it did. The analytical work (claims, evidence, history windows, patterns)
  * happens here; the interface only shows the answers, in plain words.
  */
-import { addDays, formatMonth, todayISO, weekStart } from '../lib/dates';
+import { addDays, formatMonth, todayISO } from '../lib/dates';
 import { t, tn } from '../i18n';
-import { byStrength, claimsInto, claimsOutOf, claimStatus, evidenceProfile } from './claims';
+import { byStrength, claimsInto, claimsOutOf, claimStatus, evidenceEpisode, evidenceProfile } from './claims';
+import { commonCauses, rivalsOf } from './compare';
 import { AREA_META, areaHubId, isAreaHubId, areaHubKey, YOU_ID } from './constants';
 import { historyItems } from './history';
-import { mapElements, patternsForNode, patternStats, patternTitle, resolveSource, thinSpots } from './selectors';
+import { mapElements, patternsForNode, patternStats, patternTitle, thinSpots } from './selectors';
 import type { AreaKey, AtlasData, AtlasNode, Claim, ElementKind, EntityRef, ID, ISODate, Pattern } from './types';
 
 /* ---------------- the focus ---------------- */
@@ -138,27 +139,17 @@ export function reasonsFor(data: AtlasData, id: ID): Claim[] {
  * independent confirmations.
  */
 export function sharedWithRepeats(data: AtlasData, claim: Claim): { pattern: Pattern; weeks: number }[] {
-  const claimWeeks = new Set(
-    claim.evidence
-      .filter((e) => e.stance === 'supports' && (e.kind === 'instance' || e.kind === 'contrast' || !e.kind))
-      .map((e) => resolveSource(data, e.source).date)
-      .filter((d): d is ISODate => Boolean(d))
-      .map((d) => weekStart(d)),
+  const claimEpisodes = new Set(
+    claim.evidence.filter((e) => e.stance === 'supports' && (e.kind === 'instance' || e.kind === 'contrast' || !e.kind)).map((e) => evidenceEpisode(data, e)),
   );
-  if (!claimWeeks.size) return [];
+  if (!claimEpisodes.size) return [];
   const ends = [claim.from, ...claim.with, claim.to];
   return Object.values(data.patterns)
     .filter((p) => !p.setAside && ends.every((id) => id === claim.to || p.nodeIds.includes(id) || p.steps.some((s) => s.elementId === id)))
     .filter((p) => p.nodeIds.includes(claim.to) || p.steps.some((s) => s.elementId === claim.to))
     .map((pattern) => {
-      const weeks = new Set(
-        pattern.evidence
-          .filter((e) => e.stance === 'supports')
-          .map((e) => resolveSource(data, e.source).date)
-          .filter((d): d is ISODate => Boolean(d))
-          .map((d) => weekStart(d)),
-      );
-      return { pattern, weeks: [...claimWeeks].filter((w) => weeks.has(w)).length };
+      const theirs = new Set(pattern.evidence.filter((e) => e.stance === 'supports').map((e) => evidenceEpisode(data, e)));
+      return { pattern, weeks: [...claimEpisodes].filter((w) => theirs.has(w)).length };
     })
     .filter((x) => x.weeks > 0);
 }
@@ -171,9 +162,22 @@ export function sharedWithRepeats(data: AtlasData, claim: Claim): { pattern: Pat
 export function whyWeThink(data: AtlasData, claim: Claim): string[] {
   const p = evidenceProfile(data, claim);
   const out: string[] = [];
+  const name = (id: ID) => data.nodes[id]?.label ?? '';
   if (p.testsFor) out.push(t('You tested it, and what you predicted happened.'));
-  if (p.testsAgainst) out.push(t('A test did not go as predicted.'));
-  if (p.episodes) out.push(tn(p.episodes, 'Seen in {n} separate week, in that order.', 'Seen in {n} separate weeks, in that order.'));
+  if (p.testsAgainst) out.push(tn(p.testsAgainst, 'A test did not go as predicted.', '{n} tests did not go as predicted.'));
+  if (p.predictionsHeld) out.push(tn(p.predictionsHeld, 'A prediction you wrote down from it held.', '{n} predictions you wrote down from it held.'));
+  if (p.predictionsFailed)
+    out.push(tn(p.predictionsFailed, 'A prediction you wrote down from it did not hold.', '{n} predictions you wrote down from it did not hold.'));
+  if (p.episodes) out.push(tn(p.episodes, 'Seen in {n} separate episode, in that order.', 'Seen in {n} separate episodes, in that order.'));
+  const recorded = (p.fromRecord?.fits ?? 0) + (p.fromRecord?.contrast ?? 0);
+  if (recorded)
+    out.push(
+      tn(
+        recorded,
+        'One of them comes from what was recorded changing, not only from your reading.',
+        '{n} of them come from what was recorded changing, not only from your reading.',
+      ),
+    );
   if (p.contrast) out.push(tn(p.contrast, 'Once, without it, this did not happen either.', '{n} times, without it, this did not happen either.'));
   if (p.mechanism) out.push(t('The “how” shows in what you wrote.'));
   if (p.counter) out.push(tn(p.counter, 'Once it was there and this did not follow.', '{n} times it was there and this did not follow.'));
@@ -189,13 +193,43 @@ export function whyWeThink(data: AtlasData, claim: Claim): string[] {
     out.push(
       tn(p.outOfOrder, '{n} sequence does not count: the order or the delay does not fit.', '{n} sequences do not count: the order or the delay does not fit.'),
     );
+  if (p.happensAnyway && p.baseRate)
+    out.push(
+      t('{outcome} went this way in {same} of {known} recorded episodes anyway, so a time it followed says little on its own.', {
+        outcome: name(claim.to),
+        same: p.baseRate.same,
+        known: p.baseRate.known,
+      }),
+    );
+  if (p.needsTellingApart) {
+    const others = [...new Set([...commonCauses(data, claim).map((c) => c.factor), ...rivalsOf(data, claim).map((r) => r.from)])].map(name).join(', ');
+    out.push(
+      p.toldApart
+        ? tn(
+            p.toldApart,
+            'Once, it happened with nothing recorded showing {others} doing the same.',
+            '{n} times, it happened with nothing recorded showing {others} doing the same.',
+            { others },
+          )
+        : t('Nothing yet tells it apart from {others}.', { others }),
+    );
+  }
+  if (p.conflicts)
+    out.push(
+      tn(
+        p.conflicts,
+        'In {n} episode, your reading and what was recorded point different ways.',
+        'In {n} episodes, your reading and what was recorded point different ways.',
+      ),
+    );
   for (const { pattern, weeks } of sharedWithRepeats(data, claim))
     out.push(
-      tn(weeks, 'One of these weeks is also part of the repeat “{title}”.', '{n} of these weeks are also part of the repeat “{title}”.', {
+      tn(weeks, 'One of these episodes is also part of the repeat “{title}”.', '{n} of these episodes are also part of the repeat “{title}”.', {
         title: patternTitle(pattern),
       }),
     );
-  if (!p.episodes && !p.testsFor && !p.mechanism && !p.contrast) out.unshift(t('Nothing in your notes shows it yet: for now it is a hunch.'));
+  if (!p.episodes && !p.testsFor && !p.mechanism && !p.contrast && !p.predictionsHeld)
+    out.unshift(t('Nothing in your notes shows it yet: for now it is a hunch.'));
   return out;
 }
 

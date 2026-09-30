@@ -2,17 +2,20 @@ import { ArrowUpRight, Play } from 'lucide-react';
 import { ExperimentIcon } from '../icons';
 import { useState } from 'react';
 import { navigate } from '../../app/router';
-import { EXPERIMENT_STATUS_LABEL } from '../../domain/constants';
+import { EXPERIMENT_STATUS_LABEL, expectSentence, stateSentence } from '../../domain/constants';
+import { testCheck } from '../../domain/expect';
+import { mapElements } from '../../domain/selectors';
 import { experimentCode, experimentProgress, pathCode, patternCode } from '../../domain/selectors';
 import type { ID } from '../../domain/types';
-import { formatDate, todayISO, useToday } from '../../lib/dates';
+import { addDays, formatDate, todayISO, useToday } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { ResultModal } from '../experiments/ResultModal';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Progress } from '../ui/primitives';
-import { ClaimRow, NodeChip, PanelSection } from './parts';
+import { ExpectationLine, FactorReadingPicker } from './Changes';
+import { ClaimRow, Muted, NodeChip, PanelSection } from './parts';
 import { KnowledgeTag } from '../evidence/Status';
 import { t } from '../../i18n';
 
@@ -25,9 +28,23 @@ export function ExperimentView({ id }: { id: ID }) {
   const back = useUI((s) => s.back);
   const close = useUI((s) => s.closeInspector);
   const [recording, setRecording] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const addExpectation = useAtlas((s) => s.addExpectation);
   useToday();
   if (!x) return null;
   const prog = experimentProgress(x);
+  const check = testCheck(data, x);
+  const claim = x.claimId ? data.claims[x.claimId] : undefined;
+  const factorChoices = [
+    ...new Set([
+      ...(claim ? [claim.to] : []),
+      ...x.measures.map((m) => m.factor).filter((f): f is ID => Boolean(f)),
+      ...mapElements(data)
+        .filter((n) => n.kind === 'state' || n.kind === 'behaviour')
+        .map((n) => n.id),
+    ]),
+  ];
+  const name = (f: ID) => data.nodes[f]?.label ?? '';
 
   return (
     <div>
@@ -112,6 +129,55 @@ export function ExperimentView({ id }: { id: ID }) {
         </div>
       </div>
 
+      <PanelSection title={t('The prediction, as a check')}>
+        {check.expectation ? (
+          <>
+            <button type="button" className="w-full text-left" onClick={() => open({ kind: 'occurrence', id: check.expectation!.occurrence.id })}>
+              <ExpectationLine view={check.expectation} />
+            </button>
+            <p className="mt-1 text-[11.5px] text-ink-3">
+              {check.lockedBefore === false
+                ? t('Written down after the test began. The result will count as a time it happened, not as a test.')
+                : t('Written down before the test began, so the result can count as a test.')}
+            </p>
+          </>
+        ) : checking ? (
+          <FactorReadingPicker
+            factorIds={factorChoices}
+            submitLabel={t('Write it down')}
+            onPick={(factor, reads) => {
+              const from = x.startDate ?? todayISO();
+              addExpectation({
+                factor,
+                reads,
+                from,
+                until: addDays(from, Math.max(1, x.durationDays - 1)),
+                label: expectSentence(name(factor), reads),
+                basis: x.claimId ? [x.claimId] : [],
+                source: { kind: 'experiment', id: x.id },
+                excerpt: x.prediction,
+              });
+              setChecking(false);
+            }}
+          />
+        ) : (
+          <>
+            <Muted>{t('The prediction is in words. Saying which element should move, and which way, lets the Atlas check it against what you record.')}</Muted>
+            <Button size="sm" variant="ghost" className="mt-1.5" onClick={() => setChecking(true)}>
+              {t('Make it checkable')}
+            </Button>
+          </>
+        )}
+        {check.fromExtreme && (
+          <p className="mt-2 text-[12px] text-ink-2">
+            {t('It began just after {what} ({date}). Things tend to drift back toward usual from there, so some of the change may have come anyway.', {
+              what: stateSentence(name(check.fromExtreme.factor), check.fromExtreme.reads),
+              date: formatDate(check.fromExtreme.date),
+            })}
+          </p>
+        )}
+      </PanelSection>
+
       <PanelSection title={t('Measure')} count={x.measures.length}>
         <table className="w-full text-[12.5px]">
           <thead>
@@ -125,7 +191,30 @@ export function ExperimentView({ id }: { id: ID }) {
           <tbody className="align-top">
             {x.measures.map((m) => (
               <tr key={m.id} className="border-t border-line">
-                <td className="py-1.5 pr-2 text-ink-2">{m.label}</td>
+                <td className="py-1.5 pr-2 text-ink-2">
+                  {m.label}
+                  {m.factor ? (
+                    <span className="mt-0.5 block">
+                      <NodeChip id={m.factor} className="py-0 text-[11px]" />
+                    </span>
+                  ) : (
+                    <select
+                      className="mt-0.5 block w-full bg-transparent text-[11px] text-ink-3"
+                      value=""
+                      aria-label={t('Which element it measures')}
+                      onChange={(e) =>
+                        e.target.value && update(id, { measures: x.measures.map((y) => (y.id === m.id ? { ...y, factor: e.target.value } : y)) })
+                      }
+                    >
+                      <option value="">{t('Link to an element…')}</option>
+                      {factorChoices.map((f) => (
+                        <option key={f} value={f}>
+                          {name(f)}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </td>
                 <td className="num py-1.5 pr-2 text-ink-3">{m.baseline ?? '—'}</td>
                 <td className="num py-1.5 pr-2 text-ink-3">{m.target ?? '—'}</td>
                 <td className="num py-1.5 text-ink">{m.result ?? '—'}</td>
@@ -133,6 +222,18 @@ export function ExperimentView({ id }: { id: ID }) {
             ))}
           </tbody>
         </table>
+        {check.window.some((w) => w.states.length) && (
+          <div className="mt-2.5">
+            <div className="label mb-1">{t('Recorded during the test')}</div>
+            <ul className="space-y-0.5 text-[12px] text-ink-2">
+              {check.window
+                .filter((w) => w.states.length)
+                .map((w) => (
+                  <li key={w.measureId}>{w.states.map((st) => `${stateSentence(name(st.factor), st.reads)} (${formatDate(st.date)})`).join('; ')}</li>
+                ))}
+            </ul>
+          </div>
+        )}
       </PanelSection>
 
       {x.result && (
