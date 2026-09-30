@@ -1,5 +1,5 @@
-import { ArrowDown, Crosshair, Plus, SkipForward } from 'lucide-react';
-import { useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import { ArrowDown, ChevronDown, Crosshair, Plus, SkipForward } from 'lucide-react';
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { navigate } from '../../app/router';
 import { PLACE_ICONS } from '../../components/icons';
 import { BossEye, type EyeHandle } from '../../components/quests/BossEye';
@@ -51,36 +51,44 @@ function readout(b: Boss) {
   return { big: `T–${b.daysLeft}`, small: tn(b.daysLeft, 'day left', 'days left') };
 }
 
-/** A boss's strength as a bar, a segment per piece of work. */
-function HpBar({ boss, className }: { boss: Boss; className?: string }) {
+/** A boss's strength as a bar, a segment per piece of work. On the stage it flickers in a segment at a time, from `at`. */
+function HpBar({ boss, className, at }: { boss: Boss; className?: string; at?: number }) {
   return (
     <div className={cn('flex h-1.5 gap-[2px]', className)} role="img" aria-label={t('{hp} of {max} still open', { hp: boss.hp, max: boss.maxHp })}>
-      {boss.parts.map((p) => (
+      {boss.parts.map((p, i) => (
         <span
           key={p.id}
-          className={cn('min-w-[3px] flex-1 rounded-[1px]', p.done ? 'bg-ink/10' : boss.daysLeft <= 7 && boss.state === 'active' ? 'bg-accent' : 'bg-ink/80')}
+          className={cn(
+            'min-w-[3px] flex-1 rounded-[1px]',
+            at !== undefined && 'quest-hud-in',
+            p.done ? 'bg-ink/10' : boss.daysLeft <= 7 && boss.state === 'active' ? 'bg-accent' : 'bg-ink/80',
+          )}
+          style={at !== undefined ? ({ '--in': `${(at + i * 0.06).toFixed(2)}s` } as CSSProperties) : undefined}
         />
       ))}
     </div>
   );
 }
 
-/** Its date as a countdown, and its strength. */
+/** Its date as a countdown, and its strength: on the stage they flicker in after its name, as it lands. */
 function Readout({ boss, urgent }: { boss: Boss; urgent: boolean }) {
   const r = readout(boss);
   return (
-    <div>
-      <div className="flex items-end gap-3">
+    <div key={boss.id}>
+      <div className="quest-hud-in flex items-end gap-3" style={{ '--in': '2.3s' } as CSSProperties}>
         <span className={cn('font-mono text-[44px] leading-[0.9] tracking-[-0.03em] lg:text-[60px]', urgent ? 'text-accent' : 'text-ink')}>{r.big}</span>
         <span className="mb-1 font-mono text-[10.5px] tracking-[0.16em] text-ink-3 uppercase">{r.small}</span>
       </div>
-      <div className="mt-3 flex items-baseline justify-between gap-3 font-mono text-[11px] tracking-wider text-ink-2">
+      <div
+        className="quest-hud-in mt-3 flex items-baseline justify-between gap-3 font-mono text-[11px] tracking-wider text-ink-2"
+        style={{ '--in': '2.45s' } as CSSProperties}
+      >
         <span>
           HP {boss.hp} / {boss.maxHp}
         </span>
         <span className="text-ink-3">{formatDate(boss.due)}</span>
       </div>
-      <HpBar boss={boss} className="mt-1.5" />
+      <HpBar boss={boss} className="mt-1.5" at={2.55} />
     </div>
   );
 }
@@ -147,8 +155,12 @@ export function QuestsPage() {
   const hudTop = useRef<HTMLDivElement>(null);
   const hudBottom = useRef<HTMLDivElement>(null);
   const consoleBox = useRef<HTMLElement>(null);
+  const consoleMain = useRef<HTMLDivElement>(null);
+  // On a wide screen the console shows only what brings it down; the rest opens over the stage on asking.
+  const [details, setDetails] = useState(false);
   const boss = q.bosses.find((b) => b.id === pick) ?? q.current ?? q.bosses[0];
-  const avoid = useTextBoxes(stage, [hudTop, hudBottom, consoleBox], `${boss?.id ?? 'none'}|${wide}`);
+  // The eye keeps clear of the console as it stands closed, so opening its details does not move the eye.
+  const avoid = useTextBoxes(stage, [hudTop, hudBottom, wide ? consoleMain : consoleBox], `${boss?.id ?? 'none'}|${wide}`);
   const armor = useMemo(() => (boss ? bossArmor(data, boss.id, today) : []), [data, boss, today]);
 
   const strike = (b: Boss, p: BossPart, from?: Element) => {
@@ -326,145 +338,161 @@ export function QuestsPage() {
         {/* The console: what brings it down (beside it on a wide screen, below it on a phone). */}
         <aside
           ref={consoleBox}
-          className="quest-console absolute inset-x-0 top-[66%] bottom-0 overflow-y-auto px-4 pt-8 pb-5 lg:inset-x-auto lg:top-4 lg:right-4 lg:bottom-auto lg:max-h-[calc(100%-2rem)] lg:w-[384px] lg:border lg:border-line lg:p-4"
+          className="quest-console absolute inset-x-0 top-[66%] bottom-0 overflow-y-auto px-4 pt-8 pb-5 lg:inset-x-auto lg:top-4 lg:right-4 lg:bottom-auto lg:max-h-[calc(100%-2rem)] lg:w-[384px] lg:border lg:border-line lg:p-0"
           aria-label={t('What brings it down')}
         >
-          <div className="lg:hidden">
-            <Readout boss={boss} urgent={urgent} />
-          </div>
-          <div className="mt-5 flex items-baseline justify-between gap-2 lg:mt-0">
-            <h3 className="label">{t('What brings it down')}</h3>
-            <span className="font-mono text-[10.5px] text-ink-3">{tn(open.length, 'one open', '{n} open')}</span>
-          </div>
-          {open.length === 0 ? (
-            <p className="mt-2 text-[12.5px] text-ink-3">{t('Nothing left open.')}</p>
-          ) : (
-            <ul className="mt-2 divide-y divide-line border-y border-line">
-              {open.map((p) => (
-                <li
-                  key={p.id}
-                  className="flex items-start gap-2.5 py-2"
-                  onMouseEnter={() => setLook(p.id)}
-                  onMouseLeave={() => setLook(undefined)}
-                  onFocus={() => setLook(p.id)}
-                  onBlur={() => setLook(undefined)}
-                >
-                  <button
-                    type="button"
-                    disabled={boss.state === 'escaped'}
-                    onClick={(e) => strike(boss, p, e.currentTarget)}
-                    onPointerEnter={() => arm(true)}
-                    onPointerLeave={() => arm(false)}
-                    onFocus={() => arm(true)}
-                    onBlur={() => arm(false)}
-                    className="mt-px inline-flex h-7 shrink-0 items-center gap-1 rounded-[2px] border border-line-strong bg-canvas/40 px-2 text-[12px] text-ink hover:border-accent/70 hover:text-accent disabled:opacity-40"
-                    title={p.kind === 'action' ? t('Mark this step done (+{xp} XP)', { xp: XP.step }) : t('Mark this target met (+{xp} XP)', { xp: XP.target })}
+          <div ref={consoleMain} className="lg:p-4">
+            <div className="lg:hidden">
+              <Readout boss={boss} urgent={urgent} />
+            </div>
+            <div className="mt-5 flex items-baseline justify-between gap-2 lg:mt-0">
+              <h3 className="label">{t('What brings it down')}</h3>
+              <span className="font-mono text-[10.5px] text-ink-3">{tn(open.length, 'one open', '{n} open')}</span>
+            </div>
+            {open.length === 0 ? (
+              <p className="mt-2 text-[12.5px] text-ink-3">{t('Nothing left open.')}</p>
+            ) : (
+              <ul className="mt-2 divide-y divide-line border-y border-line">
+                {open.map((p) => (
+                  <li
+                    key={p.id}
+                    className="flex items-start gap-2.5 py-2"
+                    onMouseEnter={() => setLook(p.id)}
+                    onMouseLeave={() => setLook(undefined)}
+                    onFocus={() => setLook(p.id)}
+                    onBlur={() => setLook(undefined)}
                   >
-                    <Crosshair size={12} aria-hidden />
-                    {t('Strike')}
-                  </button>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[13px] leading-snug text-ink">
-                      <span className="mr-1.5 font-mono text-[10.5px] text-ink-3">{pad(number.get(p.id))}</span>
-                      {p.title}
-                    </div>
-                    <div className="mt-0.5 font-mono text-[10.5px] tracking-wide text-ink-3 uppercase">
-                      {p.kind === 'target'
-                        ? t('Target · due {date}', { date: formatDate(p.due) })
-                        : p.week === week
-                          ? t('Step · this week')
-                          : p.week! < week
-                            ? t('Step · from the week of {date}', { date: formatDate(p.week) })
-                            : t('Step · week of {date}', { date: formatDate(p.week) })}
-                    </div>
-                  </div>
-                  {p.kind === 'action' && boss.state !== 'escaped' && (
                     <button
                       type="button"
-                      onClick={() => skip(p)}
-                      className="mt-1 shrink-0 text-ink-3 hover:text-ink"
-                      title={t('Set this step aside')}
-                      aria-label={t('Set this step aside')}
+                      disabled={boss.state === 'escaped'}
+                      onClick={(e) => strike(boss, p, e.currentTarget)}
+                      onPointerEnter={() => arm(true)}
+                      onPointerLeave={() => arm(false)}
+                      onFocus={() => arm(true)}
+                      onBlur={() => arm(false)}
+                      className="mt-px inline-flex h-7 shrink-0 items-center gap-1 rounded-[2px] border border-line-strong bg-canvas/40 px-2 text-[12px] text-ink hover:border-accent/70 hover:text-accent disabled:opacity-40"
+                      title={
+                        p.kind === 'action' ? t('Mark this step done (+{xp} XP)', { xp: XP.step }) : t('Mark this target met (+{xp} XP)', { xp: XP.target })
+                      }
                     >
-                      <SkipForward size={13} aria-hidden />
+                      <Crosshair size={12} aria-hidden />
+                      {t('Strike')}
                     </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          )}
-          {done.length > 0 && (
-            <details className="mt-3 text-[12.5px]">
-              <summary className="cursor-pointer text-ink-3 hover:text-ink">{t('Already down ({n})', { n: done.length })}</summary>
-              <ul className="mt-1.5 space-y-1 text-ink-3">
-                {done.map((p) => (
-                  <li key={p.id} className="line-through decoration-ink-3/50">
-                    <span className="mr-1.5 font-mono text-[10.5px]">{pad(number.get(p.id))}</span>
-                    {p.title}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13px] leading-snug text-ink">
+                        <span className="mr-1.5 font-mono text-[10.5px] text-ink-3">{pad(number.get(p.id))}</span>
+                        {p.title}
+                      </div>
+                      <div className="mt-0.5 font-mono text-[10.5px] tracking-wide text-ink-3 uppercase">
+                        {p.kind === 'target'
+                          ? t('Target · due {date}', { date: formatDate(p.due) })
+                          : p.week === week
+                            ? t('Step · this week')
+                            : p.week! < week
+                              ? t('Step · from the week of {date}', { date: formatDate(p.week) })
+                              : t('Step · week of {date}', { date: formatDate(p.week) })}
+                      </div>
+                    </div>
+                    {p.kind === 'action' && boss.state !== 'escaped' && (
+                      <button
+                        type="button"
+                        onClick={() => skip(p)}
+                        className="mt-1 shrink-0 text-ink-3 hover:text-ink"
+                        title={t('Set this step aside')}
+                        aria-label={t('Set this step aside')}
+                      >
+                        <SkipForward size={13} aria-hidden />
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>
-            </details>
-          )}
-          <p className="mt-4 text-[12.5px] leading-snug text-ink-2">{forecast}</p>
-          {boss.state === 'escaped' && (
-            <form
-              className="mt-2 flex flex-wrap items-center gap-2"
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!again || again <= today) return;
-                retryDeadline(boss.kind === 'milestone' ? 'milestone' : boss.targetId!, again);
-                setAgain('');
-                toast(t('{title} is back, due {date}. The date that passed stays on Time.', { title: boss.title, date: formatDate(again) }));
-              }}
-            >
-              <input
-                type="date"
-                className="field h-8 w-auto py-0"
-                min={today}
-                value={again}
-                onChange={(e) => setAgain(e.target.value)}
-                aria-label={t('New date')}
-              />
-              <Button size="sm" type="submit" disabled={!again || again <= today}>
-                {t('Take it on again')}
-              </Button>
-            </form>
-          )}
-          <p className="mt-3 text-[11.5px] leading-snug text-ink-3">
-            {t('Its strength is what is still open in your plan. It only drops when something is really done, and doing it here does it in Ahead too.')}
-          </p>
-          <button
-            type="button"
-            onClick={() => scrollTo('quest-armor')}
-            className="mt-4 flex w-full items-center justify-between gap-2 border-t border-line pt-3 text-left text-[12.5px] text-ink-2 hover:text-ink"
-          >
-            <span>
-              <span className="label mr-2">{t('Armor')}</span>
-              {armor.length ? tn(standing, 'one plate standing', '{n} plates standing') : t('none marked yet')}
-            </span>
-            <ArrowDown size={13} aria-hidden />
-          </button>
-          <button
-            type="button"
-            onClick={() => scrollTo('quest-below')}
-            className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] text-ink-3 uppercase hover:text-ink"
-          >
-            <ArrowDown size={12} aria-hidden />
-            {t('Armor, arsenal and the other bosses')}
-          </button>
-          {boss.source === 'own' && (
-            <div className="mt-4 border-t border-line pt-3">
-              <ConfirmButton
-                label={t('Drop this quest')}
-                confirmLabel={t('Drop it and its steps')}
-                onConfirm={() => {
-                  deleteTarget(boss.targetId!);
-                  setPick(undefined);
+            )}
+            {boss.state === 'escaped' && (
+              <form
+                className="mt-3 flex flex-wrap items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!again || again <= today) return;
+                  retryDeadline(boss.kind === 'milestone' ? 'milestone' : boss.targetId!, again);
+                  setAgain('');
+                  toast(t('{title} is back, due {date}. The date that passed stays on Time.', { title: boss.title, date: formatDate(again) }));
                 }}
-              />
-            </div>
-          )}
+              >
+                <input
+                  type="date"
+                  className="field h-8 w-auto py-0"
+                  min={today}
+                  value={again}
+                  onChange={(e) => setAgain(e.target.value)}
+                  aria-label={t('New date')}
+                />
+                <Button size="sm" type="submit" disabled={!again || again <= today}>
+                  {t('Take it on again')}
+                </Button>
+              </form>
+            )}
+            <button
+              type="button"
+              onClick={() => setDetails((d) => !d)}
+              aria-expanded={details}
+              aria-controls="quest-details"
+              className="mt-3 hidden w-full items-center justify-between gap-2 font-mono text-[10.5px] tracking-[0.14em] text-ink-3 uppercase hover:text-ink lg:flex"
+            >
+              {details ? t('Hide details') : t('Details')}
+              <ChevronDown size={13} aria-hidden className={cn('transition-transform duration-200', details && 'rotate-180')} />
+            </button>
+          </div>
+          <div id="quest-details" className={cn(!details && 'lg:hidden', 'lg:mx-4 lg:border-t lg:border-line lg:pt-3 lg:pb-4')}>
+            {done.length > 0 && (
+              <details className="mt-3 text-[12.5px] lg:mt-0">
+                <summary className="cursor-pointer text-ink-3 hover:text-ink">{t('Already down ({n})', { n: done.length })}</summary>
+                <ul className="mt-1.5 space-y-1 text-ink-3">
+                  {done.map((p) => (
+                    <li key={p.id} className="line-through decoration-ink-3/50">
+                      <span className="mr-1.5 font-mono text-[10.5px]">{pad(number.get(p.id))}</span>
+                      {p.title}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            <p className="mt-4 text-[12.5px] leading-snug text-ink-2">{forecast}</p>
+            <p className="mt-3 text-[11.5px] leading-snug text-ink-3">
+              {t('Its strength is what is still open in your plan. It only drops when something is really done, and doing it here does it in Ahead too.')}
+            </p>
+            <button
+              type="button"
+              onClick={() => scrollTo('quest-armor')}
+              className="mt-4 flex w-full items-center justify-between gap-2 border-t border-line pt-3 text-left text-[12.5px] text-ink-2 hover:text-ink"
+            >
+              <span>
+                <span className="label mr-2">{t('Armor')}</span>
+                {armor.length ? tn(standing, 'one plate standing', '{n} plates standing') : t('none marked yet')}
+              </span>
+              <ArrowDown size={13} aria-hidden />
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollTo('quest-below')}
+              className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] text-ink-3 uppercase hover:text-ink"
+            >
+              <ArrowDown size={12} aria-hidden />
+              {t('Armor, arsenal and the other bosses')}
+            </button>
+            {boss.source === 'own' && (
+              <div className="mt-4 border-t border-line pt-3">
+                <ConfirmButton
+                  label={t('Drop this quest')}
+                  confirmLabel={t('Drop it and its steps')}
+                  onConfirm={() => {
+                    deleteTarget(boss.targetId!);
+                    setPick(undefined);
+                  }}
+                />
+              </div>
+            )}
+          </div>
         </aside>
       </section>
 

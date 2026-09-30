@@ -91,8 +91,12 @@ export interface Box {
   h: number;
 }
 
-/** Whether the eye at (cx, cy), scale k, stays clear of every box and inside the bounds. */
+/** How far the tear reaches above and below the eye's line, in units: its opening, its torn edge and its lips. */
+const TEAR_REACH = 324;
+
+/** Whether the eye at (cx, cy), scale k, stays clear of every box and inside the bounds, its whole tear on the stage. */
 function clear(cx: number, cy: number, k: number, boxes: Box[], x0: number, x1: number, y0: number, y1: number, m: number) {
+  if (cy - TEAR_REACH * k < y0 || cy + TEAR_REACH * k > y1) return false;
   for (const [u, v] of OUTLINE) {
     const X = cx + u * k;
     const Y = cy + v * k;
@@ -118,9 +122,12 @@ function clear(cx: number, cy: number, k: number, boxes: Box[], x0: number, x1: 
 
 /**
  * Where the eye goes on the stage, and how large: the largest it can be
- * without touching the text over it (the boxes, in stage pixels). On a wide
- * screen it stays whole on the stage; on a small one it may run past the
- * sides, as long as nothing it touches is text.
+ * without touching the text over it (the boxes, in stage pixels), with the
+ * whole height of its tear on the stage, so it is always seen as a window.
+ * On a wide screen it stays whole on the stage; on a small one it may run
+ * past the sides, as long as nothing it touches is text. It grows with the
+ * stage up to a point (kMax), past which its layers would be too large to
+ * draw; a page zoomed far out shows it smaller, like everything else.
  */
 export function fitEye(w: number, h: number, boxes: Box[], wide: boolean) {
   const m = 14;
@@ -731,45 +738,91 @@ function soft(ctx: CanvasRenderingContext2D, blur: number, draw: (c: CanvasRende
 }
 
 /**
- * Paint a layer of stars once. `near` stars are fewer, larger and brighter,
- * and a handful of them carry a faint cross of light.
+ * The sky: stars at many depths, like the Map's, drifting slowly out towards
+ * you from behind the eye. Each is a point in a box of space; the nearer, the
+ * larger and the further out it lies; and the camera's pull carries the
+ * farthest the most. Drawn each frame onto one canvas.
  */
-export function paintStars(canvas: HTMLCanvasElement, w: number, h: number, near: boolean) {
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  canvas.width = Math.round(w * dpr);
-  canvas.height = Math.round(h * dpr);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, w, h);
-  // Depth of field: the far sky lies behind the plane in focus, so it is a little soft.
-  if (near) sky(ctx, w, h, true);
-  else soft(ctx, 0.8 * dpr, (c) => sky(c, w, h, false));
+export interface Star {
+  x: number;
+  y: number;
+  /** Distance: 1 = far, down to STAR_NEAR as it passes. */
+  z: number;
+  r: number;
+  a: number;
+  cool: boolean;
+  /** Twinkle: depth (0 = steady), rate and phase. */
+  tw: number;
+  tf: number;
+  tp: number;
 }
-function sky(ctx: CanvasRenderingContext2D, w: number, h: number, near: boolean) {
-  const r = seeded(near ? 29 : 5);
-  const count = Math.round((w * h) / (near ? 14000 : 1700));
-  for (let i = 0; i < count; i++) {
-    const x = r() * w;
-    const y = r() * h;
-    const size = near ? 0.7 + r() ** 2 * 1.2 : 0.25 + r() * 0.6;
-    const a = near ? 0.35 + r() * 0.55 : 0.12 + r() * 0.45;
-    const cool = r() < 0.3;
-    ctx.fillStyle = cool ? `rgba(214,222,236,${a})` : `rgba(236,232,223,${a})`;
-    ctx.beginPath();
-    ctx.arc(x, y, size, 0, TAU);
-    ctx.fill();
-    if (near && size > 1.55) {
-      ctx.strokeStyle = `rgba(236,232,223,${a * 0.28})`;
-      ctx.lineWidth = 0.6;
-      ctx.beginPath();
-      ctx.moveTo(x - size * 6, y);
-      ctx.lineTo(x + size * 6, y);
-      ctx.moveTo(x, y - size * 6);
-      ctx.lineTo(x, y + size * 6);
-      ctx.stroke();
+const STAR_NEAR = 0.24;
+/** Distance per second: a star takes a minute and a half to pass. */
+const STAR_CRUISE = 1 / 120;
+const newStar = (rand: () => number, z: number): Star => ({
+  x: (rand() * 2 - 1) * 1.5,
+  y: (rand() * 2 - 1) * 1.5,
+  z,
+  r: 0.3 + rand() ** 2.2 * 1.1,
+  a: 0.2 + rand() * 0.6,
+  cool: rand() < 0.3,
+  tw: rand() < 0.12 ? 0.3 + rand() * 0.5 : 0,
+  tf: 0.6 + rand() * 1.8,
+  tp: rand() * TAU,
+});
+/** The stars for a stage `w` by `h`. */
+export function makeStars(w: number, h: number) {
+  const r = seeded(5);
+  return Array.from({ length: Math.min(900, Math.round((w * h) / 1500)) }, () => newStar(r, STAR_NEAR + r() * (1 - STAR_NEAR)));
+}
+/**
+ * Draw the stars, having moved them on by `dt` ms: round the vanishing point
+ * (vx, vy), the eye; (ox, oy) is how far the camera carries the farthest, in
+ * pixels. `t` is the time, for the twinkles.
+ */
+export function drawStars(
+  c: CanvasRenderingContext2D,
+  stars: Star[],
+  o: { w: number; h: number; q: number; vx: number; vy: number; ox: number; oy: number; dt: number; t: number },
+) {
+  c.setTransform(o.q, 0, 0, o.q, 0, 0);
+  c.clearRect(0, 0, o.w, o.h);
+  const spread = Math.max(o.w, o.h) * 0.32;
+  const flares: [number, number, number, number][] = [];
+  for (const s of stars) {
+    s.z -= (o.dt / 1000) * STAR_CRUISE;
+    if (s.z < STAR_NEAR) Object.assign(s, newStar(Math.random, 1));
+    const f = 0.7 + 0.3 * s.z;
+    const x = o.vx + (s.x / s.z) * spread + o.ox * f;
+    const y = o.vy + (s.y / s.z) * spread + o.oy * f;
+    if (x < -8 || x > o.w + 8 || y < -8 || y > o.h + 8) continue;
+    const near = 1 - s.z;
+    const size = s.r * (0.6 + near * 1.8);
+    let a = s.a * Math.min(1, near / 0.12);
+    if (s.tw) a *= 1 - s.tw * (0.5 + 0.5 * Math.sin(o.t * 0.001 * s.tf + s.tp));
+    c.globalAlpha = a;
+    c.fillStyle = s.cool ? '#d6deec' : '#ece8df';
+    if (size < 1) c.fillRect(x - size, y - size, size * 2, size * 2);
+    else {
+      c.beginPath();
+      c.arc(x, y, size, 0, TAU);
+      c.fill();
+      if (size > 1.6) flares.push([x, y, size, a]);
     }
   }
+  // The nearest carry a faint cross of light.
+  c.strokeStyle = '#ece8df';
+  c.lineWidth = 0.6;
+  for (const [x, y, size, a] of flares) {
+    c.globalAlpha = a * 0.28;
+    c.beginPath();
+    c.moveTo(x - size * 6, y);
+    c.lineTo(x + size * 6, y);
+    c.moveTo(x, y - size * 6);
+    c.lineTo(x, y + size * 6);
+    c.stroke();
+  }
+  c.globalAlpha = 1;
 }
 
 /** A phrase repeated to go once around a circle of radius `r`, at `size` units per letter. */

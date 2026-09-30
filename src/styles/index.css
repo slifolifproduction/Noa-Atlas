@@ -1077,30 +1077,13 @@ html body {
 .quest-rig line {
   vector-effect: non-scaling-stroke;
 }
-.quest-sky {
+/* The sky: stars at many depths, drawn each frame (see drawStars). */
+.quest-stars {
   position: absolute;
-  inset: -40px;
-  pointer-events: none;
-}
-.quest-sky canvas {
-  display: block;
+  inset: 0;
   width: 100%;
   height: 100%;
-}
-.quest-twinkle {
-  position: absolute;
-  width: 2px;
-  height: 2px;
-  border-radius: 50%;
-  background: #ece8df;
-  box-shadow: 0 0 6px 1px rgb(236 232 223 / 0.45);
-  opacity: 0.15;
-  animation: quest-twinkle 6s ease-in-out infinite;
-}
-@keyframes quest-twinkle {
-  50% {
-    opacity: 0.9;
-  }
+  pointer-events: none;
 }
 .quest-body,
 .quest-layer {
@@ -1735,8 +1718,9 @@ html body {
   }
 }
 /* Its name comes up as it wakes, like a signal finding its channel. */
+/* Text on the stage flickers in as the eye lands, each at its own moment (--in). */
 .quest-hud-in {
-  animation: quest-flicker 1.1s steps(1, end) 2.1s both;
+  animation: quest-flicker 1.1s steps(1, end) var(--in, 2.1s) both;
 }
 @keyframes quest-flicker {
   0% {
@@ -1763,7 +1747,6 @@ html body {
   .quest-turn,
   .quest-turn-back,
   .clk-orbit,
-  .quest-twinkle,
   .quest-watch,
   .quest-hud-in,
   .quest-rig[data-urgent] .eye-lid,

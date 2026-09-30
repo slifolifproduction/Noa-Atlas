@@ -6,6 +6,7 @@ import { clockParts } from '../../lib/dates';
 import {
   arc,
   CONTOUR,
+  drawStars,
   DIAL,
   EW,
   FIBRES,
@@ -14,13 +15,13 @@ import {
   HORIZON,
   HOUR,
   lids,
+  makeStars,
   membraneReach,
   NEAR,
   NEAR_TURN,
   MINUTE,
   paintDimension,
   paintMembrane,
-  paintStars,
   PITCH,
   R_ARMOR,
   R_HP,
@@ -29,7 +30,6 @@ import {
   RC,
   RI,
   ringText,
-  seeded,
   segment,
   spokes,
   paintTear,
@@ -41,6 +41,7 @@ import {
   turn,
   YAW,
   type Box,
+  type Star,
 } from './eyeArt';
 
 export interface EyeHandle {
@@ -77,26 +78,28 @@ const ARRIVES = 2250;
 const SCAR = 0.035;
 
 /**
- * The other dimension's two layers (its still depths, and its nearest ring of
- * membrane, turning): how much each moves against the eye's gaze, and how far
- * in it rushes from as the tear opens.
+ * The camera. It follows where you point on the stage (or how you tilt a
+ * phone), eased, never the eye's own darts or flinches, and it is focused on
+ * the eye: what lies behind the eye is carried against it, the further the
+ * more, and the tear, nearer than the eye, moves with it. Its reach is PULL
+ * of the stage's smaller side, so the picture moves alike at any size or
+ * zoom; DEPTH is each layer's share of it (negative: nearer than the eye).
+ * The stars take theirs from their own distance.
  */
-const DEPTH = [0.02, 0.05];
+const PULL = 0.04;
+const DEPTH = { tear: -0.3, haze: 0.6, back: 0.5, ring: 0.25, far: 0.12, mid: 0.06, near: 0.02 };
+/** The other dimension's two layers (its still depths, its nearest ring): their depth, and how far in they rush from as the tear opens. */
+const DIM_DEPTH = [DEPTH.back, DEPTH.ring];
 const RUSH = [0.84, 0.7];
-
-/** A few stars that breathe, on top of the painted sky. */
-const TWINKLES = (() => {
-  const r = seeded(41);
-  return Array.from({ length: 9 }, () => ({ left: `${4 + r() * 92}%`, top: `${4 + r() * 90}%`, delay: `${-r() * 6}s`, dur: `${4 + r() * 5}s` }));
-})();
 
 /**
  * The boss: the eye of something vast, looking into our space through a tear
  * from another dimension. Its pupil is an old clock.
  *
  * The stage is a rig of layers around one centre, shot like a film: the lens
- * is focused on the eye. Behind it, the painted sky (the far stars soft) and
- * the tear, a long lens torn open level across space on the eye's own line;
+ * is focused on the eye, and the camera follows where you point (see PULL).
+ * Behind it, a sky of stars at many depths drifting slowly out towards you,
+ * and the tear, a long lens torn open level across space on the eye's own line;
  * it stays, closes to a scar when the boss is beaten, and burns orange near
  * its date. Through it, and only through it (its window, a clip in the same
  * shape), the eye's own dimension, which is not space: a haze with light at
@@ -170,10 +173,10 @@ export function BossEye({
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
   const root = useRef<HTMLDivElement>(null);
   const body = useRef<HTMLDivElement>(null);
-  const skyFar = useRef<HTMLDivElement>(null);
-  const skyNear = useRef<HTMLDivElement>(null);
-  const starsFar = useRef<HTMLCanvasElement>(null);
-  const starsNear = useRef<HTMLCanvasElement>(null);
+  const sky = useRef<HTMLCanvasElement>(null);
+  const field = useRef<{ stars: Star[]; q: number }>({ stars: [], q: 1 });
+  const dim = useRef<HTMLDivElement>(null);
+  const emerge = useRef<HTMLDivElement>(null);
   const tearFront = useRef<HTMLDivElement>(null);
   const portal = useRef<HTMLDivElement>(null);
   const frontShape = useRef<HTMLDivElement>(null);
@@ -213,8 +216,28 @@ export function BossEye({
   const avoidKey = avoid.map((b) => `${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)},${Math.round(b.h)}`).join(';');
 
   // What the loop reads, so it never restarts when these change.
-  const live = useRef({ state, look, alert, urgent, rest, layout, dormant, k: geo.k, cx: geo.cx, cy: geo.cy, hitAt: 0, reduced, px: 0, py: 0 });
-  Object.assign(live.current, { state, look, alert, urgent, rest, layout, dormant, k: geo.k, cx: geo.cx, cy: geo.cy, reduced });
+  const live = useRef({
+    state,
+    look,
+    alert,
+    urgent,
+    rest,
+    layout,
+    dormant,
+    k: geo.k,
+    w: geo.w,
+    h: geo.h,
+    cx: geo.cx,
+    cy: geo.cy,
+    hitAt: 0,
+    reduced,
+    px: 0,
+    py: 0,
+  });
+  Object.assign(live.current, { state, look, alert, urgent, rest, layout, dormant, k: geo.k, w: geo.w, h: geo.h, cx: geo.cx, cy: geo.cy, reduced });
+  // The camera's reach on this stage, and how far past the stage the layers it carries are painted, so no edge shows.
+  const pull = Math.min(geo.w, geo.h) * PULL;
+  const over = Math.ceil(pull * (DEPTH.haze - DEPTH.tear)) + 12;
 
   useLayoutEffect(() => {
     const el = root.current;
@@ -234,11 +257,17 @@ export function BossEye({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wide, avoidKey]);
 
-  // The sky is painted once per size.
+  // The sky's stars are made once per size and drawn by the loop (here once, for a still sky).
   useEffect(() => {
-    if (!geo.w || !starsFar.current || !starsNear.current) return;
-    paintStars(starsFar.current, geo.w + 80, geo.h + 80, false);
-    paintStars(starsNear.current, geo.w + 80, geo.h + 80, true);
+    const c = sky.current;
+    if (!geo.w || !c) return;
+    const q = Math.min(window.devicePixelRatio || 1, 1.5);
+    c.width = Math.round(geo.w * q);
+    c.height = Math.round(geo.h * q);
+    field.current = { stars: makeStars(geo.w, geo.h), q };
+    const ctx = c.getContext('2d');
+    const { cx, cy } = live.current;
+    if (ctx) drawStars(ctx, field.current.stars, { w: geo.w, h: geo.h, q, vx: cx, vy: cy, ox: 0, oy: 0, dt: 0, t: 0 });
   }, [geo.w, geo.h]);
 
   // The tear is painted once per size, boss and mood (its edge burns orange near the date).
@@ -246,15 +275,15 @@ export function BossEye({
   useEffect(() => {
     if (!geo.w || !tearEdge.current || !tearHalo.current) return;
     paintTear(tearEdge.current, tearHalo.current, {
-      w: geo.w + 80,
-      h: geo.h + 80,
-      cx: geo.cx + 40,
-      cy: geo.cy + 40,
+      w: geo.w + 2 * over,
+      h: geo.h + 2 * over,
+      cx: geo.cx + over,
+      cy: geo.cy + over,
       k: geo.k,
       seed,
       urgent: hot,
     });
-  }, [geo, seed, hot]);
+  }, [geo, seed, hot, over]);
   // The other dimension is painted once per size and boss: its still depths, and its nearest ring (it turns in CSS).
   useEffect(() => {
     if (!geo.w || !dimNear.current) return;
@@ -262,8 +291,8 @@ export function BossEye({
   }, [geo.w, geo.k, seed]);
   useEffect(() => {
     if (!geo.w || !dimBack.current) return;
-    paintDimension(dimBack.current, { w: geo.w + 80, h: geo.h + 80, cx: geo.cx + 40, cy: geo.cy + 40, k: geo.k, seed });
-  }, [geo, seed]);
+    paintDimension(dimBack.current, { w: geo.w + 2 * over, h: geo.h + 2 * over, cx: geo.cx + over, cy: geo.cy + over, k: geo.k, seed });
+  }, [geo, seed, over]);
   // The window onto the eye's dimension: the tear's own shape, on the stage.
   const windowD = useMemo(() => (geo.w ? tearWindow(seed, geo.cx, geo.cy, geo.k) : ''), [seed, geo.w, geo.cx, geo.cy, geo.k]);
 
@@ -416,9 +445,6 @@ export function BossEye({
       const [h, m, s] = [Number(c.h), Number(c.m), Number(c.s)];
       return { h: ((h % 12) + m / 60) * 30, m: (m + s / 60) * 6, s: s * 6 };
     };
-    const move = (r: RefObject<HTMLElement | null>, x: number, y: number) => {
-      if (r.current) r.current.style.transform = `translate3d(${x.toFixed(1)}px,${y.toFixed(1)}px,0)`;
-    };
     // The eyeball turns: iris, its rings and the pupil are one disc on it, carried and foreshortened
     // together; the pupil only dilates about the same centre, and the light on the white follows.
     const carry = (yaw: number, pitch: number, dil: number) => {
@@ -449,6 +475,14 @@ export function BossEye({
 
     const pointer = { x: 0, y: 0, at: -1e9 };
     const tilt = { x: 0, y: 0, at: -1e9 };
+    const cam = { x: 0, y: 0, tx: 0, ty: 0 };
+    const reach = (v: number) => Math.max(-1, Math.min(1, v));
+    const frame = (clientX: number, clientY: number) => {
+      const r = el?.getBoundingClientRect();
+      if (!r?.width) return;
+      cam.tx = reach((clientX - r.left - r.width / 2) / (r.width / 2));
+      cam.ty = reach((clientY - r.top - r.height / 2) / (r.height / 2));
+    };
     const aim = (clientX: number, clientY: number) => {
       const r = eye.current?.getBoundingClientRect();
       if (!r) return;
@@ -461,11 +495,22 @@ export function BossEye({
       pointer.at = performance.now();
     };
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== 'touch') aim(e.clientX, e.clientY);
+      if (e.pointerType === 'touch') return;
+      aim(e.clientX, e.clientY);
+      frame(e.clientX, e.clientY);
     };
-    const onDown = (e: PointerEvent) => aim(e.clientX, e.clientY);
+    const onDown = (e: PointerEvent) => {
+      aim(e.clientX, e.clientY);
+      if (e.pointerType !== 'touch') frame(e.clientX, e.clientY);
+    };
+    // Out of the window, the camera comes back to rest.
+    const onOut = (e: MouseEvent) => {
+      if (!e.relatedTarget) cam.tx = cam.ty = 0;
+    };
     const onTilt = (e: DeviceOrientationEvent) => {
       if (e.gamma == null || e.beta == null) return;
+      cam.tx = reach(e.gamma / 30);
+      cam.ty = reach((e.beta - 45) / 30);
       tilt.x = Math.max(-1, Math.min(1, e.gamma / 30)) * YAW;
       tilt.y = Math.max(-1, Math.min(1, (e.beta - 45) / 30)) * PITCH;
       tilt.at = performance.now();
@@ -473,6 +518,7 @@ export function BossEye({
     window.addEventListener('pointermove', onMove, { passive: true });
     window.addEventListener('pointerdown', onDown, { passive: true });
     window.addEventListener('deviceorientation', onTilt);
+    document.addEventListener('mouseout', onOut);
     let visible = true;
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting));
     if (el) io.observe(el);
@@ -618,22 +664,28 @@ export function BossEye({
       const gx = gaze.x + dart.x + (j ? (Math.random() - 0.5) * 2 * j : 0);
       const gy = gaze.y + dart.y + (j ? (Math.random() - 0.5) * 2 * j : 0);
       setLids(open);
-      const t = carry(gx, gy, dil);
-      // Depth: what lies behind the eye moves against its gaze, and the motes near the lens with it, more.
-      const k = L.k;
-      // The tear, and the window in it, move as one.
-      move(portal, -t.x * k * 0.04, -t.y * k * 0.04);
-      // Inside it, the tunnel: its nearer rings move the more.
-      DEPTH.forEach((d, i) => {
-        const el = dimLayers.current[i];
-        if (el) el.style.transform = `translate3d(${(-t.x * k * d).toFixed(1)}px,${(-t.y * k * d).toFixed(1)}px,0)`;
-      });
-      move(tearFront, -t.x * k * 0.04, -t.y * k * 0.04);
-      move(far, -t.x * k * 0.06, -t.y * k * 0.06);
-      move(mid, -t.x * k * 0.025, -t.y * k * 0.025);
-      move(near, -t.x * k * 0.012, -t.y * k * 0.012);
-      move(skyFar, -t.x * k * 0.03, -t.y * k * 0.03);
-      move(skyNear, -t.x * k * 0.08, -t.y * k * 0.08);
+      carry(gx, gy, dil);
+      // The camera, eased; each layer carried by its depth. The tear and its window move as one, and what is
+      // inside the window is carried relative to it.
+      const ce = 1 - Math.exp(-dt / 380);
+      cam.x += (cam.tx - cam.x) * ce;
+      cam.y += (cam.ty - cam.y) * ce;
+      const P = Math.min(L.w, L.h) * PULL;
+      const [ox, oy] = [-cam.x * P, -cam.y * P];
+      const put = (r: RefObject<HTMLElement | null> | HTMLElement | null, f: number) => {
+        const node = r && 'current' in r ? r.current : r;
+        if (node) node.style.transform = `translate3d(${(ox * f).toFixed(1)}px,${(oy * f).toFixed(1)}px,0)`;
+      };
+      put(tearFront, DEPTH.tear);
+      put(portal, DEPTH.tear);
+      put(dim, DEPTH.haze - DEPTH.tear);
+      DIM_DEPTH.forEach((d, i) => put(dimLayers.current[i], d - DEPTH.tear));
+      put(emerge, -DEPTH.tear);
+      put(far, DEPTH.far);
+      put(mid, DEPTH.mid);
+      put(near, DEPTH.near);
+      const sc = sky.current?.getContext('2d');
+      if (sc) drawStars(sc, field.current.stars, { w: L.w, h: L.h, q: field.current.q, vx: L.cx, vy: L.cy, ox, oy, dt, t: now });
       // The hands: they sweep to the hour as it opens, then keep the time; the seconds step, with a small recoil.
       const sec = Math.floor(Date.now() / 1000);
       if (sec !== lastSec) {
@@ -656,6 +708,7 @@ export function BossEye({
       window.removeEventListener('pointermove', onMove);
       window.removeEventListener('pointerdown', onDown);
       window.removeEventListener('deviceorientation', onTilt);
+      document.removeEventListener('mouseout', onOut);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reduced]);
@@ -677,8 +730,8 @@ export function BossEye({
   // The light at the end of the tunnel, where the eye is: a pale haze with a faint warm core, burning near its date.
   const [lx, ly, lc] = [Math.round(1000 * geo.k), Math.round(560 * geo.k), Math.round(240 * geo.k)];
   const dimLight = [
-    `radial-gradient(circle ${lc}px at ${geo.cx}px ${geo.cy}px, ${hot ? 'rgb(255 110 50 / 0.34)' : 'rgb(255 172 124 / 0.16)'}, transparent)`,
-    `radial-gradient(ellipse ${lx}px ${ly}px at ${geo.cx}px ${geo.cy}px, ${
+    `radial-gradient(circle ${lc}px at ${geo.cx + over}px ${geo.cy + over}px, ${hot ? 'rgb(255 110 50 / 0.34)' : 'rgb(255 172 124 / 0.16)'}, transparent)`,
+    `radial-gradient(ellipse ${lx}px ${ly}px at ${geo.cx + over}px ${geo.cy + over}px, ${
       hot
         ? 'rgb(172 136 118), rgb(138 90 66) 22%, rgb(92 58 44) 42%, rgb(48 32 27) 66%, rgb(19 16 15)'
         : 'rgb(134 136 140), rgb(104 107 112) 22%, rgb(72 75 80) 42%, rgb(40 42 47) 66%, rgb(17 18 21)'
@@ -696,22 +749,14 @@ export function BossEye({
       aria-label={label}
       style={{ '--cx': `${geo.cx}px`, '--cy': `${geo.cy}px` } as CSSProperties}
     >
-      <div ref={skyFar} className="quest-sky">
-        <canvas ref={starsFar} />
-      </div>
-      <div ref={skyNear} className="quest-sky">
-        <canvas ref={starsNear} />
-      </div>
-      {TWINKLES.map((s, i) => (
-        <span key={i} className="quest-twinkle" style={{ left: s.left, top: s.top, animationDelay: s.delay, animationDuration: s.dur }} />
-      ))}
+      <canvas ref={sky} className="quest-stars" />
 
       <div ref={body} className="quest-body">
         {/* The eye's dimension, seen only through the tear. Not space: a haze with light at its end, lines
             drifting in it, and a tunnel of torn membrane round the eye, ring behind ring, turning; then the eye. */}
         <div ref={portal} className="quest-portal" style={{ clipPath: `url(#${id}-window)` }}>
-          <div className="quest-dim">
-            <div className="quest-dim-light" style={{ background: dimLight }} />
+          <div ref={dim} className="quest-dim" style={{ inset: -over }}>
+            <div className="quest-dim-light" style={{ background: dimLight, transformOrigin: `${geo.cx + over}px ${geo.cy + over}px` }} />
           </div>
           <div
             ref={(el) => {
@@ -720,7 +765,7 @@ export function BossEye({
             className="quest-dim-layer"
             style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }}
           >
-            <canvas ref={dimBack} className="quest-tear-canvas" style={{ left: -40, top: -40, width: geo.w + 80, height: geo.h + 80 }} />
+            <canvas ref={dimBack} className="quest-tear-canvas" style={{ left: -over, top: -over, width: geo.w + 2 * over, height: geo.h + 2 * over }} />
           </div>
           <div
             ref={(el) => {
@@ -741,7 +786,7 @@ export function BossEye({
               }}
             />
           </div>
-          <div className="quest-emerge">
+          <div ref={emerge} className="quest-emerge">
             <div className="quest-glow" style={{ left: geo.cx, top: geo.cy, width: 1200 * geo.k, height: 1200 * geo.k }} />
 
             {/* Far: the great rings of the instrument, turning. */}
@@ -926,7 +971,7 @@ export function BossEye({
 
         {/* In front: the tear's torn edge and the cracks at its ends, and its halo, burning and breathing. */}
         <div ref={tearFront} className="quest-tear-move">
-          <div ref={frontShape} className="quest-tear-shape" style={{ transformOrigin: `${geo.cx + 40}px ${geo.cy + 40}px` }}>
+          <div ref={frontShape} className="quest-tear-shape" style={{ inset: -over, transformOrigin: `${geo.cx + over}px ${geo.cy + over}px` }}>
             <canvas ref={tearHalo} className="quest-tear-canvas quest-tear-glow" />
             <canvas ref={tearEdge} className="quest-tear-canvas" />
           </div>
