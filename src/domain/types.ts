@@ -844,12 +844,36 @@ export interface AtlasData {
   inquiry?: { declined: Record<string, ISODate> };
   /** What the Atlas learned from the person (see `domain/learning.ts`); created on first use. */
   learning?: LearningMemory;
+  /** Quests (see `domain/quests.ts`): what stands in each boss's way, and the skills raised with level points. Everything else there is derived. */
+  quests?: QuestState;
   /**
    * Which revision of the logic of causes the data was prepared for
    * (3: claims on factors, episodes in order; 4: what changed, episodes,
    * expectations and revisions).
    */
   causesLogic?: number;
+}
+
+/** A boss's armor plate: a repeat (Repeats) or a cycle (Causes) the person says stands in its way. */
+export interface ArmorRef {
+  kind: 'pattern' | 'loop';
+  /** A pattern id, or a cycle's id (its claim ids, sorted, joined by "|"). */
+  id: string;
+}
+
+/** A skill raised one step with a level point, on a day, after practice was written about. */
+export interface SkillUpgrade {
+  id: ID;
+  nodeId: ID;
+  from: SkillStatus;
+  to: SkillStatus;
+  at: ISODate;
+}
+
+export interface QuestState {
+  /** By boss: "milestone", or "target:<id>". */
+  armor: Record<string, ArmorRef[]>;
+  upgrades: SkillUpgrade[];
 }
 
 /** What the Atlas learned from the person: plain counts, all of them shown and forgettable (see `domain/learning.ts`). */

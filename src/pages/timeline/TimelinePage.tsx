@@ -24,7 +24,7 @@ const SHOWS: Record<Show, (h: HistoryItem) => boolean> = {
   all: () => true,
   notes: (h) => h.kind === 'record',
   decisions: (h) => h.kind === 'decision',
-  happenings: (h) => h.kind === 'event' || h.kind === 'action' || h.kind === 'experience' || h.kind === 'test' || h.kind === 'deadline',
+  happenings: (h) => h.kind === 'event' || h.kind === 'action' || h.kind === 'experience' || h.kind === 'test' || h.kind === 'deadline' || h.kind === 'levelup',
 };
 
 const pendingIn = (data: AtlasData, h: HistoryItem) =>
@@ -82,7 +82,7 @@ export function TimelinePage({ preset }: { preset?: string }) {
     return () => clearTimeout(timer);
   }, [flash]);
 
-  const all = useMemo(() => historyItems(data, { records: true, planned: true, deadlines: true, today }).filter((h) => h.kind !== 'reading'), [data, today]);
+  const all = useMemo(() => historyItems(data, { records: true, planned: true, quests: true, today }).filter((h) => h.kind !== 'reading'), [data, today]);
   const about = useMemo(() => (focus ? new Set(momentsOf(data, focus).map((h) => h.key)) : null), [data, focus]);
   const inFocus = useMemo(() => (on && about ? all.filter((h) => about.has(h.key)) : all), [all, about, on]);
   const items = useMemo(() => {

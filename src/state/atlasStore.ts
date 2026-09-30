@@ -27,6 +27,7 @@ import type {
   AnalysisSuggestion,
   Area,
   AreaKey,
+  ArmorRef,
   AtlasData,
   AtlasEdge,
   AtlasNode,
@@ -56,7 +57,7 @@ import type {
   LearningMemory,
 } from '../domain/types';
 import { addDays, formatDate, todayISO, weekStart } from '../lib/dates';
-import { quests } from '../domain/quests';
+import { arsenal, canUpgrade, quests } from '../domain/quests';
 import { createId } from '../lib/ids';
 import { DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
 import { t } from '../i18n';
@@ -179,6 +180,12 @@ interface AtlasActions {
   toggleTarget(id: ID): void;
   /** Quests: take on a boss that got away again, with a new date; the date that passed is kept with how far it had got. */
   retryDeadline(boss: 'milestone' | ID, due: string): void;
+  /** Quests: a repeat or a cycle that stands in a boss's way, or no longer. */
+  addArmor(bossId: string, ref: ArmorRef): void;
+  removeArmor(bossId: string, ref: ArmorRef): void;
+  /** Quests: raise a skill one step with a level point (after practice); returns the upgrade's id. */
+  upgradeSkill(nodeId: ID): ID | undefined;
+  undoUpgrade(id: ID): void;
   addTarget(title: string, due: string): void;
   deleteTarget(id: ID): void;
   addAction(title: string, targetId?: ID): void;
@@ -1390,6 +1397,64 @@ export const useAtlas = create<AtlasState>()(
               if (!x) return;
               x.missed = [...(x.missed ?? []), missed];
               x.due = due;
+            }
+          });
+        },
+
+        addArmor(bossId, ref) {
+          set((s) => {
+            const q = (s.data.quests ??= { armor: {}, upgrades: [] });
+            const list = (q.armor[bossId] ??= []);
+            if (!list.some((r) => r.kind === ref.kind && r.id === ref.id)) list.push({ kind: ref.kind, id: ref.id });
+          });
+        },
+
+        removeArmor(bossId, ref) {
+          set((s) => {
+            const q = s.data.quests;
+            if (!q?.armor[bossId]) return;
+            q.armor[bossId] = q.armor[bossId].filter((r) => !(r.kind === ref.kind && r.id === ref.id));
+            if (!q.armor[bossId].length) delete q.armor[bossId];
+          });
+        },
+
+        upgradeSkill(nodeId) {
+          const data = get().data;
+          const a = arsenal(data);
+          const item = a.items.find((i) => i.node.id === nodeId);
+          if (!item || canUpgrade(a, item) !== 'ok') return undefined;
+          const id = createId('up');
+          set((s) => {
+            const node = s.data.nodes[nodeId];
+            if (!node) return;
+            const q = (s.data.quests ??= { armor: {}, upgrades: [] });
+            q.upgrades.push({ id, nodeId, from: item.level, to: item.next!, at: todayISO() });
+            node.level = item.next;
+            node.updatedAt = now();
+            // The direction's own list of skills says the same.
+            const path = s.data.navigation ? s.data.paths[s.data.navigation.pathId] : undefined;
+            const req = path?.skills.find((r) => r.label === item.asked);
+            if (req) req.status = item.next!;
+          });
+          return id;
+        },
+
+        undoUpgrade(id) {
+          set((s) => {
+            const q = s.data.quests;
+            const u = q?.upgrades.find((x) => x.id === id);
+            if (!q || !u) return;
+            q.upgrades = q.upgrades.filter((x) => x.id !== id);
+            const node = s.data.nodes[u.nodeId];
+            if (node && node.level === u.to) {
+              node.level = u.from;
+              node.updatedAt = now();
+              const path = s.data.navigation ? s.data.paths[s.data.navigation.pathId] : undefined;
+              const req = path?.skills.find(
+                (r) =>
+                  r.status === u.to && (r.label.toLowerCase().includes(node.label.toLowerCase()) || node.label.toLowerCase().includes(r.label.toLowerCase())),
+              );
+              if (req) req.status = u.from;
             }
           });
         },

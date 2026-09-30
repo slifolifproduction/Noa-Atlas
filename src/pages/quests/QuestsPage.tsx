@@ -7,7 +7,9 @@ import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/primitives';
 import { HowItWorks } from '../../components/ui/HowItWorks';
 import { VIEWS } from '../../domain/constants';
-import { player, quests, XP, type Boss, type BossPart, type XpKind } from '../../domain/quests';
+import { bossArmor, player, quests, XP, type Boss, type BossPart, type XpKind } from '../../domain/quests';
+import { ArmorPanel } from './ArmorPanel';
+import { ArsenalPanel } from './ArsenalPanel';
 import { useElementWidth } from '../../hooks/useElementWidth';
 import { cn } from '../../lib/cn';
 import { formatDate, useToday, weekStart } from '../../lib/dates';
@@ -22,6 +24,8 @@ const SOURCE_LABEL: Record<XpKind, () => string> = {
   test: () => t('Tests finished'),
   repeat: () => t('Repeats you reviewed'),
   decision: () => t('Decisions you looked back on'),
+  exception: () => t('Exceptions you wrote down'),
+  armor: () => t('Armor plates broken'),
 };
 
 const KIND_LABEL = (b: Boss) => (b.kind === 'milestone' ? t('Milestone') : t('Target'));
@@ -70,6 +74,7 @@ export function QuestsPage() {
   const [again, setAgain] = useState('');
   const [arena, arenaWidth] = useElementWidth<HTMLDivElement>(560);
   const boss = q.bosses.find((b) => b.id === pick) ?? q.current ?? q.bosses[0];
+  const armor = useMemo(() => (boss ? bossArmor(data, boss.id, today) : []), [data, boss, today]);
 
   const strike = (b: Boss, p: BossPart) => {
     if (p.done || b.state === 'escaped') return;
@@ -155,6 +160,7 @@ export function QuestsPage() {
               urgent={urgent}
               hit={hit}
               look={look}
+              armor={armor}
               size={eyeSize}
               label={t('{title}: {hp} of {max} still open, due {date}', { title: boss.title, hp: boss.hp, max: boss.maxHp, date: formatDate(boss.due) })}
             />
@@ -285,6 +291,7 @@ export function QuestsPage() {
             <p className="mt-4 text-[11.5px] leading-snug text-ink-3">
               {t('Its strength is what is still open in your plan. It only drops when something is really done, and doing it here does it in Ahead too.')}
             </p>
+            <ArmorPanel boss={boss} />
           </div>
         </div>
       </section>
@@ -360,6 +367,7 @@ export function QuestsPage() {
           <p className="mt-2 text-[11.5px] leading-snug text-ink-3">
             {t('Counted again each time from what your atlas holds, so it cannot drift or be farmed: a day with ten notes is still one day.')}
           </p>
+          <ArsenalPanel />
         </section>
       </div>
 

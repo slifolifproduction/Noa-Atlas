@@ -7,11 +7,12 @@
  * Every item keeps a trail back to the record it came from.
  */
 import { addDays, dateOf, daysBetween, todayISO, weekStart } from '../lib/dates';
+import { SKILL_STATUS_LABEL } from './constants';
 import { experimentCode } from './selectors';
 import type { AtlasData, EntityRef, ID, ISODate, Mode, OccurrenceKind, SourceRef } from './types';
 import { t } from '../i18n';
 
-export type HistoryKind = OccurrenceKind | 'decision' | 'record' | 'test' | 'step' | 'deadline';
+export type HistoryKind = OccurrenceKind | 'decision' | 'record' | 'test' | 'step' | 'deadline' | 'levelup';
 
 export interface HistoryItem {
   key: string;
@@ -38,7 +39,12 @@ export function contextStates(data: AtlasData): { energy?: ID; mood?: ID } {
   return { energy: find('energy'), mood: find('mood') };
 }
 
-export function historyItems(data: AtlasData, opts: { records?: boolean; planned?: boolean; deadlines?: boolean; today?: ISODate } = {}): HistoryItem[] {
+/**
+ * `quests` adds what Quests keeps: dates in the plan that passed with work
+ * still open, and skills raised with level points. Only Time asks for them;
+ * they are never evidence about causes.
+ */
+export function historyItems(data: AtlasData, opts: { records?: boolean; planned?: boolean; quests?: boolean; today?: ISODate } = {}): HistoryItem[] {
   const today = opts.today ?? todayISO();
   const out: HistoryItem[] = [];
 
@@ -129,7 +135,7 @@ export function historyItems(data: AtlasData, opts: { records?: boolean; planned
 
   // Deadlines in the plan that passed with something still open (a boss that got away, on Quests):
   // what was done by then is kept with it. Shown on Time only; never evidence about causes.
-  if (opts.deadlines && data.navigation) {
+  if (opts.quests && data.navigation) {
     const nav = data.navigation;
     const stepsOf = (id?: ID) => nav.actions.filter((a) => a.status !== 'skipped' && (id ? a.targetId === id : true));
     const passed: { key: string; title: string; due: ISODate; done: number; total: number }[] = nav.targets
@@ -160,6 +166,22 @@ export function historyItems(data: AtlasData, opts: { records?: boolean; planned
         mode: 'actual',
         about: [],
         ref: { kind: 'path', id: nav.pathId },
+      });
+    }
+  }
+
+  if (opts.quests) {
+    for (const u of data.quests?.upgrades ?? []) {
+      const node = data.nodes[u.nodeId];
+      if (!node || u.at > today) continue;
+      out.push({
+        key: `levelup:${u.id}`,
+        kind: 'levelup',
+        date: u.at,
+        label: t('Skill raised: {skill} ({from} → {to})', { skill: node.label, from: SKILL_STATUS_LABEL[u.from], to: SKILL_STATUS_LABEL[u.to] }),
+        mode: 'actual',
+        about: [node.id],
+        ref: { kind: 'node', id: node.id },
       });
     }
   }

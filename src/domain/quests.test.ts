@@ -97,11 +97,11 @@ describe('a boss that got away, on Time', () => {
   const nav = data.navigation!;
 
   it('is not there while its date is still ahead', () => {
-    expect(historyItems(data, { deadlines: true, today: TODAY }).some((h) => h.kind === 'deadline')).toBe(false);
+    expect(historyItems(data, { quests: true, today: TODAY }).some((h) => h.kind === 'deadline')).toBe(false);
   });
 
   it('appears once the date passes with something open, with how far it had got', () => {
-    const later = historyItems(data, { deadlines: true, today: '2026-10-20' }).filter((h) => h.kind === 'deadline');
+    const later = historyItems(data, { quests: true, today: '2026-10-20' }).filter((h) => h.kind === 'deadline');
     const t2 = quests(data, '2026-10-20').bosses.find((b) => b.targetId === 't2')!;
     const item = later.find((h) => h.key === 'deadline:target:t2')!;
     expect(item.date).toBe(t2.due);
@@ -116,7 +116,7 @@ describe('a boss that got away, on Time', () => {
       ...data,
       navigation: { ...nav, targets: nav.targets.map((x) => (x.id === 't2' ? { ...x, due: '2026-11-15', missed: [{ due: t2.due, done: 1, total: 4 }] } : x)) },
     };
-    const items = historyItems(moved, { deadlines: true, today: '2026-10-20' }).filter((h) => h.kind === 'deadline');
+    const items = historyItems(moved, { quests: true, today: '2026-10-20' }).filter((h) => h.kind === 'deadline');
     expect(items.some((h) => h.date === t2.due && h.label.includes('1') && h.label.includes('4'))).toBe(true);
     expect(quests(moved, '2026-10-20').bosses.find((b) => b.targetId === 't2')!.state).toBe('active');
   });

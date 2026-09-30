@@ -1231,3 +1231,20 @@ html body {
   pointer-events: none;
   background: repeating-linear-gradient(to bottom, rgb(236 232 223 / 0.018) 0 1px, transparent 1px 3px);
 }
+/* Armor: plates on the outermost ring, whole, chipped (dashed) or broken. */
+.eye-plate-whole {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.8);
+  stroke-width: 7;
+  transition: d 500ms var(--ease-out-quint);
+}
+.eye-plate-chipped {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.22);
+  stroke-width: 7;
+  stroke-dasharray: 2 4;
+}
+.eye-plate-broken .eye-plate-chipped {
+  stroke: rgb(var(--eye) / 0.14);
+  stroke-width: 3;
+}

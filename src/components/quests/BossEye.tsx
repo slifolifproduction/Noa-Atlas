@@ -47,6 +47,7 @@ export function BossEye({
   urgent,
   hit,
   look,
+  armor = [],
   size = 520,
   label,
 }: {
@@ -58,6 +59,8 @@ export function BossEye({
   hit: number;
   /** A part to look at (being pointed to in the list). */
   look?: string;
+  /** Its armor plates, as a ring around everything: whole, chipped, or broken. */
+  armor?: { integrity: number; broken: boolean; withdrawn?: boolean }[];
   size?: number;
   label: string;
 }) {
@@ -179,6 +182,21 @@ export function BossEye({
     return `M${(R * Math.cos(a0)).toFixed(1)} ${(R * Math.sin(a0)).toFixed(1)}A${R} ${R} 0 ${large} 1 ${(R * Math.cos(a1)).toFixed(1)} ${(R * Math.sin(a1)).toFixed(1)}`;
   };
   const ticks = Array.from({ length: 96 }, (_, i) => (i * TAU) / 96);
+  // An armor plate: its whole part, then its chipped part, along the outermost ring.
+  const plate = (i: number, count: number, whole: number): [string | null, string | null] => {
+    const R = 247;
+    const span = 360 / count;
+    const gap = Math.min(6, span * 0.18);
+    const a0 = -90 + i * span + gap / 2;
+    const a1 = -90 + (i + 1) * span - gap / 2;
+    const mid = a0 + (a1 - a0) * whole;
+    const arc = (from: number, to: number) => {
+      if (to - from < 0.5) return null;
+      const [f, g] = [(from * Math.PI) / 180, (to * Math.PI) / 180];
+      return `M${(R * Math.cos(f)).toFixed(1)} ${(R * Math.sin(f)).toFixed(1)}A${R} ${R} 0 ${to - from > 180 ? 1 : 0} 1 ${(R * Math.cos(g)).toFixed(1)} ${(R * Math.sin(g)).toFixed(1)}`;
+    };
+    return [arc(a0, mid), arc(mid, a1)];
+  };
   const pupilR = urgent ? 22 : 30 - Math.round((open / n) * 4);
 
   return (
@@ -226,6 +244,15 @@ export function BossEye({
         {parts.map((p, i) => (
           <path key={p.id} d={seg(i)} className={p.done ? 'eye-hp eye-hp-done' : 'eye-hp'} />
         ))}
+        {armor.map((a, i) => {
+          const [whole, rest] = plate(i, armor.length, a.broken || a.withdrawn ? 0 : a.integrity);
+          return (
+            <g key={i} className={a.broken || a.withdrawn ? 'eye-plate eye-plate-broken' : 'eye-plate'}>
+              {whole && <path d={whole} className="eye-plate-whole" />}
+              {rest && <path d={rest} className="eye-plate-chipped" />}
+            </g>
+          );
+        })}
         {layout.map((s, i) => (
           <text
             key={s.part.id}

@@ -119,8 +119,22 @@ export function danglingReferences(d: AtlasData): string[] {
     if (nav.currentActionId && !nav.actions.some((a) => a.id === nav.currentActionId)) out.push(`plan.current → step ${nav.currentActionId}`);
   }
   for (const key of Object.keys(d.loopNames)) for (const c of loopClaimIds(key)) claim(c, `cycle name ${key}`);
+  if (d.quests) {
+    for (const [boss, refs] of Object.entries(d.quests.armor)) {
+      if (!bossExists(d, boss)) out.push(`quest armor → boss ${boss}`);
+      for (const r of refs) {
+        if (r.kind === 'pattern') pattern(r.id, `quest armor ${boss}`);
+        else for (const c of loopClaimIds(r.id)) claim(c, `quest armor ${boss} cycle`);
+      }
+    }
+    for (const u of d.quests.upgrades) node(u.nodeId, `quest upgrade ${u.id}`);
+  }
   return out;
 }
+
+/** A Quests boss id: "milestone" while there is a plan, or "target:<id>" for a target in it. */
+const bossExists = (d: AtlasData, boss: string) =>
+  Boolean(d.navigation) && (boss === 'milestone' || (boss.startsWith('target:') && d.navigation!.targets.some((x) => `target:${x.id}` === boss)));
 
 /* ---------------- repair ---------------- */
 
@@ -355,6 +369,21 @@ export function repairReferences(d: AtlasData): number {
       if (!loopClaimIds(key).every(hasClaim)) {
         delete d.loopNames[key];
         fixed++;
+      }
+    }
+    if (d.quests) {
+      for (const [boss, refs] of Object.entries(d.quests.armor)) {
+        const kept = bossExists(d, boss) ? refs.filter((r) => (r.kind === 'pattern' ? r.id in d.patterns : loopClaimIds(r.id).every(hasClaim))) : [];
+        if (kept.length !== refs.length) {
+          fixed += refs.length - kept.length;
+          if (kept.length) d.quests.armor[boss] = kept;
+          else delete d.quests.armor[boss];
+        }
+      }
+      const upgrades = d.quests.upgrades.filter((u) => u.nodeId in d.nodes);
+      if (upgrades.length !== d.quests.upgrades.length) {
+        fixed += d.quests.upgrades.length - upgrades.length;
+        d.quests.upgrades = upgrades;
       }
     }
 

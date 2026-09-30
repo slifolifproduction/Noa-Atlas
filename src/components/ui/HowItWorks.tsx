@@ -82,6 +82,16 @@ const PAGE_HELP: Record<string, () => ReactNode[]> = {
       )}
     </>,
     <>{t('Experience is counted from what your atlas holds: steps, targets, days you wrote, tests, repeats reviewed, decisions looked back on.')}</>,
+    <>
+      {t(
+        'Armor is what you say keeps making a boss hard: a repeat from Repeats or a cycle from Causes. It never shields the boss from work. A repeat is chipped by the times it did not happen, written down as exceptions; a cycle, by testing its least sure step until it no longer holds.',
+      )}
+    </>,
+    <>
+      {t(
+        'Each level brings a point to raise a skill on your Map one step, once you have written about practising it since the last raise. The raise is dated on Time and shows on the Map and in your direction.',
+      )}
+    </>,
   ],
 };
 

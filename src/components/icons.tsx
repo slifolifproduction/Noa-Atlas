@@ -305,6 +305,16 @@ const DeadlineMark = mark(
   </>,
 );
 
+// A skill raised a step: a chevron over a line.
+const LevelUpMark = mark(
+  'levelup',
+  <>
+    <path d="M6.5 13.5 12 8l5.5 5.5" />
+    <path d="M6.5 18.5 12 13l5.5 5.5" {...faint} />
+    <path d="M5 4.5h14" {...faint} />
+  </>,
+);
+
 /* ---------------------------------------------------------------- patterns and notes */
 /* ---------------------------------------------------------------- patterns and notes */
 
@@ -379,6 +389,7 @@ export const HISTORY_ICONS = {
   test: ExperimentIcon,
   step: StepMark,
   deadline: DeadlineMark,
+  levelup: LevelUpMark,
 } satisfies Record<string, LucideIcon>;
 
 export const DecisionIcon = Decision;
