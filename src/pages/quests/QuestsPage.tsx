@@ -1,8 +1,9 @@
 import { ArrowDown, Crosshair, Plus, SkipForward } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { navigate } from '../../app/router';
 import { PLACE_ICONS } from '../../components/icons';
 import { BossEye, type EyeHandle } from '../../components/quests/BossEye';
+import type { Box } from '../../components/quests/eyeArt';
 import { Button, IconButton } from '../../components/ui/Button';
 import { HowItWorks } from '../../components/ui/HowItWorks';
 import { ConfirmButton } from '../../components/ui/ConfirmButton';
@@ -84,6 +85,35 @@ function Readout({ boss, urgent }: { boss: Boss; urgent: boolean }) {
   );
 }
 
+/** A number from a boss's id, so each tears through its own way. */
+const seedOf = (id: string) => [...id].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619), 2166136261) >>> 0;
+
+/** The boxes of text on the stage, in its pixels, for the eye to keep clear of. Hidden ones count for nothing. */
+function useTextBoxes(stage: RefObject<HTMLElement | null>, parts: RefObject<HTMLElement | null>[], key: string) {
+  const [boxes, setBoxes] = useState<Box[]>([]);
+  useLayoutEffect(() => {
+    const root = stage.current;
+    if (!root) return;
+    const measure = () => {
+      const s = root.getBoundingClientRect();
+      const next = parts.flatMap((r) => {
+        const b = r.current?.getBoundingClientRect();
+        if (!b?.width || !b.height) return [];
+        return [{ x: Math.round(b.left - s.left), y: Math.round(b.top - s.top), w: Math.round(b.width), h: Math.round(b.height) }];
+      });
+      setBoxes((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(root);
+    for (const r of parts) if (r.current) ro.observe(r.current);
+    return () => ro.disconnect();
+    // The parts are refs, stable for the page's life; `key` says when they may have changed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return boxes;
+}
+
 const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
 /**
@@ -114,7 +144,11 @@ export function QuestsPage() {
   const [starting, setStarting] = useState(false);
   const stage = useRef<HTMLElement>(null);
   const eye = useRef<EyeHandle>(null);
+  const hudTop = useRef<HTMLDivElement>(null);
+  const hudBottom = useRef<HTMLDivElement>(null);
+  const consoleBox = useRef<HTMLElement>(null);
   const boss = q.bosses.find((b) => b.id === pick) ?? q.current ?? q.bosses[0];
+  const avoid = useTextBoxes(stage, [hudTop, hudBottom, consoleBox], `${boss?.id ?? 'none'}|${wide}`);
   const armor = useMemo(() => (boss ? bossArmor(data, boss.id, today) : []), [data, boss, today]);
 
   const strike = (b: Boss, p: BossPart, from?: Element) => {
@@ -154,22 +188,25 @@ export function QuestsPage() {
   if (!boss) {
     return (
       <>
-        <section className="quest-stage relative h-full min-h-[520px] overflow-hidden">
+        <section ref={stage} className="quest-stage relative h-full min-h-[520px] overflow-hidden">
           <BossEye
             dormant
             parts={[]}
             state="active"
             urgent={false}
             hit={0}
-            wide={false}
+            wide={wide}
+            avoid={avoid}
             ring={t('Nothing is watching yet').toUpperCase()}
             hp={0}
             maxHp={0}
             daysLeft={0}
             label={t('A closed eye: no boss yet')}
           />
-          <div className="quest-hud absolute top-3 right-4 left-4 lg:top-5 lg:left-6">{pageLabel}</div>
-          <div className="quest-hud absolute inset-x-4 bottom-8 mx-auto max-w-[560px] text-center">
+          <div ref={hudTop} className="quest-hud absolute top-3 left-4 lg:top-5 lg:left-6">
+            {pageLabel}
+          </div>
+          <div ref={hudBottom} className="quest-hud absolute inset-x-4 bottom-8 mx-auto max-w-[560px] text-center">
             <h2 className="display text-[28px] leading-tight text-ink">{t('No boss yet')}</h2>
             <p className="mt-2 text-[13px] leading-snug text-ink-2">
               {t(
@@ -237,6 +274,8 @@ export function QuestsPage() {
           alert={alert}
           armor={armor}
           wide={wide}
+          avoid={avoid}
+          seed={seedOf(boss.id)}
           ring={`${WATCH_LABEL(boss)} · ${boss.title} · ${countdown(boss)} · HP ${boss.hp}/${boss.maxHp}`.toUpperCase()}
           hp={boss.hp}
           maxHp={boss.maxHp}
@@ -248,12 +287,20 @@ export function QuestsPage() {
         <div className="quest-scrim quest-scrim-bottom" aria-hidden />
 
         {/* Top: where you are, and what is watching you. */}
-        <div className="quest-hud absolute top-3 right-4 left-4 lg:top-5 lg:right-auto lg:left-6 lg:w-[min(560px,calc(100%-470px))]">
+        <div ref={hudTop} className="quest-hud absolute top-3 right-4 left-4 lg:top-5 lg:right-auto lg:left-6 lg:w-fit lg:max-w-[min(560px,calc(100%-470px))]">
           <div className="flex items-center gap-3">
             {pageLabel}
             <div className="ml-auto flex items-center gap-1 lg:hidden">
               <IconButton icon={PLACE_ICONS.ahead} label={t('Open the plan')} onClick={() => navigate('navigation')} />
               <IconButton icon={Plus} label={t('Start a quest')} onClick={() => setStarting(true)} />
+            </div>
+            <div className="ml-3 hidden items-center gap-1.5 lg:flex">
+              <Button size="sm" variant="ghost" icon={PLACE_ICONS.ahead} onClick={() => navigate('navigation')}>
+                {t('Open the plan')}
+              </Button>
+              <Button size="sm" variant="primary" icon={Plus} onClick={() => setStarting(true)}>
+                {t('Start a quest')}
+              </Button>
             </div>
           </div>
           <div
@@ -268,35 +315,24 @@ export function QuestsPage() {
               {KIND_LABEL(boss)} · {STATE_LABEL(boss)} · {WATCH_LABEL(boss)}
             </span>
           </div>
-          <h2 key={`t${boss.id}`} id="quest-boss" className="display quest-hud-in mt-2 text-[24px] leading-[1.06] text-ink md:text-[34px] lg:text-[40px]">
+          <h2
+            key={`t${boss.id}`}
+            id="quest-boss"
+            className="display quest-hud-in mt-2 text-[22px] leading-[1.06] text-ink md:text-[32px] lg:text-[clamp(28px,4.6vh,42px)]"
+          >
             {boss.title}
           </h2>
         </div>
 
-        {/* Bottom left, on a wide screen: the countdown, its strength, and what to do next. */}
-        <div className="quest-hud absolute bottom-6 left-6 hidden w-[340px] lg:block">
+        {/* Bottom left, on a wide screen: the countdown and its strength. */}
+        <div ref={hudBottom} className="quest-hud absolute bottom-6 left-6 hidden w-[320px] lg:block">
           <Readout boss={boss} urgent={urgent} />
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="ghost" icon={PLACE_ICONS.ahead} onClick={() => navigate('navigation')}>
-              {t('Open the plan')}
-            </Button>
-            <Button variant="primary" icon={Plus} onClick={() => setStarting(true)}>
-              {t('Start a quest')}
-            </Button>
-          </div>
-          <button
-            type="button"
-            onClick={() => scrollTo('quest-below')}
-            className="mt-4 inline-flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] text-ink-3 uppercase hover:text-ink"
-          >
-            <ArrowDown size={12} aria-hidden />
-            {t('Armor, arsenal and the other bosses')}
-          </button>
         </div>
 
         {/* The console: what brings it down (beside it on a wide screen, below it on a phone). */}
         <aside
-          className="quest-console absolute inset-x-0 top-[63%] bottom-0 overflow-y-auto px-4 pt-8 pb-5 lg:inset-x-auto lg:top-4 lg:right-4 lg:bottom-auto lg:max-h-[calc(100%-2rem)] lg:w-[384px] lg:border lg:border-line lg:p-4"
+          ref={consoleBox}
+          className="quest-console absolute inset-x-0 top-[66%] bottom-0 overflow-y-auto px-4 pt-8 pb-5 lg:inset-x-auto lg:top-4 lg:right-4 lg:bottom-auto lg:max-h-[calc(100%-2rem)] lg:w-[384px] lg:border lg:border-line lg:p-4"
           aria-label={t('What brings it down')}
         >
           <div className="lg:hidden">
@@ -414,6 +450,14 @@ export function QuestsPage() {
               {armor.length ? tn(standing, 'one plate standing', '{n} plates standing') : t('none marked yet')}
             </span>
             <ArrowDown size={13} aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={() => scrollTo('quest-below')}
+            className="mt-3 inline-flex items-center gap-1.5 font-mono text-[10.5px] tracking-[0.14em] text-ink-3 uppercase hover:text-ink"
+          >
+            <ArrowDown size={12} aria-hidden />
+            {t('Armor, arsenal and the other bosses')}
           </button>
           {boss.source === 'own' && (
             <div className="mt-4 border-t border-line pt-3">

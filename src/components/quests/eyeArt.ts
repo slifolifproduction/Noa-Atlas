@@ -11,14 +11,19 @@ export const TAU = Math.PI * 2;
 export const RC = 92;
 /** The iris. */
 export const RI = 232;
-/** Half the width of the eye, and half its height when wide open. */
-export const EW = 350;
-export const EH = 236;
-/** The rings: its strength, its ticks, its armor, the text that turns. */
-export const R_HP = 392;
-export const R_TICKS = 372;
-export const R_ARMOR = 436;
-export const R_TEXT = 462;
+/**
+ * Half the width of the eye, to its sharp corners, and how far each lid stands
+ * from the middle when open: the upper lid flat, heavy and lower than the
+ * lower one, so it glares from under it.
+ */
+export const EW = 380;
+export const UP = 196;
+export const LO = 226;
+/** The rings: its ticks, its strength, its armor, the text that turns. */
+export const R_TICKS = 398;
+export const R_HP = 416;
+export const R_ARMOR = 458;
+export const R_TEXT = 482;
 
 const f = (n: number) => n.toFixed(1);
 
@@ -32,11 +37,236 @@ export function seeded(seed: number) {
   };
 }
 
-/** The eye's outline, open by `o` (0 closed, 1 wide open). */
-export function lids(o: number) {
-  const c = (-EH * Math.max(0.012, o)) / 0.75;
-  return `M${-EW} 0C${f(-EW * 0.45)} ${f(c)} ${f(EW * 0.45)} ${f(c)} ${EW} 0C${f(EW * 0.45)} ${f(-c)} ${f(-EW * 0.45)} ${f(-c)} ${-EW} 0Z`;
+type P = [number, number];
+type Seg = [P, P, P];
+const cubic = (segs: Seg[]) => segs.map(([a, b, c]) => `C${f(a[0])} ${f(a[1])} ${f(b[0])} ${f(b[1])} ${f(c[0])} ${f(c[1])}`).join('');
+
+/**
+ * The upper lid, left corner to right: it leaves each corner low and sharp,
+ * rises steeply, and runs flat and heavy across the top.
+ */
+function upperSegs(o: number): Seg[] {
+  const u = UP * Math.max(0.012, o);
+  return [
+    [
+      [-EW * 0.74, -u * 0.1],
+      [-EW * 0.6, -u],
+      [-EW * 0.3, -u],
+    ],
+    [
+      [-EW * 0.1, -u],
+      [EW * 0.1, -u],
+      [EW * 0.3, -u],
+    ],
+    [
+      [EW * 0.6, -u],
+      [EW * 0.74, -u * 0.1],
+      [EW, 0],
+    ],
+  ];
 }
+/** The lower lid, right corner back to left: sharp at the corners, round beneath. */
+function lowerSegs(o: number): Seg[] {
+  const d = LO * Math.max(0.012, o);
+  return [
+    [
+      [EW * 0.7, d * 0.14],
+      [EW * 0.46, d],
+      [0, d],
+    ],
+    [
+      [-EW * 0.46, d],
+      [-EW * 0.7, d * 0.14],
+      [-EW, 0],
+    ],
+  ];
+}
+
+/** The eye's outline, open by `o` (0 closed, 1 open), as a closed shape for its lids. */
+export const lids = (o: number) => `M${-EW} 0${cubic(upperSegs(o))}${cubic(lowerSegs(o))}Z`;
+/** The upper lid alone, for the heavy shadow it casts. */
+export const upperLid = (o: number) => `M${-EW} 0${cubic(upperSegs(o))}`;
+/** Its corners run on into thin wings that lift a little: the look of something that hunts. */
+export const WINGS = `M${-EW - 10} -2L${-EW - 118} -28M${-EW - 118} -34L${-EW - 118} -22M${EW + 10} -2L${EW + 118} -28M${EW + 118} -34L${EW + 118} -22`;
+
+/* ---- Where the eye can go -------------------------------------------------- */
+
+const bez = (p0: P, [a, b, c]: Seg, t: number): P => {
+  const m = 1 - t;
+  return [
+    m * m * m * p0[0] + 3 * m * m * t * a[0] + 3 * m * t * t * b[0] + t * t * t * c[0],
+    m * m * m * p0[1] + 3 * m * m * t * a[1] + 3 * m * t * t * b[1] + t * t * t * c[1],
+  ];
+};
+function sample(start: P, segs: Seg[], each: number) {
+  const out: P[] = [];
+  let p0 = start;
+  for (const s of segs) {
+    for (let i = 0; i < each; i++) out.push(bez(p0, s, i / each));
+    p0 = s[2];
+  }
+  out.push(p0);
+  return out;
+}
+/**
+ * Spines along the upper lid, set outward like the ticks of an instrument:
+ * longer over the middle, none at the corners.
+ */
+export function lashes(o: number) {
+  const pts = sample([-EW, 0], upperSegs(o), 16);
+  let d = '';
+  for (let i = 2; i < pts.length - 2; i++) {
+    const [p, q] = [pts[i - 1], pts[i + 1]];
+    const [tx, ty] = [q[0] - p[0], q[1] - p[1]];
+    const len = Math.hypot(tx, ty) || 1;
+    const [nx, ny] = [ty / len, -tx / len];
+    const reach = (i % 2 ? 9 : 16) * Math.sin((Math.PI * i) / (pts.length - 1));
+    const [x, y] = pts[i];
+    d += `M${f(x + nx * 4)} ${f(y + ny * 4)}L${f(x + nx * (4 + reach))} ${f(y + ny * (4 + reach))}`;
+  }
+  return d;
+}
+
+/** The eye's outer edge at its widest (the spines over the upper lid, the lower lid, a little past open), to keep it clear of text. */
+export const OUTLINE: P[] = (() => [
+  ...sample([-EW, 0], upperSegs(1.08), 10).map(([x, y]): P => [x, y - (y < -20 ? 22 : 0)]),
+  ...sample([EW, 0], lowerSegs(1.08), 10),
+  // The wings.
+  ...[-1, 1].flatMap((side): P[] => [0.25, 0.5, 0.75, 1].map((t): P => [side * (EW + 10 + 108 * t), -2 - 26 * t])),
+])();
+
+export interface Box {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** Whether the eye at (cx, cy), scale k, stays clear of every box and inside the bounds. */
+function clear(cx: number, cy: number, k: number, boxes: Box[], x0: number, x1: number, y0: number, y1: number, m: number) {
+  for (const [u, v] of OUTLINE) {
+    const X = cx + u * k;
+    const Y = cy + v * k;
+    if (X < x0 || X > x1 || Y < y0 || Y > y1) return false;
+    for (const b of boxes) if (X > b.x - m && X < b.x + b.w + m && Y > b.y - m && Y < b.y + b.h + m) return false;
+  }
+  // A box that sits inside the eye touches no edge: test its corners against the shape.
+  for (const b of boxes) {
+    for (const [X, Y] of [
+      [b.x, b.y],
+      [b.x + b.w, b.y],
+      [b.x, b.y + b.h],
+      [b.x + b.w, b.y + b.h],
+      [b.x + b.w / 2, b.y + b.h / 2],
+    ]) {
+      const u = (X - cx) / k;
+      const v = (Y - cy) / k;
+      if (Math.abs(u) < EW && Math.abs(v) < 230 * (1 - (u / EW) ** 2)) return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Where the eye goes on the stage, and how large: the largest it can be
+ * without touching the text over it (the boxes, in stage pixels). On a wide
+ * screen it stays whole on the stage; on a small one it may run past the
+ * sides, as long as nothing it touches is text.
+ */
+export function fitEye(w: number, h: number, boxes: Box[], wide: boolean) {
+  const m = 14;
+  const right = Math.min(w, ...boxes.filter((b) => b.x > w / 2).map((b) => b.x));
+  const [x0, x1] = wide ? [8, w - 8] : [-Infinity, Infinity];
+  const [y0, y1] = [6, h - 6];
+  const kMin = 0.3;
+  const kMax = wide ? Math.min(2.4, (w * 0.95) / (2 * (EW + 34))) : Math.min(1.6, (w * 1.3) / (2 * EW));
+  const cxs = wide ? Array.from({ length: 19 }, (_, i) => w * (0.14 + (0.72 * i) / 18)) : [w / 2];
+  const cys = Array.from({ length: 13 }, (_, i) => h * (0.24 + (0.52 * i) / 12));
+  const [px, py] = [wide ? right / 2 : w / 2, h * 0.5];
+  let best = { cx: px, cy: py, k: kMin, score: -1 };
+  for (const cx of cxs) {
+    for (const cy of cys) {
+      if (!clear(cx, cy, kMin, boxes, x0, x1, y0, y1, m)) continue;
+      let [lo, hi] = [kMin, kMax];
+      for (let i = 0; i < 14; i++) {
+        const mid = (lo + hi) / 2;
+        if (clear(cx, cy, mid, boxes, x0, x1, y0, y1, m)) lo = mid;
+        else hi = mid;
+      }
+      // As large as it can be; among near-equals, nearer the middle of the free stage.
+      const score = lo * (1 - 0.1 * (Math.abs(cx - px) / w) - 0.1 * (Math.abs(cy - py) / h));
+      if (score > best.score) best = { cx, cy, k: lo, score };
+    }
+  }
+  return { cx: best.cx, cy: best.cy, k: best.k };
+}
+
+/* ---- The rift it comes through --------------------------------------------- */
+
+/** How far the rift runs either side of the middle. */
+export const RIFT_W = EW * 1.22;
+/** Cracks running on from the rift's ends into the space around it. */
+export function riftCracks(seed: number) {
+  const r = seeded(seed + 7);
+  let d = '';
+  for (const side of [-1, 1]) {
+    for (let k = 0; k < 3; k++) {
+      let [x, y] = [side * RIFT_W * (0.92 - k * 0.12), (r() - 0.5) * 6];
+      d += `M${f(x)} ${f(y)}`;
+      const dir = (r() - 0.5) * 0.9;
+      for (let j = 0; j < 5; j++) {
+        x += side * (14 + r() * 26);
+        y += dir * 24 + (r() - 0.5) * 16;
+        d += `L${f(x)} ${f(y)}`;
+      }
+    }
+  }
+  return d;
+}
+/** The rift's jagged edges: a pair of offsets for each step along it. */
+export function riftJags(seed: number, n = 56): [number, number][] {
+  const r = seeded(seed);
+  return Array.from({ length: n + 1 }, () => [r(), r()]);
+}
+/** The rift, grown out to `reveal` of its width and opened by `open` units, its edges trembling by `tremble`. */
+export function riftPath(jags: [number, number][], reveal: number, open: number, tremble: number) {
+  const RW = RIFT_W;
+  const n = jags.length - 1;
+  const pts = jags.map(([a, b], i) => {
+    const x = (-1 + (2 * i) / n) * RW * reveal;
+    const prof = Math.max(0, 1 - (x / RW) ** 2) ** 1.2;
+    const edge = i === 0 || i === n ? 0 : 1;
+    // Every other step bites deeper: the edge of something torn, not a smooth cut.
+    const bite = (i % 2 ? 0.55 : 0.85) + 0.35 * a;
+    const bite2 = (i % 2 ? 0.85 : 0.55) + 0.35 * b;
+    return [x, -edge * (open * prof * bite + (0.6 + 1.8 * a) * tremble), edge * (open * prof * bite2 + (0.6 + 1.8 * b) * tremble)];
+  });
+  let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+  for (let i = 1; i <= n; i++) d += `L${f(pts[i][0])} ${f(pts[i][1])}`;
+  for (let i = n; i >= 0; i--) d += `L${f(pts[i][0])} ${f(pts[i][2])}`;
+  return `${d}Z`;
+}
+/** Shards of the broken dimension, thrown out from the rift. */
+export const SHARDS = (() => {
+  const r = seeded(77);
+  return Array.from({ length: 14 }, () => {
+    const up = r() < 0.5 ? -1 : 1;
+    const a = up * (Math.PI / 2) + (r() - 0.5) * 1.6;
+    const s = 5 + r() * 9;
+    return {
+      x: (r() - 0.5) * EW * 1.6,
+      vx: Math.cos(a) * (140 + r() * 320),
+      vy: Math.sin(a) * (140 + r() * 320),
+      spin: (r() - 0.5) * 720,
+      d: `M0 ${f(-s)}L${f(s * 0.7)} ${f(s * 0.5)}L${f(-s * 0.6)} ${f(s * 0.3)}Z`,
+    };
+  });
+})();
+/** The other side, seen through the rift: streaks of light rushing out. */
+export const STREAKS = (() => {
+  const r = seeded(91);
+  return Array.from({ length: 40 }, () => ({ a: r() * TAU, d0: r() * 420, v: 380 + r() * 700, len: 14 + r() * 40 }));
+})();
 
 /** Where each part of the boss sits on the iris: an angle, a reach, and a few bodies along it. */
 export function spokes(parts: BossPart[]) {
