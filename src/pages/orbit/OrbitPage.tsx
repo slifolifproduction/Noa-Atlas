@@ -162,7 +162,7 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
         draggable={!isMobile && lens === 'map'}
         occludedLeft={sideVisible ? leftInset : 0}
         // The helix is one object: zooming out stops a little past the whole of it.
-        zoomOutToFit={lens === 'causes' ? 0.7 : undefined}
+        zoomOutToFit={0.7}
         living
       >
         {/* Toolbar */}
