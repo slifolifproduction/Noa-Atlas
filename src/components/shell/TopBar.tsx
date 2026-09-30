@@ -19,7 +19,7 @@ import { t } from '../../i18n';
 export const GROUP_ICONS: Record<GroupKey, LucideIcon> = PLACE_ICONS;
 
 /**
- * Five lenses on one atlas, what you are looking at, search, capture, and
+ * Six lenses on one atlas, what you are looking at, search, capture, and
  * one "more" menu. Switching lens keeps the thing you are looking at.
  */
 export function TopBar({ active }: { active: RouteKey }) {
@@ -29,7 +29,7 @@ export function TopBar({ active }: { active: RouteKey }) {
 
   return (
     <header className="relative z-30 flex h-[52px] shrink-0 items-center gap-2 border-b border-line bg-canvas px-3 md:px-5">
-      <a href={hrefFor('orbit')} className="mr-2 flex items-center gap-2.5 rounded-[2px] py-1 pr-1 lg:mr-4" aria-label={t('Cognitive Atlas, home')}>
+      <a href={hrefFor('orbit')} className="mr-1 flex items-center gap-2.5 rounded-[2px] py-1 pr-1 xl:mr-4" aria-label={t('Cognitive Atlas, home')}>
         <LogoMark />
         <Wordmark className="hidden xl:inline" />
       </a>
@@ -43,15 +43,17 @@ export function TopBar({ active }: { active: RouteKey }) {
               key={g.key}
               href={hrefFor(isActive ? active : groupTarget(g.key))}
               aria-current={isActive ? 'page' : undefined}
+              aria-label={g.label}
               title={t('{question} (key {n})', { question: g.question, n: i + 1 })}
               className={cn(
-                'group relative flex items-center gap-1.5 px-2.5 text-[13.5px] transition-colors lg:px-3.5',
+                'group relative flex items-center gap-1.5 px-2.5 text-[13.5px] whitespace-nowrap transition-colors xl:px-3.5',
                 isActive ? 'text-ink' : 'text-ink-3 hover:text-ink',
               )}
             >
               <Icon size={14} strokeWidth={1.7} className={isActive ? 'text-accent' : 'text-ink-3 group-hover:text-ink-2'} aria-hidden />
-              <span className="font-medium tracking-[0.005em]">{g.label}</span>
-              {isActive && <span className="absolute inset-x-2.5 -bottom-px h-px bg-accent lg:inset-x-3.5" aria-hidden />}
+              {/* Six lenses: on narrower screens, their marks alone (named on hover and to assistive tech). */}
+              <span className="hidden font-medium tracking-[0.005em] lg:inline">{g.label}</span>
+              {isActive && <span className="absolute inset-x-2.5 -bottom-px h-px bg-accent xl:inset-x-3.5" aria-hidden />}
             </a>
           );
         })}

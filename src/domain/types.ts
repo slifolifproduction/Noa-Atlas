@@ -644,6 +644,17 @@ export interface NavTarget {
   title: string;
   due: ISODate;
   done: boolean;
+  /** The day it was marked done (older plans have none). */
+  doneAt?: ISODate;
+  /** Dates it had before, that passed with something still open (Quests: the boss got away), with how far it had got. */
+  missed?: MissedDate[];
+}
+
+/** A date that passed before the work was done, kept when a new date is set. */
+export interface MissedDate {
+  due: ISODate;
+  done: number;
+  total: number;
 }
 
 export type NavActionStatus = 'todo' | 'done' | 'skipped';
@@ -655,6 +666,8 @@ export interface NavAction {
   /** Monday of the week this action belongs to. */
   week: ISODate;
   status: NavActionStatus;
+  /** The day it was marked done (older plans have none). */
+  doneAt?: ISODate;
 }
 
 /** The planned layer for one chosen path. */
@@ -664,7 +677,7 @@ export interface NavigationPlan {
   position: string;
   objective: { title: string; description: string; targetDate: ISODate };
   experimentId?: ID;
-  milestone: { title: string; due: ISODate };
+  milestone: { title: string; due: ISODate; missed?: MissedDate[] };
   targets: NavTarget[];
   actions: NavAction[];
   currentActionId?: ID;

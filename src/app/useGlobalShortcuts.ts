@@ -31,7 +31,7 @@ export function useGlobalShortcuts() {
         if (e.key === 'ArrowLeft') ui.back();
         return;
       }
-      if (/^[1-5]$/.test(e.key)) return navigate(nextInGroup(Number(e.key) - 1));
+      if (/^[1-6]$/.test(e.key)) return navigate(nextInGroup(Number(e.key) - 1));
       switch (e.key) {
         case 'n':
         case 'c':
@@ -66,9 +66,9 @@ function nextInGroup(index: number): RouteKey {
 
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
   {
-    keys: ['1', '–', '5'],
+    keys: ['1', '–', '6'],
     get label() {
-      return t('Map, Time, Causes, Repeats, Ahead');
+      return t('Map, Time, Causes, Repeats, Ahead, Quests');
     },
   },
   {

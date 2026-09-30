@@ -1038,3 +1038,196 @@ html body {
 .lens-globe:not(.atlas-3d) .react-flow__node:has(.node-body[data-far]) {
   pointer-events: none;
 }
+
+/* ---- Quests: the boss's eye --------------------------------------------------
+ * An instrument around an eye, in the atlas's own hairlines: the outer ring's
+ * arc is the boss's strength (a segment per piece of work, dark once done), a
+ * spoke on the iris per piece, the pupil at the centre. Near its date the eye
+ * burns in the signal colour. */
+.boss-eye {
+  --eye: 236 232 223;
+  --eye-hot: 236 232 223;
+  overflow: visible;
+}
+.boss-eye[data-urgent] {
+  --eye-hot: 255 90 31;
+}
+.boss-eye[data-state='defeated'],
+.boss-eye[data-state='escaped'] {
+  opacity: 0.55;
+}
+.boss-eye circle,
+.boss-eye path,
+.boss-eye line {
+  vector-effect: non-scaling-stroke;
+}
+.eye-ring-faint {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.07);
+}
+.eye-ring {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.28);
+}
+.eye-ring-dash {
+  fill: none;
+  stroke: rgb(var(--eye-hot) / 0.35);
+  stroke-dasharray: 2 5;
+}
+.eye-ring-dots {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.2);
+  stroke-dasharray: 1 6;
+}
+.eye-ticks line {
+  stroke: rgb(var(--eye) / 0.2);
+}
+.eye-arc {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.5);
+  stroke-width: 1.5;
+}
+.eye-arc-thin {
+  stroke-width: 1;
+  stroke: rgb(var(--eye) / 0.25);
+}
+.eye-moon {
+  fill: rgb(var(--eye) / 0.85);
+}
+.eye-hp {
+  fill: none;
+  stroke: rgb(var(--eye-hot) / 0.85);
+  stroke-width: 4;
+  transition:
+    stroke 400ms,
+    stroke-width 400ms;
+}
+.eye-hp-done {
+  stroke: rgb(var(--eye) / 0.12);
+  stroke-width: 1.5;
+}
+.eye-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: rgb(var(--eye) / 0.55);
+}
+.eye-num-done {
+  fill: rgb(var(--eye) / 0.2);
+}
+.eye-glow-in {
+  stop-color: rgb(var(--eye-hot));
+  stop-opacity: 0.1;
+}
+.eye-glow-mid {
+  stop-color: rgb(var(--eye));
+  stop-opacity: 0.035;
+}
+.eye-glow-out {
+  stop-color: rgb(var(--eye));
+  stop-opacity: 0;
+}
+.eye-spoke line {
+  stroke: rgb(var(--eye) / 0.75);
+  stroke-width: 1.2;
+}
+.eye-bead {
+  fill: rgb(var(--eye) / 0.7);
+}
+.eye-body {
+  fill: rgb(var(--eye) / 0.16);
+  stroke: rgb(var(--eye) / 0.3);
+}
+.eye-node {
+  fill: rgb(var(--eye));
+  stroke: var(--color-canvas);
+  stroke-width: 1.5;
+}
+.eye-spoke-done line {
+  stroke: rgb(var(--eye) / 0.14);
+  stroke-dasharray: 2 4;
+}
+.eye-spoke-done .eye-bead,
+.eye-spoke-done .eye-body {
+  opacity: 0.25;
+}
+.eye-spoke-done .eye-node {
+  fill: var(--color-canvas);
+  stroke: rgb(var(--eye) / 0.3);
+}
+.eye-pupil-halo {
+  fill: none;
+  stroke: rgb(var(--eye-hot) / 0.3);
+}
+.eye-pupil {
+  fill: #030405;
+  stroke: rgb(var(--eye-hot) / 0.9);
+  stroke-width: 1.5;
+  transition: r 500ms var(--ease-out-quint);
+}
+.eye-pupil-core {
+  fill: none;
+  stroke: rgb(var(--eye-hot) / 0.55);
+  stroke-dasharray: 1 3;
+}
+.eye-glint {
+  fill: rgb(var(--eye) / 0.85);
+}
+.eye-lid {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.75);
+  stroke-width: 1.4;
+}
+.boss-eye[data-urgent] .eye-lid {
+  stroke: rgb(var(--eye-hot) / 0.85);
+}
+/* The instrument turns slowly; the iris the other way. Faster when its date is close. */
+.eye-orbit,
+.eye-iris {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+}
+.boss-eye:not([data-state='defeated']) .eye-orbit {
+  animation: eye-turn 90s linear infinite;
+}
+.boss-eye:not([data-state='defeated']) .eye-orbit-back {
+  animation-duration: 140s;
+  animation-direction: reverse;
+}
+.boss-eye:not([data-state='defeated']) .eye-iris {
+  animation: eye-turn 160s linear infinite reverse;
+}
+.boss-eye[data-urgent] .eye-orbit {
+  animation-duration: 40s;
+}
+.boss-eye[data-urgent] .eye-iris {
+  animation-duration: 70s;
+}
+@keyframes eye-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+/* A hit: the struck spoke flares. */
+.eye-spoke.is-struck line {
+  stroke: rgb(255 90 31);
+  stroke-width: 2.5;
+}
+@media (prefers-reduced-motion: reduce) {
+  .eye-orbit,
+  .eye-iris {
+    animation: none !important;
+  }
+}
+/* The arena: deep space behind the eye, and faint scanlines. */
+.quest-arena {
+  background:
+    radial-gradient(70% 60% at 34% 46%, rgb(236 232 223 / 0.045), transparent 70%),
+    radial-gradient(40% 40% at 34% 46%, rgb(255 90 31 / 0.025), transparent 70%), var(--color-surface);
+}
+.quest-arena::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgb(236 232 223 / 0.018) 0 1px, transparent 1px 3px);
+}

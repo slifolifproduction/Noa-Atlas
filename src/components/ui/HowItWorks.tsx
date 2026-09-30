@@ -69,6 +69,20 @@ const PAGE_HELP: Record<string, () => ReactNode[]> = {
     <>{t('Tick targets and steps off as you go. The next open step also appears on the Map, under Next step.')}</>,
     <>{t('A test changes one thing on purpose and compares it with what you expected. Its result makes a reason surer, or less sure.')}</>,
   ],
+  quests: () => [
+    <>
+      {t(
+        'Your plan in Ahead, as bosses to beat: the milestone, each target with a date, and this week’s steps as minions. A boss’s strength is exactly what is still open.',
+      )}
+    </>,
+    <>{t('Strike marks a step done, or a target met: the same step in Ahead. Nothing else brings a boss down.')}</>,
+    <>
+      {t(
+        'The forecast reads how much you finished in the last four weeks. If a date passes first, the boss gets away: it is kept on Time with how far you got, and you can take it on again with a new date. There is no penalty.',
+      )}
+    </>,
+    <>{t('Experience is counted from what your atlas holds: steps, targets, days you wrote, tests, repeats reviewed, decisions looked back on.')}</>,
+  ],
 };
 
 export const pageHelp = (page: string): ReactNode[] | undefined => PAGE_HELP[page]?.();

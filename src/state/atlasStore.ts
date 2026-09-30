@@ -56,6 +56,7 @@ import type {
   LearningMemory,
 } from '../domain/types';
 import { addDays, formatDate, todayISO, weekStart } from '../lib/dates';
+import { quests } from '../domain/quests';
 import { createId } from '../lib/ids';
 import { DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
 import { t } from '../i18n';
@@ -176,6 +177,8 @@ interface AtlasActions {
   updateNavigation(patch: Partial<NavigationPlan>): void;
   clearNavigation(): void;
   toggleTarget(id: ID): void;
+  /** Quests: take on a boss that got away again, with a new date; the date that passed is kept with how far it had got. */
+  retryDeadline(boss: 'milestone' | ID, due: string): void;
   addTarget(title: string, due: string): void;
   deleteTarget(id: ID): void;
   addAction(title: string, targetId?: ID): void;
@@ -1368,7 +1371,26 @@ export const useAtlas = create<AtlasState>()(
         toggleTarget(id) {
           set((s) => {
             const x = s.data.navigation?.targets.find((y) => y.id === id);
-            if (x) x.done = !x.done;
+            if (!x) return;
+            x.done = !x.done;
+            x.doneAt = x.done ? todayISO() : undefined;
+          });
+        },
+
+        retryDeadline(boss, due) {
+          set((s) => {
+            const nav = s.data.navigation;
+            if (!nav) return;
+            const b = quests(s.data).bosses.find((x) => (boss === 'milestone' ? x.kind === 'milestone' : x.targetId === boss));
+            if (!b) return;
+            const missed = { due: b.due, done: b.maxHp - b.hp, total: b.maxHp };
+            if (boss === 'milestone') nav.milestone = { ...nav.milestone, due, missed: [...(nav.milestone.missed ?? []), missed] };
+            else {
+              const x = nav.targets.find((y) => y.id === boss);
+              if (!x) return;
+              x.missed = [...(x.missed ?? []), missed];
+              x.due = due;
+            }
           });
         },
 
@@ -1403,6 +1425,7 @@ export const useAtlas = create<AtlasState>()(
             const a = nav?.actions.find((x) => x.id === id);
             if (!nav || !a) return;
             a.status = status;
+            a.doneAt = status === 'done' ? (a.doneAt ?? todayISO()) : undefined;
             if (nav.currentActionId === id && status !== 'todo') {
               nav.currentActionId = nav.actions.find((x) => x.status === 'todo' && x.week >= a.week)?.id ?? nav.actions.find((x) => x.status === 'todo')?.id;
             }

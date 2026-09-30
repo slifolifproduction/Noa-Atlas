@@ -26,6 +26,7 @@ const NavigationPage = lazy(() => import('./pages/navigation/NavigationPage').th
 const PathsPage = lazy(() => import('./pages/paths/PathsPage').then((m) => ({ default: m.PathsPage })));
 const PatternsPage = lazy(() => import('./pages/patterns/PatternsPage').then((m) => ({ default: m.PatternsPage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
+const QuestsPage = lazy(() => import('./pages/quests/QuestsPage').then((m) => ({ default: m.QuestsPage })));
 const GRAPH_ROUTES = new Set<RouteKey>(['orbit', 'network']);
 
 function Page({ route }: { route: ReturnType<typeof useRoute> }): ReactNode {
@@ -43,6 +44,8 @@ function Page({ route }: { route: ReturnType<typeof useRoute> }): ReactNode {
       return <PathsPage />;
     case 'navigation':
       return <NavigationPage />;
+    case 'quests':
+      return <QuestsPage />;
     case 'settings':
       return <SettingsPage />;
   }

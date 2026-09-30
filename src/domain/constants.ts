@@ -1346,6 +1346,17 @@ export const VIEWS = {
       return t('The direction you chose, down to this week’s step, and the tests that check it.');
     },
   },
+  quests: {
+    get label() {
+      return t('Quests');
+    },
+    get question() {
+      return t('What stands in the way, and how do I beat it?');
+    },
+    get blurb() {
+      return t('The plan you chose, as bosses to beat. Their strength is what is still open, and only real work brings it down.');
+    },
+  },
   settings: {
     get label() {
       return t('Settings');
@@ -1362,9 +1373,9 @@ export const VIEWS = {
 export type ViewKey = keyof typeof VIEWS;
 
 /**
- * Five lenses on one atlas. Each answers a question about the same thing:
- * where it sits, what happened, what seems to affect it, what repeats, and
- * what could come next.
+ * Six lenses on one atlas. Each answers a question about the same thing:
+ * where it sits, what happened, what seems to affect it, what repeats, what
+ * could come next, and what stands in the way of the plan you chose.
  */
 export const GROUPS = [
   {
@@ -1416,6 +1427,16 @@ export const GROUPS = [
       return t('What could come next');
     },
     views: ['paths', 'navigation'],
+  },
+  {
+    key: 'quests',
+    get label() {
+      return t('Quests');
+    },
+    get question() {
+      return t('What stands in the way');
+    },
+    views: ['quests'],
   },
 ] as const satisfies readonly { key: string; label: string; question: string; views: readonly ViewKey[] }[];
 

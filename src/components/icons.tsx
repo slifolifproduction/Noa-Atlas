@@ -295,6 +295,16 @@ const StepMark = mark(
   </>,
 );
 
+// A date that passed with something still open: a flag, its pole cut short.
+const DeadlineMark = mark(
+  'deadline',
+  <>
+    <path d="M6 20.5V4" />
+    <path d="M6 4.5h11l-2.5 3.5 2.5 3.5H6" />
+    <path d="M14 16.5l4 4M18 16.5l-4 4" {...faint} />
+  </>,
+);
+
 /* ---------------------------------------------------------------- patterns and notes */
 /* ---------------------------------------------------------------- patterns and notes */
 
@@ -368,12 +378,13 @@ export const HISTORY_ICONS = {
   record: Journal,
   test: ExperimentIcon,
   step: StepMark,
+  deadline: DeadlineMark,
 } satisfies Record<string, LucideIcon>;
 
 export const DecisionIcon = Decision;
 export const JournalIcon = Journal;
 
-/* ---------------------------------------------------------------- the five lenses */
+/* ---------------------------------------------------------------- the six lenses */
 
 export const PLACE_ICONS = {
   // Map: a small orbit around a centre.
@@ -413,6 +424,15 @@ export const PLACE_ICONS = {
     <>
       <circle cx="12" cy="12" r="8.5" />
       <path d="M15.2 8.8 13.3 13.3 8.8 15.2l1.9-4.5Z" />
+    </>,
+  ),
+  // Quests: an eye, watching.
+  quests: mark(
+    'quests',
+    <>
+      <path d="M2.5 12s3.6-6.5 9.5-6.5 9.5 6.5 9.5 6.5-3.6 6.5-9.5 6.5S2.5 12 2.5 12Z" />
+      <circle cx="12" cy="12" r="3.6" {...faint} />
+      {dot(12, 12, 1.6)}
     </>,
   ),
   notes: Journal,
