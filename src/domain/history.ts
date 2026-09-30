@@ -159,12 +159,13 @@ export function readingsOf(data: AtlasData, stateId: ID): { date: ISODate; value
 
 /**
  * A computed observation: how many commitments were active each week, from
- * their lifespans. Nothing is typed in; it is counted.
+ * their lifespans. Nothing is typed in; it is counted. From the first
+ * commitment's week, or from `from` (weeks before any commitment count 0).
  */
-export function activeCommitmentsByWeek(data: AtlasData, today: ISODate = todayISO()): { week: ISODate; count: number }[] {
+export function activeCommitmentsByWeek(data: AtlasData, today: ISODate = todayISO(), from?: ISODate): { week: ISODate; count: number }[] {
   const commitments = Object.values(data.nodes).filter((n) => n.kind === 'commitment' && n.adopted && n.since);
-  if (!commitments.length) return [];
-  const first = weekStart(commitments.map((n) => n.since!).sort()[0]);
+  if (!commitments.length && !from) return [];
+  const first = weekStart(from ?? commitments.map((n) => n.since!).sort()[0]);
   const last = weekStart(today);
   const out: { week: ISODate; count: number }[] = [];
   for (let w = first; w <= last; w = addDays(w, 7)) {

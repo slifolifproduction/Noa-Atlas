@@ -8,15 +8,15 @@ import { Button } from '../../components/ui/Button';
 import { EmptyState, Segmented } from '../../components/ui/primitives';
 import { momentsOf } from '../../domain/ask';
 import { AREA_META, AREAS, MODE_LABEL, OCCURRENCE_KIND_LABEL } from '../../domain/constants';
-import { activeCommitmentsByWeek, contextStates, historyItems, readingsOf, recordGaps, type HistoryItem } from '../../domain/history';
+import { historyItems, recordGaps, type HistoryItem } from '../../domain/history';
 import type { AreaKey, AtlasData } from '../../domain/types';
-import { useElementWidth } from '../../hooks/useElementWidth';
-import { formatDate, formatMonth, parseISODate, useToday } from '../../lib/dates';
+import { formatDate, formatMonth, useToday } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { t, tn } from '../../i18n';
 import { useFrictionNote } from '../../hooks/useFriction';
+import { TimeStrand } from './TimeStrand';
 
 type Show = 'all' | 'notes' | 'decisions' | 'happenings';
 
@@ -68,6 +68,19 @@ export function TimelinePage({ preset }: { preset?: string }) {
   const [area, setArea] = useState<AreaKey | 'all'>('all');
   const [review, setReview] = useState(false);
   const [landmarks, setLandmarks] = useState(false);
+  const [flash, setFlash] = useState<string | null>(null);
+  // From the strand: bring that month into view, and mark it for a moment.
+  const jumpTo = (month: string) => {
+    const el = document.getElementById(`time-${month}`);
+    if (!el) return;
+    el.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+    setFlash(month);
+  };
+  useEffect(() => {
+    if (!flash) return;
+    const timer = setTimeout(() => setFlash(null), 1600);
+    return () => clearTimeout(timer);
+  }, [flash]);
 
   const all = useMemo(() => historyItems(data, { records: true, planned: true, today }).filter((h) => h.kind !== 'reading'), [data, today]);
   const about = useMemo(() => (focus ? new Set(momentsOf(data, focus).map((h) => h.key)) : null), [data, focus]);
@@ -138,7 +151,7 @@ export function TimelinePage({ preset }: { preset?: string }) {
             className="mt-5"
           />
 
-          {quiet && <LoadChart />}
+          {quiet && <TimeStrand onJump={jumpTo} />}
 
           <div className="mt-5 flex flex-wrap items-center gap-2">
             <Segmented<Show>
@@ -226,8 +239,13 @@ export function TimelinePage({ preset }: { preset?: string }) {
 
           <div className="mt-6">
             {[...months.entries()].map(([month, list]) => (
-              <section key={month} className="mb-6">
-                <h2 className="label sticky top-0 z-[1] -mx-2 mb-1 bg-canvas/95 px-2 py-2 backdrop-blur">
+              <section key={month} id={`time-${month}`} className="mb-6 scroll-mt-2">
+                <h2
+                  className={cn(
+                    'label sticky top-0 z-[1] -mx-2 mb-1 bg-canvas/95 px-2 py-2 backdrop-blur transition-colors duration-700',
+                    flash === month && 'bg-accent-dim text-ink',
+                  )}
+                >
                   {formatMonth(`${month}-01`)} <span className="num ml-1 text-ink-3">{list.length}</span>
                 </h2>
                 <ul className="divide-y divide-line border-y border-line">
@@ -366,77 +384,5 @@ function Row({ item: h, active, onOpen }: { item: HistoryItem; active: boolean; 
         </div>
       </div>
     </li>
-  );
-}
-
-/**
- * Two computed series on one time axis: how many commitments were active each
- * week (counted from their lifespans) and energy as recorded with each note.
- * They are shown side by side, not as a correlation: whether one affects the
- * other is a claim, checked elsewhere.
- */
-function LoadChart() {
-  const data = useAtlas((s) => s.data);
-  const today = useToday();
-  const [ref, width] = useElementWidth<HTMLDivElement>();
-  const weeks = useMemo(() => activeCommitmentsByWeek(data, today), [data, today]);
-  const energyId = contextStates(data).energy;
-  const energy = useMemo(() => (energyId ? readingsOf(data, energyId) : []), [data, energyId]);
-  if (weeks.length < 3) return null;
-  const t0 = parseISODate(weeks[0].week).getTime();
-  const t1 = Math.max(parseISODate(today).getTime(), t0 + 86_400_000 * 28);
-  const padL = 88;
-  const padR = 8;
-  const x = (d: string) => padL + ((parseISODate(d).getTime() - t0) / (t1 - t0)) * (width - padL - padR);
-  const maxLoad = Math.max(...weeks.map((w) => w.count), 1);
-  const barH = 44;
-  const eTop = barH + 22;
-  const eH = 36;
-  const ey = (v: number) => eTop + (1 - (v - 1) / 4) * eH;
-  const height = eTop + eH + 20;
-  const bw = Math.max(2, ((width - padL - padR) / Math.max(1, weeks.length)) * 0.7);
-  const energyVisible = energy.filter((r) => r.date >= weeks[0].week);
-  const line = energyVisible.map((r, i) => `${i ? 'L' : 'M'} ${x(r.date).toFixed(1)} ${ey(r.value).toFixed(1)}`).join(' ');
-  return (
-    <section className="mt-6 rounded-[2px] border border-line px-3 pt-3 pb-2">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="label">{t('Load and energy, week by week')}</h2>
-        <span className="text-[11px] text-ink-3">{t('Counted from lifespans and from what you recorded with each note. Side by side, not a finding.')}</span>
-      </div>
-      <div ref={ref} className="mt-2">
-        <svg width={width} height={height} role="img" aria-label={t('Active commitments per week, and energy readings')}>
-          <text x={0} y={barH / 2 + 4} className="fill-ink-3 font-mono text-[10.5px] tracking-wider">
-            {t('COMMITMENTS')}
-          </text>
-          {weeks.map((w) => (
-            <rect
-              key={w.week}
-              x={x(w.week) - bw / 2}
-              y={barH - (w.count / maxLoad) * barH}
-              width={bw}
-              height={(w.count / maxLoad) * barH}
-              fill="var(--color-ink-3)"
-              opacity={0.55}
-            >
-              <title>{t('Week of {date}: {n} active', { date: formatDate(w.week), n: w.count })}</title>
-            </rect>
-          ))}
-          <text x={0} y={eTop + eH / 2 + 4} className="fill-ink-3 font-mono text-[10.5px] tracking-wider">
-            {t('ENERGY')}
-          </text>
-          <line x1={padL} x2={width - padR} y1={ey(3)} y2={ey(3)} stroke="rgb(236 232 223 / 0.08)" strokeDasharray="3 4" />
-          {energyVisible.length > 1 && <path d={line} fill="none" stroke="var(--color-ink-2)" strokeWidth="1.5" strokeLinejoin="round" />}
-          {energyVisible.map((r) => (
-            <circle key={r.date + r.value} cx={x(r.date)} cy={ey(r.value)} r={2} fill="var(--color-ink)" />
-          ))}
-          <text x={padL} y={height - 4} className="fill-ink-3 font-mono text-[10.5px]">
-            {formatMonth(weeks[0].week)}
-          </text>
-          <text x={width - padR} y={height - 4} textAnchor="end" className="fill-ink-3 font-mono text-[10.5px]">
-            {formatMonth(today)}
-          </text>
-        </svg>
-      </div>
-    </section>
   );
 }

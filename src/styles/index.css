@@ -761,3 +761,210 @@ html body {
 .atlas-3d .helix-body svg {
   animation: helix-flicker 9s linear infinite;
 }
+
+/* ------------------------------------------------------------------ Time: the strand */
+/* Time as one strand seen from outside: gold for the load it carries, blue for energy, the signal
+   colour only for now. Marks pass the palette checks against the surface (#bb8a34, #4a9dd0). */
+.time-strand {
+  --gold: 187 138 52;
+  --gold-hi: 246 228 190;
+  --energy: 74 157 208;
+  background:
+    radial-gradient(110% 80% at 28% 36%, rgb(var(--gold) / 0.075), transparent 62%),
+    radial-gradient(60% 60% at 96% 40%, rgb(255 90 31 / 0.035), transparent 70%), var(--color-surface);
+}
+.time-strand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgb(var(--gold-hi) / 0.02) 0 1px, transparent 1px 3px);
+}
+.strand-grid {
+  stroke: rgb(236 232 223 / 0.035);
+}
+.strand-week {
+  fill: rgb(236 232 223 / 0.045);
+  transition: opacity 160ms;
+}
+.strand-caption,
+.strand-month,
+.strand-value,
+.strand-now-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+.strand-caption,
+.strand-month {
+  fill: var(--color-ink-3);
+}
+.strand-month {
+  letter-spacing: 0.04em;
+}
+.strand-value {
+  fill: var(--color-ink-2);
+  letter-spacing: 0;
+}
+.strand-core {
+  stroke: rgb(var(--gold-hi) / 0.85);
+  stroke-width: 1.3;
+}
+.strand-core-glow {
+  stroke: rgb(var(--gold) / 0.9);
+  stroke-width: 5;
+}
+.strand-filament {
+  fill: none;
+  stroke: rgb(var(--gold));
+  stroke-opacity: 0.62;
+  stroke-width: 1;
+}
+.strand-pulse {
+  fill: none;
+  stroke: rgb(var(--gold-hi));
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-dasharray: 16 984;
+  animation: strand-pulse 7s linear infinite;
+}
+.strand-pulse-late {
+  animation-delay: -3.5s;
+}
+@keyframes strand-pulse {
+  from {
+    stroke-dashoffset: 1000;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.strand-spark {
+  fill: rgb(var(--gold-hi) / 0.85);
+}
+.strand-branch {
+  fill: none;
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+}
+.strand-branch-end {
+  fill: var(--color-surface);
+  stroke: rgb(var(--gold) / 0.55);
+  stroke-width: 1;
+}
+.strand-knot {
+  cursor: pointer;
+}
+.strand-knot rect {
+  fill: var(--color-surface);
+  stroke: rgb(var(--gold-hi));
+  stroke-width: 1.4;
+  transition: fill 140ms;
+}
+.strand-knot:hover rect {
+  fill: rgb(var(--gold-hi));
+}
+.strand-mid {
+  stroke: rgb(236 232 223 / 0.08);
+  stroke-dasharray: 3 4;
+}
+.strand-energy {
+  fill: none;
+  stroke: rgb(var(--energy));
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+.strand-energy-glow {
+  fill: none;
+  stroke: rgb(var(--energy) / 0.2);
+  stroke-width: 6;
+  stroke-linejoin: round;
+}
+.strand-energy-dot {
+  fill: rgb(var(--energy));
+  stroke: var(--color-surface);
+  stroke-width: 1.5;
+}
+.strand-now-line {
+  stroke: var(--color-accent);
+  stroke-opacity: 0.45;
+  stroke-dasharray: 2 3;
+}
+.strand-now {
+  fill: var(--color-accent);
+}
+.strand-now-ring {
+  fill: none;
+  stroke: var(--color-accent);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: strand-now 2.4s var(--ease-out-quint) infinite;
+}
+@keyframes strand-now {
+  from {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  to {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+.strand-now-label {
+  fill: var(--color-accent);
+}
+.strand-cursor line,
+.strand-cursor path {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.5);
+  stroke-width: 1;
+}
+.strand-cursor-ring {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.7);
+}
+.strand-axis {
+  stroke: rgb(236 232 223 / 0.12);
+}
+/* The strand writes itself from the first week to now. */
+.strand-write {
+  animation: strand-write 1600ms var(--ease-out-quint) both;
+}
+@keyframes strand-write {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+/* Keys in the readout and the legend. */
+.strand-key {
+  display: inline-block;
+  vertical-align: middle;
+  margin-top: -2px;
+}
+.strand-key-load {
+  width: 14px;
+  height: 6px;
+  border-radius: 3px;
+  background: linear-gradient(to bottom, transparent, rgb(var(--gold) / 0.9), transparent);
+  box-shadow: inset 0 0 0 0.5px rgb(var(--gold-hi) / 0.5);
+}
+.strand-key-energy {
+  width: 12px;
+  height: 2px;
+  background: rgb(var(--energy));
+}
+.strand-key-knot {
+  width: 7px;
+  height: 7px;
+  transform: rotate(45deg);
+  border: 1.3px solid rgb(var(--gold-hi));
+}
+.strand-key-spark {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgb(var(--gold-hi) / 0.85);
+}
