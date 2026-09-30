@@ -28,7 +28,7 @@ const GRAPH_ROUTES = new Set<RouteKey>(['orbit', 'network']);
 
 function Page({ route }: { route: ReturnType<typeof useRoute> }): ReactNode {
   switch (route.key) {
-    // Map and Causes are two lenses on one canvas: switching between them keeps it in place.
+    // Map and Causes are two lenses on one canvas: the map by area and layer, the causes as a helix.
     case 'orbit':
       return <OrbitPage lens="map" />;
     case 'network':

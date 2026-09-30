@@ -26,9 +26,9 @@ const RAIL_WIDTH = 280;
 
 /**
  * The canvas behind two lenses. Map shows what exists, from you outward;
- * Causes shows, on the very same map, what seems to affect what. Switching
- * between them keeps every element in its place and keeps what you are
- * looking at.
+ * Causes shows what seems to affect what, as a double helix that reads from
+ * cause to effect. Switching between them keeps what you are looking at; the
+ * helix is arranged on the fly and never moves anything on the map.
  */
 export function OrbitPage({ lens }: { lens: CanvasLens }) {
   const data = useAtlas((s) => s.data);
@@ -140,19 +140,18 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
   return (
     <div className="relative h-full overflow-hidden">
       <GraphCanvas
-        key={isMobile ? 'portrait' : 'wide'}
+        key={`${lens}-${isMobile ? 'portrait' : 'wide'}`}
         layer="orbit"
         built={built}
         selectedId={selectedId}
         onSelect={onSelect}
         onNodeDoubleClick={toggleHub}
         occludedRight={occluded}
-        persistViewport={!isMobile}
+        persistViewport={!isMobile && lens === 'map'}
         fitPadding={padding}
         refitKey={startCard ? 'start' : 'map'}
-        draggable={!isMobile}
+        draggable={!isMobile && lens === 'map'}
         occludedLeft={sideVisible ? leftInset : 0}
-        minimap={lens === 'causes'}
         living
       >
         {/* Toolbar */}
@@ -279,10 +278,15 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
                 ))}
               </>
             )}
+            {lens === 'map' && (
+              <>
+                <MenuSeparator />
+                <MenuItem icon={RotateCcw} hint={t('Put everything back where it started')} onSelect={() => resetLayout('orbit')}>
+                  {t('Reset layout')}
+                </MenuItem>
+              </>
+            )}
             <MenuSeparator />
-            <MenuItem icon={RotateCcw} hint={t('Put everything back where it started')} onSelect={() => resetLayout('orbit')}>
-              {t('Reset layout')}
-            </MenuItem>
             <MenuItem icon={CircleHelp} onSelect={help.toggle}>
               {help.shown ? t('Hide how this page works') : t('How this page works')}
             </MenuItem>
@@ -333,7 +337,7 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
 
         {/* Key */}
         {!isMobile && (
-          <div className="absolute bottom-6 z-10 transition-[right] duration-200" style={{ right: occluded + (lens === 'causes' ? 172 : 12) }}>
+          <div className="absolute bottom-6 z-10 transition-[right] duration-200" style={{ right: occluded + 12 }}>
             {lens === 'map' ? (
               <Legend
                 links={links}
@@ -358,7 +362,19 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
                 }
               />
             ) : (
-              <Legend />
+              <Legend
+                extra={
+                  <>
+                    <p className="text-[11.5px] leading-snug text-ink-3">
+                      {t('Read from top to bottom: each element sits below what may lead to it. Only the step that closes a cycle arcs back up.')}
+                    </p>
+                    <p className="text-[11.5px] leading-snug text-ink-3">
+                      {t('Two strands: you (what you hold and do) and what surrounds you. Each rung pairs the two things at the same step of the chain.')}
+                    </p>
+                    <p className="text-[11.5px] leading-snug text-ink-3">{t('Only what a shown reason joins is on the helix. The map keeps everything.')}</p>
+                  </>
+                }
+              />
             )}
           </div>
         )}

@@ -3,10 +3,10 @@ import type { CSSProperties } from 'react';
  * Map atlas data to React Flow nodes and edges. Pure functions: given the same
  * data, positions and view state they return the same graph.
  *
- * One canvas, two lenses on the same positions. Map shows what exists
- * (elements, by area and layer) with the declared links, member lines and
- * area arcs; Causes shows the claims: what is said to affect what, each line
- * styled by its derived status.
+ * One canvas, two lenses. Map shows what exists (elements, by area and layer)
+ * with the declared links, member lines and area arcs. Causes shows the
+ * claims, what is said to affect what, each line styled by its derived
+ * status, on a double helix that reads from cause to effect (graph/helix.ts).
  */
 import { claimStatus } from '../domain/claims';
 import { STATUS_META } from '../domain/constants';
@@ -29,11 +29,12 @@ import {
 } from '../domain/constants';
 import { loopById } from '../domain/loops';
 import { areaActivity, mapElements, neighborhood, neighbors, patternsForNode, recordsFor, thinSpots } from '../domain/selectors';
-import type { AreaKey, AtlasData, Claim, ClaimStatus, ID, LayerKey } from '../domain/types';
+import type { AreaKey, AtlasData, AtlasNode, Claim, ClaimStatus, ID, LayerKey } from '../domain/types';
 import { t, tn } from '../i18n';
 import type { NetworkView, XY } from '../state/uiStore';
+import { HELIX_DESKTOP, HELIX_PORTRAIT, helixLayout } from './helix';
 import { orbitLayout } from './layout';
-import type { AtlasFlowNode, LabelSide, SemanticEdge, SemanticEdgeData } from './types';
+import { isBackdrop, type AtlasFlowNode, type ItemNode, type LabelSide, type SemanticEdge, type SemanticEdgeData } from './types';
 
 export interface BuiltGraph {
   nodes: AtlasFlowNode[];
@@ -106,7 +107,7 @@ function applyEmphasis(
   if (selectedId && nodes.some((n) => n.id === selectedId)) {
     const near = new Set([selectedId, ...(causal ? causalNeighbours(data, selectedId) : neighbors(data, selectedId).map((n) => n.otherId))]);
     for (const n of nodes) {
-      if (n.type === 'rings' || n.id === selectedId) continue;
+      if (isBackdrop(n) || n.id === selectedId) continue;
       n.className = near.has(n.id) ? 'is-near' : 'is-dim';
     }
     for (const e of edges) {
@@ -117,7 +118,7 @@ function applyEmphasis(
     }
     for (const n of nodes) if (n.id === selectedId) n.selected = true;
   } else if (query) {
-    for (const n of nodes) if (n.type !== 'rings' && !matches.has(n.id)) n.className = 'is-soft';
+    for (const n of nodes) if (!isBackdrop(n) && !matches.has(n.id)) n.className = 'is-soft';
   }
 }
 
@@ -217,7 +218,47 @@ export interface OrbitOptions {
 /** Sector boundaries, halfway between neighbouring areas. */
 const SPOKES = SECTOR_KEYS.map((k) => AREA_META[k].angle + 180 / SECTOR_KEYS.length);
 
+/** An element as a node on the canvas, with its name on one side. */
+function elementNode(
+  data: AtlasData,
+  n: AtlasNode,
+  position: XY,
+  side: LabelSide,
+  reveal: number,
+  matched: boolean,
+  salient: boolean,
+  today: string,
+): ItemNode {
+  const records = recordsFor(data, n.id);
+  return {
+    id: n.id,
+    type: 'item',
+    style: { '--reveal': `${reveal}ms` } as CSSProperties,
+    position,
+    data: {
+      label: n.label,
+      color: AREA_META[n.area].color,
+      area: n.area,
+      kind: n.kind,
+      layer: layerOf(n.kind),
+      core: n.area === 'self',
+      origin: n.origin,
+      concern: Boolean(n.concern),
+      external: Boolean(n.external),
+      level: n.level,
+      status: n.status,
+      ended: Boolean(n.until && n.until < today),
+      evidenceCount: records.entries.length + records.decisions.length,
+      labelSide: side,
+      matched,
+      near: false,
+      salient,
+    },
+  };
+}
+
 export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
+  if (opts.lens === 'causes') return buildHelix(data, opts);
   const q = opts.query.trim().toLowerCase();
   const g = opts.geometry ?? ORBIT_DESKTOP;
   const placed = orbitLayout(data, g);
@@ -319,44 +360,110 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     const core = n.area === 'self';
     const layer = layerOf(n.kind);
     const side = labelSide(centre, pos);
-    const records = recordsFor(data, n.id);
-    nodes.push({
-      id: n.id,
-      type: 'item',
-      // Staged reveal: the centre first, then each ring outward.
-      style: { '--reveal': `${core ? 200 : layer === 'hold' ? 420 : layer === 'do' ? 560 : 700}ms` } as CSSProperties,
-      position: pos,
-      data: {
-        label: n.label,
-        color: AREA_META[n.area].color,
-        area: n.area,
-        kind: n.kind,
-        layer,
-        core,
-        origin: n.origin,
-        concern: Boolean(n.concern),
-        external: Boolean(n.external),
-        level: n.level,
-        status: n.status,
-        ended: Boolean(n.until && n.until < opts.today),
-        evidenceCount: records.entries.length + records.decisions.length,
-        labelSide: placed.inward.has(n.id) ? FLIP[side] : side,
+    nodes.push(
+      elementNode(
+        data,
+        n,
+        pos,
+        placed.inward.has(n.id) ? FLIP[side] : side,
+        // Staged reveal: the centre first, then each ring outward.
+        core ? 200 : layer === 'hold' ? 420 : layer === 'do' ? 560 : 700,
         matched,
-        near: false,
         // With the map kept to its essentials, each one is named.
-        salient: Boolean(opts.salient?.has(n.id) || keep?.has(n.id)),
-      },
-    });
+        Boolean(opts.salient?.has(n.id) || keep?.has(n.id)),
+        opts.today,
+      ),
+    );
   }
   if (opts.selectedId) {
-    const near = new Set(opts.lens === 'causes' ? causalNeighbours(data, opts.selectedId) : neighbors(data, opts.selectedId).map((x) => x.otherId));
+    const near = new Set(neighbors(data, opts.selectedId).map((x) => x.otherId));
     for (const n of nodes) if (n.type === 'item' && near.has(n.id)) n.data.near = true;
   }
 
-  const edges: SemanticEdge[] = opts.lens === 'causes' ? causesEdges(data, nodes, visible, opts) : mapEdges(data, visible, opts);
+  const edges = mapEdges(data, visible, opts);
   for (const e of edges) e.data!.flow = e.data!.family !== 'member';
 
-  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches), opts.lens === 'causes');
+  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches));
+  return { nodes, edges, visible, matches };
+}
+
+const AREA_ORDER: AreaKey[] = ['self', ...SECTOR_KEYS];
+
+/**
+ * Causes lens: the possible reasons as a double helix (see graph/helix.ts),
+ * read from top to bottom. Only what a shown reason joins is on it, plus what
+ * you are looking at; the centre, the area markers and the rings belong to
+ * the map. Nothing here is stored: the map's own arrangement is untouched.
+ */
+function buildHelix(data: AtlasData, opts: OrbitOptions): BuiltGraph {
+  const q = opts.query.trim().toLowerCase();
+  const view = opts.causes ?? { hiddenStatuses: ['retired'], hiddenAreas: [], showSuggested: true, focusDepth: 0, trace: 'back' };
+  const elements = mapElements(data);
+  const { edges, touched, loopNodes } = causalLines(data, new Set(elements.map((n) => n.id)), view);
+  const selected = opts.selectedId && data.nodes[opts.selectedId] ? opts.selectedId : undefined;
+  const members = elements.filter((n) => touched.has(n.id) || n.id === selected);
+  const visible = new Set(members.map((n) => n.id));
+  const { seats, spec } = helixLayout(
+    members.map((n) => ({
+      id: n.id,
+      // One strand is you (what defines you, what you hold, what you do), the other what surrounds you.
+      strand: n.area !== 'self' && layerOf(n.kind) === 'around' ? 1 : 0,
+      key: `${String(AREA_ORDER.indexOf(n.area)).padStart(2, '0')} ${n.label.toLowerCase()}`,
+    })),
+    edges.map((e) => [e.source, e.target] as [ID, ID]),
+    opts.geometry && opts.geometry !== ORBIT_DESKTOP ? HELIX_PORTRAIT : HELIX_DESKTOP,
+  );
+  const nodes: AtlasFlowNode[] = [
+    {
+      id: '__helix',
+      type: 'helix',
+      position: { x: spec.origin.x + spec.width / 2, y: spec.origin.y + spec.height / 2 },
+      data: {
+        spec,
+        captions: {
+          lead: t('What may lead'),
+          follow: t('What may follow'),
+          inner: t('You'),
+          around: t('Around you'),
+          empty: members.length ? undefined : t('No possible reasons to show'),
+        },
+      },
+      draggable: false,
+      selectable: false,
+      focusable: false,
+      connectable: false,
+      zIndex: -1,
+    },
+  ];
+  const around =
+    view.focusDepth > 0 && selected && visible.has(selected) ? causalReach(data, selected, view.focusDepth, view.trace ?? 'back', visible) : undefined;
+  const matches: ID[] = [];
+  for (const n of members) {
+    const seat = seats.get(n.id)!;
+    const matched = matchesQuery(q, n.label, n.summary);
+    if (matched) matches.push(n.id);
+    // The helix builds from the top down; every element is named.
+    const node = elementNode(data, n, { x: seat.x, y: seat.y }, seat.side, 240 + seat.slot * 70, matched, true, opts.today);
+    node.draggable = false;
+    node.data.helix = { slot: seat.slot, phase: seat.phase, side: seat.side === 'right' ? 1 : -1 };
+    if (!touched.has(n.id) || (loopNodes && !loopNodes.has(n.id)) || (around && !around.has(n.id))) node.className = 'is-soft';
+    nodes.push(node);
+  }
+  if (selected) {
+    const near = new Set(causalNeighbours(data, selected));
+    for (const n of nodes) if (n.type === 'item' && near.has(n.id)) n.data.near = true;
+  }
+  for (const e of edges) {
+    e.data!.flow = true;
+    // Only the step that closes a cycle rises; it arcs out on its own side instead of through the helix.
+    const a = seats.get(e.source);
+    const b = seats.get(e.target);
+    if (a && b && a.slot > b.slot) {
+      const mid = (a.x + b.x) / 2 || a.x;
+      e.data!.arc = Math.sign(mid || 1) * Math.min(Math.hypot(b.x - a.x, b.y - a.y) * 0.35, spec.R * 2);
+    }
+  }
+  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches), true);
   return { nodes, edges, visible, matches };
 }
 
@@ -478,16 +585,19 @@ function mapEdges(data: AtlasData, visible: Set<ID>, opts: OrbitOptions): Semant
 }
 
 /**
- * Causes lens: the same map, drawn as what seems to affect what. Elements no
- * visible reason touches fade back; a highlighted cycle stands out.
+ * Causes lens: the possible reasons to draw, after the filters, and how many
+ * of them touch each element. A highlighted cycle stands out; the rest of the
+ * lines fade back.
  */
-function causesEdges(data: AtlasData, nodes: AtlasFlowNode[], visible: Set<ID>, opts: OrbitOptions): SemanticEdge[] {
-  const view = opts.causes ?? { hiddenStatuses: ['retired'], hiddenAreas: [], showSuggested: true, focusDepth: 0, trace: 'back' };
+function causalLines(
+  data: AtlasData,
+  visible: Set<ID>,
+  view: NonNullable<OrbitOptions['causes']>,
+): { edges: SemanticEdge[]; touched: Map<ID, number>; loopNodes?: Set<ID> } {
   const hiddenStatus = new Set(view.hiddenStatuses);
   const hiddenArea = new Set(view.hiddenAreas);
   const loop = view.loopId ? loopById(data, view.loopId) : undefined;
   const loopClaims = new Set(loop?.claimIds ?? []);
-  const loopNodes = new Set(loop?.nodeIds ?? []);
   const edges: SemanticEdge[] = [];
   const touched = new Map<ID, number>();
   for (const c of Object.values(data.claims)) {
@@ -505,16 +615,5 @@ function causesEdges(data: AtlasData, nodes: AtlasFlowNode[], visible: Set<ID>, 
     }
     for (const id of ends) touched.set(id, (touched.get(id) ?? 0) + 1);
   }
-  const around =
-    view.focusDepth > 0 && opts.selectedId && visible.has(opts.selectedId)
-      ? causalReach(data, opts.selectedId, view.focusDepth, view.trace ?? 'back', visible)
-      : undefined;
-  for (const n of nodes) {
-    if (n.type !== 'item') continue;
-    const count = touched.get(n.id) ?? 0;
-    // Name what the reasons run through, so the picture reads without hovering.
-    n.data.salient = n.data.salient || count >= 2 || loopNodes.has(n.id);
-    if (!count || (loop && !loopNodes.has(n.id)) || (around && !around.has(n.id))) n.className = 'is-soft';
-  }
-  return edges;
+  return { edges, touched, loopNodes: loop ? new Set(loop.nodeIds) : undefined };
 }

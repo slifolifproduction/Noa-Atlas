@@ -1027,14 +1027,16 @@ export const ID: Record<string, string> = {
     'Garis adalah tautan yang kamu gambar, atau kemungkinan sebab (putus-putus selama masih dugaan). Untuk menambah sebab, buka sesuatu dan tanyakan “Kenapa ini bisa terjadi?”, atau seret dari satu hal ke hal lain.',
   'A dashed area marker means nothing was written about it lately. The overview on the left suggests something to look at.':
     'Penanda area putus-putus berarti belakangan tidak ada yang ditulis tentangnya. Ringkasan di kiri menyarankan sesuatu untuk dilihat.',
-  'The same map, showing only possible reasons: a line is a claim that one thing may contribute to another, drawn firmer the surer it is. Links you drew and things that merely happened together are not drawn here.':
-    'Peta yang sama, hanya menampilkan kemungkinan sebab: sebuah garis adalah klaim bahwa satu hal mungkin ikut menyebabkan hal lain, makin tegas makin yakin. Tautan yang kamu gambar dan hal-hal yang sekadar terjadi bersamaan tidak digambar di sini.',
+  'Your possible reasons, as a double helix: a line is a claim that one thing may contribute to another, drawn firmer the surer it is. Read it from top to bottom: each element sits below what may lead to it. Links you drew and things that merely happened together are not drawn here.':
+    'Kemungkinan sebabmu, sebagai heliks ganda: sebuah garis adalah klaim bahwa satu hal mungkin ikut menyebabkan hal lain, digambar makin tegas makin yakin. Baca dari atas ke bawah: setiap elemen berada di bawah apa yang mungkin memicunya. Tautan yang kamu gambar dan hal-hal yang sekadar terjadi bersamaan tidak digambar di sini.',
   'Tap something to start from it: what may lead to it, by the part each plays, what competes, and what is still unexplained. The list on the left can trace back from it, or on from it.':
     'Ketuk sesuatu untuk memulai darinya: apa yang mungkin mengarah kepadanya, menurut peran masing-masing, apa yang bersaing, dan apa yang masih belum terjelaskan. Daftar di kiri bisa menelusuri mundur darinya, atau maju darinya.',
   'A reason becomes surer only as your notes show it happening in that order, in separate weeks, and once without it; a test is the strongest. Only a time it was there and the outcome did not follow counts against it. A written “how” is an explanation, not evidence.':
     'Sebuah sebab makin yakin hanya jika catatanmu menunjukkannya terjadi dalam urutan itu, di minggu-minggu berbeda, dan sekali tanpanya; tes adalah yang terkuat. Hanya saat ia ada dan hasilnya tidak menyusul yang dihitung menentangnya. “Cara kerja” yang ditulis adalah penjelasan, bukan bukti.',
   'Cycles appear by themselves when reasons seen at least a few times come back around. Pick one on the left to see it; its least sure step is where to look first.':
     'Siklus muncul sendiri ketika sebab-sebab yang sudah terlihat beberapa kali kembali berputar. Pilih satu di kiri untuk melihatnya; langkahnya yang paling tidak yakin adalah tempat pertama untuk dilihat.',
+  'One strand is you, what you hold and do; the other is what surrounds you. Each rung pairs the two things at the same step. Only what a shown reason joins is on the helix; the map keeps everything, where you put it.':
+    'Satu untai adalah kamu, yang kamu pegang dan lakukan; untai lainnya adalah yang mengelilingimu. Setiap anak tangga memasangkan dua hal pada langkah yang sama. Hanya yang dihubungkan oleh sebab yang tampil yang ada di heliks; peta tetap menyimpan semuanya, di tempat yang kamu taruh.',
   'Dashed lines are suggestions from the Atlas. They stay suggestions until you keep them.':
     'Garis putus-putus adalah saran dari Atlas. Tetap saran sampai kamu menyimpannya.',
   'What happened, when: your notes, what they describe, your decisions and your tests, newest first.':
@@ -1524,6 +1526,10 @@ export const ID: Record<string, string> = {
   '{n}× in {span}': '{n}× dalam {span}',
   '{a}, then {b}': '{a}, lalu {b}',
   'together with': 'bersama',
+  'What may lead': 'Yang mungkin memicu',
+  'What may follow': 'Yang mungkin menyusul',
+  'Around you': 'Sekitarmu',
+  'No possible reasons to show': 'Belum ada kemungkinan sebab untuk ditampilkan',
   '{n} link you drew': '{n} tautan yang kamu gambar',
   '{n} links you drew': '{n} tautan yang kamu gambar',
   'This device ({zone})': 'Perangkat ini ({zone})',
@@ -1674,6 +1680,12 @@ export const ID: Record<string, string> = {
   'Each area shows its key elements; +n beside its name is what is folded inside. A dashed line to another area’s marker ties an element to what is folded there.':
     'Setiap area menampilkan elemen utamanya; +n di samping namanya adalah yang terlipat di dalamnya. Garis putus-putus ke penanda area lain menghubungkan sebuah elemen dengan yang terlipat di sana.',
   'Second ring around a mark: something you want explained or changed.': 'Cincin kedua di sekitar tanda: sesuatu yang ingin kamu pahami atau ubah.',
+  'Read from top to bottom: each element sits below what may lead to it. Only the step that closes a cycle arcs back up.':
+    'Baca dari atas ke bawah: setiap elemen berada di bawah apa yang mungkin memicunya. Hanya langkah yang menutup sebuah siklus yang melengkung kembali ke atas.',
+  'Two strands: you (what you hold and do) and what surrounds you. Each rung pairs the two things at the same step of the chain.':
+    'Dua untai: kamu (yang kamu pegang dan lakukan) dan yang mengelilingimu. Setiap anak tangga memasangkan dua hal pada langkah yang sama dalam rantai.',
+  'Only what a shown reason joins is on the helix. The map keeps everything.':
+    'Hanya yang dihubungkan oleh sebab yang tampil yang ada di heliks. Peta tetap menyimpan semuanya.',
   'Hide the overview (View menu brings it back)': 'Sembunyikan ringkasan (menu Tampilan bisa memunculkannya lagi)',
   'Something to look at': 'Sesuatu untuk dilihat',
   'Look closer': 'Lihat lebih dekat',

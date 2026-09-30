@@ -24,7 +24,7 @@ const PAGE_HELP: Record<string, () => ReactNode[]> = {
   network: () => [
     <>
       {t(
-        'The same map, showing only possible reasons: a line is a claim that one thing may contribute to another, drawn firmer the surer it is. Links you drew and things that merely happened together are not drawn here.',
+        'Your possible reasons, as a double helix: a line is a claim that one thing may contribute to another, drawn firmer the surer it is. Read it from top to bottom: each element sits below what may lead to it. Links you drew and things that merely happened together are not drawn here.',
       )}
     </>,
     <>
@@ -40,6 +40,11 @@ const PAGE_HELP: Record<string, () => ReactNode[]> = {
     <>
       {t(
         'Cycles appear by themselves when reasons seen at least a few times come back around. Pick one on the left to see it; its least sure step is where to look first.',
+      )}
+    </>,
+    <>
+      {t(
+        'One strand is you, what you hold and do; the other is what surrounds you. Each rung pairs the two things at the same step. Only what a shown reason joins is on the helix; the map keeps everything, where you put it.',
       )}
     </>,
     <>{t('Dashed lines are suggestions from the Atlas. They stay suggestions until you keep them.')}</>,

@@ -1,5 +1,5 @@
 import type { NodeProps } from '@xyflow/react';
-import { memo } from 'react';
+import { memo, type CSSProperties } from 'react';
 import { KIND_META } from '../../../domain/constants';
 import { useSpaceNode } from '../../../graph/space';
 import type { ItemNode } from '../../../graph/types';
@@ -35,9 +35,14 @@ export const ItemNodeView = memo(function ItemNodeView({ id, data, selected }: N
   const faded = data.ended || data.status === 'resolved';
   const spaceRef = useSpaceNode(id);
   return (
-    <div ref={spaceRef} className={cn('node-body group relative h-[26px] w-[26px]', faded && 'opacity-50')} title={KIND_META[data.kind].label}>
+    <div
+      ref={spaceRef}
+      className={cn('node-body group relative h-[26px] w-[26px]', faded && 'opacity-50')}
+      style={{ '--node-color': data.color } as CSSProperties}
+      title={KIND_META[data.kind].label}
+    >
       {/* Elements move in depth with the space engine (graph/space.ts); the body itself is still. */}
-      <div className="absolute inset-0">
+      <div className="item-mark absolute inset-0">
         {data.concern && (
           <div
             className="absolute -inset-[5px] rounded-full border"
@@ -59,7 +64,9 @@ export const ItemNodeView = memo(function ItemNodeView({ id, data, selected }: N
         </div>
       </div>
       <NodeRipple id={id} color={data.color} shape="circle" />
+      {/* On the helix the engine moves the name to the other side while the element is across the axis (data-flip). */}
       <div
+        data-side={data.labelSide}
         className={cn(
           'node-label halo pointer-events-none absolute w-max max-w-[130px] text-[12px] leading-[1.3] transition-opacity',
           SIDE_CLASS[data.labelSide],

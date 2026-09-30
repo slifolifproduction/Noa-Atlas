@@ -19,7 +19,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { GraphLayer, ID } from '../../domain/types';
 import type { BuiltGraph } from '../../graph/build';
-import type { AtlasFlowNode, SemanticEdge } from '../../graph/types';
+import { BACKDROP_IDS, isBackdrop, type AtlasFlowNode, type SemanticEdge } from '../../graph/types';
 import { HOP_MS, MAX_ACTIVE_PULSES, MAX_IDLE_PULSES, MotionContext, waveBus, type MotionSettings } from '../../graph/motion';
 import { SPACE_MAX_NODES, SpaceContext, SpaceEngine, spaceHealth } from '../../graph/space';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -27,6 +27,7 @@ import { cn } from '../../lib/cn';
 import { isTyping } from '../../lib/dom';
 import { FOCUS_REQUEST_TTL, toast, useUI } from '../../state/uiStore';
 import { EdgePopover } from './EdgePopover';
+import { HelixNodeView } from './nodes/HelixNode';
 import { HubNodeView } from './nodes/HubNode';
 import { ItemNodeView } from './nodes/ItemNode';
 import { RingsNodeView } from './nodes/RingsNode';
@@ -41,6 +42,7 @@ const nodeTypes: NodeTypes = {
   hub: HubNodeView,
   item: ItemNodeView,
   rings: RingsNodeView,
+  helix: HelixNodeView,
 };
 const edgeTypes: EdgeTypes = { semantic: SemanticEdgeView };
 
@@ -331,7 +333,7 @@ function Canvas({
         const other = e.source === node.id ? e.target : e.target === node.id ? e.source : null;
         const n = other ? byId.get(other) : undefined;
         // Hubs are anchors: they never lean toward a dragged satellite.
-        if (!n || n.type === 'hub' || n.type === 'rings' || s.items.has(n.id)) continue;
+        if (!n || n.type === 'hub' || isBackdrop(n) || s.items.has(n.id)) continue;
         const home = settling.get(n.id);
         s.items.set(n.id, { bx: home?.bx ?? n.position.x, by: home?.by ?? n.position.y, w: node.type === 'hub' ? 0.32 : 0.2, ox: 0, oy: 0, vx: 0, vy: 0 });
       }
@@ -366,7 +368,7 @@ function Canvas({
   }, []);
 
   const isValidConnection = useCallback((c: Connection | SemanticEdge) => {
-    const bad = (id: string | null | undefined) => !id || id === '__rings' || id.startsWith('pat');
+    const bad = (id: string | null | undefined) => !id || BACKDROP_IDS.has(id) || id.startsWith('pat');
     return c.source !== c.target && !bad(c.source) && !bad(c.target);
   }, []);
 
@@ -536,7 +538,7 @@ function Canvas({
   // direction, or failing that the nearest node that way. With nothing selected, start near the middle.
   const travel = useCallback(
     (dx: number, dy: number) => {
-      const all = nodesRef.current.filter((n) => n.type !== 'rings');
+      const all = nodesRef.current.filter((n) => !isBackdrop(n));
       const current = all.find((n) => n.id === selectedRef.current);
       let next: AtlasFlowNode | undefined;
       if (!current) {
@@ -594,7 +596,7 @@ function Canvas({
       else if (e.key === '-') rf.zoomOut({ duration: 200 });
       else if (e.key === 'Enter' && document.activeElement?.classList.contains('react-flow__node')) {
         const id = document.activeElement.getAttribute('data-id');
-        if (id && id !== '__rings') onSelect(id);
+        if (id && !BACKDROP_IDS.has(id)) onSelect(id);
       }
     };
     // Arrows are taken in the capture phase so React Flow's own "nudge the focused node" never runs.
@@ -617,9 +619,11 @@ function Canvas({
   }, [rf, onSelect, travel]);
 
   const selectedNode = selectedId ? nodes.find((n) => n.id === selectedId) : undefined;
+  const helix = built.nodes.some((n) => n.type === 'helix');
 
   const labelsFor = useMemo(() => new Map(built.nodes.map((n) => [n.id, n])), [built.nodes]);
-  // Fit to the content, not to decorative backdrops such as the orbit rings.
+  // Fit to the content, not to decorative backdrops such as the orbit rings. The helix's box is
+  // its content: the whole chain, with room for the names beside it.
   const fitOptions = useMemo(
     () => ({ padding: fitPadding, minZoom: fitMinZoom, nodes: built.nodes.filter((n) => n.type !== 'rings').map((n) => ({ id: n.id })) }),
     [built.nodes, fitPadding, fitMinZoom],
@@ -637,6 +641,7 @@ function Canvas({
             living && nodes.length > SPACE_MAX_NODES && 'atlas-dense',
             depthOn && 'atlas-3d',
             revealing && 'atlas-reveal',
+            helix && 'lens-helix',
           )}
           onPointerMove={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
           onPointerUp={(e) => (pointer.current = { x: e.clientX, y: e.clientY })}
@@ -662,9 +667,9 @@ function Canvas({
             onNodeDragStart={onNodeDragStart}
             onNodeDrag={onNodeDrag}
             onNodeDragStop={onNodeDragStop}
-            onNodeClick={(_, n) => n.id !== '__rings' && onSelect(n.id)}
+            onNodeClick={(_, n) => !isBackdrop(n) && onSelect(n.id)}
             onNodeDoubleClick={(_, n) => onNodeDoubleClick?.(n.id)}
-            onNodeMouseEnter={(_, n) => n.id !== '__rings' && setHovered(n.id)}
+            onNodeMouseEnter={(_, n) => !isBackdrop(n) && setHovered(n.id)}
             onNodeMouseLeave={() => setHovered(null)}
             onPaneClick={() => {
               setEdgeMenu(null);

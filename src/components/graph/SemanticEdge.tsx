@@ -116,7 +116,7 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
   const dy = end.y - start.y;
   const len = Math.hypot(dx, dy) || 1;
   // Area lines arc wide across the chart, so the two directions between a pair stay apart.
-  const bend = st.straight ? 0 : data.family === 'area' ? Math.min(90, len * 0.16) : Math.min(36, len * 0.09);
+  const bend = data.arc ?? (st.straight ? 0 : data.family === 'area' ? Math.min(90, len * 0.16) : Math.min(36, len * 0.09));
   const cx = (start.x + end.x) / 2 - (dy / len) * bend;
   const cy = (start.y + end.y) / 2 + (dx / len) * bend;
   const path = `M ${start.x},${start.y} Q ${cx},${cy} ${end.x},${end.y}`;

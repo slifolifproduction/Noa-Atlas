@@ -1,5 +1,6 @@
 import type { Edge, Node } from '@xyflow/react';
 import type { AreaKey, ClaimStatus, Effect, ElementKind, LayerKey, LinkType, Origin, QuestionStatus, SkillStatus } from '../domain/types';
+import type { HelixSpec } from './helix';
 
 /** The person at the centre, or an area's marker on the outer edge of its sector. */
 export type HubNodeData = {
@@ -53,6 +54,8 @@ export type ItemNodeData = {
   near: boolean;
   /** Worth naming without being asked: something you care about, or that moved lately. */
   salient: boolean;
+  /** On the Causes helix: its seat, which the space engine turns about the axis. */
+  helix?: { slot: number; phase: number; side: 1 | -1 };
 };
 
 export type RingsNodeData = {
@@ -63,6 +66,12 @@ export type RingsNodeData = {
   spokes: number[];
   spokeInner: number;
   spokeRadius: number;
+};
+
+/** The Causes helix's backbone: strands, base pairs, emitter rings and captions (see graph/helix.ts). */
+export type HelixNodeData = {
+  spec: HelixSpec;
+  captions: { lead: string; follow: string; inner: string; around: string; empty?: string };
 };
 
 export type SemanticEdgeData = {
@@ -98,12 +107,18 @@ export type SemanticEdgeData = {
   hover?: boolean;
   /** Part of the highlighted loop. */
   loop?: boolean;
+  /** A fixed bend, in graph units, to the left of its direction (the helix's rising steps arc outward). */
+  arc?: number;
 };
 
 export type HubNode = Node<HubNodeData, 'hub'>;
 export type ItemNode = Node<ItemNodeData, 'item'>;
 export type RingsNode = Node<RingsNodeData, 'rings'>;
-export type AtlasFlowNode = HubNode | ItemNode | RingsNode;
+export type HelixNode = Node<HelixNodeData, 'helix'>;
+export type AtlasFlowNode = HubNode | ItemNode | RingsNode | HelixNode;
+/** Backdrops: drawn behind the graph, never selected, hovered, linked or travelled to. */
+export const isBackdrop = (n: { type?: string }) => n.type === 'rings' || n.type === 'helix';
+export const BACKDROP_IDS = new Set(['__rings', '__helix']);
 export type SemanticEdge = Edge<SemanticEdgeData, 'semantic'>;
 
 export const CIRCLE_NODE_TYPES = new Set(['hub', 'item']);

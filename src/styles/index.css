@@ -433,7 +433,7 @@
   left: 0;
   top: 0;
 }
-.atlas-3d .react-flow__node:not(.react-flow__node-rings),
+.atlas-3d .react-flow__node:not(.react-flow__node-rings):not(.react-flow__node-helix),
 .atlas-3d .react-flow__edges > svg,
 .atlas-3d .edge-space:not(:empty),
 .atlas-3d .ring-plane {
@@ -442,7 +442,7 @@
 /* The engine scales each node about its own centre (React Flow's default origin is the
  * top-left corner, which would push a node that comes forward down and to the right,
  * away from its edges and its selection reticle). */
-.atlas-3d .react-flow__node:not(.react-flow__node-rings) {
+.atlas-3d .react-flow__node:not(.react-flow__node-rings):not(.react-flow__node-helix) {
   transform-origin: 50% 50%;
 }
 /* Flow pulses: moved along the edge curve by transform keyframes (set in script). */
@@ -591,4 +591,154 @@
 }
 .atlas-reveal .react-flow__node-rings {
   animation: atlas-fade-in 900ms ease-out both;
+}
+
+/* ---- Causes helix: a hologram of what seems to affect what ----------------
+ * The same instrument: hairlines, mono captions, area colours on the elements,
+ * effect colours and status dashes on the lines, orange only for the
+ * selection. The projection itself is light: a warm strand for you, a pale
+ * cold one for what surrounds you, and a projector below. The engine writes
+ * the shapes (graph/space.ts), --hz on each element (0 far, 1 near), data-flip
+ * while it is across the axis and data-scan while the scanning ring passes. */
+:root {
+  --holo-a: 236 226 205;
+  --holo-b: 150 212 228;
+}
+.react-flow__node-helix {
+  pointer-events: none !important;
+}
+.helix-axis,
+.helix-front,
+.helix-back,
+.helix-glow,
+.helix-rings,
+.helix-scan {
+  fill: none;
+}
+.helix-axis,
+.helix-front,
+.helix-back,
+.helix-glow,
+.helix-rungs,
+.helix-rings,
+.helix-scan {
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.helix-a {
+  --strand: var(--holo-a);
+}
+.helix-b {
+  --strand: var(--holo-b);
+}
+.helix-axis {
+  stroke: rgb(var(--holo-b) / 0.16);
+  stroke-width: 1;
+  stroke-dasharray: 2 7;
+}
+.helix-front {
+  stroke: rgb(var(--strand) / 0.78);
+  stroke-width: 2;
+}
+.helix-glow {
+  stroke: rgb(var(--strand) / 0.1);
+  stroke-width: 11;
+}
+.helix-back {
+  stroke: rgb(var(--strand) / 0.32);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 4;
+}
+.helix-rungs {
+  stroke: rgb(var(--holo-b) / 0.3);
+  fill: rgb(var(--holo-b) / 0.3);
+  stroke-width: 1;
+}
+.helix-rings {
+  stroke: rgb(var(--holo-b) / 0.28);
+  stroke-width: 1;
+}
+.helix-scan {
+  stroke: rgb(var(--holo-b) / 0.4);
+  stroke-width: 2.5;
+}
+.helix-caption {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  letter-spacing: 2.4px;
+  fill: var(--color-ink-3);
+}
+.helix-a-text {
+  fill: rgb(var(--holo-a) / 0.72);
+}
+.helix-b-text {
+  fill: rgb(var(--holo-b) / 0.78);
+}
+.helix-empty {
+  fill: var(--color-ink-2);
+}
+/* Scanlines over the projection. */
+.lens-helix::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: repeating-linear-gradient(to bottom, rgb(var(--holo-b) / 0.022) 0 1px, transparent 1px 4px);
+}
+/* Elements toward the back of the helix dim; their names stay readable. */
+.lens-helix .react-flow__node-item .item-mark {
+  opacity: calc(0.4 + 0.6 * var(--hz, 1));
+}
+.lens-helix .react-flow__node-item .node-label {
+  opacity: calc(0.62 + 0.38 * var(--hz, 1));
+}
+.lens-helix .sat-core {
+  box-shadow: 0 0 10px -3px var(--node-color);
+}
+.lens-helix .react-flow__node[data-scan] .item-mark {
+  opacity: 1;
+}
+.lens-helix .react-flow__node[data-scan] .sat-core {
+  box-shadow: 0 0 16px 1px var(--node-color);
+}
+/* Across the axis, the name moves to the side facing out. */
+.react-flow__node[data-flip] .node-label[data-side='right'] {
+  left: auto;
+  right: calc(100% + 8px);
+  text-align: right;
+  transform-origin: right center !important;
+}
+.react-flow__node[data-flip] .node-label[data-side='left'] {
+  right: auto;
+  left: calc(100% + 8px);
+  text-align: left;
+  transform-origin: left center !important;
+}
+/* The helix prints from the top down on arrival, and the projection flickers now and then. */
+@keyframes helix-print {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+@keyframes helix-flicker {
+  0%,
+  93%,
+  97%,
+  100% {
+    opacity: 1;
+  }
+  95% {
+    opacity: 0.84;
+  }
+}
+.atlas-reveal .helix-body {
+  animation: helix-print 1500ms var(--ease-out-quint) both;
+}
+.atlas-3d .helix-body svg {
+  animation: helix-flicker 9s linear infinite;
 }
