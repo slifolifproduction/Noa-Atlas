@@ -23,5 +23,6 @@ export function createEmptyData(name = ''): AtlasData {
     modelLog: [],
     counters: { entry: 0, decision: 0, pattern: 0, experiment: 0, claim: 0 },
     loopNames: {},
+    causesLogic: 3,
   };
 }

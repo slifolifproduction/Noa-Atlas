@@ -41,13 +41,17 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
     return (
       <div role="dialog" aria-label={t('Between two areas')} className={cn(box, 'max-h-[70vh] overflow-y-auto')} style={style}>
         <div className="flex items-center gap-2">
-          <span className="label">{t('Between two areas')}</span>
+          <span className="label">{claims.length ? t('Possible reasons between two areas') : t('Links you drew between two areas')}</span>
           <span className="ml-auto text-[11px] text-ink-3">{t('drawn by the Atlas')}</span>
         </div>
         <p className="mt-2 text-[13px] leading-snug text-ink">
-          {a?.label} → {b?.label}
+          {a?.label} {claims.length ? '→' : '·'} {b?.label}
         </p>
-        <p className="mt-1 text-[11.5px] text-ink-3">{t('Everything that connects the two areas, gathered in one line. Open any of it to see why.')}</p>
+        <p className="mt-1 text-[11.5px] text-ink-3">
+          {claims.length
+            ? t('What in one area may contribute to something in the other, gathered in one line. Each is a claim to check: open it to see why.')
+            : t('Links organise the map. They say the two are related, not that one changes the other.')}
+        </p>
         <ul className="mt-2 space-y-1">
           {claims.map((c) => {
             const status = claimStatus(data, c);

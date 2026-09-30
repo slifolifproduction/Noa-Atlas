@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Plus, ScanSearch, X } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, Plus, ScanSearch, X } from 'lucide-react';
 import { PatternIcon } from '../../components/icons';
 import { useMemo, useState } from 'react';
 import { hrefFor, navigate } from '../../app/router';
@@ -7,7 +7,9 @@ import { EvidenceRow, StanceMark } from '../../components/evidence/EvidenceRow';
 import { EvidenceTimeline } from '../../components/evidence/EvidenceTimeline';
 import { SourceLink } from '../../components/evidence/SourceLink';
 import { ClaimRow, NodeChip } from '../../components/inspector/parts';
-import { claimSentence, claimsTouching } from '../../domain/claims';
+import { activeClaims, claimSentence, claimsTouching } from '../../domain/claims';
+import { sharedWithRepeats } from '../../domain/ask';
+import { AddReason } from '../../components/inspector/Ask';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button, buttonClass, IconButton } from '../../components/ui/Button';
 import { EmptyState, Label, Section, Segmented, ToggleChip } from '../../components/ui/primitives';
@@ -232,7 +234,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
         <h2 id="pattern-title" className="display mt-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[26px] text-ink">
           {p.steps.map((step, i) => (
             <span key={step.label} className="flex items-center gap-3">
-              {i > 0 && <ArrowRight size={18} strokeWidth={1.3} className="text-accent" aria-hidden />}
+              {i > 0 && <span className="font-mono text-[12px] tracking-[0.08em] text-ink-3">{t('then')}</span>}
               <span>{step.label}</span>
             </span>
           ))}
@@ -443,8 +445,12 @@ function Explanations({ pattern: p }: { pattern: Pattern }) {
       }
     >
       <p className="mb-2 text-[12px] text-ink-3">
-        {t('Explanations are claims, each with its own evidence and status. More than one can be true; they can also compete.')}
+        {t(
+          'A repeat says what keeps happening, one step then the next. Why each step follows the last is a possible reason, the same one Causes shows, checked against the same weeks.',
+        )}
       </p>
+      <StepReasons pattern={p} />
+      <div className="mt-3 mb-1 text-[11.5px] text-ink-3">{t('Reasons for the repeat as a whole')}</div>
       {p.explainedBy.length ? (
         <ul className="-mx-1.5">
           {p.explainedBy.map((c) => (
@@ -475,6 +481,64 @@ function Explanations({ pattern: p }: { pattern: Pattern }) {
   );
 }
 
+/** Each step and the next, with the possible reasons between them: shared with Causes, never a copy. */
+function StepReasons({ pattern: p }: { pattern: Pattern }) {
+  const data = useAtlas((s) => s.data);
+  const [adding, setAdding] = useState<number | null>(null);
+  const pairs = p.steps.slice(1).map((step, i) => ({ i, a: p.steps[i], b: step }));
+  if (!pairs.length) return null;
+  const linked = pairs.filter((x) => x.a.elementId && x.b.elementId && data.nodes[x.a.elementId] && data.nodes[x.b.elementId]);
+  if (!linked.length) return <p className="text-[12.5px] text-ink-3">{t('Link the steps to things on your map to ask why each one follows the last.')}</p>;
+  return (
+    <ul className="space-y-2.5">
+      {linked.map(({ i, a, b }) => {
+        const from = a.elementId!;
+        const to = b.elementId!;
+        const reasons = activeClaims(data).filter((c) => c.to === to && (c.from === from || c.with.includes(from)));
+        return (
+          <li key={i} className="rounded-[2px] border border-line px-3 py-2">
+            <div className="text-[12px] text-ink-3">{t('{a}, then {b}', { a: a.label, b: b.label })}</div>
+            {reasons.length ? (
+              <ul className="-mx-1.5 mt-0.5">
+                {reasons.map((c) => {
+                  const shared = sharedWithRepeats(data, c).find((x) => x.pattern.id === p.id)?.weeks ?? 0;
+                  return (
+                    <li key={c.id}>
+                      <ul>
+                        <ClaimRow id={c.id} />
+                      </ul>
+                      {shared > 0 && (
+                        <p className="px-1.5 text-[11px] text-ink-3">
+                          {tn(
+                            shared,
+                            'Shares {n} week with this repeat: the same episode, not a second confirmation.',
+                            'Shares {n} weeks with this repeat: the same episodes, not a second confirmation.',
+                          )}
+                        </p>
+                      )}
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : adding === i ? (
+              <div className="mt-1.5">
+                <AddReason to={to} area={data.nodes[to]!.area} initial={data.nodes[from]!.label} onDone={() => setAdding(null)} />
+              </div>
+            ) : (
+              <p className="mt-0.5 text-[12.5px] text-ink-3">
+                {t('No possible reason for this step yet.')}{' '}
+                <button type="button" className="text-accent hover:underline" onClick={() => setAdding(i)}>
+                  {t('Add one')}
+                </button>
+              </p>
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 function Stat({ label, value, mono, className }: { label: string; value: string; mono?: boolean; className?: string }) {
   return (
     <div className={cn('bg-surface px-3.5 py-3', className)}>
@@ -501,8 +565,8 @@ function ChainColumn({ title, items }: { title: string; items: string[] }) {
 
 function ChainArrow() {
   return (
-    <div className="hidden items-center justify-center bg-surface px-1 md:flex" aria-hidden>
-      <ArrowRight size={14} className="text-ink-3" />
+    <div className="hidden items-center justify-center bg-surface px-1.5 font-mono text-[11px] text-ink-3 md:flex" aria-hidden>
+      {t('then')}
     </div>
   );
 }

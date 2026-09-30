@@ -29,8 +29,15 @@ export interface Loop {
 
 const MAX_LENGTH = 6;
 
+/**
+ * Cycles are read only from claims your notes already show at least a few
+ * times: a circle of hunches is a guess about a cycle, not a cycle. A claim
+ * that is weakened or retired opens it.
+ */
+export const CYCLE_STATUSES = new Set<ClaimStatus>(['plausible', 'supported', 'tested']);
+
 export function findLoops(data: AtlasData): Loop[] {
-  const claims = Object.values(data.claims).filter((c) => c.state === 'adopted' && !c.retired);
+  const claims = Object.values(data.claims).filter((c) => c.state === 'adopted' && CYCLE_STATUSES.has(claimStatus(data, c)));
   const out = new Map<string, Loop>();
   const bySource = new Map<ID, Claim[]>();
   for (const c of claims) bySource.set(c.from, [...(bySource.get(c.from) ?? []), c]);

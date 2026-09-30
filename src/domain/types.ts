@@ -284,10 +284,26 @@ export interface Occurrence {
 /* Understanding                                                       */
 /* ------------------------------------------------------------------ */
 
-export type Stance = 'supports' | 'counters';
+/**
+ * Where a piece of evidence points. `neutral` is for what bears on the outcome
+ * without bearing on this explanation: the outcome happening without the
+ * factor shows that something else can bring it about, not that the factor
+ * does not.
+ */
+export type Stance = 'supports' | 'counters' | 'neutral';
 
-/** What a piece of evidence establishes about a claim. The kind matters more than the count. */
-export type EvidenceKind = 'instance' | 'contrast' | 'counter_case' | 'mechanism' | 'intervention';
+/**
+ * What a piece of evidence establishes about a claim ("A may contribute to B").
+ * The kind matters more than the count, and every kind is counted per episode:
+ *
+ *   instance      A, then B: in that order (dated records, or one passage that tells the sequence)
+ *   contrast      without A, B did not happen either
+ *   counter_case  an exception: A was there and B did not follow
+ *   mechanism     the "how" seen happening, not only described
+ *   intervention  a deliberate change and the prediction written before it (a test)
+ *   elsewhere     B happened without A: another route to B, not a case against A
+ */
+export type EvidenceKind = 'instance' | 'contrast' | 'counter_case' | 'mechanism' | 'intervention' | 'elsewhere';
 
 /** A source linked to a claim or a pattern, with the passage that bears on it. */
 export interface Evidence {
@@ -296,6 +312,11 @@ export interface Evidence {
   stance: Stance;
   /** Claims only; patterns count instances and counter-cases. */
   kind?: EvidenceKind;
+  /**
+   * Instances drawn from history: the record showing the factor, when `source`
+   * shows the outcome. Its date comes first; the gap is the lag.
+   */
+  cause?: SourceRef;
   /** The exact passage. */
   excerpt: string;
   note?: string;
@@ -303,8 +324,17 @@ export interface Evidence {
   addedAt: ISODateTime;
 }
 
-/** How a claim says one factor changes another. */
+/**
+ * How a claim says a factor may contribute to another. Each effect is one
+ * role (what part it plays) with one direction (more or less of the outcome):
+ * raises (adds to it), lowers (holds it back), triggers (sets it off),
+ * enables (a condition that makes it possible), constrains (a condition that
+ * limits it), sustains (keeps it going). See EFFECT_META.
+ */
 export type Effect = 'raises' | 'lowers' | 'triggers' | 'enables' | 'constrains' | 'sustains';
+
+/** The part a contributor plays in an outcome. */
+export type CausalRole = 'trigger' | 'condition' | 'contributor' | 'maintainer' | 'buffer';
 
 /** Proposals from the analysis stay off the map until the person adopts them. */
 export type ClaimState = 'suggested' | 'adopted' | 'set_aside';
@@ -313,18 +343,23 @@ export type ClaimState = 'suggested' | 'adopted' | 'set_aside';
 export type View = 'agree' | 'unsure' | 'disagree';
 
 /**
- * An explanatory claim: "changing A changes B". Always a hypothesis with a
- * status derived from its evidence; the label never upgrades its basis.
+ * An explanatory claim: "a change in A may contribute to a change in B".
+ * Always a hypothesis with a status derived from its evidence; the label never
+ * upgrades its basis. It is about factors: when an end is a whole thing (a
+ * project, a belief, a person), `aspect` names what about it changes, so the
+ * thing itself is not made the cause.
  */
 export interface Claim {
   id: ID;
   code: number;
   from: ID;
+  /** What about each end changes, e.g. "scope added late", "being active". */
+  aspect?: { from?: string; to?: string };
   /** Only together with these: joint conditions. */
   with: ID[];
   to: ID;
   effect: Effect;
-  /** How, in words: the mechanism. */
+  /** How it may work, in words: an explanation to check, never evidence by itself. */
   via?: string;
   /** When it holds, e.g. "in deadline weeks". */
   when?: string;
@@ -653,6 +688,8 @@ export interface AtlasData {
   counters: Counters;
   /** Names the person gave to loops (loops themselves are derived from claims). */
   loopNames: Record<string, string>;
+  /** Which revision of the logic of causes the data was prepared for (3: claims on factors, episodes in order). */
+  causesLogic?: number;
 }
 
 /** The two graphs: the whole map, and the network of claims. */

@@ -1086,7 +1086,10 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     from: string,
     effect: Effect,
     to: string,
-    opts: Partial<Pick<Claim, 'via' | 'when' | 'lag' | 'author' | 'state' | 'rivalIds' | 'with' | 'view'>> & { evidence?: Evidence[]; at?: string } = {},
+    opts: Partial<Pick<Claim, 'via' | 'when' | 'lag' | 'author' | 'state' | 'rivalIds' | 'with' | 'view' | 'aspect'>> & {
+      evidence?: Evidence[];
+      at?: string;
+    } = {},
   ) => {
     const at = T(opts.at ?? '2026-05-21');
     claims[id] = {
@@ -1095,6 +1098,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
       from,
       with: opts.with ?? [],
       to,
+      aspect: opts.aspect,
       effect,
       via: opts.via,
       when: opts.when,
@@ -1120,16 +1124,19 @@ export function createSeedData(today: string = todayISO()): AtlasData {
       ev('e0103', E(11), 'supports', 'instance', 'Every week something paid jumps ahead.', '2026-05-21'),
       ev('e0104', E(27), 'supports', 'contrast', 'Down to three commitments: scenes 1–3 locked, steady rather than rushed.', '2026-09-08'),
       ev('e0105', E(30), 'supports', 'instance', 'Workshop prep took both Night Ferry days this week.', '2026-09-25'),
+      // The "how" (paid work takes the Night Ferry days) seen happening, not only described.
+      ev('e0106', E(30), 'supports', 'mechanism', 'Workshop prep took both Night Ferry days this week.', '2026-09-25'),
     ],
   });
   claim('c02', 2, 'n_yes', 'raises', 'n_load', {
     via: 'Each yes adds a commitment before the week has been looked at.',
+    when: 'a yes on the spot, before looking at the week',
     evidence: [
       ev('e0201', E(1), 'supports', 'instance', 'I said yes on the call, before checking my calendar.', '2026-05-21'),
       ev('e0202', E(10), 'supports', 'instance', 'That’s five active things now.', '2026-05-21'),
       ev('e0203', E(17), 'supports', 'instance', 'Agreed to speak on a festival panel and run a two-day workshop.', '2026-07-09'),
       ev('e0204', E(28), 'supports', 'contrast', 'I said no without agonising; nothing was added.', '2026-09-12'),
-      ev('e0205', E(23), 'counters', 'counter_case', 'The podcast and the panel were deliberately exploratory.', '2026-08-14'),
+      ev('e0205', E(1), 'supports', 'mechanism', 'I said yes on the call, before checking my calendar.', '2026-05-21'),
     ],
   });
   claim('c03', 3, 'n_load', 'raises', 'n_fragment', {
@@ -1158,9 +1165,16 @@ export function createSeedData(today: string = todayISO()): AtlasData {
   claim('c06', 6, 'n_behind', 'raises', 'n_yes', {
     via: 'Saying yes feels like catching up: money or visibility now.',
     at: '2026-08-14',
-    evidence: [ev('e0601', E(10), 'supports', 'instance', 'Short-term money, and they’re well connected.', '2026-08-14')],
+    evidence: [
+      ev('e0601', E(10), 'supports', 'instance', 'Short-term money, and they’re well connected.', '2026-08-14'),
+      {
+        ...ev('e0602', E(17), 'supports', 'instance', 'Agreed to speak on a festival panel and run a two-day workshop.', '2026-08-14'),
+        cause: E(16),
+      },
+    ],
   });
   claim('c07', 7, 'n_b_doors', 'raises', 'n_yes', {
+    aspect: { from: 'when it is held' },
     via: 'If declining feels like losing the chance for good, yes is the safe answer.',
     evidence: [
       ev('e0701', E(1), 'supports', 'instance', 'It felt good to be asked.', '2026-05-21'),
@@ -1179,7 +1193,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     lag: '1–4 days',
     evidence: [
       ev('e0901', E(5), 'supports', 'instance', 'The March sprint on the grant and Brightline caught up with me.', '2026-04-03'),
-      ev('e0902', E(22), 'supports', 'instance', 'Three flat days after the grant.', '2026-08-10'),
+      { ...ev('e0902', E(22), 'supports', 'instance', 'Three flat days after the grant.', '2026-08-10'), cause: E(21) },
       ev('e0903', E(27), 'supports', 'contrast', 'Steady rather than rushed, and no dip afterwards.', '2026-09-08'),
     ],
   });
@@ -1187,6 +1201,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     via: 'Low-energy days are the ones Night Ferry sessions get cancelled.',
     evidence: [
       ev('e1001', E(22), 'supports', 'instance', 'Cancelled the Thursday Night Ferry session.', '2026-08-10'),
+      ev('e1003', E(22), 'supports', 'mechanism', 'Three flat days after the grant. Admin only. Cancelled the Thursday Night Ferry session.', '2026-08-10'),
       ev('e1002', E(5), 'supports', 'instance', 'Couldn’t start anything on Monday.', '2026-04-03'),
     ],
   });
@@ -1200,6 +1215,7 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     ],
   });
   claim('c12', 12, 'n_f_judged', 'raises', 'n_scopeadd', {
+    aspect: { from: 'when it is strong' },
     via: 'Added scope works as insurance against judgement of the simpler version.',
     at: '2026-07-10',
     evidence: [ev('e1201', E(12), 'supports', 'instance', 'Honest reason: I’m scared the simple version isn’t impressive enough for festivals.', '2026-07-10')],
@@ -1227,14 +1243,17 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     evidence: [
       ev('e1401', E(8), 'supports', 'instance', 'Nothing creative has happened after 2pm since March.', '2026-04-28'),
       ev('e1402', E(14), 'supports', 'instance', 'Afternoons still chaotic.', '2026-06-16'),
+      ev('e1403', E(8), 'supports', 'mechanism', 'Every afternoon this month had at least two calls.', '2026-04-28'),
     ],
   });
   claim('c15', 15, 'n_concentration', 'raises', 'n_f_money', {
+    aspect: { to: 'it growing' },
     via: 'If one client leaves, runway drops to six weeks.',
     at: '2026-07-29',
     evidence: [ev('e1501', E(20), 'supports', 'instance', 'If one leaves, I’m at six weeks.', '2026-07-29')],
   });
   claim('c16', 16, 'n_f_money', 'raises', 'n_yes', {
+    aspect: { from: 'when it flares' },
     via: 'Paid work now feels safer than protected time.',
     evidence: [
       ev('e1601', E(10), 'supports', 'instance', 'Short-term money.', '2026-05-21'),
@@ -1264,11 +1283,13 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     evidence: [ev('e1901', E(28), 'supports', 'instance', 'The commitment cap made it easy.', '2026-09-12')],
   });
   claim('c20', 20, 'n_brightline', 'sustains', 'n_runway', {
+    aspect: { from: 'it continuing' },
     via: 'Two anchor clients cover the months; protected days are paid for by them.',
     at: '2026-09-01',
     evidence: [ev('e2001', E(20), 'supports', 'instance', '72% of income comes from Brightline and Fieldwork.', '2026-09-01')],
   });
   claim('c21', 21, 'n_network', 'sustains', 'n_offers', {
+    aspect: { from: 'referrals coming through' },
     via: 'Referrals from two agencies and musicians keep work arriving.',
     evidence: [
       ev('e2101', E(4), 'supports', 'instance', 'Juna offered the Lowlight video.', '2026-05-21'),
@@ -1278,12 +1299,33 @@ export function createSeedData(today: string = todayISO()): AtlasData {
   });
   claim('c22', 22, 'n_sprint', 'raises', 'n_quality', {
     via: 'Deadlines bring out the best work.',
+    rivalIds: ['c25'],
     evidence: [
-      ev('e2201', E(6), 'counters', 'counter_case', 'Best thing I’ve made in a year, made in three calm weeks.', '2026-05-21'),
-      ev('e2202', E(14), 'counters', 'counter_case', 'Finished act one with stress lower, no sprint.', '2026-06-16'),
+      ev('e2201', E(6), 'neutral', 'elsewhere', 'Best thing I’ve made in a year, made in three calm weeks.', '2026-05-21'),
+      ev('e2202', E(14), 'neutral', 'elsewhere', 'Finished act one with stress lower, no sprint.', '2026-06-16'),
     ],
   });
-  claim('c23', 23, 'n_investment', 'enables', 'n_goal_studio', { via: 'Without outside money there is no runway to build a studio.', at: '2026-08-27' });
+  claim('c23', 23, 'n_investment', 'enables', 'n_goal_studio', {
+    via: 'Without outside money there is no runway to build a studio.',
+    aspect: { from: 'arriving', to: 'getting started' },
+    at: '2026-08-27',
+  });
+  // The rival to "deadlines bring out the best work": the best work came from calm, protected weeks.
+  claim('c25', 25, 'n_deepwork', 'raises', 'n_quality', {
+    via: 'Unbroken attention leaves room to get the details right.',
+    rivalIds: ['c22'],
+    at: '2026-06-16',
+    evidence: [
+      ev(
+        'e2501',
+        E(6),
+        'supports',
+        'instance',
+        'It was the only project I touched for those three weeks: mornings only, phone in another room. Best thing I’ve made in a year.',
+        '2026-06-16',
+      ),
+    ],
+  });
   // A proposal from the analysis, not on the map until Noa adopts it.
   claim('c24', 24, 'n_concentration', 'raises', 'n_yes', {
     author: 'inferred',
@@ -1862,7 +1904,8 @@ export function createSeedData(today: string = todayISO()): AtlasData {
     },
     navigation,
     modelLog: log,
-    counters: { entry: 30, decision: 8, pattern: 9, experiment: 3, claim: 24 },
+    counters: { entry: 30, decision: 8, pattern: 9, experiment: 3, claim: 25 },
+    causesLogic: 3,
     loopNames: {
       [loopId('c02', 'c03', 'c04', 'c05', 'c06')]: 'Overcommitment cycle',
       [loopId('c02', 'c17', 'c18')]: 'The exhaustion brake',

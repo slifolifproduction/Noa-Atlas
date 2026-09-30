@@ -1,6 +1,6 @@
 import { Check, Pencil, Plus, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { claimCode, claimSentence, claimsTouching } from '../../domain/claims';
+import { claimCode, claimSentence, claimsOutOf, claimsTouching } from '../../domain/claims';
 import { OUTCOME_RATING_LABEL } from '../../domain/constants';
 import { windowAfter } from '../../domain/history';
 import { decisionCode, decisionHorizon, patternCode, patternTitle, usagesOfSource } from '../../domain/selectors';
@@ -50,6 +50,11 @@ export function DecisionView({ id }: { id: ID }) {
             .slice(0, 6)
         : [],
     [data, d, id],
+  );
+  // Forward: what the decision's elements may lead to, kept apart from what actually followed.
+  const mightFollow = useMemo(
+    () => (d ? [...new Map(d.nodeIds.flatMap((n) => claimsOutOf(data, n)).map((c) => [c.id, c])).values()].filter((c) => !c.retired).slice(0, 6) : []),
+    [data, d],
   );
   if (!d) return null;
   const usages = usagesOfSource(data, { kind: 'decision', id });
@@ -174,6 +179,19 @@ export function DecisionView({ id }: { id: ID }) {
             ))}
           </ul>
           <p className="mt-1 text-[11.5px] text-ink-3">{t('Eight weeks after, from the timeline. Following is not the same as caused by.')}</p>
+        </PanelSection>
+      )}
+
+      {mightFollow.length > 0 && (
+        <PanelSection title={t('What might follow from it')} count={mightFollow.length}>
+          <p className="mb-1.5 text-[11.5px] text-ink-3">
+            {t('Possible, not history: what the things this decision touches may lead to, by the reasons on your map.')}
+          </p>
+          <ul className="-mx-1.5 rounded-[2px] border border-dashed border-line">
+            {mightFollow.map((c) => (
+              <ClaimRow key={c.id} id={c.id} />
+            ))}
+          </ul>
         </PanelSection>
       )}
 

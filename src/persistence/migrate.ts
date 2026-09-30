@@ -264,6 +264,7 @@ export function convertV1(v1: V1): AtlasData {
     modelLog: ((v1.modelLog as V1[]) ?? []).map(({ before: _b, after: _a, ...u }) => u as AtlasData['modelLog'][number]),
     counters: { ...v1.counters, claim: claimCode },
     loopNames: {},
+    causesLogic: 3,
   };
 }
 
@@ -302,9 +303,49 @@ function upgradeSample(v1: V1): AtlasData {
   return fresh;
 }
 
+/**
+ * v2 → v3: the logic of causes. A stored sample atlas gets the sample's
+ * corrected claims: what about a whole thing changes, conditions, the rival
+ * explanation of good work, sequences drawn in order from history, the "how"
+ * where a note shows it happening, and times the outcome happened without the
+ * cause marked as another route rather than as exceptions. Everything the
+ * person added or decided stays: their own evidence, views, retired or
+ * set-aside claims, and their own claims. Other atlases keep their data as
+ * it is; the new rules apply to them as they are read.
+ */
+export function correctSampleCauses(data: AtlasData): AtlasData {
+  // Once only: a version restored or a file imported later keeps what the person changed since.
+  if ((data.causesLogic ?? 0) >= 3) return data;
+  const sample = data.profile?.name === SEED_PROFILE_NAME && Boolean(data.claims?.c01) && Boolean(data.entries?.ent_01);
+  if (!sample) return { ...data, causesLogic: 3 };
+  const fresh = createSeedData();
+  const claims = { ...data.claims };
+  const sampleEvidence = /^e\d{4}$/;
+  for (const [id, f] of Object.entries(fresh.claims)) {
+    const mine = claims[id];
+    if (!mine) {
+      // A claim the corrected sample adds (the rival explanation), if its elements are still there.
+      if (data.nodes[f.from] && data.nodes[f.to]) {
+        const counters = data.counters ?? fresh.counters;
+        claims[id] = { ...f, code: Math.max(f.code, (counters.claim ?? 0) + 1) };
+      }
+      continue;
+    }
+    claims[id] = {
+      ...mine,
+      aspect: f.aspect,
+      when: mine.when ?? f.when,
+      rivalIds: [...new Set([...mine.rivalIds, ...f.rivalIds])],
+      evidence: [...f.evidence, ...mine.evidence.filter((e) => !sampleEvidence.test(e.id))],
+    };
+  }
+  const maxCode = Math.max(...Object.values(claims).map((c) => c.code));
+  return { ...data, claims, causesLogic: 3, counters: { ...data.counters, claim: Math.max(data.counters?.claim ?? 0, maxCode) } };
+}
+
 /** Any stored or imported atlas, in the current shape. */
 export function toCurrentShape(data: unknown): AtlasData {
-  if (isV2(data)) return { ...data, loopNames: data.loopNames ?? {} };
+  if (isV2(data)) return correctSampleCauses({ ...data, loopNames: data.loopNames ?? {} });
   const v1 = data as V1;
   return isSample(v1) ? upgradeSample(v1) : convertV1(v1);
 }

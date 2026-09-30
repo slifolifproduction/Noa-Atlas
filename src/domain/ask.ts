@@ -5,12 +5,12 @@
  * it did. The analytical work (claims, evidence, history windows, patterns)
  * happens here; the interface only shows the answers, in plain words.
  */
-import { addDays, formatMonth, todayISO } from '../lib/dates';
+import { addDays, formatMonth, todayISO, weekStart } from '../lib/dates';
 import { t, tn } from '../i18n';
 import { byStrength, claimsInto, claimsOutOf, claimStatus, evidenceProfile } from './claims';
 import { AREA_META, areaHubId, isAreaHubId, areaHubKey, YOU_ID } from './constants';
 import { historyItems } from './history';
-import { mapElements, patternsForNode, patternStats, thinSpots } from './selectors';
+import { mapElements, patternsForNode, patternStats, patternTitle, resolveSource, thinSpots } from './selectors';
 import type { AreaKey, AtlasData, AtlasNode, Claim, ElementKind, EntityRef, ID, ISODate, Pattern } from './types';
 
 /* ---------------- the focus ---------------- */
@@ -132,17 +132,70 @@ export function reasonsFor(data: AtlasData, id: ID): Claim[] {
   return [...claimsInto(data, id), ...suggested.sort(byStrength(data))];
 }
 
-/** "Why do you think that?", answered in plain sentences from the evidence behind a claim. */
+/**
+ * The weeks behind a claim that are also part of a repeat (a pattern whose
+ * steps include both ends): the same episodes read two ways, never two
+ * independent confirmations.
+ */
+export function sharedWithRepeats(data: AtlasData, claim: Claim): { pattern: Pattern; weeks: number }[] {
+  const claimWeeks = new Set(
+    claim.evidence
+      .filter((e) => e.stance === 'supports' && (e.kind === 'instance' || e.kind === 'contrast' || !e.kind))
+      .map((e) => resolveSource(data, e.source).date)
+      .filter((d): d is ISODate => Boolean(d))
+      .map((d) => weekStart(d)),
+  );
+  if (!claimWeeks.size) return [];
+  const ends = [claim.from, ...claim.with, claim.to];
+  return Object.values(data.patterns)
+    .filter((p) => !p.setAside && ends.every((id) => id === claim.to || p.nodeIds.includes(id) || p.steps.some((s) => s.elementId === id)))
+    .filter((p) => p.nodeIds.includes(claim.to) || p.steps.some((s) => s.elementId === claim.to))
+    .map((pattern) => {
+      const weeks = new Set(
+        pattern.evidence
+          .filter((e) => e.stance === 'supports')
+          .map((e) => resolveSource(data, e.source).date)
+          .filter((d): d is ISODate => Boolean(d))
+          .map((d) => weekStart(d)),
+      );
+      return { pattern, weeks: [...claimWeeks].filter((w) => weeks.has(w)).length };
+    })
+    .filter((x) => x.weeks > 0);
+}
+
+/**
+ * "Why do you think that?", answered in plain sentences from the evidence
+ * behind a claim. What does not count is said too: the outcome happening
+ * without it, and a "how" that is only described.
+ */
 export function whyWeThink(data: AtlasData, claim: Claim): string[] {
   const p = evidenceProfile(data, claim);
   const out: string[] = [];
   if (p.testsFor) out.push(t('You tested it, and what you predicted happened.'));
   if (p.testsAgainst) out.push(t('A test did not go as predicted.'));
-  if (p.episodes) out.push(tn(p.episodes, 'Seen in {n} separate week.', 'Seen in {n} separate weeks.'));
+  if (p.episodes) out.push(tn(p.episodes, 'Seen in {n} separate week, in that order.', 'Seen in {n} separate weeks, in that order.'));
   if (p.contrast) out.push(tn(p.contrast, 'Once, without it, this did not happen either.', '{n} times, without it, this did not happen either.'));
-  if (p.counter) out.push(tn(p.counter, 'Once it did not hold.', '{n} times it did not hold.'));
-  if (claim.via?.trim()) out.push(t('How: {via}', { via: claim.via.trim() }));
-  if (!out.length) out.push(t('Nothing in your notes shows it yet: for now it is a hunch.'));
+  if (p.mechanism) out.push(t('The “how” shows in what you wrote.'));
+  if (p.counter) out.push(tn(p.counter, 'Once it was there and this did not follow.', '{n} times it was there and this did not follow.'));
+  if (p.elsewhere)
+    out.push(
+      tn(
+        p.elsewhere,
+        'Once this happened without it: something else can bring it about too.',
+        '{n} times this happened without it: something else can bring it about too.',
+      ),
+    );
+  if (p.outOfOrder)
+    out.push(
+      tn(p.outOfOrder, '{n} sequence does not count: the order or the delay does not fit.', '{n} sequences do not count: the order or the delay does not fit.'),
+    );
+  for (const { pattern, weeks } of sharedWithRepeats(data, claim))
+    out.push(
+      tn(weeks, 'One of these weeks is also part of the repeat “{title}”.', '{n} of these weeks are also part of the repeat “{title}”.', {
+        title: patternTitle(pattern),
+      }),
+    );
+  if (!p.episodes && !p.testsFor && !p.mechanism && !p.contrast) out.unshift(t('Nothing in your notes shows it yet: for now it is a hunch.'));
   return out;
 }
 

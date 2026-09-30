@@ -60,9 +60,13 @@ function edgeStyle(data: SemanticEdgeData): EdgeStyle {
   if (data.family === 'member') {
     return { color: 'rgb(200 210 222 / 0.5)', width: 0.8, dash: '1 5', opacity: 0.35, straight: true };
   }
+  if (data.family === 'area' && !data.claimIds?.length) {
+    // Links you drew between two areas: plain, undirected, no status. A link says nothing about influence.
+    return { color: 'rgb(200 210 222 / 0.6)', width: 0.9, dash: '1 4', opacity: 0.55, straight: false };
+  }
   if (data.family === 'area') {
-    // Thicker the more claims and links it sums up; dashed while its strongest claim is still tentative.
-    const n = (data.claimIds?.length ?? 0) + (data.linkIds?.length ?? 0);
+    // Possible reasons from one area to another: thicker the more there are; dashed while the surest is still tentative.
+    const n = data.claimIds?.length ?? 0;
     const status = data.status ? STATUS_META[data.status] : undefined;
     return {
       color: '#d9d2c3',
@@ -167,17 +171,17 @@ export const SemanticEdgeView = memo(function SemanticEdgeView({ id, source, tar
 /* ------------------------------------------------------------ flow */
 
 /**
- * How influence travels along a line. Claims carry it forward, from cause to
- * effect; a tension sends a pulse in from both ends that fades where they
- * meet. Structure (part of, aligns) carries nothing.
+ * What moves along a line. Only a possible reason your notes already show at
+ * least a few times carries a pulse, from cause to effect: a moving pulse
+ * reads as influence, and a hunch, a suggestion, a link you drew, an area
+ * summary or a structural line has not earned that.
  */
 function flowOf(data: SemanticEdgeData): 'forward' | 'meet' | undefined {
-  if (data.family === 'claim' || data.family === 'area') return 'forward';
-  if (data.family === 'member') return undefined;
-  if (data.linkType === 'conflicts') return 'meet';
-  if (data.linkType === 'aims_at' || data.linkType === 'motivates') return 'forward';
-  return undefined;
+  return carriesInfluence(data) ? 'forward' : undefined;
 }
+
+export const carriesInfluence = (data: SemanticEdgeData | undefined) =>
+  data?.family === 'claim' && !data.suggested && (data.status === 'plausible' || data.status === 'supported' || data.status === 'tested');
 
 const PULSE_COLOR = '#e4ebf2';
 

@@ -1,12 +1,23 @@
 import { Archive, Check, FlaskConical, Pencil, Plus, RotateCcw, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { claimCode, claimGaps, claimSentence, claimStatus, evidenceCandidates, evidenceProfile, otherExplanations } from '../../domain/claims';
+import {
+  claimCode,
+  claimGaps,
+  claimSentence,
+  claimStatus,
+  evidenceCandidates,
+  evidenceProfile,
+  historySource,
+  orderedEpisodes,
+  otherExplanations,
+} from '../../domain/claims';
 import { EFFECT_META, EFFECTS, EVIDENCE_KIND_HINT, EVIDENCE_KIND_LABEL, EXPERIMENT_STATUS_LABEL, VIEW_LABEL } from '../../domain/constants';
 import { loopName, loopsWithClaim } from '../../domain/loops';
 import { experimentCode, testsOfClaim } from '../../domain/selectors';
 import type { Effect, EvidenceKind, ID, View } from '../../domain/types';
 import type { ExperimentDraft } from '../../ai/types';
 import { formatDate } from '../../lib/dates';
+import { ROLE_META } from '../../domain/constants';
 import { useAtlas } from '../../state/atlasStore';
 import { adoptExperimentDraft, proposeExperiments } from '../../state/operations';
 import { useUI } from '../../state/uiStore';
@@ -43,6 +54,8 @@ export function ClaimView({ id }: { id: ID }) {
   const status = claim ? claimStatus(data, claim) : 'proposed';
   const profile = useMemo(() => (claim ? evidenceProfile(data, claim) : null), [data, claim]);
   const candidates = useMemo(() => (claim ? evidenceCandidates(data, claim).slice(0, 5) : []), [data, claim]);
+  const episodes = useMemo(() => (claim ? orderedEpisodes(data, claim) : []), [data, claim]);
+  const [dismissed, setDismissed] = useState<string[]>([]);
   const others = useMemo(() => (claim ? otherExplanations(data, claim) : []), [data, claim]);
   const tests = claim ? testsOfClaim(data, id) : [];
   const loops = useMemo(() => (claim ? loopsWithClaim(data, id) : []), [data, claim, id]);
@@ -53,11 +66,16 @@ export function ClaimView({ id }: { id: ID }) {
   const addFrom = (c: (typeof candidates)[number], kind: EvidenceKind) =>
     a.addClaimEvidence(id, {
       source: c.source,
-      stance: kind === 'counter_case' ? 'counters' : 'supports',
+      stance: kind === 'counter_case' ? 'counters' : kind === 'elsewhere' ? 'neutral' : 'supports',
       kind,
       excerpt: firstSentence(c.body || c.title),
       addedBy: 'user',
     });
+  // What a record can show depends on which side it mentions: both, an ordered time or the "how"; the cause only, an exception.
+  const choices = (sides: (typeof candidates)[number]['sides']): EvidenceKind[] => (sides === 'both' ? ['instance', 'mechanism'] : ['counter_case']);
+  const openEpisodes = episodes.filter((e) => !dismissed.includes(e.week));
+  const rivals = others.filter((o) => o.rival);
+  const alongside = others.filter((o) => !o.rival);
 
   return (
     <div>
@@ -80,24 +98,33 @@ export function ClaimView({ id }: { id: ID }) {
           <>
             <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-[12px] text-ink-3">
               <NodeChip id={claim.from} />
+              {claim.aspect?.from && <span className="text-ink-2">({claim.aspect.from})</span>}
               {claim.with.map((w) => (
                 <span key={w} className="inline-flex items-center gap-1.5">
                   +<NodeChip id={w} />
                 </span>
               ))}
-              <span className="font-mono text-[11px] tracking-wide uppercase" style={{ color: EFFECT_META[claim.effect].color }}>
-                {EFFECT_META[claim.effect].glyph} {EFFECT_META[claim.effect].label}
+              <span className="text-[12px]" style={{ color: EFFECT_META[claim.effect].color }} title={ROLE_META[EFFECT_META[claim.effect].role].description}>
+                {EFFECT_META[claim.effect].glyph} {EFFECT_META[claim.effect].plain}
               </span>
               <NodeChip id={claim.to} />
+              {claim.aspect?.to && <span className="text-ink-2">({claim.aspect.to})</span>}
             </div>
             <dl className="mt-2.5 space-y-1 text-[12.5px]">
               <div className="flex gap-2">
                 <dt className="w-[72px] shrink-0 text-ink-3">{t('How')}</dt>
-                <dd className="text-ink-2">{claim.via || <span className="text-ink-3">{t('Not described yet')}</span>}</dd>
+                <dd className="text-ink-2">
+                  {claim.via || <span className="text-ink-3">{t('Not described yet')}</span>}
+                  {claim.via && (
+                    <span className="block text-[11.5px] text-ink-3">
+                      {profile.mechanism ? t('Seen happening in what you wrote.') : t('Your explanation: described, not yet seen happening.')}
+                    </span>
+                  )}
+                </dd>
               </div>
               {claim.when && (
                 <div className="flex gap-2">
-                  <dt className="w-[72px] shrink-0 text-ink-3">{t('When')}</dt>
+                  <dt className="w-[72px] shrink-0 text-ink-3">{t('Only when')}</dt>
                   <dd className="text-ink-2">{claim.when}</dd>
                 </div>
               )}
@@ -191,10 +218,19 @@ export function ClaimView({ id }: { id: ID }) {
         <StatusLadder status={status} />
         <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px]">
           <Fact label={t('Records cited')} value={String(sources)} />
-          <Fact label={t('Episodes')} value={String(profile.episodes)} hint={t('Separate weeks with an instance or a contrast case')} />
-          <Fact label={t('Contrast cases')} value={String(profile.contrast)} hint={EVIDENCE_KIND_HINT.contrast} />
-          <Fact label={t('Counter-cases')} value={String(profile.counter)} hint={EVIDENCE_KIND_HINT.counter_case} />
-          <Fact label={t('Mechanism')} value={profile.mechanism ? t('described') : t('missing')} hint={EVIDENCE_KIND_HINT.mechanism} />
+          <Fact
+            label={t('Episodes, in order')}
+            value={String(profile.episodes)}
+            hint={t('Separate weeks where it came first and the outcome followed, or a time without it')}
+          />
+          <Fact label={t('Times without it')} value={String(profile.contrast)} hint={EVIDENCE_KIND_HINT.contrast} />
+          <Fact label={t('Exceptions')} value={String(profile.counter)} hint={EVIDENCE_KIND_HINT.counter_case} />
+          <Fact label={t('Happened without it')} value={String(profile.elsewhere ?? 0)} hint={EVIDENCE_KIND_HINT.elsewhere} />
+          <Fact
+            label={t('How it works')}
+            value={profile.mechanism ? t('seen') : profile.mechanismDescribed ? t('described only') : t('missing')}
+            hint={EVIDENCE_KIND_HINT.mechanism}
+          />
           <Fact
             label={t('Tests')}
             value={profile.testsFor + profile.testsAgainst ? t('{a} for · {b} against', { a: profile.testsFor, b: profile.testsAgainst }) : t('none')}
@@ -214,9 +250,55 @@ export function ClaimView({ id }: { id: ID }) {
         )}
       </Fold>
 
+      {openEpisodes.length > 0 && claim.state !== 'set_aside' && (
+        <Fold title={t('Times it may have happened')} count={openEpisodes.length}>
+          <Muted>
+            {t(
+              'In your history, the cause came first and the outcome followed within {n} days. Coming first is a reason to look, not proof: does it show one leading to the other?',
+              {
+                n: Math.max(...openEpisodes.map((e) => e.days), 0) || 0,
+              },
+            )}
+          </Muted>
+          <ul className="mt-2 space-y-2.5">
+            {openEpisodes.map((e) => {
+              const source = historySource(e.effect)!;
+              const cause = historySource(e.cause)!;
+              return (
+                <li key={e.week} className="rounded-[2px] border border-line p-2.5 text-[12.5px]">
+                  <p className="text-ink-2">
+                    <span className="num text-[11px] text-ink-3">{formatDate(e.cause.date)}</span> {e.cause.label}
+                  </p>
+                  <p className="text-ink-2">
+                    <span className="num text-[11px] text-ink-3">{formatDate(e.effect.date)}</span> {e.effect.label}{' '}
+                    <span className="text-[11px] text-ink-3">{t('{n} days later', { n: e.days })}</span>
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    <button
+                      type="button"
+                      className="rounded-[2px] border border-line px-1.5 py-0.5 text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
+                      onClick={() => a.addClaimEvidence(id, { source, cause, stance: 'supports', kind: 'instance', excerpt: e.effect.label, addedBy: 'user' })}
+                    >
+                      + {t('Yes: one, then the other')}
+                    </button>
+                    <button
+                      type="button"
+                      className="rounded-[2px] px-1.5 py-0.5 text-[11.5px] text-ink-3 hover:text-ink"
+                      onClick={() => setDismissed([...dismissed, e.week])}
+                    >
+                      {t('Not related')}
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Fold>
+      )}
+
       {candidates.length > 0 && claim.state !== 'set_aside' && (
         <Fold title={t('Notes that might bear on it')} count={candidates.length}>
-          <Muted>{t('Records that mention one or both sides. You judge what each shows.')}</Muted>
+          <Muted>{t('Notes that mention both sides, or the cause alone. You judge what each shows.')}</Muted>
           <ul className="mt-2 space-y-2.5">
             {candidates.map((c) => (
               <li key={`${c.source.kind}:${c.source.id}`} className="rounded-[2px] border border-line p-2.5">
@@ -228,10 +310,12 @@ export function ClaimView({ id }: { id: ID }) {
                 </div>
                 <p className="mt-0.5 line-clamp-2 text-[12px] text-ink-3">{c.body}</p>
                 <p className="mt-1 text-[11px] text-ink-3">
-                  {c.sides === 'both' ? t('Mentions both sides') : c.sides === 'from' ? t('Mentions the cause only') : t('Mentions the effect only')}
+                  {c.sides === 'both'
+                    ? t('Mentions both sides: does it tell one first, then the other?')
+                    : t('Mentions the cause only: did the outcome fail to follow?')}
                 </p>
                 <div className="mt-1.5 flex flex-wrap gap-1">
-                  {(['instance', 'contrast', 'counter_case'] as EvidenceKind[]).map((k) => (
+                  {choices(c.sides).map((k) => (
                     <button
                       key={k}
                       type="button"
@@ -262,10 +346,33 @@ export function ClaimView({ id }: { id: ID }) {
         </p>
       </PanelSection>
 
-      <PanelSection title={t('Other explanations')} count={others.length}>
-        {others.length ? (
+      <PanelSection title={t('Competing explanations')} count={rivals.length}>
+        <Muted>{t('If one of these holds, this one may not be needed. More than one can still be true.')}</Muted>
+        {rivals.length > 0 && (
+          <ul className="-mx-1.5 mt-1">
+            {rivals.map(({ claim: o }) => (
+              <li key={o.id} className="flex items-start">
+                <ul className="min-w-0 flex-1">
+                  <ClaimRow id={o.id} />
+                </ul>
+                <button
+                  type="button"
+                  className="mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
+                  aria-pressed
+                  onClick={() => a.toggleRival(id, o.id)}
+                >
+                  {t('Competing')}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </PanelSection>
+
+      <PanelSection title={t('Also contributing')} count={alongside.length}>
+        {alongside.length ? (
           <ul className="-mx-1.5">
-            {others.map(({ claim: o, rival }) => (
+            {alongside.map(({ claim: o, rival }) => (
               <li key={o.id} className="flex items-start">
                 <ul className="min-w-0 flex-1">
                   <ClaimRow id={o.id} />
@@ -283,7 +390,7 @@ export function ClaimView({ id }: { id: ID }) {
             ))}
           </ul>
         ) : (
-          <Muted>{t('Nothing else explains the same thing yet. What else could produce it?')}</Muted>
+          <Muted>{t('Nothing else explains the same outcome yet. What else could produce it? Part of it may also be chance.')}</Muted>
         )}
       </PanelSection>
 
@@ -378,40 +485,65 @@ function Fact({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 function ClaimEditForm({ id, onDone }: { id: ID; onDone(): void }) {
-  const claim = useAtlas((s) => s.data.claims[id]);
+  const data = useAtlas((s) => s.data);
+  const claim = data.claims[id];
   const updateClaim = useAtlas((s) => s.updateClaim);
   const [effect, setEffect] = useState<Effect>(claim?.effect ?? 'raises');
   const [via, setVia] = useState(claim?.via ?? '');
   const [when, setWhen] = useState(claim?.when ?? '');
   const [lag, setLag] = useState(claim?.lag ?? '');
+  const [fromAspect, setFromAspect] = useState(claim?.aspect?.from ?? '');
+  const [toAspect, setToAspect] = useState(claim?.aspect?.to ?? '');
   if (!claim) return null;
+  const fromLabel = data.nodes[claim.from]?.label ?? '';
+  const toLabel = data.nodes[claim.to]?.label ?? '';
   return (
     <form
       className="mt-3 space-y-2"
       onSubmit={(e) => {
         e.preventDefault();
-        updateClaim(id, { effect, via: via.trim() || undefined, when: when.trim() || undefined, lag: lag.trim() || undefined });
+        updateClaim(id, {
+          effect,
+          via: via.trim() || undefined,
+          when: when.trim() || undefined,
+          lag: lag.trim() || undefined,
+          aspect: fromAspect.trim() || toAspect.trim() ? { from: fromAspect.trim() || undefined, to: toAspect.trim() || undefined } : undefined,
+        });
         onDone();
       }}
     >
       <label className="block">
-        <span className="label">{t('Effect')}</span>
+        <span className="label">{t('What about {name} changes', { name: fromLabel })}</span>
+        <input
+          className="field mt-1"
+          value={fromAspect}
+          onChange={(e) => setFromAspect(e.target.value)}
+          placeholder={t('e.g. more of it, it starting, scope added late')}
+        />
+      </label>
+      <label className="block">
+        <span className="label">{t('How it may act')}</span>
         <select className="field mt-1" value={effect} onChange={(e) => setEffect(e.target.value as Effect)}>
           {EFFECTS.map((x) => (
             <option key={x.key} value={x.key}>
-              {x.label} — {x.description}
+              {x.plain} — {x.description}
             </option>
           ))}
         </select>
       </label>
       <label className="block">
-        <span className="label">{t('How, in your words')}</span>
+        <span className="label">{t('What about {name} changes', { name: toLabel })}</span>
+        <input className="field mt-1" value={toAspect} onChange={(e) => setToAspect(e.target.value)} placeholder={t('Optional when it is already a factor')} />
+      </label>
+      <label className="block">
+        <span className="label">{t('How it may work, in your words')}</span>
         <input className="field mt-1" value={via} onChange={(e) => setVia(e.target.value)} placeholder={t('The mechanism, e.g. less time for deep work')} />
+        <span className="mt-1 block text-[11.5px] text-ink-3">{t('An explanation to check. It counts as evidence only once a note shows it happening.')}</span>
       </label>
       <div className="grid grid-cols-2 gap-2">
         <label className="block">
-          <span className="label">{t('When it holds')}</span>
-          <input className="field mt-1" value={when} onChange={(e) => setWhen(e.target.value)} />
+          <span className="label">{t('Only when')}</span>
+          <input className="field mt-1" value={when} onChange={(e) => setWhen(e.target.value)} placeholder={t('e.g. in deadline weeks')} />
         </label>
         <label className="block">
           <span className="label">{t('Typical delay')}</span>

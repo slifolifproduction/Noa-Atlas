@@ -3,8 +3,13 @@ import { useMemo, useState, type ReactNode } from 'react';
 import { StatusSwatch } from '../../components/graph/Legend';
 import { LoopIcon } from '../../components/icons';
 import { claimStatus } from '../../domain/claims';
-import { AREAS, CLAIM_STATUSES, STATUS_META } from '../../domain/constants';
+import { AREAS, CLAIM_STATUSES, ROLE_META, STATUS_META } from '../../domain/constants';
 import { findLoops, loopName, type Loop } from '../../domain/loops';
+import { followOn } from '../../domain/ask';
+import { factorLabel } from '../../domain/claims';
+import { explainOutcome } from '../../domain/explain';
+import { useFocus } from '../../components/shell/Focus';
+import { Segmented } from '../../components/ui/primitives';
 import type { ClaimStatus } from '../../domain/types';
 import { t, tn } from '../../i18n';
 import { cn } from '../../lib/cn';
@@ -49,8 +54,12 @@ export function CausesRail() {
             '{n} possible reasons, drawn by how sure they are. Tap anything to ask about it.',
           )}
         </p>
+        <p className="mt-1 text-[11.5px] leading-snug text-ink-3">
+          {t('Only possible reasons are drawn here. A line is a claim to check, not a fact; links you drew are not causes.')}
+        </p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">
+        <Investigation />
         <div className="flex items-center justify-between px-4 pt-3 pb-1">
           <span className="label">{t('Cycles')}</span>
           {view.loopId && (
@@ -178,5 +187,83 @@ function ToggleRow({ on, onClick, icon, count, children }: { on: boolean; onClic
         <span className={cn('block h-2.5 w-2.5 rounded-full bg-ink transition-transform', on && 'translate-x-2.5')} />
       </span>
     </button>
+  );
+}
+
+/**
+ * With something in focus, the Causes lens starts from it: what may lead to
+ * it, by the part each plays, what is still unexplained, and which way the
+ * trace on the map runs (back to what may lead to it, or on to what it may lead to).
+ */
+function Investigation() {
+  const data = useAtlas((s) => s.data);
+  const focus = useFocus();
+  const view = useUI((s) => s.networkView);
+  const setView = useUI((s) => s.setNetworkView);
+  const openEntity = useUI((s) => s.openEntity);
+  const setAsking = useUI((s) => s.setAsking);
+  const id = focus?.kind === 'node' ? focus.id : undefined;
+  const ex = useMemo(() => (id ? explainOutcome(data, id) : null), [data, id]);
+  const onward = useMemo(() => (id ? followOn(data, id) : null), [data, id]);
+  if (!id || !ex || !data.nodes[id]) return null;
+  const name = data.nodes[id].label;
+  const trace = view.trace ?? 'back';
+  const setTrace = (next: 'back' | 'forward') => setView({ trace: next, focusDepth: view.focusDepth || 2 });
+  return (
+    <section className="border-b border-line px-4 pt-3 pb-3" aria-label={t('Why might {name} be happening?', { name })}>
+      <div className="label text-ink-2!">{t('Why might {name} be happening?', { name })}</div>
+      {ex.groups.length ? (
+        <ul className="mt-1.5 space-y-2">
+          {ex.groups.map((g) => (
+            <li key={g.role}>
+              <div className="text-[11px] text-ink-3">{ROLE_META[g.role].heading}</div>
+              <ul>
+                {g.items.map((c) => (
+                  <li key={c.claim.id}>
+                    <button
+                      type="button"
+                      onClick={() => openEntity({ kind: 'claim', id: c.claim.id })}
+                      className="flex w-full items-start gap-2 rounded-[2px] py-[3px] text-left hover:bg-ink/[0.04]"
+                    >
+                      <StatusSwatch status={c.status} width={16} />
+                      <span className="min-w-0 flex-1 text-[12px] leading-snug text-ink-2">{factorLabel(data, c.claim.from, c.claim.aspect?.from)}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-1 text-[12px] text-ink-3">{t('Nothing on the map explains it yet.')}</p>
+      )}
+      <p className="mt-2 text-[11.5px] leading-snug text-ink-3">
+        {ex.moments > 0 && ex.unexplained > 0
+          ? t('{n} of the {m} times it came up, none of its possible reasons came up first. Some of it may be chance.', { n: ex.unexplained, m: ex.moments })
+          : t('Some of it may be chance, or something not on the map.')}
+      </p>
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+        <Segmented<'back' | 'forward'>
+          label={t('Trace on the map')}
+          size="sm"
+          value={trace === 'forward' ? 'forward' : 'back'}
+          onChange={setTrace}
+          options={[
+            { value: 'back', label: t('What may lead to it') },
+            { value: 'forward', label: `${t('What it may lead to')}${onward?.direct.length ? ` ${onward.direct.length}` : ''}` },
+          ]}
+        />
+        <button
+          type="button"
+          className="text-[12px] text-accent hover:underline"
+          onClick={() => {
+            openEntity({ kind: 'node', id });
+            setAsking('why');
+          }}
+        >
+          {t('Open the explanation')}
+        </button>
+      </div>
+    </section>
   );
 }

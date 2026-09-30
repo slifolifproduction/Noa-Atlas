@@ -125,7 +125,7 @@ export function patternStats(data: AtlasData, pattern: Pattern, today: ISODate =
     regularity,
     instances: supporting.length,
     episodes,
-    counter: points.length - supporting.length,
+    counter: points.filter((p) => p.stance === 'counters').length,
     firstObserved: first,
     lastObserved: last,
     frequency,
@@ -145,7 +145,13 @@ export function sortedPatterns(data: AtlasData, opts: { includeSetAside?: boolea
     });
 }
 
-export const patternTitle = (p: Pattern) => (p.steps.length ? p.steps.map((s) => s.label).join(' → ') : p.title);
+/**
+ * A pattern's steps read as a sequence ("A, then B"), never as a chain of
+ * causes: why each step follows the last is a separate question, answered by
+ * claims.
+ */
+export const patternTitle = (p: Pattern) =>
+  p.steps.length ? p.steps.map((s) => s.label).reduce((acc, label) => t('{a}, then {b}', { a: acc, b: label })) : p.title;
 
 /* ---------------- elements ---------------- */
 

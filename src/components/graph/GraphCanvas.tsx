@@ -33,7 +33,7 @@ import { RingsNodeView } from './nodes/RingsNode';
 import { RelationPicker } from './RelationPicker';
 import { NodeProbe } from './NodeProbe';
 import { Reticle } from './Reticle';
-import { EdgeMarkers, SemanticEdgeView } from './SemanticEdge';
+import { carriesInfluence, EdgeMarkers, SemanticEdgeView } from './SemanticEdge';
 import { SpaceField } from './SpaceField';
 import { t } from '../../i18n';
 
@@ -125,7 +125,7 @@ function Canvas({
   const [initialViewport] = useState<Viewport | undefined>(() => (persistViewport ? useUI.getState().layouts[layer].viewport : undefined));
   const isDesktop = useMediaQuery('(min-width: 1024px)');
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
-  const idleShare = Math.min(1, MAX_IDLE_PULSES / Math.max(1, built.edges.filter((e) => !e.data?.secondary && !isStructural(e)).length));
+  const idleShare = Math.min(1, MAX_IDLE_PULSES / Math.max(1, built.edges.filter((e) => !e.data?.secondary && carriesInfluence(e.data)).length));
   const activeShare = Math.min(1, MAX_ACTIVE_PULSES / Math.max(1, built.edges.filter((e) => e.data?.active).length));
   const motion = useMemo<MotionSettings>(() => ({ living, reduced, idleShare, activeShare }), [living, reduced, idleShare, activeShare]);
   const [hovered, setHovered] = useState<ID | null>(null);
@@ -461,7 +461,8 @@ function Canvas({
     };
     const fire = () => {
       if (!document.hidden) {
-        const edges = edgesRef.current.filter((e) => !e.data?.dim);
+        // Signals travel only along possible reasons your notes show: never along links, summaries or hunches.
+        const edges = edgesRef.current.filter((e) => !e.data?.dim && carriesInfluence(e.data));
         const adj = new Map<ID, { id: ID; structural: boolean }[]>();
         const link = (a: ID, b: ID, structural: boolean) => {
           if (!adj.has(a)) adj.set(a, []);

@@ -2,6 +2,7 @@ import { t } from '../i18n';
 import type {
   AreaKey,
   CaptureKind,
+  CausalRole,
   ClaimStatus,
   Effect,
   ElementKind,
@@ -362,10 +363,10 @@ export const LINKS: LinkMeta[] = [
   {
     key: 'motivates',
     get verb() {
-      return t('motivates');
+      return t('is a reason you give for');
     },
     get label() {
-      return t('Motivates');
+      return t('A reason you give');
     },
     get description() {
       return t('Declared: A is a reason you give for B.');
@@ -383,7 +384,7 @@ export const LINKS: LinkMeta[] = [
       return t('In tension');
     },
     get description() {
-      return t('A and B pull in opposite directions or compete for the same time or money.');
+      return t('A and B compete for the same time, money or attention. Declared: whether one changes the other is a separate claim.');
     },
     color: '#d9a55a',
     dash: '3 4',
@@ -444,6 +445,12 @@ export interface EffectMeta {
   key: Effect;
   /** +1: moves B the same way; -1: the opposite way. Used to read loops. */
   polarity: 1 | -1;
+  /** The part the factor plays in the outcome, apart from its direction. */
+  role: CausalRole;
+  /** More of the outcome, or less. */
+  direction: 'more' | 'less';
+  /** How the person says it: "adds to it", "sets it off"… */
+  plain: string;
   label: string;
   /** Short arrow glyph for compact places. */
   glyph: string;
@@ -455,6 +462,11 @@ export const EFFECTS: EffectMeta[] = [
   {
     key: 'raises',
     polarity: 1,
+    role: 'contributor',
+    direction: 'more',
+    get plain() {
+      return t('adds to it');
+    },
     get label() {
       return t('Raises');
     },
@@ -467,6 +479,11 @@ export const EFFECTS: EffectMeta[] = [
   {
     key: 'lowers',
     polarity: -1,
+    role: 'buffer',
+    direction: 'less',
+    get plain() {
+      return t('holds it back');
+    },
     get label() {
       return t('Lowers');
     },
@@ -479,6 +496,11 @@ export const EFFECTS: EffectMeta[] = [
   {
     key: 'triggers',
     polarity: 1,
+    role: 'trigger',
+    direction: 'more',
+    get plain() {
+      return t('sets it off');
+    },
     get label() {
       return t('Triggers');
     },
@@ -491,6 +513,11 @@ export const EFFECTS: EffectMeta[] = [
   {
     key: 'enables',
     polarity: 1,
+    role: 'condition',
+    direction: 'more',
+    get plain() {
+      return t('makes it possible');
+    },
     get label() {
       return t('Enables');
     },
@@ -503,6 +530,11 @@ export const EFFECTS: EffectMeta[] = [
   {
     key: 'constrains',
     polarity: -1,
+    role: 'condition',
+    direction: 'less',
+    get plain() {
+      return t('limits it');
+    },
     get label() {
       return t('Limits');
     },
@@ -515,6 +547,11 @@ export const EFFECTS: EffectMeta[] = [
   {
     key: 'sustains',
     polarity: 1,
+    role: 'maintainer',
+    direction: 'more',
+    get plain() {
+      return t('keeps it going');
+    },
     get label() {
       return t('Sustains');
     },
@@ -530,7 +567,9 @@ export const EFFECT_META = Object.fromEntries(EFFECTS.map((e) => [e.key, e])) as
 
 /**
  * How a claim reads in a sentence, hedged by its status: the language scales
- * with the evidence ("may raise" → "appears to raise" → "raises").
+ * with the evidence ("may raise" → "appears to raise"). A tested claim says
+ * what happened when it was tested ("raised … when you tested it"): one
+ * test, under its conditions, not a law.
  */
 export function effectPhrase(effect: Effect, status: ClaimStatus): string {
   const level = status === 'tested' ? 'tested' : status === 'supported' ? 'supported' : status === 'weakened' || status === 'retired' ? 'weak' : 'tentative';
@@ -538,37 +577,37 @@ export function effectPhrase(effect: Effect, status: ClaimStatus): string {
     raises: {
       tentative: () => t('may raise'),
       supported: () => t('appears to raise'),
-      tested: () => t('raises'),
+      tested: () => t('raised'),
       weak: () => t('no longer seems to raise'),
     },
     lowers: {
       tentative: () => t('may lower'),
       supported: () => t('appears to lower'),
-      tested: () => t('lowers'),
+      tested: () => t('lowered'),
       weak: () => t('no longer seems to lower'),
     },
     triggers: {
       tentative: () => t('may trigger'),
       supported: () => t('appears to trigger'),
-      tested: () => t('triggers'),
+      tested: () => t('set off'),
       weak: () => t('no longer seems to trigger'),
     },
     enables: {
       tentative: () => t('may make possible'),
       supported: () => t('appears to make possible'),
-      tested: () => t('makes possible'),
+      tested: () => t('made possible'),
       weak: () => t('no longer seems to make possible'),
     },
     constrains: {
       tentative: () => t('may limit'),
       supported: () => t('appears to limit'),
-      tested: () => t('limits'),
+      tested: () => t('limited'),
       weak: () => t('no longer seems to limit'),
     },
     sustains: {
       tentative: () => t('may sustain'),
       supported: () => t('appears to sustain'),
-      tested: () => t('sustains'),
+      tested: () => t('kept going'),
       weak: () => t('no longer seems to sustain'),
     },
   };
@@ -676,30 +715,103 @@ export const EVIDENCE_KIND_LABEL: Record<EvidenceKind, string> = {
     return t('An exception');
   },
   get mechanism() {
-    return t('How it works');
+    return t('How it works, seen');
   },
   get intervention() {
     return t('A test');
+  },
+  get elsewhere() {
+    return t('It happened without it');
   },
 };
 
 export const EVIDENCE_KIND_HINT: Record<EvidenceKind, string> = {
   get instance() {
-    return t('The cause came first, then the effect.');
+    return t('First the cause, then the effect: in that order, within the usual delay.');
   },
   get contrast() {
     return t('Without the cause, the effect did not happen either.');
   },
   get counter_case() {
-    return t('One happened without the other.');
+    return t('The cause was there, and the effect did not follow.');
   },
   get mechanism() {
-    return t('A passage that says how one leads to the other.');
+    return t('A passage where the “how” is seen happening. Describing it is not enough.');
   },
   get intervention() {
     return t('You changed it on purpose and compared with what you predicted.');
   },
+  get elsewhere() {
+    return t('The effect happened without the cause: something else can bring it about. It does not count against this explanation.');
+  },
 };
+
+/* ------------------------------------------------------------------ causal roles */
+
+export interface RoleMeta {
+  key: CausalRole;
+  /** Heading in an explanation: what may be doing this. */
+  heading: string;
+  description: string;
+}
+
+/** The parts a contributor can play, in the order an explanation lists them. */
+export const CAUSAL_ROLES: RoleMeta[] = [
+  {
+    key: 'trigger',
+    get heading() {
+      return t('What may set it off');
+    },
+    get description() {
+      return t('It starts it, usually soon after.');
+    },
+  },
+  {
+    key: 'contributor',
+    get heading() {
+      return t('What may add to it');
+    },
+    get description() {
+      return t('More of this tends to mean more of it.');
+    },
+  },
+  {
+    key: 'condition',
+    get heading() {
+      return t('What may make it possible, or limit it');
+    },
+    get description() {
+      return t('A background condition: it does not start it, it sets the stage.');
+    },
+  },
+  {
+    key: 'maintainer',
+    get heading() {
+      return t('What may keep it going');
+    },
+    get description() {
+      return t('Once it has started, this keeps it going.');
+    },
+  },
+  {
+    key: 'buffer',
+    get heading() {
+      return t('What may hold it back');
+    },
+    get description() {
+      return t('More of this tends to mean less of it.');
+    },
+  },
+];
+export const ROLE_META = Object.fromEntries(CAUSAL_ROLES.map((r) => [r.key, r])) as Record<CausalRole, RoleMeta>;
+
+/**
+ * Kinds that already are factors: a state or a behaviour can go up and down,
+ * start and stop. For other kinds (a project, a belief, a person, a goal) a
+ * claim should name what about them changes.
+ */
+export const FACTOR_KINDS: ElementKind[] = ['state', 'behaviour'];
+export const isFactorKind = (kind: ElementKind) => FACTOR_KINDS.includes(kind);
 
 export const VIEW_LABEL: Record<View, string> = {
   get agree() {

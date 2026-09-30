@@ -66,7 +66,7 @@ export function DecisionRepeats() {
         <ul className="divide-y divide-line">
           {visible.map((c) => (
             <li key={c.signature} className="px-4 py-4">
-              <div className="text-[11.5px] text-ink-3">{c.steps.join(' → ')}</div>
+              <div className="text-[11.5px] text-ink-3">{c.steps.reduce((acc, step) => t('{a}, then {b}', { a: acc, b: step }))}</div>
               <p className="display mt-1 text-[17px] leading-[1.2] text-ink">“{c.statement}”</p>
               <p className="mt-1 text-[12.5px] text-ink-2">{c.observation}</p>
               <p className="mt-2 text-[12px] text-ink-3">

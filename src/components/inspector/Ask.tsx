@@ -2,13 +2,13 @@ import { ArrowRight, ArrowUpRight, Check, ChevronRight, FlaskConical, Plus, X } 
 import { useId, useState, type ReactNode } from 'react';
 import type { ExperimentDraft } from '../../ai/types';
 import { inferKind, whyWeThink } from '../../domain/ask';
-import { claimSentence, claimStatus } from '../../domain/claims';
-import { EFFECT_META, EVIDENCE_KIND_LABEL, KIND_META, REGULARITY_LABEL, VIEW_LABEL } from '../../domain/constants';
+import { claimSentence, claimStatus, evidenceProfile } from '../../domain/claims';
+import { EFFECTS, EVIDENCE_KIND_LABEL, isFactorKind, KIND_META, REGULARITY_LABEL, VIEW_LABEL } from '../../domain/constants';
 import type { HistoryItem } from '../../domain/history';
 import { mapElements, patternStats, patternTitle, resolveSource } from '../../domain/selectors';
 import type { AreaKey, Claim, Effect, ID, View } from '../../domain/types';
 import { t } from '../../i18n';
-import { formatDate } from '../../lib/dates';
+import { daysBetween, formatDate } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { adoptExperimentDraft, proposeExperiments } from '../../state/operations';
@@ -70,6 +70,7 @@ export function Reason({ claim }: { claim: Claim }) {
   const status = claimStatus(data, claim);
   const suggested = claim.state === 'suggested';
   const moments = [...claim.evidence].sort((a, b) => (resolveSource(data, b.source).date ?? '').localeCompare(resolveSource(data, a.source).date ?? ''));
+  const profile = evidenceProfile(data, claim);
 
   return (
     <li className={cn('rounded-[2px] border', depth ? 'border-line-strong bg-canvas/40' : 'border-line', suggested && 'border-dashed')}>
@@ -84,6 +85,12 @@ export function Reason({ claim }: { claim: Claim }) {
 
       {depth > 0 && (
         <div className="border-t border-line px-3 pt-2.5 pb-3">
+          {claim.via?.trim() && (
+            <p className="mb-2 text-[12.5px] leading-snug text-ink-2">
+              <span className="text-ink-3">{t('How it may work:')}</span> {claim.via.trim()}
+              {!profile.mechanism && <span className="block text-[11.5px] text-ink-3">{t('Your explanation. It counts once a note shows it happening.')}</span>}
+            </p>
+          )}
           <ul className="space-y-1">
             {whyWeThink(data, claim).map((line) => (
               <li key={line} className="text-[12.5px] leading-snug text-ink-2">
@@ -130,13 +137,24 @@ export function Reason({ claim }: { claim: Claim }) {
               <ol className="mt-2.5 space-y-2 border-l border-line pl-3">
                 {moments.map((ev) => {
                   const src = resolveSource(data, ev.source);
+                  const cause = ev.cause ? resolveSource(data, ev.cause) : undefined;
                   return (
                     <li key={ev.id}>
                       <div className="flex flex-wrap items-baseline gap-x-2 text-[11px] text-ink-3">
                         <span className="num">{formatDate(src.date)}</span>
                         {ev.kind && <span>{EVIDENCE_KIND_LABEL[ev.kind]}</span>}
                         {ev.stance === 'counters' && ev.kind !== 'counter_case' && <span>{t('against it')}</span>}
+                        {ev.stance === 'neutral' && <span>{t('not against it: another route')}</span>}
                       </div>
+                      {cause?.date && src.date && (
+                        <p className="text-[11.5px] text-ink-3">
+                          {t('First {what} ({date}), then this, {n} days later.', {
+                            what: cause.title,
+                            date: formatDate(cause.date),
+                            n: daysBetween(cause.date, src.date),
+                          })}
+                        </p>
+                      )}
                       <p className="text-[12.5px] leading-snug text-ink-2">“{ev.excerpt}”</p>
                       {src.exists && (
                         <button
@@ -166,16 +184,13 @@ export function Reason({ claim }: { claim: Claim }) {
   );
 }
 
-const EFFECT_WORDS: { effect: Effect; label: () => string }[] = [
-  { effect: 'raises', label: () => t('adds to it') },
-  { effect: 'lowers', label: () => t('holds it back') },
-  { effect: 'triggers', label: () => t('sets it off') },
-];
-
 /**
  * "Another explanation?": a reason in the person's own words. Naming
  * something that is already on the map links to it; a new name is added to
- * the map with a first guess at what kind of thing it is.
+ * the map with a first guess at what kind of thing it is. When either end is
+ * a whole thing rather than a factor (a project, a belief, a person), it asks
+ * what about it changes, so the thing itself is not made the cause. It is
+ * added as a hunch: saying so is not evidence.
  */
 export function AddReason({
   to,
@@ -197,19 +212,37 @@ export function AddReason({
   const [name, setName] = useState(initial);
   const [effect, setEffect] = useState<Effect>('raises');
   const [how, setHow] = useState('');
+  const [aspect, setAspect] = useState('');
+  const [anchorAspect, setAnchorAspect] = useState('');
+  const [when, setWhen] = useState('');
   const elements = mapElements(data).filter((n) => n.id !== to);
   const match = elements.find((n) => n.label.toLowerCase() === name.trim().toLowerCase());
   const guess = match ? match.kind : inferKind(name);
+  const anchor = data.nodes[to];
+  const askAspect = Boolean(name.trim()) && !isFactorKind(guess);
+  const askAnchorAspect = Boolean(anchor) && !isFactorKind(anchor!.kind);
 
   const submit = () => {
     const label = name.trim();
     if (!label) return;
     const other = match?.id ?? addNode({ label, kind: guess, area });
     const [from, target] = direction === 'into' ? [other, to] : [to, other];
-    addClaim({ from, to: target, effect, via: how.trim() || undefined, author: 'user', state: 'adopted' });
+    const [fromAspect, toAspect] = direction === 'into' ? [aspect, anchorAspect] : [anchorAspect, aspect];
+    addClaim({
+      from,
+      to: target,
+      effect,
+      via: how.trim() || undefined,
+      when: when.trim() || undefined,
+      aspect: fromAspect.trim() || toAspect.trim() ? { from: fromAspect.trim() || undefined, to: toAspect.trim() || undefined } : undefined,
+      author: 'user',
+      state: 'adopted',
+    });
     toast(t('Added as a hunch. It becomes surer as your notes show it.'), { tone: 'success' });
     setName('');
     setHow('');
+    setAspect('');
+    setWhen('');
     onDone?.();
   };
 
@@ -243,24 +276,46 @@ export function AddReason({
             : t('New: it will be added to the map as a {kind}. You can change that later.', { kind: KIND_META[guess].label.toLowerCase() })}
         </p>
       )}
-      <div className="flex flex-wrap gap-1">
-        {EFFECT_WORDS.map((w) => (
+      {askAspect && (
+        <input
+          className="field"
+          value={aspect}
+          onChange={(e) => setAspect(e.target.value)}
+          aria-label={t('What about it changes?')}
+          placeholder={t('What about it changes? e.g. more of it, it starting, scope added late')}
+        />
+      )}
+      <div role="radiogroup" aria-label={t('How it may act')} className="flex flex-wrap gap-1">
+        {EFFECTS.map((w) => (
           <button
-            key={w.effect}
+            key={w.key}
             type="button"
-            aria-pressed={effect === w.effect}
-            onClick={() => setEffect(w.effect)}
+            role="radio"
+            aria-checked={effect === w.key}
+            title={w.description}
+            onClick={() => setEffect(w.key)}
             className={cn(
               'rounded-[2px] border px-2 py-0.5 text-[12px]',
-              effect === w.effect ? 'border-ink/50 bg-ink/[0.07] text-ink' : 'border-line text-ink-3 hover:text-ink',
+              effect === w.key ? 'border-ink/50 bg-ink/[0.07] text-ink' : 'border-line text-ink-3 hover:text-ink',
             )}
-            style={effect === w.effect ? { borderColor: EFFECT_META[w.effect].color } : undefined}
+            style={effect === w.key ? { borderColor: w.color } : undefined}
           >
-            {w.label()}
+            {w.plain}
           </button>
         ))}
       </div>
-      <input className="field" value={how} onChange={(e) => setHow(e.target.value)} placeholder={t('How, if you have a sense of it (optional)')} />
+      {askAnchorAspect && (
+        <input
+          className="field"
+          value={anchorAspect}
+          onChange={(e) => setAnchorAspect(e.target.value)}
+          aria-label={t('What about {name} changes?', { name: anchor!.label })}
+          placeholder={t('What about {name} changes? (optional)', { name: anchor!.label })}
+        />
+      )}
+      <input className="field" value={when} onChange={(e) => setWhen(e.target.value)} placeholder={t('Only when…? e.g. in deadline weeks (optional)')} />
+      <input className="field" value={how} onChange={(e) => setHow(e.target.value)} placeholder={t('How it may work, if you have a sense of it (optional)')} />
+      <p className="text-[11.5px] text-ink-3">{t('It starts as a hunch. Saying how it works is an explanation to check, not evidence.')}</p>
       <div className="flex gap-2">
         <Button size="sm" variant="primary" type="submit" icon={Plus} disabled={!name.trim()}>
           {t('Add this reason')}

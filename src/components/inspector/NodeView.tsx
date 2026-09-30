@@ -19,6 +19,7 @@ import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
 import { AddReason, Lately, Question, Reason, RepeatRow, SeeIn, TryIt } from './Ask';
 import { ClaimComposer, ConnectForm, ElementSelect } from './ClaimComposer';
+import { Explanation } from './Explanation';
 import { ClaimRow, Muted, NodeChip, PanelSection } from './parts';
 import { t, tn } from '../../i18n';
 
@@ -193,7 +194,7 @@ export function NodeView({ id }: { id: ID }) {
             title={t('Why might this be happening?')}
             hint={reasons.length ? tn(reasons.length, '{n} possible reason', '{n} possible reasons') : t('Nothing explains it yet')}
           >
-            {() => <Why id={id} />}
+            {() => <Explanation id={id} />}
           </Question>
           <Question id="around" title={t('What usually comes before or after?')}>
             {() => <Around id={id} />}
@@ -235,39 +236,6 @@ function Happening({ id }: { id: ID }) {
       <Lately items={moments.slice(0, 8)} empty={t('Nothing in your notes is about this yet. Write about it, and it shows up here.')} />
       {moments.length > 8 && <p className="mt-1 text-[11.5px] text-ink-3">{t('+{n} more', { n: moments.length - 8 })}</p>}
       <SeeIn route="timeline">{t('See it all in Time')}</SeeIn>
-    </>
-  );
-}
-
-function Why({ id }: { id: ID }) {
-  const data = useAtlas((s) => s.data);
-  const node = data.nodes[id]!;
-  const reasons = reasonsFor(data, id);
-  const [adding, setAdding] = useState(false);
-  return (
-    <>
-      {reasons.length ? (
-        <ul className="space-y-1.5">
-          {reasons.map((c) => (
-            <Reason key={c.id} claim={c} />
-          ))}
-        </ul>
-      ) : (
-        <Muted>
-          {node.concern
-            ? t('Nothing explains this yet. That is where the atlas is thinnest, and the most useful place to start.')
-            : t('Nothing on the map explains this yet.')}
-        </Muted>
-      )}
-      <div className="mt-2.5">
-        {adding ? (
-          <AddReason to={id} area={node.area} onDone={() => setAdding(false)} />
-        ) : (
-          <Button size="sm" variant="ghost" icon={Plus} onClick={() => setAdding(true)}>
-            {reasons.length ? t('Another explanation?') : t('Add a possible reason')}
-          </Button>
-        )}
-      </div>
     </>
   );
 }

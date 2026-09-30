@@ -52,10 +52,59 @@ function labelSide(from: XY, to: XY): LabelSide {
 }
 const FLIP: Record<LabelSide, LabelSide> = { top: 'bottom', bottom: 'top', left: 'right', right: 'left' };
 
-/** Selection highlighting: the selected node, its neighbours, and the edges between them. */
-function applyEmphasis(nodes: AtlasFlowNode[], edges: SemanticEdge[], data: AtlasData, selectedId: ID | undefined, query: string, matches: Set<ID>) {
+/** Elements joined to `id` by a possible reason (not by a declared link or a pattern). */
+function causalNeighbours(data: AtlasData, id: ID): ID[] {
+  const out: ID[] = [];
+  for (const c of Object.values(data.claims)) {
+    if (c.state === 'set_aside') continue;
+    if (c.to === id) out.push(c.from, ...c.with);
+    if (c.from === id || c.with.includes(id)) out.push(c.to);
+  }
+  return out.filter((x) => x !== id);
+}
+
+/**
+ * The causal trace from an element: backward, what may lead to it; forward,
+ * what it may lead to; each step along a possible reason, `depth` steps deep.
+ */
+export function causalReach(data: AtlasData, start: ID, depth: number, direction: 'back' | 'forward' | 'both', visible?: Set<ID>): Set<ID> {
+  const claims = Object.values(data.claims).filter((c) => c.state !== 'set_aside' && claimStatus(data, c) !== 'retired');
+  const seen = new Set<ID>([start]);
+  let frontier = [start];
+  for (let step = 0; step < depth && frontier.length; step++) {
+    const next: ID[] = [];
+    for (const id of frontier) {
+      for (const c of claims) {
+        const back = direction !== 'forward' && c.to === id ? [c.from, ...c.with] : [];
+        const fwd = direction !== 'back' && (c.from === id || c.with.includes(id)) ? [c.to] : [];
+        for (const x of [...back, ...fwd]) {
+          if (seen.has(x) || (visible && !visible.has(x))) continue;
+          seen.add(x);
+          next.push(x);
+        }
+      }
+    }
+    frontier = next;
+  }
+  return seen;
+}
+
+/**
+ * Selection highlighting: the selected node, its neighbours, and the edges
+ * between them. On the Causes lens a neighbour is only what a possible reason
+ * joins: being linked or in the same pattern is not being a cause.
+ */
+function applyEmphasis(
+  nodes: AtlasFlowNode[],
+  edges: SemanticEdge[],
+  data: AtlasData,
+  selectedId: ID | undefined,
+  query: string,
+  matches: Set<ID>,
+  causal = false,
+) {
   if (selectedId && nodes.some((n) => n.id === selectedId)) {
-    const near = new Set([selectedId, ...neighbors(data, selectedId).map((n) => n.otherId)]);
+    const near = new Set([selectedId, ...(causal ? causalNeighbours(data, selectedId) : neighbors(data, selectedId).map((n) => n.otherId))]);
     for (const n of nodes) {
       if (n.type === 'rings' || n.id === selectedId) continue;
       n.className = near.has(n.id) ? 'is-near' : 'is-dim';
@@ -149,7 +198,7 @@ export type CanvasLens = 'map' | 'causes';
 export interface OrbitOptions {
   lens?: CanvasLens;
   /** Causes lens: which possible reasons to draw. */
-  causes?: Pick<NetworkView, 'hiddenStatuses' | 'hiddenAreas' | 'showSuggested' | 'focusDepth' | 'loopId'>;
+  causes?: Pick<NetworkView, 'hiddenStatuses' | 'hiddenAreas' | 'showSuggested' | 'focusDepth' | 'loopId' | 'trace'>;
   /** Elements named on the map without being hovered. */
   salient?: Set<ID>;
   /** Map lens at rest: show only each area's essentials (see `essentialElements`). */
@@ -300,14 +349,14 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     });
   }
   if (opts.selectedId) {
-    const near = new Set(neighbors(data, opts.selectedId).map((x) => x.otherId));
+    const near = new Set(opts.lens === 'causes' ? causalNeighbours(data, opts.selectedId) : neighbors(data, opts.selectedId).map((x) => x.otherId));
     for (const n of nodes) if (n.type === 'item' && near.has(n.id)) n.data.near = true;
   }
 
   const edges: SemanticEdge[] = opts.lens === 'causes' ? causesEdges(data, nodes, visible, opts) : mapEdges(data, visible, opts);
   for (const e of edges) e.data!.flow = e.data!.family !== 'member';
 
-  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches));
+  applyEmphasis(nodes, edges, data, opts.selectedId, q, new Set(matches), opts.lens === 'causes');
   return { nodes, edges, visible, matches };
 }
 
@@ -365,14 +414,11 @@ function mapEdges(data: AtlasData, visible: Set<ID>, opts: OrbitOptions): Semant
     edges.push(makeEdge(`reach:${k}`, r.from, r.to, { family: 'member', reach: true, claimIds: r.claimIds, linkIds: r.linkIds, label: '', stored: false }));
   }
 
-  // How the areas connect: every adopted claim and declared link that crosses from one area
-  // to another, summed into one line per direction. Derived from the elements, never stored.
-  const across = new Map<string, { from: AreaKey; to: AreaKey; claimIds: ID[]; linkIds: ID[]; best?: ClaimStatus }>();
-  const bucket = (from: AreaKey, to: AreaKey) => {
-    const k = `${from}>${to}`;
-    if (!across.has(k)) across.set(k, { from, to, claimIds: [], linkIds: [] });
-    return across.get(k)!;
-  };
+  // How the areas connect, drawn as two different kinds of line. Possible reasons that cross from
+  // one area to another: one arrowed line per direction, styled by the surest of them. Links you
+  // drew across areas: one plain line per pair, with no direction and no status, because a link
+  // says nothing about one changing the other. Both are derived, never stored.
+  const reasons = new Map<string, { from: AreaKey; to: AreaKey; claimIds: ID[]; best?: ClaimStatus }>();
   for (const c of Object.values(data.claims)) {
     if (c.state !== 'adopted') continue;
     const status = claimStatus(data, c);
@@ -381,32 +427,49 @@ function mapEdges(data: AtlasData, visible: Set<ID>, opts: OrbitOptions): Semant
     const froms = new Set([c.from, ...c.with].map((id) => data.nodes[id]?.area).filter(Boolean) as AreaKey[]);
     for (const from of froms) {
       if (!to || from === to) continue;
-      const b = bucket(from, to);
+      const k = `${from}>${to}`;
+      if (!reasons.has(k)) reasons.set(k, { from, to, claimIds: [] });
+      const b = reasons.get(k)!;
       b.claimIds.push(c.id);
       if (!b.best || STATUS_META[status].rank > STATUS_META[b.best].rank) b.best = status;
     }
   }
-  for (const e of Object.values(data.edges)) {
-    if (e.type === 'part_of') continue;
-    const from = data.nodes[e.source]?.area;
-    const to = data.nodes[e.target]?.area;
-    if (from && to && from !== to) bucket(from, to).linkIds.push(e.id);
-  }
-  for (const b of across.values()) {
+  for (const b of reasons.values()) {
     const a = hubOf(b.from);
     const z = hubOf(b.to);
     if (!visible.has(a) || !visible.has(z)) continue;
-    const parts = [
-      b.claimIds.length ? tn(b.claimIds.length, '{n} possible reason', '{n} possible reasons') : '',
-      b.linkIds.length ? tn(b.linkIds.length, '{n} link you drew', '{n} links you drew') : '',
-    ].filter(Boolean);
     edges.push(
       makeEdge(`area:${b.from}>${b.to}`, a, z, {
         family: 'area',
         status: b.best,
         claimIds: b.claimIds,
+        linkIds: [],
+        label: tn(b.claimIds.length, '{n} possible reason', '{n} possible reasons'),
+        stored: false,
+      }),
+    );
+  }
+  const links = new Map<string, { a: AreaKey; z: AreaKey; linkIds: ID[] }>();
+  for (const e of Object.values(data.edges)) {
+    if (e.type === 'part_of') continue;
+    const x = data.nodes[e.source]?.area;
+    const y = data.nodes[e.target]?.area;
+    if (!x || !y || x === y) continue;
+    const [a, z] = [x, y].sort() as [AreaKey, AreaKey];
+    const k = `${a}~${z}`;
+    if (!links.has(k)) links.set(k, { a, z, linkIds: [] });
+    links.get(k)!.linkIds.push(e.id);
+  }
+  for (const b of links.values()) {
+    const a = hubOf(b.a);
+    const z = hubOf(b.z);
+    if (!visible.has(a) || !visible.has(z)) continue;
+    edges.push(
+      makeEdge(`links:${b.a}~${b.z}`, a, z, {
+        family: 'area',
+        claimIds: [],
         linkIds: b.linkIds,
-        label: parts.join(' · '),
+        label: tn(b.linkIds.length, '{n} link you drew', '{n} links you drew'),
         stored: false,
       }),
     );
@@ -419,7 +482,7 @@ function mapEdges(data: AtlasData, visible: Set<ID>, opts: OrbitOptions): Semant
  * visible reason touches fade back; a highlighted cycle stands out.
  */
 function causesEdges(data: AtlasData, nodes: AtlasFlowNode[], visible: Set<ID>, opts: OrbitOptions): SemanticEdge[] {
-  const view = opts.causes ?? { hiddenStatuses: ['retired'], hiddenAreas: [], showSuggested: true, focusDepth: 0 };
+  const view = opts.causes ?? { hiddenStatuses: ['retired'], hiddenAreas: [], showSuggested: true, focusDepth: 0, trace: 'back' };
   const hiddenStatus = new Set(view.hiddenStatuses);
   const hiddenArea = new Set(view.hiddenAreas);
   const loop = view.loopId ? loopById(data, view.loopId) : undefined;
@@ -443,7 +506,9 @@ function causesEdges(data: AtlasData, nodes: AtlasFlowNode[], visible: Set<ID>, 
     for (const id of ends) touched.set(id, (touched.get(id) ?? 0) + 1);
   }
   const around =
-    view.focusDepth > 0 && opts.selectedId && visible.has(opts.selectedId) ? neighborhood(data, opts.selectedId, view.focusDepth, visible) : undefined;
+    view.focusDepth > 0 && opts.selectedId && visible.has(opts.selectedId)
+      ? causalReach(data, opts.selectedId, view.focusDepth, view.trace ?? 'back', visible)
+      : undefined;
   for (const n of nodes) {
     if (n.type !== 'item') continue;
     const count = touched.get(n.id) ?? 0;

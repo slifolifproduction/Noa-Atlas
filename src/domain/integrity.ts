@@ -49,7 +49,10 @@ export function danglingReferences(d: AtlasData): string[] {
     node(c.to, `claim ${c.id}.to`);
     c.with.forEach((w) => node(w, `claim ${c.id}.with`));
     c.rivalIds.forEach((r) => claim(r, `claim ${c.id}.rivals`));
-    c.evidence.forEach((ev) => source(ev.source, `claim ${c.id}.evidence`));
+    c.evidence.forEach((ev) => {
+      source(ev.source, `claim ${c.id}.evidence`);
+      if (ev.cause) source(ev.cause, `claim ${c.id}.evidence.cause`);
+    });
   }
   for (const n of Object.values(d.nodes)) {
     claim(n.claimId, `element ${n.id}.claim`);
@@ -163,7 +166,8 @@ export function repairReferences(d: AtlasData): number {
       if (w !== c.with) c.with = w;
       const r = keep(c.rivalIds, hasClaim);
       if (r !== c.rivalIds) c.rivalIds = r;
-      const ev = keep(c.evidence, (e) => sourceExists(d, e.source));
+      // An instance drawn from two records rests on both: without its cause record, its order is unknown.
+      const ev = keep(c.evidence, (e) => sourceExists(d, e.source) && (!e.cause || sourceExists(d, e.cause)));
       if (ev !== c.evidence) c.evidence = ev;
     }
     for (const n of Object.values(d.nodes)) {

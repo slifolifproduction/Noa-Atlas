@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { createEmptyData } from '../data/empty';
+import { createSeedData } from '../data/seed';
+import type { AtlasData } from '../domain/types';
 import { toCurrentShape } from './migrate';
 
 const at = '2026-01-01T00:00:00.000Z';
@@ -99,5 +102,33 @@ describe('migration from the first data shape', () => {
 
   it('leaves data already in the current shape alone', () => {
     expect(toCurrentShape(data)).toEqual({ ...data, loopNames: data.loopNames });
+  });
+});
+
+describe('v2 → v3: the logic of causes', () => {
+  it('gives a stored sample its corrected claims once, keeping what the person added', () => {
+    const fresh = createSeedData('2026-09-28');
+    // A v2 sample: the old evidence on c22, no rival, and a piece of the person's own evidence.
+    const old = structuredClone(fresh) as AtlasData;
+    delete old.causesLogic;
+    delete old.claims.c25;
+    old.claims.c22 = { ...old.claims.c22, rivalIds: [], evidence: old.claims.c22.evidence.map((e) => ({ ...e, stance: 'counters', kind: 'counter_case' })) };
+    old.claims.c01 = { ...old.claims.c01, evidence: [...old.claims.c01.evidence, { ...old.claims.c01.evidence[0], id: 'ev_mine' }] };
+    const up = toCurrentShape(old);
+    expect(up.causesLogic).toBe(3);
+    expect(up.claims.c22.evidence.every((e) => e.kind === 'elsewhere' && e.stance === 'neutral')).toBe(true);
+    expect(up.claims.c25).toBeDefined();
+    expect(up.claims.c01.evidence.some((e) => e.id === 'ev_mine')).toBe(true);
+    // Run again (a restored version): nothing changes.
+    const edited = { ...up, claims: { ...up.claims, c02: { ...up.claims.c02, when: 'my own condition' } } };
+    expect(toCurrentShape(edited).claims.c02.when).toBe('my own condition');
+  });
+
+  it('leaves the person’s own atlas as it is', () => {
+    const own = { ...createEmptyData('Sam') };
+    delete (own as Partial<AtlasData>).causesLogic;
+    const up = toCurrentShape(own);
+    expect(up.claims).toEqual(own.claims);
+    expect(up.causesLogic).toBe(3);
   });
 });

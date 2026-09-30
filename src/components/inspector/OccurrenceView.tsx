@@ -1,7 +1,7 @@
 import { Star } from 'lucide-react';
 import { useMemo } from 'react';
 import { MODE_LABEL, OCCURRENCE_KIND_LABEL } from '../../domain/constants';
-import { windowAfter, windowBefore } from '../../domain/history';
+import { historyItems, windowAfter, windowBefore } from '../../domain/history';
 import type { ID } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
@@ -11,6 +11,7 @@ import { KnowledgeTag } from '../evidence/Status';
 import { HISTORY_ICONS } from '../icons';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
+import { MomentExplanation } from './Explanation';
 import { HistoryRow, Muted, NodeChip, PanelSection } from './parts';
 import { t } from '../../i18n';
 
@@ -99,6 +100,12 @@ export function OccurrenceView({ id }: { id: ID }) {
           !o.instanceOf && <Muted>{t('Not linked to anything on the map.')}</Muted>
         )}
       </PanelSection>
+      {o.mode === 'actual' && (o.instanceOf || o.about.length > 0) && (
+        <PanelSection title={t('Why might this have happened?')}>
+          <MomentExplanation item={historyItems(data).find((h) => h.key === `occ:${id}`)!} />
+        </PanelSection>
+      )}
+
       <PanelSection title={t('Just before')} count={before.length}>
         {before.length ? (
           <ul className="-mx-1.5">

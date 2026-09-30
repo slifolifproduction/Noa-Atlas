@@ -41,6 +41,8 @@ export interface NetworkView {
   showSuggested: boolean;
   /** 0 = everything; 1 or 2 = only what is within that many links of the selection. */
   focusDepth: 0 | 1 | 2;
+  /** Which way the trace from what you are looking at runs: what may lead to it, or what it may lead to. */
+  trace?: 'back' | 'forward' | 'both';
   /** A loop to highlight. */
   loopId?: string;
 }

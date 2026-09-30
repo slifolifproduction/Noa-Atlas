@@ -239,12 +239,31 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
               </>
             ) : (
               <>
-                <MenuLabel>{t('Around what you are looking at')}</MenuLabel>
+                <MenuLabel>{t('Trace from what you are looking at')}</MenuLabel>
+                {(
+                  [
+                    ['back', t('What may lead to it'), t('Back along possible reasons: what may contribute to it, and to those')],
+                    ['forward', t('What it may lead to'), t('On along possible reasons: what it may contribute to, and beyond')],
+                    ['both', t('Both ways'), t('What may lead to it and what it may lead to')],
+                  ] as const
+                ).map(([trace, label, hint]) => (
+                  <MenuItem
+                    key={trace}
+                    radio
+                    checked={Boolean(selectedId) && causes.focusDepth > 0 && (causes.trace ?? 'back') === trace}
+                    hint={!selectedId ? t('Tap something first') : hint}
+                    disabled={!selectedId}
+                    onSelect={() => setNetworkView({ trace, focusDepth: causes.focusDepth || 2 })}
+                  >
+                    {label}
+                  </MenuItem>
+                ))}
+                <MenuSeparator />
                 {(
                   [
                     [0, t('Everything'), t('Every possible reason on the map')],
-                    [1, t('Only direct effects'), t('What acts on it and what it acts on')],
-                    [2, t('Wider'), t('Also what acts on those')],
+                    [1, t('One step'), t('Only what is directly joined by a possible reason')],
+                    [2, t('Two steps'), t('Also one step further')],
                   ] as const
                 ).map(([depth, label, hint]) => (
                   <MenuItem
@@ -325,7 +344,9 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
                       {t('Angle: the area of life. Rings, from you outward: what you hold, what you do, what surrounds you.')}
                     </p>
                     <p className="text-[11.5px] leading-snug text-ink-3">
-                      {t('Arcs between areas: how many possible reasons and links run from one area to another. Tap one to see them.')}
+                      {t(
+                        'Arrowed arcs between areas: possible reasons that cross from one to the other. Dotted plain arcs: links you drew, which say nothing about causes. Tap one to see what it holds.',
+                      )}
                     </p>
                     <p className="text-[11.5px] leading-snug text-ink-3">
                       {t(

@@ -22,9 +22,26 @@ const PAGE_HELP: Record<string, () => ReactNode[]> = {
     <>{t('A dashed area marker means nothing was written about it lately. The overview on the left suggests something to look at.')}</>,
   ],
   network: () => [
-    <>{t('The same map, showing what seems to affect what. Every line is a possible reason; the surer it is, the firmer it is drawn.')}</>,
-    <>{t('A reason starts as a hunch and becomes surer only as your notes show it: separate weeks, a time without it, a test. Exceptions weaken it.')}</>,
-    <>{t('Cycles appear by themselves when reasons come back around. Pick one on the left to see it; its least sure step is where to look first.')}</>,
+    <>
+      {t(
+        'The same map, showing only possible reasons: a line is a claim that one thing may contribute to another, drawn firmer the surer it is. Links you drew and things that merely happened together are not drawn here.',
+      )}
+    </>,
+    <>
+      {t(
+        'Tap something to start from it: what may lead to it, by the part each plays, what competes, and what is still unexplained. The list on the left can trace back from it, or on from it.',
+      )}
+    </>,
+    <>
+      {t(
+        'A reason becomes surer only as your notes show it happening in that order, in separate weeks, and once without it; a test is the strongest. Only a time it was there and the outcome did not follow counts against it. A written “how” is an explanation, not evidence.',
+      )}
+    </>,
+    <>
+      {t(
+        'Cycles appear by themselves when reasons seen at least a few times come back around. Pick one on the left to see it; its least sure step is where to look first.',
+      )}
+    </>,
     <>{t('Dashed lines are suggestions from the Atlas. They stay suggestions until you keep them.')}</>,
   ],
   timeline: () => [

@@ -13,7 +13,7 @@ import { immer } from 'zustand/middleware/immer';
 import type { ModelUpdateProposal, PatternCandidate } from '../ai/types';
 import { createEmptyData } from '../data/empty';
 import { createSeedData } from '../data/seed';
-import { claimCode, claimSentence, claimStatus } from '../domain/claims';
+import { canBeEvidence, claimCode, claimSentence, claimStatus } from '../domain/claims';
 import { EXPERIMENT_OUTCOME_LABEL, STATUS_META } from '../domain/constants';
 import { repairReferences } from '../domain/integrity';
 import { decisionCode, entryCode, experimentCode, pathCode, patternCode, resolveSource, sameRef } from '../domain/selectors';
@@ -60,13 +60,23 @@ export type NewNode = Pick<AtlasNode, 'label' | 'kind' | 'area'> &
       'summary' | 'since' | 'until' | 'concern' | 'external' | 'scale' | 'level' | 'status' | 'tags' | 'origin' | 'adopted' | 'claimId' | 'investigation'
     >
   >;
-export type NewClaim = Pick<Claim, 'from' | 'to' | 'effect'> & Partial<Pick<Claim, 'with' | 'via' | 'when' | 'lag' | 'author' | 'state' | 'rivalIds'>>;
+export type NewClaim = Pick<Claim, 'from' | 'to' | 'effect'> &
+  Partial<Pick<Claim, 'with' | 'via' | 'when' | 'lag' | 'author' | 'state' | 'rivalIds' | 'aspect'>>;
 export type NewOccurrence = Omit<Occurrence, 'id' | 'createdAt' | 'origin' | 'mode'> & Partial<Pick<Occurrence, 'origin' | 'mode'>>;
 export type NewEntry = Omit<Entry, 'id' | 'seq' | 'createdAt' | 'updatedAt' | 'analysis'>;
 export type NewDecision = Omit<Decision, 'id' | 'seq' | 'createdAt' | 'updatedAt'>;
 export type NewExperiment = Omit<Experiment, 'id' | 'code' | 'createdAt' | 'updatedAt'>;
 export type NewPattern = Pick<Pattern, 'kind' | 'steps' | 'observation' | 'triggers' | 'behaviors' | 'consequences' | 'cues' | 'areas'>;
-export type NewEvidence = { source: SourceRef; stance: Stance; excerpt: string; kind?: EvidenceKind; note?: string; addedBy: Evidence['addedBy'] };
+export type NewEvidence = {
+  source: SourceRef;
+  /** For an instance drawn from two records: the one showing the cause. */
+  cause?: SourceRef;
+  stance: Stance;
+  excerpt: string;
+  kind?: EvidenceKind;
+  note?: string;
+  addedBy: Evidence['addedBy'];
+};
 
 interface AtlasActions {
   // map: elements, links, areas
@@ -80,7 +90,7 @@ interface AtlasActions {
   updateArea(key: AreaKey, patch: Partial<Pick<Area, 'statement' | 'summary'>>): void;
   // understanding: claims
   addClaim(input: NewClaim, evidence?: NewEvidence[]): ID;
-  updateClaim(id: ID, patch: Partial<Pick<Claim, 'from' | 'to' | 'with' | 'effect' | 'via' | 'when' | 'lag'>>): void;
+  updateClaim(id: ID, patch: Partial<Pick<Claim, 'from' | 'to' | 'with' | 'effect' | 'via' | 'when' | 'lag' | 'aspect'>>): void;
   adoptClaim(id: ID): void;
   setClaimAside(id: ID): void;
   deleteClaim(id: ID): void;
@@ -313,6 +323,7 @@ export const useAtlas = create<AtlasState>()(
               from: input.from,
               with: input.with ?? [],
               to: input.to,
+              aspect: input.aspect,
               effect: input.effect,
               via: input.via?.trim() || undefined,
               when: input.when?.trim() || undefined,
@@ -394,6 +405,8 @@ export const useAtlas = create<AtlasState>()(
             const d = s.data;
             const c = d.claims[claimId];
             if (!c || c.evidence.some((e) => sameRef(e.source, input.source) && (e.kind ?? 'instance') === (input.kind ?? 'instance'))) return;
+            // Only what happened counts; a plan or an imagined branch never becomes evidence.
+            if (!canBeEvidence(d, input.source) || (input.cause && !canBeEvidence(d, input.cause))) return;
             const before = claimStatus(d, c);
             c.evidence.push({ id: createId('ev'), ...input, kind: input.kind ?? 'instance', addedAt: now() });
             c.updatedAt = now();
@@ -403,7 +416,9 @@ export const useAtlas = create<AtlasState>()(
               summary:
                 input.stance === 'supports'
                   ? t('{code} added as supporting evidence to {claim}.', { code, claim: claimCode(c.code) })
-                  : t('{code} added as counter-evidence to {claim}.', { code, claim: claimCode(c.code) }),
+                  : input.stance === 'neutral'
+                    ? t('{code} noted on {claim}: it happened without the cause.', { code, claim: claimCode(c.code) })
+                    : t('{code} added as counter-evidence to {claim}.', { code, claim: claimCode(c.code) }),
               claimId,
               before,
               after: claimStatus(d, c),
@@ -616,7 +631,7 @@ export const useAtlas = create<AtlasState>()(
           set((s) => {
             const d = s.data;
             const p = d.patterns[patternId];
-            if (!p || p.evidence.some((e) => sameRef(e.source, input.source))) return;
+            if (!p || p.evidence.some((e) => sameRef(e.source, input.source)) || !canBeEvidence(d, input.source)) return;
             p.evidence.push({
               id: createId('ev'),
               source: input.source,
