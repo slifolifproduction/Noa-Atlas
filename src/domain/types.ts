@@ -259,12 +259,28 @@ export type OccurrenceKind = 'event' | 'action' | 'experience' | 'reading';
  */
 export type FactorReading = 'up' | 'down' | 'high' | 'low' | 'present' | 'absent';
 
+/**
+ * How what a record says came to be known. The Atlas never sees what really
+ * happened, only what was recorded; these say how far from it a record is:
+ *
+ *   felt      experienced from inside (energy, mood, a fear rising)
+ *   noticed   observed: something done, something that happened
+ *   counted   tallied or measured (commitments running, pages written)
+ *
+ * An inference is never a channel of its own: what the Atlas reads from a
+ * record (a level against the usual, an episode's background) says so in its
+ * trace, and what it merely suggests stays a suggestion until confirmed.
+ */
+export type Channel = 'felt' | 'noticed' | 'counted';
+
 /** What changed: a factor (a state or behaviour element) and what the record says about it. */
 export interface FactorChange {
   factor: ID;
   reads: FactorReading;
   /** A level on the factor's scale, when one was given. */
   level?: number;
+  /** How it was known, when the person says (otherwise read from the kind of factor and happening). */
+  channel?: Channel;
 }
 
 /**
@@ -341,7 +357,7 @@ export type Stance = 'supports' | 'counters' | 'neutral';
  *   intervention  a deliberate change and the prediction written before it (a test)
  *   elsewhere     B happened without A: another route to B, not a case against A
  */
-export type EvidenceKind = 'instance' | 'contrast' | 'counter_case' | 'mechanism' | 'intervention' | 'elsewhere';
+export type EvidenceKind = 'instance' | 'contrast' | 'counter_case' | 'mechanism' | 'intervention' | 'elsewhere' | 'analysis';
 
 /** A source linked to a claim or a pattern, with the passage that bears on it. */
 export interface Evidence {
@@ -360,6 +376,12 @@ export interface Evidence {
   note?: string;
   /** Carried over from the version of the claim this one revises. */
   carriedFrom?: ID;
+  /**
+   * Analysis only: a formal comparison, run only when the record was ready
+   * for it (see `domain/readiness.ts`), with the method and what it assumed.
+   * It feeds the same status ladder; it never makes a claim "tested".
+   */
+  method?: { name: string; assumptions: string[] };
   addedBy: Origin;
   addedAt: ISODateTime;
 }
@@ -405,6 +427,12 @@ export interface Claim {
   when?: string;
   /** When it holds, as a factor the record can check: "only when afternoons are interrupted". */
   condition?: { factor: ID; reads: FactorReading };
+  /**
+   * Where else it is bounded. A relationship need not hold everywhere: it can
+   * hold only under further conditions, only for a stretch of time (true
+   * then, whether or not it still is), and at its own timescale.
+   */
+  scope?: ClaimScope;
   /** Typical delay, e.g. "2–6 weeks". */
   lag?: string;
   author: Origin;
@@ -419,6 +447,28 @@ export interface Claim {
   revises?: ID;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
+}
+
+/** A condition the record can check. */
+export interface Condition {
+  factor: ID;
+  reads: FactorReading;
+}
+
+/**
+ * The bounds of a claim beyond its first condition.
+ *
+ *   also       further conditions, all of which must hold
+ *   from/until the stretch of time it is about (e.g. "before the move")
+ *   timescale  acute: one change, then the effect within the delay;
+ *              cumulative: the cause kept up over several episodes, the
+ *              effect building over the delay
+ */
+export interface ClaimScope {
+  also?: Condition[];
+  from?: ISODate;
+  until?: ISODate;
+  timescale?: 'acute' | 'cumulative';
 }
 
 /**
@@ -707,7 +757,13 @@ export type ModelUpdateKind =
   | 'expectation_added'
   | 'expectation_checked'
   | 'element_adopted'
-  | 'investigation_concluded';
+  | 'investigation_concluded'
+  /** Derived: a claim's status moved because of what was recorded, not because you edited it. */
+  | 'status_changed'
+  /** Derived: something counted against a claim (an exception, a failed prediction or test), whether or not its status moved. */
+  | 'challenged'
+  /** Derived: another way to read an outcome was set aside, or opened again, by what was recorded. */
+  | 'account_changed';
 
 /** An append-only log of how the understanding changed and why. */
 export interface ModelUpdate {
@@ -721,6 +777,9 @@ export interface ModelUpdate {
   before?: string;
   after?: string;
   source?: SourceRef;
+  /** The rule of the logic that produced the status after (see `domain/trace.ts`), and its version. */
+  rule?: string;
+  logicVersion?: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -761,11 +820,26 @@ export interface AtlasData {
   /** Names the person gave to loops (loops themselves are derived from claims). */
   loopNames: Record<string, string>;
   /**
+   * What the Atlas last believed about each claim and each outcome's other
+   * readings, so that a change in belief is logged with what caused it (see
+   * `domain/beliefs.ts`). Derived; kept only to compare against.
+   */
+  beliefs?: BeliefLedger;
+  /** Checks the Atlas asked for and the person declined, with the day: not asked again for a while. */
+  inquiry?: { declined: Record<string, ISODate> };
+  /**
    * Which revision of the logic of causes the data was prepared for
    * (3: claims on factors, episodes in order; 4: what changed, episodes,
    * expectations and revisions).
    */
   causesLogic?: number;
+}
+
+export interface BeliefLedger {
+  /** Per claim: its status, the rule behind it, and what counted against it (exceptions, failed predictions, failed tests or comparisons). */
+  claims: Record<ID, { status: ClaimStatus; rule: string; against: [number, number, number] }>;
+  /** Per outcome: each other reading and whether it is still open. */
+  accounts: Record<ID, Record<string, 'open' | 'set_aside'>>;
 }
 
 /** The two graphs: the whole map, and the network of claims. */

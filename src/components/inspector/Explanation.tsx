@@ -1,6 +1,8 @@
 import { Plus } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { accountsFor } from '../../domain/accounts';
 import { explainMoment, explainOutcome } from '../../domain/explain';
+import { inquiriesFor } from '../../domain/inquiry';
 import { ROLE_META, stateSentence } from '../../domain/constants';
 import { claimSentence, claimStatus } from '../../domain/claims';
 import type { HistoryItem } from '../../domain/history';
@@ -13,6 +15,7 @@ import { useUI } from '../../state/uiStore';
 import { StatusBadge } from '../evidence/Status';
 import { Button } from '../ui/Button';
 import { AddReason, Lately, Reason } from './Ask';
+import { AccountList, InquiryList } from './Inquiry';
 import { Muted, NodeChip } from './parts';
 
 /**
@@ -25,8 +28,11 @@ export function Explanation({ id }: { id: ID }) {
   const data = useAtlas((s) => s.data);
   const node = data.nodes[id];
   const ex = useMemo(() => explainOutcome(data, id), [data, id]);
+  const readings = useMemo(() => accountsFor(data, id), [data, id]);
+  const asks = useMemo(() => inquiriesFor(data, { outcome: id }), [data, id]);
   const [adding, setAdding] = useState(false);
   if (!node) return null;
+  const others = readings.accounts.filter((a) => a.kind !== 'claim' && a.kind !== 'remainder' && a.kind !== 'outside');
   const count = ex.groups.reduce((n, g) => n + g.items.length, 0);
 
   return (
@@ -71,6 +77,16 @@ export function Explanation({ id }: { id: ID }) {
         </section>
       )}
 
+      {others.length > 0 && (
+        <section>
+          <h4 className="label mb-1">{t('Other ways to read the same record')}</h4>
+          <p className="mb-1.5 text-[11.5px] text-ink-3">
+            {t('What else would leave the same trace. One is set aside only when something recorded rules it out; not finding it is not enough.')}
+          </p>
+          <AccountList accounts={others} />
+        </section>
+      )}
+
       {ex.outside.length > 0 && (
         <section>
           <h4 className="label mb-1">{t('From outside')}</h4>
@@ -97,6 +113,15 @@ export function Explanation({ id }: { id: ID }) {
                 )}
               </li>
             ))}
+          {ex.unaccounted > 0 && (
+            <li>
+              {tn(
+                ex.unaccounted,
+                'Once more, part of this list was not recorded before it moved: unknown, not unexplained.',
+                '{n} more times, part of this list was not recorded before it moved: unknown, not unexplained.',
+              )}
+            </li>
+          )}
           {ex.unrecorded > 0 && (
             <li>{tn(ex.unrecorded, 'Once it came up with no record of which way it went.', '{n} times it came up with no record of which way it went.')}</li>
           )}
@@ -104,6 +129,13 @@ export function Explanation({ id }: { id: ID }) {
           <li className="text-ink-3">{t('Some of it may be chance, or something that is not on the map.')}</li>
         </ul>
       </section>
+
+      {asks.length > 0 && (
+        <section>
+          <h4 className="label mb-1">{t('What would tell them apart')}</h4>
+          <InquiryList items={asks} />
+        </section>
+      )}
 
       {ex.missing.length > 0 && (
         <section>
@@ -198,6 +230,21 @@ export function MomentExplanation({ item }: { item: HistoryItem }) {
         <div>
           <div className="mb-1 text-[11.5px] text-ink-3">{t('From outside, in the weeks before')}</div>
           <Lately items={ex.outside} empty="" />
+        </div>
+      )}
+      {ex.counterfactual.length > 0 && (
+        <div>
+          <div className="mb-1 text-[11.5px] text-ink-3">{t('Had it been otherwise (imagined, never counted)')}</div>
+          <ul className="space-y-1">
+            {ex.counterfactual.map((c) => (
+              <li key={c.claim.id} className="text-[12.5px] leading-snug text-ink-2">
+                {c.reading === 'might_not_have'
+                  ? t('Without {cause}, this might not have happened.', { cause: data.nodes[c.claim.from]?.label ?? '' })
+                  : t('Without {cause}, the Atlas cannot tell what would have happened.', { cause: data.nodes[c.claim.from]?.label ?? '' })}
+                <span className="block text-[11.5px] text-ink-3">{c.why}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       <p className="text-[11.5px] text-ink-3">

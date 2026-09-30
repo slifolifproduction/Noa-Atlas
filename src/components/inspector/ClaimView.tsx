@@ -12,10 +12,15 @@ import {
   orderedEpisodes,
   otherExplanations,
   recordRows,
+  scopePhrase,
 } from '../../domain/claims';
-import { caseRows, pushes, type CaseRow } from '../../domain/compare';
+import { alternativesOf } from '../../domain/accounts';
+import { claimHistory } from '../../domain/beliefs';
+import { caseRows, familyOf, pushes, type CaseRow } from '../../domain/compare';
+import { inquiriesFor } from '../../domain/inquiry';
+import { readiness } from '../../domain/readiness';
+import { claimTrace } from '../../domain/trace';
 import {
-  conditionPhrase,
   expectSentence,
   EFFECT_META,
   EFFECTS,
@@ -48,6 +53,7 @@ import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
 import { whyWeThink } from '../../domain/ask';
 import { ExpectationLine } from './Changes';
+import { AccountList, InquiryList } from './Inquiry';
 import { ClaimRow, Fold, Muted, NodeChip, PanelSection } from './parts';
 import { t, tn } from '../../i18n';
 
@@ -82,7 +88,12 @@ export function ClaimView({ id }: { id: ID }) {
   const rows = useMemo(() => (claim ? recordRows(data, claim) : null), [data, claim]);
   const scrutiny = useMemo(() => (claim ? scrutinize(data, claim) : null), [data, claim]);
   const predictions = useMemo(() => (claim ? expectationsFor(data, id) : null), [data, claim, id]);
-  if (!claim || !profile || !rows || !scrutiny || !predictions) return null;
+  const trace = useMemo(() => (claim ? claimTrace(data, claim) : null), [data, claim]);
+  const asks = useMemo(() => (claim ? inquiriesFor(data, { claimId: id }) : []), [data, claim, id]);
+  const history = useMemo(() => (claim ? claimHistory(data, id).slice().reverse() : []), [data, claim, id]);
+  const ready = useMemo(() => (claim ? readiness(data, claim) : null), [data, claim]);
+  if (!claim || !profile || !rows || !scrutiny || !predictions || !trace || !ready) return null;
+  const bounds = scopePhrase(data, claim);
 
   const sources = new Set(claim.evidence.map((e) => `${e.source.kind}:${e.source.id}`)).size;
   const knowledge = claim.state === 'suggested' ? 'suggested' : status === 'tested' ? 'tested' : 'claimed';
@@ -146,15 +157,13 @@ export function ClaimView({ id }: { id: ID }) {
                   )}
                 </dd>
               </div>
-              {(claim.when || claim.condition) && (
+              {bounds && (
                 <div className="flex gap-2">
                   <dt className="w-[72px] shrink-0 text-ink-3">{t('Only when')}</dt>
                   <dd className="text-ink-2">
-                    {[claim.when, claim.condition && conditionPhrase(data.nodes[claim.condition.factor]?.label ?? '', claim.condition.reads)]
-                      .filter(Boolean)
-                      .join('; ')}
-                    {claim.condition && (
-                      <span className="block text-[11.5px] text-ink-3">{t('Times when this was not so are left out, not counted against it.')}</span>
+                    {bounds}
+                    {(claim.condition || claim.scope) && (
+                      <span className="block text-[11.5px] text-ink-3">{t('Times outside these bounds are left out, not counted against it.')}</span>
                     )}
                   </dd>
                 </div>
@@ -255,6 +264,19 @@ export function ClaimView({ id }: { id: ID }) {
             </li>
           ))}
         </ul>
+        <p className="mt-2 text-[11.5px] leading-snug text-ink-3">{t('By the rule: {rule}', { rule: trace.says })}</p>
+        {trace.assumes.length > 0 && (
+          <div className="mt-3">
+            <div className="text-[11.5px] text-ink-3">{t('What it takes for granted')}</div>
+            <ul className="mt-1 space-y-0.5">
+              {trace.assumes.map((a) => (
+                <li key={a} className="text-[12.5px] leading-snug text-ink-2">
+                  · {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
         {status !== 'tested' && status !== 'retired' && (
           <div className="mt-3">
             <div className="text-[11.5px] text-ink-3">{t('What would make it surer')}</div>
@@ -265,6 +287,12 @@ export function ClaimView({ id }: { id: ID }) {
                 </li>
               ))}
             </ul>
+          </div>
+        )}
+        {asks.length > 0 && (
+          <div className="mt-3">
+            <div className="mb-1 text-[11.5px] text-ink-3">{t('What would tell most')}</div>
+            <InquiryList items={asks} max={1} here={{ kind: 'claim', id }} />
           </div>
         )}
       </PanelSection>
@@ -318,6 +346,51 @@ export function ClaimView({ id }: { id: ID }) {
             />
           )}
         </dl>
+        {trace.left.length > 0 && (
+          <div className="mt-3">
+            <div className="text-[11.5px] text-ink-3">{t('Left out, and why')}</div>
+            <ul className="mt-1 space-y-0.5">
+              {trace.left.map((l) => (
+                <li key={l} className="text-[12px] leading-snug text-ink-2">
+                  · {l}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        <div className="mt-3 border-t border-line pt-2">
+          <div className="text-[11.5px] text-ink-3">
+            {ready.ready
+              ? t('The record could now bear a formal comparison. None runs in this version, and none could ever make it “tested”.')
+              : t('Not yet enough for a formal comparison, which would only mislead now:')}
+          </div>
+          {!ready.ready && (
+            <ul className="mt-1 space-y-0.5">
+              {ready.checks
+                .filter((c) => !c.ok)
+                .map((c) => (
+                  <li key={c.key} className="text-[12px] leading-snug text-ink-2">
+                    · {c.says}
+                  </li>
+                ))}
+            </ul>
+          )}
+        </div>
+      </Fold>
+
+      <Fold title={t('How this changed')} count={history.length}>
+        {history.length ? (
+          <ul className="space-y-1.5">
+            {history.map((u) => (
+              <li key={u.id} className="text-[12.5px] leading-snug text-ink-2">
+                <span className="num mr-1.5 text-[11px] text-ink-3">{formatDate(u.at, { year: true })}</span>
+                {u.summary}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Muted>{t('Nothing has changed its standing since the Atlas began keeping track.')}</Muted>
+        )}
       </Fold>
 
       <Fold title={t('What the record shows')} count={caseRows(data, claim).length}>
@@ -589,6 +662,9 @@ function ClaimEditForm({ id, onDone }: { id: ID; onDone(): void }) {
   const [toAspect, setToAspect] = useState(claim?.aspect?.to ?? '');
   const [condFactor, setCondFactor] = useState<ID>(claim?.condition?.factor ?? '');
   const [condReads, setCondReads] = useState<FactorReading>(claim?.condition?.reads ?? 'high');
+  const [timescale, setTimescale] = useState<'acute' | 'cumulative'>(claim?.scope?.timescale ?? 'acute');
+  const [from, setFrom] = useState(claim?.scope?.from ?? '');
+  const [until, setUntil] = useState(claim?.scope?.until ?? '');
   const openEntity = useUI((s) => s.openEntity);
   if (!claim) return null;
   const factors = Object.values(data.nodes)
@@ -608,6 +684,7 @@ function ClaimEditForm({ id, onDone }: { id: ID; onDone(): void }) {
           lag: lag.trim() || undefined,
           aspect: fromAspect.trim() || toAspect.trim() ? { from: fromAspect.trim() || undefined, to: toAspect.trim() || undefined } : undefined,
           condition: condFactor ? { factor: condFactor, reads: condReads } : undefined,
+          scope: scopeOf(claim.scope, timescale, from, until),
         });
         onDone();
         if (next !== id) openEntity({ kind: 'claim', id: next });
@@ -675,6 +752,23 @@ function ClaimEditForm({ id, onDone }: { id: ID; onDone(): void }) {
           )}
         </div>
       </div>
+      <div className="grid grid-cols-3 gap-2">
+        <label className="block">
+          <span className="label">{t('How it acts')}</span>
+          <select className="field mt-1" value={timescale} onChange={(e) => setTimescale(e.target.value as 'acute' | 'cumulative')}>
+            <option value="acute">{t('After one change')}</option>
+            <option value="cumulative">{t('When kept up over weeks')}</option>
+          </select>
+        </label>
+        <label className="block">
+          <span className="label">{t('True from')}</span>
+          <input className="field mt-1" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </label>
+        <label className="block">
+          <span className="label">{t('True until')}</span>
+          <input className="field mt-1" type="date" value={until} onChange={(e) => setUntil(e.target.value)} />
+        </label>
+      </div>
       <p className="text-[11.5px] text-ink-3">
         {claim.evidence.length
           ? t(
@@ -692,6 +786,17 @@ function ClaimEditForm({ id, onDone }: { id: ID; onDone(): void }) {
       </div>
     </form>
   );
+}
+
+/** A claim's scope from the edit form: kept only where something is said. */
+function scopeOf(prior: Claim['scope'], timescale: 'acute' | 'cumulative', from: string, until: string): Claim['scope'] {
+  const next = {
+    ...(prior?.also?.length ? { also: prior.also } : {}),
+    ...(timescale === 'cumulative' ? { timescale } : {}),
+    ...(from ? { from } : {}),
+    ...(until ? { until } : {}),
+  };
+  return Object.keys(next).length ? next : undefined;
 }
 
 const VERDICT_TEXT = {
@@ -777,18 +882,14 @@ function OtherReadings({ claim, scrutiny: s }: { claim: Claim; scrutiny: ReturnT
   const updateClaim = useAtlas((st) => st.updateClaim);
   const open = useUI((st) => st.openEntity);
   const name = (id: ID) => data.nodes[id]?.label ?? '';
-  const lines: { key: string; text: string; action?: { label: string; run(): void } }[] = [];
-  for (const c of s.commons)
-    lines.push({
-      key: `c:${c.factor}`,
-      text: t('{c} may drive both {a} and {b}: when it moves, both can move together without one causing the other.', {
-        c: name(c.factor),
-        a: name(claim.from),
-        b: name(claim.to),
-      }),
-    });
-  for (const r of s.reverse)
-    lines.push({ key: `r:${r.id}`, text: t('It may run the other way: {b} may change {a} too.', { a: name(claim.from), b: name(claim.to) }) });
+  const lines: { key: string; text: string; actions?: { label: string; run(): void }[] }[] = [];
+  // Other readings of the same record (the reverse, a common cause, something unrecorded, a step between…), with where each stands.
+  const readings = alternativesOf(data, claim);
+  const read = (kind: string) => readings.some((r) => r.kind === kind);
+  // What one of those readings already says is not said twice.
+  if (!read('reverse'))
+    for (const r of s.reverse)
+      lines.push({ key: `r:${r.id}`, text: t('It may run the other way: {b} may change {a} too.', { a: name(claim.from), b: name(claim.to) }) });
   for (const x of s.shared)
     lines.push({
       key: `s:${x.claim.id}`,
@@ -801,7 +902,7 @@ function OtherReadings({ claim, scrutiny: s }: { claim: Claim; scrutiny: ReturnT
         },
       ),
     });
-  if (s.backFromExtreme)
+  if (s.backFromExtreme && !read('drift'))
     lines.push({
       key: 'b',
       text: tn(
@@ -817,7 +918,16 @@ function OtherReadings({ claim, scrutiny: s }: { claim: Claim; scrutiny: ReturnT
       text: tn(s.stopped.since, 'It held until {month}; the latest time, it did not.', 'It held until {month}; the latest {n} times, it did not.', {
         month: formatMonth(s.stopped.heldUntil),
       }),
-      action: { label: t('It stopped holding'), run: () => retire(claim.id, t('The latest times, it did not hold.')) },
+      actions: [
+        {
+          label: t('Keep it as true until {month}', { month: formatMonth(s.stopped.heldUntil) }),
+          run: () => {
+            const next = updateClaim(claim.id, { scope: { ...claim.scope, until: s.stopped!.heldUntil } });
+            if (next !== claim.id) open({ kind: 'claim', id: next });
+          },
+        },
+        { label: t('It stopped holding'), run: () => retire(claim.id, t('The latest times, it did not hold.')) },
+      ],
     });
   if (s.condition) {
     const cond = s.condition;
@@ -827,13 +937,15 @@ function OtherReadings({ claim, scrutiny: s }: { claim: Claim; scrutiny: ReturnT
         f: name(cond.factor),
         state: cond.reads === 'high' ? t('high') : t('low'),
       }),
-      action: {
-        label: t('Only when {f} is {state}?', { f: name(cond.factor), state: cond.reads === 'high' ? t('high') : t('low') }),
-        run: () => {
-          const next = updateClaim(claim.id, { condition: { factor: cond.factor, reads: cond.reads } });
-          if (next !== claim.id) open({ kind: 'claim', id: next });
+      actions: [
+        {
+          label: t('Only when {f} is {state}?', { f: name(cond.factor), state: cond.reads === 'high' ? t('high') : t('low') }),
+          run: () => {
+            const next = updateClaim(claim.id, { condition: { factor: cond.factor, reads: cond.reads } });
+            if (next !== claim.id) open({ kind: 'claim', id: next });
+          },
         },
-      },
+      ],
     });
   }
   if (s.delays) {
@@ -855,21 +967,34 @@ function OtherReadings({ claim, scrutiny: s }: { claim: Claim; scrutiny: ReturnT
         '{n} supporting moments were written down days after they happened, when the outcome may already have been known.',
       ),
     });
-  if (!lines.length) return null;
+  for (const f of familyOf(data, claim))
+    lines.push({
+      key: `f:${f.id}`,
+      text: t('The same link under other bounds: {claim}.', { claim: claimSentence(data, f) }),
+      actions: [{ label: t('Open it'), run: () => open({ kind: 'claim', id: f.id }) }],
+    });
+  if (!lines.length && !readings.length) return null;
   return (
-    <PanelSection title={t('Other ways to read it')} count={lines.length}>
-      <ul className="space-y-2">
-        {lines.map((l) => (
-          <li key={l.key} className="text-[12.5px] leading-snug text-ink-2">
-            {l.text}
-            {l.action && (
-              <Button size="sm" variant="ghost" className="mt-1 block" onClick={l.action.run}>
-                {l.action.label}
-              </Button>
-            )}
-          </li>
-        ))}
-      </ul>
+    <PanelSection title={t('Other ways to read it')} count={lines.length + readings.filter((r) => r.standing !== 'set_aside').length}>
+      {readings.length > 0 && <AccountList accounts={readings} />}
+      {lines.length > 0 && (
+        <ul className={cn('space-y-2', readings.length > 0 && 'mt-3 border-t border-line pt-3')}>
+          {lines.map((l) => (
+            <li key={l.key} className="text-[12.5px] leading-snug text-ink-2">
+              {l.text}
+              {l.actions && (
+                <span className="mt-1 flex flex-wrap gap-1.5">
+                  {l.actions.map((x) => (
+                    <Button key={x.label} size="sm" variant="ghost" onClick={x.run}>
+                      {x.label}
+                    </Button>
+                  ))}
+                </span>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
     </PanelSection>
   );
 }

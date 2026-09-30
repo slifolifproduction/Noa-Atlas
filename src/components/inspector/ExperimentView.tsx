@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { navigate } from '../../app/router';
 import { EXPERIMENT_STATUS_LABEL, expectSentence, stateSentence } from '../../domain/constants';
 import { testCheck } from '../../domain/expect';
+import { testSideEffects } from '../../domain/ledger';
 import { mapElements } from '../../domain/selectors';
 import { experimentCode, experimentProgress, pathCode, patternCode } from '../../domain/selectors';
 import type { ID } from '../../domain/types';
@@ -14,7 +15,7 @@ import { ResultModal } from '../experiments/ResultModal';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Progress } from '../ui/primitives';
-import { ExpectationLine, FactorReadingPicker } from './Changes';
+import { ExpectationLine, FactorReadingPicker, Proposals } from './Changes';
 import { ClaimRow, Muted, NodeChip, PanelSection } from './parts';
 import { KnowledgeTag } from '../evidence/Status';
 import { t } from '../../i18n';
@@ -34,6 +35,7 @@ export function ExperimentView({ id }: { id: ID }) {
   if (!x) return null;
   const prog = experimentProgress(x);
   const check = testCheck(data, x);
+  const sideEffects = testSideEffects(data, x);
   const claim = x.claimId ? data.claims[x.claimId] : undefined;
   const factorChoices = [
     ...new Set([
@@ -167,6 +169,12 @@ export function ExperimentView({ id }: { id: ID }) {
               {t('Make it checkable')}
             </Button>
           </>
+        )}
+        {sideEffects.length > 0 && (
+          <div className="mt-3">
+            <div className="mb-1 text-[11.5px] text-ink-3">{t('What else should move, if the model is right')}</div>
+            <Proposals items={sideEffects} source={{ kind: 'experiment', id: x.id }} />
+          </div>
         )}
         {check.fromExtreme && (
           <p className="mt-2 text-[12px] text-ink-2">

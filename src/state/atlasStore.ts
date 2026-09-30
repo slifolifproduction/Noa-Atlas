@@ -5,7 +5,10 @@
  * action keeps referential integrity (deleting an element removes the links
  * and claims that depend on it, deleting a note removes the evidence and the
  * history read from it) and records changes in understanding in the
- * append-only model log, with the claim status before and after.
+ * append-only model log, with the claim status before and after. After every
+ * action, what the Atlas now believes is compared with what it believed
+ * before (domain/beliefs), so a belief that moved because of new records is
+ * logged too, with what caused it.
  */
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
@@ -13,6 +16,7 @@ import { immer } from 'zustand/middleware/immer';
 import type { ModelUpdateProposal, PatternCandidate } from '../ai/types';
 import { createEmptyData } from '../data/empty';
 import { createSeedData } from '../data/seed';
+import { beliefUpdates, currentLedger, sameLedger } from '../domain/beliefs';
 import { canBeEvidence, claimCode, claimSentence, claimStatus } from '../domain/claims';
 import { EFFECT_META, EXPERIMENT_OUTCOME_LABEL, STATUS_META } from '../domain/constants';
 import { repairReferences } from '../domain/integrity';
@@ -63,8 +67,8 @@ export type NewNode = Pick<AtlasNode, 'label' | 'kind' | 'area'> &
     >
   >;
 export type NewClaim = Pick<Claim, 'from' | 'to' | 'effect'> &
-  Partial<Pick<Claim, 'with' | 'via' | 'when' | 'lag' | 'author' | 'state' | 'rivalIds' | 'aspect' | 'condition'>>;
-export type ClaimPatch = Partial<Pick<Claim, 'from' | 'to' | 'with' | 'effect' | 'via' | 'when' | 'lag' | 'aspect' | 'condition'>>;
+  Partial<Pick<Claim, 'with' | 'via' | 'when' | 'lag' | 'author' | 'state' | 'rivalIds' | 'aspect' | 'condition' | 'scope'>>;
+export type ClaimPatch = Partial<Pick<Claim, 'from' | 'to' | 'with' | 'effect' | 'via' | 'when' | 'lag' | 'aspect' | 'condition' | 'scope'>>;
 export type NewExpectation = {
   factor: ID;
   reads: FactorReading;
@@ -180,6 +184,8 @@ interface AtlasActions {
   clearAll(name?: string): void;
   replaceData(data: AtlasData): void;
   setProfileName(name: string): void;
+  /** "Not now" to something the Atlas asked to find out: not asked again for a while. */
+  declineInquiry(key: string): void;
 }
 
 export interface AtlasState extends AtlasActions {
@@ -214,7 +220,7 @@ function aboutOf(d: AtlasData, ref: SourceRef): Set<ID> {
   return new Set(c ? [c.from, ...c.with, c.to] : []);
 }
 
-const MEANING: (keyof ClaimPatch)[] = ['from', 'to', 'with', 'effect', 'aspect', 'when', 'condition'];
+const MEANING: (keyof ClaimPatch)[] = ['from', 'to', 'with', 'effect', 'aspect', 'when', 'condition', 'scope'];
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 /**
@@ -349,11 +355,28 @@ export const useAtlas = create<AtlasState>()(
       // Every change leaves the atlas whole, in the same step: whatever pointed at something that
       // was removed is removed or unlinked too (domain/integrity). The Map, Causes, Time, Repeats
       // and Ahead all read these records, so they always agree.
-      const set = (change: (s: AtlasState) => void) =>
+      // What the Atlas believes is compared before and after every change (domain/beliefs). The first
+      // comparison is a silent baseline: nothing is logged for what was already believed.
+      const set = (change: (s: AtlasState) => void, cause?: SourceRef) => {
+        if (!get().data.beliefs) {
+          const baseline = currentLedger(get().data);
+          setDraft((s) => {
+            s.data.beliefs = baseline;
+          });
+        }
+        const since = get().data.modelLog.length;
         setDraft((s) => {
           change(s);
           repairReferences(s.data);
         });
+        const d = get().data;
+        const { log, ledger } = beliefUpdates(d, cause, since);
+        if (!log.length && sameLedger(d.beliefs, ledger)) return;
+        setDraft((s) => {
+          for (const u of log) s.data.modelLog.push({ id: createId('log'), at: now(), ...u });
+          s.data.beliefs = ledger;
+        });
+      };
       return {
         data: createSeedData(),
 
@@ -605,26 +628,29 @@ export const useAtlas = create<AtlasState>()(
               after: claimStatus(d, c),
               source: input.source,
             });
-          });
+          }, input.source);
         },
 
         removeClaimEvidence(claimId, evidenceId) {
-          set((s) => {
-            const d = s.data;
-            const c = d.claims[claimId];
-            const ev = c?.evidence.find((e) => e.id === evidenceId);
-            if (!c || !ev) return;
-            const before = claimStatus(d, c);
-            c.evidence = c.evidence.filter((e) => e.id !== evidenceId);
-            logUpdate(d, {
-              kind: 'evidence_removed',
-              summary: t('You removed {code} from {claim}.', { code: resolveSource(d, ev.source).code, claim: claimCode(c.code) }),
-              claimId,
-              before,
-              after: claimStatus(d, c),
-              source: ev.source,
-            });
-          });
+          set(
+            (s) => {
+              const d = s.data;
+              const c = d.claims[claimId];
+              const ev = c?.evidence.find((e) => e.id === evidenceId);
+              if (!c || !ev) return;
+              const before = claimStatus(d, c);
+              c.evidence = c.evidence.filter((e) => e.id !== evidenceId);
+              logUpdate(d, {
+                kind: 'evidence_removed',
+                summary: t('You removed {code} from {claim}.', { code: resolveSource(d, ev.source).code, claim: claimCode(c.code) }),
+                claimId,
+                before,
+                after: claimStatus(d, c),
+                source: ev.source,
+              });
+            },
+            get().data.claims[claimId]?.evidence.find((e) => e.id === evidenceId)?.source,
+          );
         },
 
         toggleRival(claimId, otherId) {
@@ -672,26 +698,35 @@ export const useAtlas = create<AtlasState>()(
 
         addOccurrence(input) {
           const id = createId('occ');
-          set((s) => {
-            s.data.occurrences[id] = { ...input, id, mode: input.mode ?? 'actual', origin: input.origin ?? 'user', createdAt: now() };
-          });
+          set(
+            (s) => {
+              s.data.occurrences[id] = { ...input, id, mode: input.mode ?? 'actual', origin: input.origin ?? 'user', createdAt: now() };
+            },
+            { kind: 'occurrence', id },
+          );
           return id;
         },
 
         updateOccurrence(id, patch) {
-          set((s) => {
-            const o = s.data.occurrences[id];
-            if (o) Object.assign(o, patch);
-          });
+          set(
+            (s) => {
+              const o = s.data.occurrences[id];
+              if (o) Object.assign(o, patch);
+            },
+            { kind: 'occurrence', id },
+          );
         },
 
         setOccurrenceChanges(id, changes) {
-          set((s) => {
-            const o = s.data.occurrences[id];
-            if (!o) return;
-            const kept = changes.filter((c, i) => s.data.nodes[c.factor] && changes.findIndex((x) => x.factor === c.factor) === i);
-            o.changes = kept.length ? kept : undefined;
-          });
+          set(
+            (s) => {
+              const o = s.data.occurrences[id];
+              if (!o) return;
+              const kept = changes.filter((c, i) => s.data.nodes[c.factor] && changes.findIndex((x) => x.factor === c.factor) === i);
+              o.changes = kept.length ? kept : undefined;
+            },
+            { kind: 'occurrence', id },
+          );
         },
 
         keepApart(id) {
@@ -720,55 +755,61 @@ export const useAtlas = create<AtlasState>()(
 
         addExpectation(input) {
           const id = createId('occ');
-          set((s) => {
-            const d = s.data;
-            const basis = input.basis.filter((c) => d.claims[c]);
-            d.occurrences[id] = {
-              id,
-              kind: 'event',
-              label: input.label.trim(),
-              date: input.from,
-              until: input.until,
-              about: [input.factor],
-              source: input.source,
-              excerpt: input.excerpt,
-              changes: [{ factor: input.factor, reads: input.reads }],
-              expectation: { basis },
-              mode: 'expected',
-              origin: 'user',
-              createdAt: now(),
-            };
-            logUpdate(d, {
-              kind: 'expectation_added',
-              summary:
-                basis.length > 1
-                  ? t('You expect: {label}, by {date}. It rests on {n} reasons together.', {
-                      label: input.label.trim(),
-                      date: formatDate(input.until),
-                      n: basis.length,
-                    })
-                  : t('You expect: {label}, by {date}.', { label: input.label.trim(), date: formatDate(input.until) }),
-              claimId: basis.length === 1 ? basis[0] : undefined,
-            });
-          });
+          set(
+            (s) => {
+              const d = s.data;
+              const basis = input.basis.filter((c) => d.claims[c]);
+              d.occurrences[id] = {
+                id,
+                kind: 'event',
+                label: input.label.trim(),
+                date: input.from,
+                until: input.until,
+                about: [input.factor],
+                source: input.source,
+                excerpt: input.excerpt,
+                changes: [{ factor: input.factor, reads: input.reads }],
+                expectation: { basis },
+                mode: 'expected',
+                origin: 'user',
+                createdAt: now(),
+              };
+              logUpdate(d, {
+                kind: 'expectation_added',
+                summary:
+                  basis.length > 1
+                    ? t('You expect: {label}, by {date}. It rests on {n} reasons together.', {
+                        label: input.label.trim(),
+                        date: formatDate(input.until),
+                        n: basis.length,
+                      })
+                    : t('You expect: {label}, by {date}.', { label: input.label.trim(), date: formatDate(input.until) }),
+                claimId: basis.length === 1 ? basis[0] : undefined,
+              });
+            },
+            { kind: 'occurrence', id },
+          );
           return id;
         },
 
         setExpectationVerdict(id, outcome, note) {
-          set((s) => {
-            const o = s.data.occurrences[id];
-            if (!o?.expectation) return;
-            o.expectation.verdict = outcome ? { outcome, note: note?.trim() || undefined, at: now() } : undefined;
-            if (outcome)
-              logUpdate(s.data, {
-                kind: 'expectation_checked',
-                summary: t('You checked an expectation: {label}. {verdict}.', {
-                  label: o.label,
-                  verdict: outcome === 'held' ? t('It held') : outcome === 'failed' ? t('It did not hold') : t('Nothing was recorded to tell'),
-                }),
-                claimId: o.expectation.basis.length === 1 ? o.expectation.basis[0] : undefined,
-              });
-          });
+          set(
+            (s) => {
+              const o = s.data.occurrences[id];
+              if (!o?.expectation) return;
+              o.expectation.verdict = outcome ? { outcome, note: note?.trim() || undefined, at: now() } : undefined;
+              if (outcome)
+                logUpdate(s.data, {
+                  kind: 'expectation_checked',
+                  summary: t('You checked an expectation: {label}. {verdict}.', {
+                    label: o.label,
+                    verdict: outcome === 'held' ? t('It held') : outcome === 'failed' ? t('It did not hold') : t('Nothing was recorded to tell'),
+                  }),
+                  claimId: o.expectation.basis.length === 1 ? o.expectation.basis[0] : undefined,
+                });
+            },
+            { kind: 'occurrence', id },
+          );
         },
 
         deleteOccurrence(id) {
@@ -787,19 +828,25 @@ export const useAtlas = create<AtlasState>()(
           const id = createId('ent');
           const at = now();
           let created!: Entry;
-          set((s) => {
-            const seq = ++s.data.counters.entry;
-            created = { ...input, id, seq, createdAt: at, updatedAt: at };
-            s.data.entries[id] = created;
-          });
+          set(
+            (s) => {
+              const seq = ++s.data.counters.entry;
+              created = { ...input, id, seq, createdAt: at, updatedAt: at };
+              s.data.entries[id] = created;
+            },
+            { kind: 'entry', id },
+          );
           return get().data.entries[id] ?? created;
         },
 
         updateEntry(id, patch) {
-          set((s) => {
-            const e = s.data.entries[id];
-            if (e) Object.assign(e, patch, { updatedAt: now() });
-          });
+          set(
+            (s) => {
+              const e = s.data.entries[id];
+              if (e) Object.assign(e, patch, { updatedAt: now() });
+            },
+            { kind: 'entry', id },
+          );
         },
 
         deleteEntry(id) {
@@ -901,18 +948,24 @@ export const useAtlas = create<AtlasState>()(
         addDecision(input) {
           const id = createId('dec');
           const at = now();
-          set((s) => {
-            const seq = ++s.data.counters.decision;
-            s.data.decisions[id] = { ...input, id, seq, createdAt: at, updatedAt: at };
-          });
+          set(
+            (s) => {
+              const seq = ++s.data.counters.decision;
+              s.data.decisions[id] = { ...input, id, seq, createdAt: at, updatedAt: at };
+            },
+            { kind: 'decision', id },
+          );
           return get().data.decisions[id];
         },
 
         updateDecision(id, patch) {
-          set((s) => {
-            const x = s.data.decisions[id];
-            if (x) Object.assign(x, patch, { updatedAt: now() });
-          });
+          set(
+            (s) => {
+              const x = s.data.decisions[id];
+              if (x) Object.assign(x, patch, { updatedAt: now() });
+            },
+            { kind: 'decision', id },
+          );
         },
 
         deleteDecision(id) {
@@ -1179,10 +1232,13 @@ export const useAtlas = create<AtlasState>()(
         },
 
         updateExperiment(id, patch) {
-          set((s) => {
-            const x = s.data.experiments[id];
-            if (x) Object.assign(x, patch, { updatedAt: now() });
-          });
+          set(
+            (s) => {
+              const x = s.data.experiments[id];
+              if (x) Object.assign(x, patch, { updatedAt: now() });
+            },
+            { kind: 'experiment', id },
+          );
         },
 
         deleteExperiment(id) {
@@ -1193,53 +1249,56 @@ export const useAtlas = create<AtlasState>()(
         },
 
         applyExperimentResult(id, result, proposal) {
-          set((s) => {
-            const d = s.data;
-            const x = d.experiments[id];
-            if (!x) return;
-            x.result = result;
-            x.status = 'completed';
-            x.updatedAt = now();
-            const ref: SourceRef = { kind: 'experiment', id };
-            for (const change of proposal.changes) {
-              const c = d.claims[change.claimId];
-              if (!c || c.evidence.some((e) => sameRef(e.source, ref))) continue;
-              const before = claimStatus(d, c);
-              c.evidence.push({
-                id: createId('ev'),
-                source: ref,
-                stance: change.stance,
-                kind: 'intervention',
-                excerpt: change.excerpt,
-                addedBy: 'user',
-                addedAt: now(),
-              });
-              logUpdate(d, {
-                kind: 'experiment_result',
-                summary:
-                  change.stance === 'supports'
-                    ? t('{exp}: the prediction held. {claim} gets a test result as evidence.', { exp: experimentCode(x.code), claim: claimCode(c.code) })
-                    : t('{exp}: the prediction did not hold. {claim} gets a failed test as evidence.', {
-                        exp: experimentCode(x.code),
-                        claim: claimCode(c.code),
-                      }),
-                claimId: c.id,
-                before,
-                after: claimStatus(d, c),
-                source: ref,
-              });
-            }
-            if (!proposal.changes.length) {
-              logUpdate(d, {
-                kind: 'experiment_result',
-                summary: t('{exp} result recorded ({outcome}); no claim changed.', {
-                  exp: experimentCode(x.code),
-                  outcome: EXPERIMENT_OUTCOME_LABEL[result.outcome],
-                }),
-                source: ref,
-              });
-            }
-          });
+          set(
+            (s) => {
+              const d = s.data;
+              const x = d.experiments[id];
+              if (!x) return;
+              x.result = result;
+              x.status = 'completed';
+              x.updatedAt = now();
+              const ref: SourceRef = { kind: 'experiment', id };
+              for (const change of proposal.changes) {
+                const c = d.claims[change.claimId];
+                if (!c || c.evidence.some((e) => sameRef(e.source, ref))) continue;
+                const before = claimStatus(d, c);
+                c.evidence.push({
+                  id: createId('ev'),
+                  source: ref,
+                  stance: change.stance,
+                  kind: 'intervention',
+                  excerpt: change.excerpt,
+                  addedBy: 'user',
+                  addedAt: now(),
+                });
+                logUpdate(d, {
+                  kind: 'experiment_result',
+                  summary:
+                    change.stance === 'supports'
+                      ? t('{exp}: the prediction held. {claim} gets a test result as evidence.', { exp: experimentCode(x.code), claim: claimCode(c.code) })
+                      : t('{exp}: the prediction did not hold. {claim} gets a failed test as evidence.', {
+                          exp: experimentCode(x.code),
+                          claim: claimCode(c.code),
+                        }),
+                  claimId: c.id,
+                  before,
+                  after: claimStatus(d, c),
+                  source: ref,
+                });
+              }
+              if (!proposal.changes.length) {
+                logUpdate(d, {
+                  kind: 'experiment_result',
+                  summary: t('{exp} result recorded ({outcome}); no claim changed.', {
+                    exp: experimentCode(x.code),
+                    outcome: EXPERIMENT_OUTCOME_LABEL[result.outcome],
+                  }),
+                  source: ref,
+                });
+              }
+            },
+            { kind: 'experiment', id },
+          );
         },
 
         setNavigation(plan) {
@@ -1350,6 +1409,13 @@ export const useAtlas = create<AtlasState>()(
         setProfileName(name) {
           set((s) => {
             s.data.profile.name = name;
+          });
+        },
+
+        declineInquiry(key) {
+          set((s) => {
+            s.data.inquiry ??= { declined: {} };
+            s.data.inquiry.declined[key] = todayISO();
           });
         },
       };

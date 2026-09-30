@@ -23,11 +23,24 @@
  * Coverage says how far absence of a record can be read: a factor recorded
  * with every note (a reading) or counted from lifespans is tracked; one that
  * only shows up when it is notable is not, and weeks without it are unknown.
+ * It is read per period too: a stretch with no records at all is silent,
+ * and nothing is known about anything in it.
+ *
+ * Every state keeps how it came to be known, apart from what really happened
+ * (which the Atlas never sees): felt, noticed or counted (its channel), when
+ * it was written down (days after the fact, so an order reconstructed later
+ * can be told from one written as it happened), and whether its reading is
+ * the person's or the Atlas's (a level read against the usual one, a count
+ * of what was running).
+ *
+ * Levels are read against the person's usual level for that period: when the
+ * usual level itself shifted (a phase), a reading is high or low for then,
+ * not for another time.
  */
 import { isDraft } from 'immer';
 import { addDays, dateOf, todayISO, weekStart } from '../lib/dates';
 import { activeCommitmentsByWeek, historyItems, type HistoryItem } from './history';
-import type { AtlasData, FactorReading, ID, ISODate, SourceRef } from './types';
+import type { AtlasData, Channel, FactorReading, ID, ISODate, SourceRef } from './types';
 
 /* ---------------- memo ---------------- */
 
@@ -270,6 +283,12 @@ export interface FactorState {
   /** The moment in history that shows it (none for a count from lifespans). */
   item?: HistoryItem;
   key: string;
+  /** How it was known. */
+  channel: Channel;
+  /** When it was written down (the record's date), if not the same day. */
+  written?: ISODate;
+  /** The Atlas's reading of it rather than the person's words: a level against the usual one, or a count of what was running. */
+  readAs?: 'against_usual' | 'running';
 }
 
 /** A state element whose level is counted from commitments' lifespans rather than recorded. */
@@ -285,6 +304,22 @@ const median = (xs: number[]) => {
   return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
 };
 
+/** Every recorded level of a factor, oldest first: its readings, levels written with what changed, or weekly counts. */
+function levelsOf(data: AtlasData, id: ID): { date: ISODate; value: number }[] {
+  return cached(data, `levels:${id}`, () => {
+    if (isLifespanCount(data, id)) return activeCommitmentsByWeek(data, todayISO()).map((w) => ({ date: w.week, value: w.count }));
+    const out = [
+      ...actualItems(data)
+        .filter((h) => h.kind === 'reading' && h.instanceOf === id && h.value !== undefined)
+        .map((h) => ({ date: h.date, value: h.value! })),
+      ...Object.values(data.occurrences)
+        .filter((o) => o.mode === 'actual')
+        .flatMap((o) => (o.changes ?? []).filter((c) => c.factor === id && c.level !== undefined).map((c) => ({ date: o.date, value: c.level! }))),
+    ];
+    return out.sort((a, b) => a.date.localeCompare(b.date));
+  });
+}
+
 /**
  * The person's usual level of a factor: the middle of their own readings (at
  * least three), or of the weekly counts for a count from lifespans. High and
@@ -292,29 +327,141 @@ const median = (xs: number[]) => {
  */
 export function usualLevel(data: AtlasData, id: ID): { value: number; from: number } | undefined {
   return cached(data, `usual:${id}`, () => {
-    if (isLifespanCount(data, id)) {
-      const weeks = activeCommitmentsByWeek(data, todayISO());
-      return weeks.length >= 3 ? { value: median(weeks.map((w) => w.count)), from: weeks.length } : undefined;
-    }
-    const levels = [
-      ...actualItems(data)
-        .filter((h) => h.kind === 'reading' && h.instanceOf === id && h.value !== undefined)
-        .map((h) => h.value!),
-      ...Object.values(data.occurrences)
-        .filter((o) => o.mode === 'actual')
-        .flatMap((o) => (o.changes ?? []).filter((c) => c.factor === id && c.level !== undefined).map((c) => c.level!)),
-    ];
-    return levels.length >= 3 ? { value: median(levels), from: levels.length } : undefined;
+    const levels = levelsOf(data, id);
+    return levels.length >= 3 ? { value: median(levels.map((l) => l.value)), from: levels.length } : undefined;
   });
+}
+
+/* ---------------- phases ---------------- */
+
+/** A stretch of time with its own usual level. */
+export interface Phase {
+  from: ISODate;
+  /** The day before the next phase began; open for the latest. */
+  until?: ISODate;
+  usual: number;
+  /** How many levels it rests on. */
+  levels: number;
+}
+
+/** Each side of a shift needs this many levels, so a few odd weeks never make a phase. */
+const PHASE_MIN = 6;
+
+/**
+ * Where the usual level itself moved and stayed: the one split of the levels
+ * that most separates the middle before from the middle after, kept when
+ * each side has enough levels and the two are at least a quarter of the
+ * scale apart (one point on a 1–5 scale), then looked for again within each
+ * side. Qualitative: a shift is named, never measured as a trend.
+ */
+export function phasesOf(data: AtlasData, id: ID): Phase[] {
+  return cached(data, `phases:${id}`, () => {
+    const levels = levelsOf(data, id);
+    const scale = data.nodes[id]?.scale;
+    const values = levels.map((l) => l.value);
+    const span = scale ? scale.max - scale.min : values.length ? Math.max(...values) - Math.min(...values) : 0;
+    const shift = Math.max(1, span / 4);
+    const split = (xs: typeof levels, depth: number): Phase[] => {
+      const whole: Phase = { from: xs[0].date, until: undefined, usual: median(xs.map((x) => x.value)), levels: xs.length };
+      if (depth >= 2 || xs.length < 2 * PHASE_MIN) return [whole];
+      let best: { at: number; gap: number } | undefined;
+      for (let i = PHASE_MIN; i <= xs.length - PHASE_MIN; i++) {
+        if (xs[i].date === xs[i - 1].date) continue;
+        const before = xs.slice(0, i).map((x) => x.value);
+        const after = xs.slice(i).map((x) => x.value);
+        const [m1, m2] = [median(before), median(after)];
+        const gap = Math.abs(m1 - m2);
+        // It stayed moved: most levels after sit past the old usual level, and most before sit short of the new one.
+        const up = m2 > m1;
+        const heldAfter = after.filter((v) => (up ? v > m1 : v < m1)).length * 3 >= after.length * 2;
+        const heldBefore = before.filter((v) => (up ? v < m2 : v > m2)).length * 3 >= before.length * 2;
+        if (heldAfter && heldBefore && (!best || gap > best.gap)) best = { at: i, gap };
+      }
+      if (!best || best.gap < shift) return [whole];
+      return [...split(xs.slice(0, best.at), depth + 1), ...split(xs.slice(best.at), depth + 1)];
+    };
+    if (levels.length < 2 * PHASE_MIN) return levels.length >= 3 ? [{ from: levels[0].date, usual: median(values), levels: levels.length }] : [];
+    const out = split(levels, 0);
+    return out.map((p, i) => ({ ...p, until: out[i + 1] ? addDays(out[i + 1].from, -1) : undefined }));
+  });
+}
+
+/** The usual level for the period a date falls in: the phase's own, or the overall one. */
+export function usualAt(data: AtlasData, id: ID, date: ISODate): number | undefined {
+  const phases = phasesOf(data, id);
+  if (phases.length > 1) {
+    const p = phases.find((x) => x.from <= date && (!x.until || x.until >= date)) ?? (date < phases[0].from ? phases[0] : phases[phases.length - 1]);
+    return p.usual;
+  }
+  return usualLevel(data, id)?.value;
+}
+
+/* ---------------- trajectories ---------------- */
+
+export type Trajectory = 'rising' | 'falling' | 'steady' | 'unsettled' | 'unknown';
+
+/**
+ * Where a factor's level has been heading lately: the middle of the earlier
+ * half of its recent levels against the later half. Needs four levels in the
+ * last eight weeks; a direction in words, never a rate.
+ */
+export function trajectory(data: AtlasData, id: ID, today: ISODate = todayISO()): { direction: Trajectory; levels: number; since?: ISODate } {
+  const recent = levelsOf(data, id).filter((l) => l.date <= today && l.date >= addDays(today, -56));
+  if (recent.length < 4) return { direction: 'unknown', levels: recent.length };
+  const half = Math.floor(recent.length / 2);
+  const a = median(recent.slice(0, half).map((l) => l.value));
+  const b = median(recent.slice(half).map((l) => l.value));
+  const values = recent.map((l) => l.value);
+  const scale = data.nodes[id]?.scale;
+  const span = scale ? scale.max - scale.min : Math.max(...values) - Math.min(...values) || 1;
+  const moved = Math.abs(b - a) >= Math.max(0.5, span / 8);
+  const direction: Trajectory = moved
+    ? b > a
+      ? 'rising'
+      : 'falling'
+    : Math.max(...values) - Math.min(...values) >= Math.max(2, span / 2)
+      ? 'unsettled'
+      : 'steady';
+  return { direction, levels: recent.length, since: recent[0].date };
 }
 
 const levelReads = (level: number, usual: number): FactorReading | 'usual' => (level > usual ? 'high' : level < usual ? 'low' : 'usual');
 
-/** Everything the record says a factor did, oldest first. Mentions are not included. */
-export function factorStates(data: AtlasData, id: ID): FactorState[] {
-  return cached(data, `states:${id}`, () => {
+/* ---------------- channels ---------------- */
+
+/** States of inner life, felt rather than seen: energy, mood, what defines you, health. */
+function feltFactor(data: AtlasData, id: ID): boolean {
+  const n = data.nodes[id];
+  if (!n) return false;
+  if (n.tags.includes('measured') || n.tags.includes('counted')) return false;
+  return n.kind === 'state' && (n.tags.includes('energy') || n.tags.includes('mood') || n.tags.includes('felt') || n.area === 'self' || n.area === 'health');
+}
+
+/**
+ * The day a history item was written down, when later than the day it is
+ * about: the note or decision it was read from, or, for a happening entered
+ * on its own, the day it was entered.
+ */
+function writtenOn(data: AtlasData, h: HistoryItem): ISODate | undefined {
+  const o = h.ref.kind === 'occurrence' ? data.occurrences[h.ref.id] : undefined;
+  const record = h.source && h.source.kind !== 'occurrence' && h.source.kind !== 'experiment' ? sourceDate(data, h.source) : undefined;
+  const written = record ?? (o ? dateOf(o.createdAt) : undefined);
+  return written && written > h.date ? written : undefined;
+}
+
+/**
+ * Everything the record says a factor did, oldest first. Mentions are not
+ * included. Levels are read against the usual level of their period, or,
+ * for what builds over a long time, against the usual level over the whole
+ * record (`overall`).
+ */
+export function factorStates(data: AtlasData, id: ID, against: 'phase' | 'overall' = 'phase'): FactorState[] {
+  return cached(data, `states:${id}:${against}`, () => {
     const out: FactorState[] = [];
-    const usual = usualLevel(data, id)?.value;
+    const overall = usualLevel(data, id)?.value;
+    const known = overall !== undefined;
+    const usualAt_ = (date: ISODate) => (against === 'overall' ? overall : usualAt(data, id, date));
+    const felt = feltFactor(data, id);
     const items = actualItems(data);
     const explicit = new Set<string>();
     for (const h of items) {
@@ -323,17 +470,51 @@ export function factorStates(data: AtlasData, id: ID): FactorState[] {
       for (const [i, c] of (o?.changes ?? []).entries()) {
         if (c.factor !== id) continue;
         explicit.add(h.key);
-        out.push({ factor: id, date: h.date, lean: leanOf(c.reads), reads: c.reads, level: c.level, basis: 'change', item: h, key: `${h.key}#${i}` });
+        out.push({
+          factor: id,
+          date: h.date,
+          lean: leanOf(c.reads),
+          reads: c.reads,
+          level: c.level,
+          basis: 'change',
+          item: h,
+          key: `${h.key}#${i}`,
+          channel: c.channel ?? (felt || o?.kind === 'experience' ? 'felt' : 'noticed'),
+          written: writtenOn(data, h),
+        });
       }
     }
     for (const h of items) {
       if (explicit.has(h.key) || h.instanceOf !== id) continue;
       if (h.kind === 'reading') {
+        const usual = known && h.value !== undefined ? usualAt_(h.date) : undefined;
         if (h.value === undefined || usual === undefined) continue;
         const reads = levelReads(h.value, usual);
-        out.push({ factor: id, date: h.date, lean: leanOf(reads), reads, level: h.value, basis: 'reading', item: h, key: h.key });
+        out.push({
+          factor: id,
+          date: h.date,
+          lean: leanOf(reads),
+          reads,
+          level: h.value,
+          basis: 'reading',
+          item: h,
+          key: h.key,
+          channel: data.nodes[id]?.tags.includes('measured') ? 'counted' : 'felt',
+          written: writtenOn(data, h),
+          readAs: 'against_usual',
+        });
       } else if (data.nodes[id]?.kind === 'behaviour' && (h.kind === 'action' || h.kind === 'event' || h.kind === 'experience')) {
-        out.push({ factor: id, date: h.date, lean: 'more', reads: 'present', basis: 'instance', item: h, key: h.key });
+        out.push({
+          factor: id,
+          date: h.date,
+          lean: 'more',
+          reads: 'present',
+          basis: 'instance',
+          item: h,
+          key: h.key,
+          channel: 'noticed',
+          written: writtenOn(data, h),
+        });
       }
     }
     if (isLifespanCount(data, id)) {
@@ -348,18 +529,38 @@ export function factorStates(data: AtlasData, id: ID): FactorState[] {
           level: commitmentsActive(data, n.since),
           basis: 'lifespan',
           key: `life:${n.id}:start`,
+          channel: 'counted',
         });
         if (n.until && n.until < todayISO()) {
           const after = addDays(n.until, 1);
-          out.push({ factor: id, date: after, lean: 'less', reads: 'down', level: commitmentsActive(data, after), basis: 'lifespan', key: `life:${n.id}:end` });
+          out.push({
+            factor: id,
+            date: after,
+            lean: 'less',
+            reads: 'down',
+            level: commitmentsActive(data, after),
+            basis: 'lifespan',
+            key: `life:${n.id}:end`,
+            channel: 'counted',
+          });
         }
       }
       // The level coming into each episode (what was already running the day before).
-      if (usual !== undefined)
+      if (known)
         for (const e of episodes(data)) {
           const level = commitmentsActive(data, addDays(e.from, -1));
-          const reads = levelReads(level, usual);
-          out.push({ factor: id, date: e.from, lean: leanOf(reads), reads, level, basis: 'lifespan', key: `life:${e.key}` });
+          const reads = levelReads(level, usualAt_(e.from)!);
+          out.push({
+            factor: id,
+            date: e.from,
+            lean: leanOf(reads),
+            reads,
+            level,
+            basis: 'lifespan',
+            key: `life:${e.key}`,
+            channel: 'counted',
+            readAs: 'running',
+          });
         }
     }
     return out.sort((a, b) => a.date.localeCompare(b.date) || a.key.localeCompare(b.key));
@@ -424,6 +625,57 @@ export function coverage(data: AtlasData, id: ID): Coverage {
     const mentioned = actualItems(data).some((h) => h.about.includes(id) || h.instanceOf === id);
     return mentioned ? 'mentioned' : 'none';
   });
+}
+
+/* ---------------- observation windows ---------------- */
+
+/** Records of any kind: the days anything at all was written down. */
+function recordDays(data: AtlasData): ISODate[] {
+  return cached(data, 'recordDays', () =>
+    [
+      ...new Set([
+        ...Object.values(data.entries).map((e) => e.date),
+        ...Object.values(data.decisions).map((d) => d.date),
+        ...Object.values(data.occurrences)
+          .filter((o) => o.mode === 'actual')
+          .map((o) => o.date),
+      ]),
+    ].sort(),
+  );
+}
+
+/** Stretches of at least `days` days with nothing written down at all: nothing is known about anything in them. */
+export function silentSpans(data: AtlasData, days = 14, today: ISODate = todayISO()): { from: ISODate; until: ISODate }[] {
+  const all = recordDays(data);
+  const out: { from: ISODate; until: ISODate }[] = [];
+  for (let i = 1; i < all.length; i++) if (dayOf(all[i]) - dayOf(all[i - 1]) > days) out.push({ from: addDays(all[i - 1], 1), until: addDays(all[i], -1) });
+  if (all.length && dayOf(today) - dayOf(all[all.length - 1]) > days) out.push({ from: addDays(all[all.length - 1], 1), until: today });
+  return out;
+}
+
+/**
+ * How well a factor was observed in a stretch of time. Absence can be read
+ * only where it was tracked; elsewhere a factor nothing mentions is unknown.
+ *
+ *   silent     nothing at all was written down then
+ *   tracked    its level is known for most of the weeks anything was written
+ *   recorded   what it did was written down at least once
+ *   mentioned  it came up, with no word on which way it went
+ *   none       nothing about it, though other things were written down
+ */
+export type Observed = 'silent' | 'tracked' | 'recorded' | 'mentioned' | 'none';
+
+export function observedIn(data: AtlasData, id: ID, from: ISODate, until: ISODate): Observed {
+  const days = recordDays(data).filter((d) => d >= from && d <= until);
+  if (!days.length) return 'silent';
+  const states = statesIn(data, id, from, until);
+  if (isLifespanCount(data, id) && usualLevel(data, id)) return 'tracked';
+  const weeks = new Set(days.map((d) => weekStart(d)));
+  const levelWeeks = new Set(states.filter((s) => s.basis === 'reading' || s.level !== undefined).map((s) => weekStart(s.date)));
+  if (levelWeeks.size >= Math.max(1, weeks.size / 2)) return 'tracked';
+  if (states.length) return 'recorded';
+  const mentioned = actualItems(data).some((h) => h.date >= from && h.date <= until && (h.about.includes(id) || h.instanceOf === id));
+  return mentioned ? 'mentioned' : 'none';
 }
 
 /** Whether both directions have been recorded, so that "it went this way" can be compared with "it didn't". */

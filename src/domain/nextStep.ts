@@ -4,6 +4,7 @@
  */
 import { daysBetween, todayISO } from '../lib/dates';
 import { claimSentence } from './claims';
+import { inquiries } from './inquiry';
 import { currentAction, experimentCode, experimentProgress, pendingSuggestions, thinSpots } from './selectors';
 import type { AtlasData, CaptureKind, EntityRef, ID } from './types';
 import { t, tn } from '../i18n';
@@ -12,7 +13,9 @@ export type NextStepAction =
   | { kind: 'capture'; capture: CaptureKind }
   | { kind: 'open'; ref: EntityRef }
   | { kind: 'route'; route: 'patterns' | 'paths' | 'navigation' }
-  | { kind: 'done'; actionId: ID };
+  | { kind: 'done'; actionId: ID }
+  /** "Not now" to something the Atlas asked to find out. */
+  | { kind: 'decline'; key: string };
 
 export interface NextStep {
   key: string;
@@ -111,6 +114,20 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
       detail: t('“{claim}” has nothing behind it yet. Look for a time it happened, and a time it did not.', { claim: claimSentence(data, c) }),
       cta: t('Open it'),
       action: { kind: 'open', ref: { kind: 'claim', id: c.id } },
+    };
+  }
+
+  // Something worth finding out: a check that would tell two readings of what you care about apart.
+  // It never displaces a step you committed to: it comes when there is no plan, or this week's steps are done.
+  const ask = !data.navigation || !currentAction(data.navigation) ? inquiries(data, today).find((q) => q.decisive && q.relevance >= 2) : undefined;
+  if (ask) {
+    return {
+      key: `inquiry:${ask.key}`,
+      title: t('Something to find out'),
+      detail: ask.between.length === 2 ? `${ask.question} ${t('It would tell “{a}” from “{b}”.', { a: ask.between[0], b: ask.between[1] })}` : ask.question,
+      cta: t('Look into it'),
+      action: { kind: 'open', ref: ask.open },
+      also: { label: t('Not now'), action: { kind: 'decline', key: ask.key } },
     };
   }
 

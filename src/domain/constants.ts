@@ -724,6 +724,9 @@ export const EVIDENCE_KIND_LABEL: Record<EvidenceKind, string> = {
   get elsewhere() {
     return t('It happened without it');
   },
+  get analysis() {
+    return t('A formal comparison');
+  },
 };
 
 export const EVIDENCE_KIND_HINT: Record<EvidenceKind, string> = {
@@ -744,6 +747,9 @@ export const EVIDENCE_KIND_HINT: Record<EvidenceKind, string> = {
   },
   get elsewhere() {
     return t('The effect happened without the cause: something else can bring it about. It does not count against this explanation.');
+  },
+  get analysis() {
+    return t('A comparison run on your records once they were enough for it, with what it assumed. It never counts as a test.');
   },
 };
 

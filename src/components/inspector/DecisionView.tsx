@@ -3,11 +3,12 @@ import { useMemo, useState } from 'react';
 import { claimCode, claimSentence, claimsOutOf, claimsTouching } from '../../domain/claims';
 import { expectSentence, OUTCOME_RATING_LABEL } from '../../domain/constants';
 import { expectationsOfSource } from '../../domain/expect';
+import { decisionLevers, proposeExpectations } from '../../domain/ledger';
 import { mapElements } from '../../domain/selectors';
 import { windowAfter } from '../../domain/history';
 import { decisionCode, decisionHorizon, patternCode, patternTitle, usagesOfSource } from '../../domain/selectors';
 import type { Decision, ID, OutcomeRating } from '../../domain/types';
-import { addDays, formatDate } from '../../lib/dates';
+import { addDays, formatDate, todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
@@ -16,7 +17,7 @@ import { KnowledgeTag } from '../evidence/Status';
 import { Button } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
-import { ExpectationLine, FactorReadingPicker } from './Changes';
+import { ExpectationLine, FactorReadingPicker, Proposals } from './Changes';
 import { ClaimRow, HistoryRow, Muted, NodeChip, PanelSection } from './parts';
 import { t } from '../../i18n';
 
@@ -454,6 +455,14 @@ function DecisionExpectations({ decision: d }: { decision: Decision }) {
   const open = useUI((s) => s.openEntity);
   const [adding, setAdding] = useState(false);
   const [days, setDays] = useState('28');
+  const levers = useMemo(() => decisionLevers(data, d), [data, d]);
+  const [lever, setLever] = useState<ID>(levers[0] ?? '');
+  const [change, setChange] = useState<'more' | 'less'>('more');
+  const today = todayISO();
+  const proposals = useMemo(
+    () => (lever && data.nodes[lever] ? proposeExpectations(data, lever, change, d.date > today ? d.date : today) : []),
+    [data, lever, change, d.date, today],
+  );
   const views = expectationsOfSource(data, 'decision', d.id);
   const choices = [
     ...new Set([
@@ -479,6 +488,33 @@ function DecisionExpectations({ decision: d }: { decision: Decision }) {
             </li>
           ))}
         </ul>
+      )}
+      {levers.length > 0 && (
+        <div className="mt-2 mb-2">
+          <div className="text-[11.5px] text-ink-3">{t('What the model would expect, if this decision means')}</div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <Segmented<'more' | 'less'>
+              label={t('Which way')}
+              size="sm"
+              value={change}
+              onChange={setChange}
+              options={[
+                { value: 'more', label: t('more') },
+                { value: 'less', label: t('less') },
+              ]}
+            />
+            <select className="field w-auto" value={lever} onChange={(e) => setLever(e.target.value)} aria-label={t('Of what')}>
+              {levers.map((id) => (
+                <option key={id} value={id}>
+                  {data.nodes[id]?.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="mt-2">
+            <Proposals items={proposals} source={{ kind: 'decision', id: d.id }} excerpt={d.expectedOutcome || undefined} />
+          </div>
+        </div>
       )}
       {adding ? (
         <div className="mt-1.5 space-y-2 rounded-[2px] border border-line p-2.5">

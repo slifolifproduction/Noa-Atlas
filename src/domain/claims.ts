@@ -39,11 +39,13 @@ import {
   baseRate,
   caseRows,
   commonCauses,
+  conditionsOf,
   happensAnyway,
   needsTellingApart,
   othersAt,
   pushes,
   rivalsOf,
+  untestedContexts,
   areRivals as rivals,
   lagWindow as window,
   type BaseRate,
@@ -53,7 +55,7 @@ import { predictionCounts, predictionLocked } from './expect';
 import { cachedOn, episodeKeyOf, sourceDate } from './factors';
 import { historyItems, type HistoryItem } from './history';
 import { displayNode } from './selectors';
-import { addDays, daysBetween } from '../lib/dates';
+import { addDays, daysBetween, formatDate } from '../lib/dates';
 import type { AtlasData, Claim, ClaimStatus, Entry, Decision, Evidence, ID, ISODate, Occurrence, SourceRef } from './types';
 import { t, tn } from '../i18n';
 
@@ -95,6 +97,11 @@ export interface EvidenceProfile {
   needsTellingApart?: boolean;
   /** Supporting episodes where the common causes and rivals were not doing the same. */
   toldApart?: number;
+  /** Supporting times from the record whose order was written down only after the outcome was known: shown, not counted. */
+  hindsight?: number;
+  /** Formal comparisons run when the record was ready for them, for and against. */
+  analysisFor?: number;
+  analysisAgainst?: number;
 }
 
 const kindOf = (e: Evidence) => e.kind ?? 'instance';
@@ -120,9 +127,12 @@ export const evidenceEpisode = (data: AtlasData, e: Evidence) => episodeKeyOf(da
 
 /** Recorded rows for the episodes you have not judged yourself, and where the two disagree. */
 export function recordRows(data: AtlasData, claim: Claim): { counted: CaseRow[]; conflicts: CaseRow[]; judged: Set<string> } {
-  const judged = new Set(claim.evidence.filter((e) => kindOf(e) !== 'intervention' && kindOf(e) !== 'mechanism').map((e) => evidenceEpisode(data, e)));
+  const judged = new Set(
+    claim.evidence.filter((e) => kindOf(e) !== 'intervention' && kindOf(e) !== 'mechanism' && kindOf(e) !== 'analysis').map((e) => evidenceEpisode(data, e)),
+  );
   const rows = caseRows(data, claim);
-  const counted = rows.filter((r) => !judged.has(r.episode) && r.verdict !== 'outside');
+  // An order put together after the outcome was known can count against a claim, never for it.
+  const counted = rows.filter((r) => !judged.has(r.episode) && r.verdict !== 'outside' && !(r.hindsight && (r.verdict === 'fits' || r.verdict === 'contrast')));
   const supportIn = new Set(
     claim.evidence.filter((e) => e.stance === 'supports' && (kindOf(e) === 'instance' || kindOf(e) === 'contrast')).map((e) => evidenceEpisode(data, e)),
   );
@@ -198,33 +208,77 @@ export function evidenceProfile(data: AtlasData, claim: Claim): EvidenceProfile 
     happensAnyway: happensAnyway(base),
     needsTellingApart: needs,
     toldApart,
+    hindsight: caseRows(data, claim).filter((r) => r.hindsight && (r.verdict === 'fits' || r.verdict === 'contrast')).length,
+    analysisFor: supports.filter((x) => kindOf(x.e) === 'analysis').length,
+    analysisAgainst: counters.filter((x) => kindOf(x.e) === 'analysis').length,
   };
 }
 
-export function statusFromProfile(p: EvidenceProfile, retired = false): ClaimStatus {
+/**
+ * The rules a status comes from, named so every status can say which one
+ * gave it (see `trace.ts`). The version of this logic is `LOGIC_VERSION`.
+ */
+export type StatusRule =
+  | 'retired'
+  | 'weakened.tests'
+  | 'weakened.against'
+  | 'tested'
+  | 'anyway'
+  | 'supported'
+  | 'plausible.episodes'
+  | 'plausible.mechanism'
+  | 'plausible.prediction'
+  | 'proposed';
+
+export const LOGIC_VERSION = 5;
+
+export const RULE_STATUS: Record<StatusRule, ClaimStatus> = {
+  retired: 'retired',
+  'weakened.tests': 'weakened',
+  'weakened.against': 'weakened',
+  tested: 'tested',
+  anyway: 'proposed',
+  supported: 'supported',
+  'plausible.episodes': 'plausible',
+  'plausible.mechanism': 'plausible',
+  'plausible.prediction': 'plausible',
+  proposed: 'proposed',
+};
+
+export function statusRule(p: EvidenceProfile, retired = false): StatusRule {
   if (retired) return 'retired';
   const held = p.predictionsHeld ?? 0;
-  const support = p.episodes + p.testsFor + held + (p.mechanism ? 1 : 0);
-  const against = p.counter + (p.predictionsFailed ?? 0);
+  const analysis = p.analysisFor ?? 0;
+  const support = p.episodes + p.testsFor + held + (p.mechanism ? 1 : 0) + analysis;
+  const against = p.counter + (p.predictionsFailed ?? 0) + (p.analysisAgainst ?? 0);
   // A failed test is not cancelled by a passed one: as many failures as passes is not "tested".
-  if (p.testsAgainst > 0 && p.testsAgainst >= p.testsFor) return 'weakened';
-  if (against >= 2 && against > support) return 'weakened';
+  if (p.testsAgainst > 0 && p.testsAgainst >= p.testsFor) return 'weakened.tests';
+  if (against >= 2 && against > support) return 'weakened.against';
+  // Only a deliberate change makes a claim tested; a formal comparison of what happened never does.
   if (p.testsFor > 0) return 'tested';
   // When the outcome goes that way most times anyway, times that fit say little without a time without the cause.
-  const saysLittle = Boolean(p.happensAnyway) && p.contrast === 0 && !p.mechanism && held === 0;
-  if (saysLittle) return 'proposed';
+  const saysLittle = Boolean(p.happensAnyway) && p.contrast === 0 && !p.mechanism && held === 0 && analysis === 0;
+  if (saysLittle) return 'anyway';
   // Keeps showing up: repeated, with a time without it, told apart from what else could produce it, and exceptions well in the minority.
-  if (p.episodes >= 3 && p.contrast >= 1 && p.episodes > 2 * p.counter && (!p.needsTellingApart || (p.toldApart ?? 0) >= 1)) return 'supported';
-  if (p.episodes >= 2 || (p.episodes >= 1 && p.mechanism) || held >= 1) return 'plausible';
+  if (p.episodes >= 3 && (p.contrast >= 1 || analysis >= 1) && p.episodes > 2 * p.counter && (!p.needsTellingApart || (p.toldApart ?? 0) >= 1))
+    return 'supported';
+  if (p.episodes >= 2) return 'plausible.episodes';
+  if (p.episodes >= 1 && p.mechanism) return 'plausible.mechanism';
+  if (held >= 1) return 'plausible.prediction';
   return 'proposed';
 }
 
-export function claimStatus(data: AtlasData, claim: Claim): ClaimStatus {
+export const statusFromProfile = (p: EvidenceProfile, retired = false): ClaimStatus => RULE_STATUS[statusRule(p, retired)];
+
+/** The rule a claim's status comes from. */
+export function claimRule(data: AtlasData, claim: Claim): StatusRule {
   // Keyed on what can change in place (in tests and drafts): the evidence and whether it was retired.
-  return cachedOn(data, claim, `status:${claim.evidence.length}:${claim.retired ? 1 : 0}`, () =>
-    statusFromProfile(evidenceProfile(data, claim), Boolean(claim.retired)),
+  return cachedOn(data, claim, `rule:${claim.evidence.length}:${claim.retired ? 1 : 0}`, () =>
+    statusRule(evidenceProfile(data, claim), Boolean(claim.retired)),
   );
 }
+
+export const claimStatus = (data: AtlasData, claim: Claim): ClaimStatus => RULE_STATUS[claimRule(data, claim)];
 
 /** An end of a claim that is a whole thing rather than a factor, with nothing said about what changes. */
 export function unnamedAspects(data: AtlasData, claim: Claim): ID[] {
@@ -276,7 +330,38 @@ export function claimGaps(data: AtlasData, claim: Claim): string[] {
         'In {n} episodes, your reading and what was recorded point different ways.',
       ),
     );
+  if (p.hindsight)
+    out.push(
+      tn(
+        p.hindsight,
+        'One time rests on an order written down after the outcome was known: a time written as it happened would count.',
+        '{n} times rest on an order written down after the outcome was known: a time written as it happened would count.',
+      ),
+    );
+  for (const c of untestedContexts(data, claim))
+    out.push(
+      t('Only ever seen when {f} was {state}: a time when it was not would show whether it holds more widely.', {
+        f: nodeLabel(data, c.factor),
+        state: c.reads === 'high' ? t('high') : t('low'),
+      }),
+    );
   return out;
+}
+
+/** The bounds of a claim in words: its conditions, the stretch of time it is about, and its timescale. */
+export function scopePhrase(data: AtlasData, claim: Pick<Claim, 'condition' | 'scope' | 'when'>): string {
+  const parts = [
+    claim.when?.trim(),
+    ...conditionsOf(claim)
+      .filter((c) => data.nodes[c.factor])
+      .map((c) => conditionPhrase(nodeLabel(data, c.factor), c.reads)),
+  ];
+  const s = claim.scope;
+  if (s?.from && s.until) parts.push(t('from {from} to {until}', { from: formatDate(s.from, { year: true }), until: formatDate(s.until, { year: true }) }));
+  else if (s?.until) parts.push(t('until {date}', { date: formatDate(s.until, { year: true }) }));
+  else if (s?.from) parts.push(t('since {date}', { date: formatDate(s.from, { year: true }) }));
+  if (s?.timescale === 'cumulative') parts.push(t('when kept up over weeks'));
+  return parts.filter(Boolean).join('; ');
 }
 
 const nodeLabel = (data: AtlasData, id: ID) => displayNode(data, id)?.label ?? t('(deleted)');
@@ -294,12 +379,7 @@ export function factorLabel(data: AtlasData, id: ID, aspect?: string): string {
 export function claimSentence(data: AtlasData, claim: Claim, status: ClaimStatus = claimStatus(data, claim)): string {
   const cause = factorLabel(data, claim.from, claim.aspect?.from);
   const from = claim.with.length ? t('{a}, together with {b},', { a: cause, b: claim.with.map((id) => nodeLabel(data, id)).join(', ') }) : cause;
-  const when = [
-    claim.when?.trim(),
-    claim.condition && data.nodes[claim.condition.factor] ? conditionPhrase(nodeLabel(data, claim.condition.factor), claim.condition.reads) : '',
-  ]
-    .filter(Boolean)
-    .join('; ');
+  const when = scopePhrase(data, claim);
   const failed = claim.evidence.some((e) => e.kind === 'intervention' && e.stance === 'counters');
   const tested = status === 'tested' ? ` ${failed ? t('when you tested it, though not every time') : t('when you tested it')}` : '';
   return `${from} ${effectPhrase(claim.effect, status)} ${factorLabel(data, claim.to, claim.aspect?.to)}${when ? ` (${when})` : ''}${tested}`;

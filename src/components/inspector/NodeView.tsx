@@ -5,7 +5,7 @@ import { showOnMap } from '../../app/showOnMap';
 import { aroundInTime, momentsOf, optionsTouching, reasonsFor, strongestPattern, type Neighbour } from '../../domain/ask';
 import { byStrength, claimsInto, claimsOutOf } from '../../domain/claims';
 import { AREA_META, AREAS, KIND_META, KINDS, QUESTION_STATUS_LABEL, expectSentence } from '../../domain/constants';
-import { coverage, usualLevel } from '../../domain/factors';
+import { coverage, phasesOf, trajectory, usualLevel } from '../../domain/factors';
 import { basisOf, whatIf, type Consequence } from '../../domain/whatif';
 import { readingsOf } from '../../domain/history';
 import { loopName, loopsThrough } from '../../domain/loops';
@@ -388,6 +388,13 @@ function WhatIf({ id }: { id: ID }) {
                 <p className="mt-0.5 text-[11.5px] text-ink-3">
                   {tn(basisOf(c).length, 'It rests on one reason, as sure as it is.', 'It rests on {n} reasons, only as sure as the least sure of them.')}
                 </p>
+                <p className="mt-0.5 text-[11.5px] text-ink-3">
+                  {c.ifYouChange === 'tested'
+                    ? t('Tested: when you changed it yourself, this followed.')
+                    : c.ifYouChange === 'confounded'
+                      ? t('Something else may move both: if you change it yourself, this may not follow at all.')
+                      : t('Seen, not tested: if you change it yourself, this may not follow.')}
+                </p>
                 {c.lean !== 'mixed' && c.lean !== 'usual' && (
                   <div className="mt-1.5">
                     {kept.includes(c.id) ? (
@@ -652,15 +659,39 @@ function RecordCoverage({ id }: { id: ID }) {
   const usual = usualLevel(data, id);
   const node = data.nodes[id];
   if (!node || c === 'none') return null;
+  const phases = phasesOf(data, id);
+  const lately = trajectory(data, id);
   const text =
     c === 'tracked'
       ? usual
-        ? t('Recorded regularly. Its usual level is {v}; high and low are read against that, not against anyone else.', { v: usual.value })
+        ? phases.length > 1
+          ? t(
+              'Recorded regularly. Its usual level moved over time ({levels}); high and low are read against the usual level of the time, not against anyone else.',
+              {
+                levels: phases.map((p) => t('{v} from {date}', { v: p.usual, date: formatDate(p.from) })).join(', '),
+              },
+            )
+          : t('Recorded regularly. Its usual level is {v}; high and low are read against that, not against anyone else.', { v: usual.value })
         : t('Recorded regularly.')
       : c === 'recorded'
         ? t('What it did is written down now and then, when it was notable. Times without a record are unknown, not absent.')
         : t('It comes up in your notes, but nothing says which way it went. Saying what changed lets the Atlas compare it.');
-  return <p className="mb-2 text-[11.5px] leading-snug text-ink-3">{text}</p>;
+  const direction =
+    lately.direction === 'rising'
+      ? t('Lately it has been rising.')
+      : lately.direction === 'falling'
+        ? t('Lately it has been falling.')
+        : lately.direction === 'steady'
+          ? t('Lately it has been steady.')
+          : lately.direction === 'unsettled'
+            ? t('Lately it has been going up and down.')
+            : '';
+  return (
+    <p className="mb-2 text-[11.5px] leading-snug text-ink-3">
+      {text}
+      {direction && ` ${direction}`}
+    </p>
+  );
 }
 
 /** A state is read over time: its readings as a small line. */

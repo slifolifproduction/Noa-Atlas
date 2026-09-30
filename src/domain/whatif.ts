@@ -14,12 +14,23 @@
  * It is an estimate from the model as it stands, never a forecast of what
  * will happen, and it becomes something to learn from only when kept as an
  * expectation and checked.
+ *
+ * It is a question about changing something yourself, which is not the same
+ * as seeing it change. A link seen in the record, but never changed on
+ * purpose, may be two things moved together by something else: when you
+ * change the cause yourself, that part does not follow. So every consequence
+ * says what it rests on: links you tested; links seen but not tested; or
+ * links with a known common cause not yet told apart, which may not follow at
+ * all.
  */
-import { claimStatus } from './claims';
+import { claimStatus, evidenceProfile } from './claims';
 import { isGate, lagRange, liveClaims, pushes } from './compare';
 import { STATUS_META } from './constants';
 import type { Lean } from './factors';
 import type { AtlasData, Claim, ClaimStatus, ID } from './types';
+
+/** What a change you make yourself can rely on along a route. */
+export type IfYouChange = 'tested' | 'seen' | 'confounded';
 
 export interface Route {
   claims: Claim[];
@@ -27,6 +38,8 @@ export interface Route {
   gated: boolean;
   window: [number, number];
   weakest: ClaimStatus;
+  /** Every link tested by a deliberate change; or seen only; or with a common cause not yet told apart. */
+  ifYouChange: IfYouChange;
 }
 
 export interface Consequence {
@@ -39,6 +52,17 @@ export interface Consequence {
   weakest: ClaimStatus;
   /** Steps from the change: 1 is direct. */
   depth: number;
+  /** The least a change you make yourself can rely on, across its routes. */
+  ifYouChange: IfYouChange;
+}
+
+const IF_RANK: Record<IfYouChange, number> = { confounded: 0, seen: 1, tested: 2 };
+
+/** What changing a link's cause yourself can rely on. */
+function linkBasis(data: AtlasData, c: Claim): IfYouChange {
+  const p = evidenceProfile(data, c);
+  if (p.testsFor > 0) return 'tested';
+  return p.needsTellingApart && !p.toldApart ? 'confounded' : 'seen';
 }
 
 const weaker = (a: ClaimStatus, b: ClaimStatus) => (STATUS_META[a].rank <= STATUS_META[b].rank ? a : b);
@@ -71,6 +95,7 @@ export function whatIf(data: AtlasData, start: ID, change: 'more' | 'less', maxD
         gated: members.some((m) => isGate(m.effect)),
         window,
         weakest: members.map((m) => claimStatus(data, m)).reduce(weaker),
+        ifYouChange: members.map((m) => linkBasis(data, m)).reduce((a, b) => (IF_RANK[a] <= IF_RANK[b] ? a : b)),
       };
       routes.set(c.to, [...(routes.get(c.to) ?? []), route]);
       seen.add(c.to);
@@ -90,6 +115,7 @@ export function whatIf(data: AtlasData, start: ID, change: 'more' | 'less', maxD
       window: [Math.min(...rs.map((r) => r.window[0])), Math.max(...rs.map((r) => r.window[1]))],
       weakest: rs.map((r) => r.weakest).reduce(weaker),
       depth: Math.min(...rs.map((r) => r.claims.length)),
+      ifYouChange: rs.map((r) => r.ifYouChange).reduce((a, b) => (IF_RANK[a] <= IF_RANK[b] ? a : b)),
     });
   }
   return out.sort((a, b) => a.depth - b.depth || STATUS_META[b.weakest].rank - STATUS_META[a.weakest].rank);

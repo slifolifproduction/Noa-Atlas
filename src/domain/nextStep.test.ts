@@ -36,6 +36,15 @@ describe('next step', () => {
     expect(step.also?.action).toEqual({ kind: 'route', route: 'navigation' });
   });
 
+  it('once this week’s steps are done, asks for the check that would tell two readings of what you care about apart', () => {
+    const data = createSeedData(TODAY);
+    for (const e of Object.values(data.entries)) for (const s of e.analysis?.suggestions ?? []) s.state = 'dismissed';
+    for (const a of data.navigation!.actions) a.status = 'done';
+    const step = nextStep(data, TODAY);
+    expect(step.key.startsWith('inquiry:')).toBe(true);
+    expect(step.also?.action.kind).toBe('decline');
+  });
+
   it('asks for a note after a quiet week', () => {
     const data = createSeedData(TODAY);
     for (const e of Object.values(data.entries)) for (const s of e.analysis?.suggestions ?? []) s.state = 'dismissed';

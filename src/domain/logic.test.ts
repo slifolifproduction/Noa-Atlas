@@ -5,9 +5,9 @@ import { createSeedData } from '../data/seed';
 import { toCurrentShape } from '../persistence/migrate';
 import { useAtlas } from '../state/atlasStore';
 import { claimSentence, claimStatus, evidenceProfile, statusFromProfile, type EvidenceProfile } from './claims';
-import { baseRate, caseRows, commonCauses, lagRange } from './compare';
+import { baseRate, caseRows, commonCauses, lagRange, othersAt, pushes } from './compare';
 import { expectations, predictionCounts, predictionLocked, testCheck } from './expect';
-import { coverage, episodeOfItem, episodes, factorStates, usualLevel } from './factors';
+import { coverage, episodeOfItem, episodes, factorStates, sourceDate, usualLevel } from './factors';
 import { danglingReferences } from './integrity';
 import { findLoops, loopTurns } from './loops';
 import { scrutinize } from './scrutiny';
@@ -159,12 +159,23 @@ describe('telling a claim apart from what else could produce it', () => {
     expect(commonCauses(d, d.claims.c04).map((c) => c.factor)).toEqual(['n_load']);
   });
   it('a claim whose every time is also explained by a common cause is not "supported"', () => {
+    const base: EvidenceProfile = { instances: 3, episodes: 3, contrast: 1, mechanism: false, testsFor: 0, testsAgainst: 0, counter: 0 };
+    expect(statusFromProfile({ ...base, needsTellingApart: true, toldApart: 0 })).toBe('plausible');
+    expect(statusFromProfile({ ...base, needsTellingApart: true, toldApart: 1 })).toBe('supported');
+  });
+
+  it('a common cause that stayed at its usual level for the period cannot explain the times within it', () => {
     const d = fresh();
     const p = evidenceProfile(d, d.claims.c04);
-    expect(p.needsTellingApart).toBe(true);
-    expect(p.toldApart).toBe(0);
-    expect(claimStatus(d, d.claims.c04)).toBe('plausible');
     expect(scrutinize(d, d.claims.c04).commons.length).toBe(1);
+    expect(p.needsTellingApart).toBe(true);
+    // In May, Active commitments ran at the level usual for the months it was this high, so it was not pushing either way then.
+    expect(p.toldApart).toBeGreaterThanOrEqual(1);
+    const c = d.claims.c04;
+    const instance = c.evidence.find((e) => e.kind === 'instance')!;
+    const at = othersAt(d, c, sourceDate(d, instance.source)!, pushes(c.effect, 'more'));
+    expect(at.others.find((o) => o.kind === 'common')?.state?.reads).toBe('usual');
+    expect(at.toldApart).toBe(true);
   });
 });
 

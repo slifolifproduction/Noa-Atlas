@@ -3,12 +3,15 @@ import { useMemo, useState } from 'react';
 import { claimsInto, claimStatus } from '../../domain/claims';
 import { expectSentence, READS_LABEL, readingsFor, stateSentence, STATUS_META } from '../../domain/constants';
 import { expectationOf, type ExpectationView } from '../../domain/expect';
-import { episodeOfItem } from '../../domain/factors';
+import { episodeOfItem, observedIn } from '../../domain/factors';
+import { repairsFor, type ProposedExpectation } from '../../domain/ledger';
 import { mapElements } from '../../domain/selectors';
-import type { FactorReading, ID } from '../../domain/types';
-import { formatDate } from '../../lib/dates';
+import type { FactorReading, ID, SourceRef } from '../../domain/types';
+import { addDays, formatDate, todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
+import { useUI } from '../../state/uiStore';
+import { StatusBadge } from '../evidence/Status';
 import { Button, IconButton } from '../ui/Button';
 import { ClaimRow, HistoryRow, Muted, NodeChip } from './parts';
 import { t } from '../../i18n';
@@ -250,7 +253,12 @@ export function ExpectationPanel({ occurrenceId }: { occurrenceId: ID }) {
           <p className="mt-0.5 text-[11.5px] text-ink-3">{t('So far it went the other way; the window is still open.')}</p>
         )}
         {view.verdict === 'unobserved' && (
-          <p className="mt-0.5 text-[11.5px] text-ink-3">{t('Not recorded is not the same as not happening: this counts neither way.')}</p>
+          <p className="mt-0.5 text-[11.5px] text-ink-3">
+            {observedIn(data, view.factor, view.from, view.until) === 'silent'
+              ? t('Almost nothing at all was written down in that window.')
+              : t('{f} was not recorded in that window.', { f: name })}{' '}
+            {t('Not recorded is not the same as not happening: this counts neither way.')}
+          </p>
         )}
         {view.occurrence.expectation?.verdict?.note && <p className="mt-0.5 text-[12px] text-ink-2">“{view.occurrence.expectation.verdict.note}”</p>}
         <div className="mt-1.5 flex flex-wrap gap-1">
@@ -290,7 +298,123 @@ export function ExpectationPanel({ occurrenceId }: { occurrenceId: ID }) {
           </p>
         </div>
       )}
+      {view.verdict === 'failed' && <Repairs view={view} />}
     </div>
+  );
+}
+
+/**
+ * Where the model may be wrong, after an expectation failed: each a question
+ * to look into, never applied. Changing a reason makes a new version of it.
+ */
+function Repairs({ view }: { view: ExpectationView }) {
+  const data = useAtlas((s) => s.data);
+  const updateClaim = useAtlas((s) => s.updateClaim);
+  const addExpectation = useAtlas((s) => s.addExpectation);
+  const open = useUI((s) => s.openEntity);
+  const { located, chain, repairs } = useMemo(() => repairsFor(data, view), [data, view]);
+  if (!repairs.length) return null;
+  const name = (id: ID) => data.nodes[id]?.label ?? '';
+  return (
+    <div>
+      <div className="label mb-1">{t('Where the model may be wrong')}</div>
+      {located && (
+        <p className="mb-1.5 text-[11.5px] text-ink-3">
+          {chain
+            ? t('Most likely at its least sure step: {claim}.', { claim: data.claims[located.id] ? name(located.from) : '' })
+            : t('It rested on one reason, so the failure counts against it.')}
+        </p>
+      )}
+      <ul className="space-y-1.5">
+        {repairs.map((r, i) => (
+          <li key={`${r.kind}:${i}`} className="text-[12.5px] leading-snug text-ink-2">
+            {r.text}
+            {r.kind === 'scope' && r.claimId && r.condition && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="mt-1 block"
+                onClick={() => {
+                  const c = data.claims[r.claimId!];
+                  const next = c.condition
+                    ? updateClaim(c.id, { scope: { ...c.scope, also: [...(c.scope?.also ?? []), r.condition!] } })
+                    : updateClaim(c.id, { condition: r.condition });
+                  if (next !== c.id) open({ kind: 'claim', id: next });
+                }}
+              >
+                {t('Only when {f} is {state}?', { f: name(r.condition.factor), state: r.condition.reads === 'high' ? t('high') : t('low') })}
+              </Button>
+            )}
+            {r.kind === 'timescale' && r.days && (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="mt-1 block"
+                onClick={() => {
+                  const today = todayISO();
+                  const occ = addExpectation({
+                    factor: view.factor,
+                    reads: view.reads,
+                    from: today,
+                    until: addDays(today, r.days!),
+                    label: view.occurrence.label,
+                    basis: view.basis.map((c) => c.id),
+                  });
+                  open({ kind: 'occurrence', id: occ });
+                }}
+              >
+                {t('Expect it again, over {n} days', { n: r.days })}
+              </Button>
+            )}
+            {r.kind === 'rival' && r.otherClaimId && (
+              <Button size="sm" variant="ghost" className="mt-1 block" onClick={() => open({ kind: 'claim', id: r.otherClaimId! })}>
+                {t('Open that reason')}
+              </Button>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * What the model expects to follow, offered to keep as expectations. Nothing
+ * is kept until you keep it, and only what is kept before its window can count.
+ */
+export function Proposals({ items, source, excerpt }: { items: ProposedExpectation[]; source?: SourceRef; excerpt?: string }) {
+  const addExpectation = useAtlas((s) => s.addExpectation);
+  const [kept, setKept] = useState<string[]>([]);
+  if (!items.length) return <Muted>{t('Nothing on the map follows from this yet, so the model expects nothing.')}</Muted>;
+  return (
+    <ul className="space-y-1.5">
+      {items.map((p) => (
+        <li key={p.key} className="rounded-[2px] border border-line p-2">
+          <span className="block text-[12.5px] leading-snug text-ink-2">
+            {p.label} <span className="text-ink-3">· {t('by {date}', { date: formatDate(p.until) })}</span>
+          </span>
+          <span className="mt-0.5 flex flex-wrap items-center gap-2 text-[11px] text-ink-3">
+            <StatusBadge status={p.weakest} />
+            {p.ifYouChange === 'tested' ? t('tested') : t('seen, not tested')}
+          </span>
+          {kept.includes(p.key) ? (
+            <span className="mt-1 block text-[11.5px] text-ink-3">{t('Kept: it will be checked against what you record.')}</span>
+          ) : (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="mt-1"
+              onClick={() => {
+                addExpectation({ factor: p.factor, reads: p.reads, from: p.from, until: p.until, label: p.label, basis: p.basis, source, excerpt });
+                setKept([...kept, p.key]);
+              }}
+            >
+              {t('Keep this expectation')}
+            </Button>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 

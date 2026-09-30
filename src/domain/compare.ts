@@ -37,7 +37,7 @@ import {
   type Lean,
 } from './factors';
 import { addDays, daysBetween, weekStart } from '../lib/dates';
-import type { AtlasData, Claim, Effect, ID, ISODate } from './types';
+import type { AtlasData, Claim, Condition, Effect, ID, ISODate } from './types';
 
 /* ---------------- delays ---------------- */
 
@@ -157,62 +157,131 @@ export interface CaseRow {
   days: number;
   verdict: Verdict;
   condition?: 'met' | 'not_met' | 'unknown';
+  /** Outside the stretch of time the claim is about (its scope), so not a test of it. */
+  outsidePeriod?: boolean;
   others: Other[];
   /** For rows that fit: the common causes and rivals were not doing the same. */
   toldApart: boolean;
+  /**
+   * The cause was written down on or after the day of the outcome: the order
+   * was put together afterwards, knowing how it turned out. Such a row can
+   * count against a claim, never for it.
+   */
+  hindsight: boolean;
 }
 
-const signature = (c: Claim) =>
-  [c.id, c.from, c.to, c.effect, c.with.join(','), c.lag ?? '', c.condition ? `${c.condition.factor}:${c.condition.reads}` : '', c.rivalIds.join(',')].join(
-    '|',
-  );
+/** Every condition a claim names: its first, and any further ones in its scope. */
+export const conditionsOf = (c: Pick<Claim, 'condition' | 'scope'>): Condition[] => [...(c.condition ? [c.condition] : []), ...(c.scope?.also ?? [])];
 
-/** The condition a claim names, read at a date. */
-export function conditionAt(data: AtlasData, claim: Claim, date: ISODate): 'met' | 'not_met' | 'unknown' | undefined {
-  if (!claim.condition) return undefined;
-  const s = stateBefore(data, claim.condition.factor, date, DEFAULT_WINDOW);
-  if (!s) return 'unknown';
-  return s.lean === leanOf(claim.condition.reads) ? 'met' : 'not_met';
+/** Whether a claim is about a cause kept up over several episodes rather than one change. */
+export const isCumulative = (c: Pick<Claim, 'scope'>) => c.scope?.timescale === 'cumulative';
+
+const signature = (c: Claim) =>
+  [
+    c.id,
+    c.from,
+    c.to,
+    c.effect,
+    c.with.join(','),
+    c.lag ?? '',
+    conditionsOf(c)
+      .map((x) => `${x.factor}:${x.reads}`)
+      .join(','),
+    c.scope?.from ?? '',
+    c.scope?.until ?? '',
+    c.scope?.timescale ?? '',
+    c.rivalIds.join(','),
+  ].join('|');
+
+/** The conditions a claim names, read at a date: all met, one not met, or not known. */
+export function conditionAt(data: AtlasData, claim: Pick<Claim, 'condition' | 'scope'>, date: ISODate): 'met' | 'not_met' | 'unknown' | undefined {
+  const all = conditionsOf(claim);
+  if (!all.length) return undefined;
+  let unknown = false;
+  for (const c of all) {
+    const s = stateBefore(data, c.factor, date, DEFAULT_WINDOW);
+    if (!s) unknown = true;
+    else if (s.lean !== leanOf(c.reads)) return 'not_met';
+  }
+  return unknown ? 'unknown' : 'met';
+}
+
+/** Whether a date falls in the stretch of time a claim is about. */
+export const inPeriod = (claim: Pick<Claim, 'scope'>, date: ISODate) =>
+  (!claim.scope?.from || date >= claim.scope.from) && (!claim.scope?.until || date <= claim.scope.until);
+
+/**
+ * A cause kept up over the weeks before a date, for claims about what builds
+ * over time: at least two of its states known in the delay before, and two
+ * in three of them leaning the same way. Read against the usual level over
+ * the whole record, not the period's, because a lasting shift is the very
+ * thing such a claim is about.
+ */
+export function exposureBefore(data: AtlasData, id: ID, date: ISODate, days: number): FactorState | undefined {
+  const from = addDays(date, -days);
+  const states = factorStates(data, id, 'overall').filter((s) => s.date >= from && s.date < date);
+  if (states.length < 2) return undefined;
+  const more = states.filter((s) => s.lean === 'more');
+  const less = states.filter((s) => s.lean === 'less');
+  const lean: Lean = more.length * 3 >= states.length * 2 ? 'more' : less.length * 3 >= states.length * 2 ? 'less' : 'usual';
+  const pick = lean === 'more' ? more : lean === 'less' ? less : states;
+  const last = pick[pick.length - 1];
+  return { ...last, lean };
 }
 
 /** Every recorded time A's state and then B's state are known, in order and within the delay. */
 export function caseRows(data: AtlasData, claim: Claim): CaseRow[] {
   return cached(data, `rows:${signature(claim)}`, () => {
     const window = lagWindow(claim);
+    const cumulative = isCumulative(claim);
     const withCause = pushes(claim.effect, 'more');
     const causes = [claim.from, ...claim.with];
+    const statesOf = (id: ID) => factorStates(data, id, cumulative ? 'overall' : 'phase');
     const rows: CaseRow[] = [];
     const usedCause = new Set<string>();
     const usedEpisode = new Set<string>();
-    for (const b of factorStates(data, claim.to)) {
+    for (const b of statesOf(claim.to)) {
       if (isBackgroundLevel(b)) continue;
       // A cause recorded the same day as an outcome has no known order with it, and is not paired with a later one.
-      const sameDay = causes.flatMap((f) => factorStates(data, f).filter((s) => s.date === b.date && !isBackgroundLevel(s)));
+      const sameDay = cumulative ? [] : causes.flatMap((f) => statesOf(f).filter((s) => s.date === b.date && !isBackgroundLevel(s)));
       const consume = () => sameDay.forEach((s) => usedCause.add(s.key));
       if (b.lean === 'usual') {
         consume();
         continue;
       }
-      // Only what came before: the same day has no known order.
-      const states = causes.map((f) => stateBefore(data, f, b.date, window, b.key, true));
+      // Only what came before: the same day has no known order. A cumulative cause is what was kept up over the delay.
+      const states = causes.map((f) => (cumulative ? exposureBefore(data, f, b.date, window) : stateBefore(data, f, b.date, window, b.key, true)));
       const known = states.filter((s): s is FactorState => Boolean(s));
       const causeLean: Lean =
         known.length < states.length ? 'usual' : known.every((s) => s.lean === 'more') ? 'more' : known.some((s) => s.lean === 'less') ? 'less' : 'usual';
       const cause = known[0];
       const episode = episodeOfState(data, b);
-      if (causeLean === 'usual' || usedCause.has(cause.key) || usedEpisode.has(episode)) {
+      if (causeLean === 'usual' || usedEpisode.has(episode) || (!cumulative && usedCause.has(cause.key))) {
         consume();
         continue;
       }
       consume();
       const condition = conditionAt(data, claim, b.date);
+      const outsidePeriod = !inPeriod(claim, b.date);
       // With the cause, B should go the claim's way; without it (or with less of it), the other way or not at all.
       let verdict: Verdict = causeLean === 'more' ? (b.lean === withCause ? 'fits' : 'exception') : b.lean === withCause ? 'elsewhere' : 'contrast';
-      if (condition === 'not_met') verdict = 'outside';
+      if (condition === 'not_met' || outsidePeriod) verdict = 'outside';
       const { others, toldApart } = othersAt(data, claim, b.date, b.lean);
       usedCause.add(cause.key);
       usedEpisode.add(episode);
-      rows.push({ episode, cause, causeLean, outcome: b, days: daysBetween(cause.date, b.date), verdict, condition, others, toldApart });
+      rows.push({
+        episode,
+        cause,
+        causeLean,
+        outcome: b,
+        days: daysBetween(cause.date, b.date),
+        verdict,
+        condition,
+        outsidePeriod: outsidePeriod || undefined,
+        others,
+        toldApart,
+        hindsight: Boolean(cause.written && cause.written >= b.date),
+      });
     }
     return rows;
   });
@@ -297,6 +366,41 @@ export function candidateCondition(
   }
   return undefined;
 }
+
+/**
+ * Contexts a claim has never been seen outside: a factor that was the same
+ * way every time the claim was put to the record (at least three times),
+ * though it has been recorded the other way at other times. Until a time
+ * without that context, the claim is known only for it.
+ */
+export function untestedContexts(data: AtlasData, claim: Claim): { factor: ID; reads: 'high' | 'low'; times: number }[] {
+  return cached(data, `untested:${signature(claim)}`, () => {
+    const dates = caseRows(data, claim)
+      .filter((r) => r.verdict !== 'outside')
+      .map((r) => r.outcome.date);
+    if (dates.length < 3) return [];
+    const bounded = new Set(conditionsOf(claim).map((c) => c.factor));
+    const out: { factor: ID; reads: 'high' | 'low'; times: number }[] = [];
+    for (const f of recordedFactors(data, claim)) {
+      if (bounded.has(f) || !data.nodes[f] || data.nodes[f].kind === 'question') continue;
+      const leans = dates.map((d) => stateBefore(data, f, d, 14)?.lean);
+      if (leans.some((l) => !l || l === 'usual') || !leans.every((l) => l === leans[0])) continue;
+      const states = factorStates(data, f);
+      if (!states.some((s) => s.lean === oppositeLean(leans[0]!))) continue;
+      out.push({ factor: f, reads: leans[0] === 'more' ? 'high' : 'low', times: dates.length });
+      if (out.length >= 2) break;
+    }
+    return out;
+  });
+}
+
+/**
+ * The same relationship under other bounds: claims on the map from the same
+ * cause to the same outcome. A relationship can act one way in one context
+ * and another way, or not at all, in another; together they are its family.
+ */
+export const familyOf = (data: AtlasData, claim: Claim): Claim[] =>
+  liveClaims(data).filter((c) => c.id !== claim.id && c.from === claim.from && c.to === claim.to);
 
 /* ---------------- moving back toward usual ---------------- */
 

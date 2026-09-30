@@ -12,6 +12,7 @@ import { t } from '../../i18n';
 export function NextStepCard({ className }: { className?: string }) {
   const data = useAtlas((s) => s.data);
   const setActionStatus = useAtlas((s) => s.setActionStatus);
+  const declineInquiry = useAtlas((s) => s.declineInquiry);
   const openCapture = useUI((s) => s.openCapture);
   const openEntity = useUI((s) => s.openEntity);
   useToday();
@@ -21,6 +22,7 @@ export function NextStepCard({ className }: { className?: string }) {
     if (a.kind === 'capture') openCapture(a.capture);
     else if (a.kind === 'open') openEntity(a.ref);
     else if (a.kind === 'route') navigate(a.route);
+    else if (a.kind === 'decline') declineInquiry(a.key);
     else {
       setActionStatus(a.actionId, 'done');
       toast(t('Done. Here is what comes next.'), { tone: 'success' });

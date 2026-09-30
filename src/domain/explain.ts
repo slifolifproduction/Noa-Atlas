@@ -55,8 +55,16 @@ export interface OutcomeExplanation {
   outside: HistoryItem[];
   /** Recorded times the outcome moved (went up or down, happened or not), one per episode. */
   moments: number;
-  /** Of those, times nothing on the list was recorded pushing it that way first. */
+  /**
+   * Of those, times everything on the list was known and none was pushing it
+   * that way first: something else was at work.
+   */
   unexplained: number;
+  /**
+   * Times nothing on the list was known to be pushing it, but some of the
+   * list was not recorded at all then: unknown, not unexplained.
+   */
+  unaccounted: number;
   /** Episodes where it came up with no record of which way it went. */
   unrecorded: number;
   /** Recorded times it happened without one of these contributors. */
@@ -69,7 +77,7 @@ export interface OutcomeExplanation {
 
 const OUTSIDE_DAYS = 28;
 
-function outsideBefore(data: AtlasData, dates: ISODate[], exclude: Set<ID>): HistoryItem[] {
+export function outsideBefore(data: AtlasData, dates: ISODate[], exclude: Set<ID>): HistoryItem[] {
   const out = new Map<string, HistoryItem>();
   for (const date of dates) {
     for (const h of actualItems(data)) {
@@ -115,6 +123,21 @@ function routesAmong(data: AtlasData, id: ID, contributors: Claim[]): Record<ID,
   return out;
 }
 
+/**
+ * Recorded moves of an outcome, newest first, with everything on its list of
+ * possible reasons known before and none pushing it that way: something not
+ * on the map was at work. (Where part of the list was not recorded, the move
+ * is unknown instead, and not listed.)
+ */
+export function unexplainedMoves(data: AtlasData, id: ID): FactorState[] {
+  const adopted = claimsInto(data, id).filter((c) => claimStatus(data, c) !== 'retired');
+  if (!adopted.length) return [];
+  return movesOf(data, id).filter(
+    (m) =>
+      !adopted.some((c) => pushedBefore(data, c, m.date, m.lean, m.key)) && adopted.every((c) => stateBefore(data, c.from, m.date, lagWindow(c), m.key, true)),
+  );
+}
+
 /** Everything that may be contributing to an outcome, what competes, and what is left unexplained. */
 export function explainOutcome(data: AtlasData, id: ID): OutcomeExplanation {
   const adopted = claimsInto(data, id).filter((c) => claimStatus(data, c) !== 'retired');
@@ -134,8 +157,12 @@ export function explainOutcome(data: AtlasData, id: ID): OutcomeExplanation {
     for (let j = i + 1; j < adopted.length; j++) if (areRivals(adopted[i], adopted[j])) rivalries.push([adopted[i], adopted[j]]);
 
   // The unexplained part, from what was recorded: times it moved with nothing on the list recorded pushing it that way first.
+  // Where part of the list was not recorded at all, that time is unknown, not unexplained.
   const moves = movesOf(data, id);
-  const unexplained = moves.filter((m) => !adopted.some((c) => pushedBefore(data, c, m.date, m.lean, m.key))).length;
+  const unpushed = moves.filter((m) => !adopted.some((c) => pushedBefore(data, c, m.date, m.lean, m.key)));
+  const allKnown = (m: FactorState) => adopted.every((c) => stateBefore(data, c.from, m.date, lagWindow(c), m.key, true));
+  const unexplained = unpushed.filter(allKnown).length;
+  const unaccounted = unpushed.length - unexplained;
   const recordedEpisodes = new Set(moves.map((m) => (m.item ? episodeOfItem(data, m.item.key)?.key : undefined)).filter(Boolean));
   const mentionedEpisodes = new Set(
     actualItems(data)
@@ -171,6 +198,7 @@ export function explainOutcome(data: AtlasData, id: ID): OutcomeExplanation {
     outside,
     moments: moves.length,
     unexplained,
+    unaccounted,
     unrecorded,
     elsewhere,
     missing,
@@ -191,6 +219,13 @@ export interface MomentExplanation {
   absent: Claim[];
   /** What happened to the person from outside in the four weeks before. */
   outside: HistoryItem[];
+  /**
+   * Had one contributor been otherwise that time: an imagined reading, never
+   * evidence. "Might not have" only when the reason is well founded (seen in
+   * several episodes and told apart, or tested) and nothing else on the list,
+   * or from outside, was pushing the same way; otherwise the Atlas cannot tell.
+   */
+  counterfactual: { claim: Claim; reading: 'might_not_have' | 'cannot_tell'; why: string }[];
 }
 
 /** One happening read against the general claims: what was recorded before it, and which way it pointed. */
@@ -213,5 +248,20 @@ export function explainMoment(data: AtlasData, item: HistoryItem): MomentExplana
       else against.push({ claim: c, state });
     }
   }
-  return { outcomes, moved, present, against, absent, outside: outsideBefore(data, [item.date], new Set(outcomes)).filter((h) => h.key !== item.key) };
+  const outside = outsideBefore(data, [item.date], new Set(outcomes)).filter((h) => h.key !== item.key);
+  const counterfactual = present.map(({ claim }) => {
+    const status = claimStatus(data, claim);
+    const founded = status === 'supported' || status === 'tested';
+    const alone = present.length === 1;
+    const reading: 'might_not_have' | 'cannot_tell' = founded && alone && !outside.length ? 'might_not_have' : 'cannot_tell';
+    const why = !founded
+      ? t('The reason itself is not yet well founded.')
+      : !alone
+        ? t('Other reasons on the list were pushing the same way then.')
+        : outside.length
+          ? t('Something also happened to you from outside then.')
+          : t('It was the only reason on the list pushing that way, and it keeps showing up.');
+    return { claim, reading, why };
+  });
+  return { outcomes, moved, present, against, absent, outside, counterfactual };
 }
