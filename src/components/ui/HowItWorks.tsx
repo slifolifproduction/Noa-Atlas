@@ -75,6 +75,11 @@ const PAGE_HELP: Record<string, () => ReactNode[]> = {
         'Your plan in Ahead, as bosses to beat: the milestone, each target with a date, and this week’s steps as minions. A boss’s strength is exactly what is still open.',
       )}
     </>,
+    <>
+      {t(
+        'The eye watches you. Its pupil is a clock keeping your time, with the days left in its window; the numbered ring around it is its strength, a segment per piece of work.',
+      )}
+    </>,
     <>{t('Strike marks a step done, or a target met: the same step in Ahead. Nothing else brings a boss down.')}</>,
     <>
       {t(

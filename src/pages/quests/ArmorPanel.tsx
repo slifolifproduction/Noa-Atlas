@@ -16,7 +16,7 @@ const round = (n: number) => Math.round(n * 10) / 10;
  * It never shields the boss from work (HP only drops when work is done); it
  * is chipped the only way the atlas allows, by what the record shows.
  */
-export function ArmorPanel({ boss }: { boss: Boss }) {
+export function ArmorPanel({ boss, className = 'mt-6' }: { boss: Boss; className?: string }) {
   const data = useAtlas((s) => s.data);
   const addArmor = useAtlas((s) => s.addArmor);
   const removeArmor = useAtlas((s) => s.removeArmor);
@@ -27,7 +27,7 @@ export function ArmorPanel({ boss }: { boss: Boss }) {
   const standing = plates.filter((p) => !p.broken && !p.withdrawn).length;
 
   return (
-    <div className="mt-6">
+    <div className={className}>
       <div className="flex items-baseline justify-between gap-2">
         <div className="label">{t('Armor')}</div>
         {plates.length > 0 && <span className="font-mono text-[10.5px] text-ink-3">{tn(standing, 'one plate standing', '{n} plates standing')}</span>}

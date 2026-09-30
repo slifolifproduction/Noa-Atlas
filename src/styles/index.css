@@ -1039,65 +1039,210 @@ html body {
   pointer-events: none;
 }
 
-/* ---- Quests: the boss's eye --------------------------------------------------
- * An instrument around an eye, in the atlas's own hairlines: the outer ring's
- * arc is the boss's strength (a segment per piece of work, dark once done), a
- * spoke on the iris per piece, the pupil at the centre. Near its date the eye
- * burns in the signal colour. */
-.boss-eye {
+/* ---- Quests: the eye in space ------------------------------------------------
+ * The boss as the eye of something vast, its pupil an old clock. A rig of
+ * layers around one centre: painted skies, a glow, an orrery of rings that
+ * turns, the eye itself, and a nearer ring of text. Warm ink on black, as in
+ * the rest of the atlas; the signal colour only for what is live (a strike)
+ * and for danger (its date is close). */
+.quest-stage {
+  background: #030405;
+}
+.quest-rig {
   --eye: 236 232 223;
   --eye-hot: 236 232 223;
-  overflow: visible;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(90% 80% at var(--cx, 50%) var(--cy, 45%), #0b0d11 0%, #060709 45%, #030405 100%);
 }
-.boss-eye[data-urgent] {
+.quest-rig[data-urgent] {
   --eye-hot: 255 90 31;
 }
-.boss-eye[data-state='defeated'],
-.boss-eye[data-state='escaped'] {
-  opacity: 0.55;
+.quest-rig::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(120% 100% at var(--cx, 50%) var(--cy, 45%), transparent 50%, rgb(0 0 0 / 0.55) 100%);
 }
-.boss-eye circle,
-.boss-eye path,
-.boss-eye line {
+.quest-rig svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.quest-rig circle,
+.quest-rig path,
+.quest-rig line {
   vector-effect: non-scaling-stroke;
 }
+.quest-sky {
+  position: absolute;
+  inset: -40px;
+  pointer-events: none;
+}
+.quest-sky canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.quest-twinkle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  border-radius: 50%;
+  background: #ece8df;
+  box-shadow: 0 0 6px 1px rgb(236 232 223 / 0.45);
+  opacity: 0.15;
+  animation: quest-twinkle 6s ease-in-out infinite;
+}
+@keyframes quest-twinkle {
+  50% {
+    opacity: 0.9;
+  }
+}
+.quest-body,
+.quest-layer {
+  position: absolute;
+  pointer-events: none;
+}
+.quest-body {
+  inset: 0;
+}
+/* It wakes: the rings come out of the dark. */
+.quest-ring-layer {
+  opacity: 0;
+  scale: 0.9;
+  transition:
+    opacity 1.8s var(--ease-out-quint) 250ms,
+    scale 2.6s var(--ease-out-quint) 250ms;
+}
+.quest-rig[data-awake] .quest-ring-layer {
+  opacity: 1;
+  scale: 1;
+}
+.quest-rig[data-awake]:is([data-state='defeated'], [data-state='dormant']) .quest-ring-layer {
+  opacity: 0.4;
+}
+.quest-glow {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 2.4s ease 400ms;
+  background: radial-gradient(closest-side, rgb(236 232 223 / 0.12), rgb(236 232 223 / 0.05) 34%, rgb(236 232 223 / 0.014) 66%, transparent);
+}
+.quest-rig[data-awake] .quest-glow {
+  opacity: 1;
+}
+.quest-rig[data-awake]:is([data-state='defeated'], [data-state='escaped'], [data-state='dormant']) .quest-glow {
+  opacity: 0.35;
+}
+/* Near its date its light beats, twice, like a heart. */
+.quest-rig[data-urgent] .quest-glow {
+  background: radial-gradient(closest-side, rgb(255 90 31 / 0.15), rgb(255 90 31 / 0.05) 30%, rgb(236 232 223 / 0.016) 64%, transparent);
+}
+.quest-rig[data-urgent][data-awake] .quest-glow {
+  animation: quest-beat 1.6s ease-in-out infinite;
+}
+@keyframes quest-beat {
+  0%,
+  100% {
+    opacity: 0.7;
+    scale: 1;
+  }
+  12% {
+    opacity: 1;
+    scale: 1.035;
+  }
+  24% {
+    opacity: 0.78;
+    scale: 1.005;
+  }
+  36% {
+    opacity: 0.95;
+    scale: 1.025;
+  }
+}
+.quest-turn {
+  animation: quest-turn 320s linear infinite;
+  will-change: transform;
+}
+.quest-turn-back {
+  animation: quest-turn 210s linear infinite reverse;
+  will-change: transform;
+}
+.quest-rig[data-urgent] .quest-turn {
+  animation-duration: 140s;
+}
+.quest-rig[data-urgent] .quest-turn-back {
+  animation-duration: 95s;
+}
+.quest-rig:is([data-state='defeated'], [data-state='dormant']) :is(.quest-turn, .quest-turn-back, .eye-iris) {
+  animation-play-state: paused;
+}
+@keyframes quest-turn {
+  to {
+    rotate: 360deg;
+  }
+}
+/* The rings. */
 .eye-ring-faint {
   fill: none;
-  stroke: rgb(var(--eye) / 0.07);
+  stroke: rgb(var(--eye) / 0.08);
 }
 .eye-ring {
   fill: none;
-  stroke: rgb(var(--eye) / 0.28);
+  stroke: rgb(var(--eye) / 0.3);
 }
 .eye-ring-dash {
   fill: none;
-  stroke: rgb(var(--eye-hot) / 0.35);
+  stroke: rgb(var(--eye-hot) / 0.42);
   stroke-dasharray: 2 5;
 }
 .eye-ring-dots {
   fill: none;
-  stroke: rgb(var(--eye) / 0.2);
+  stroke: rgb(var(--eye) / 0.22);
   stroke-dasharray: 1 6;
 }
-.eye-ticks line {
-  stroke: rgb(var(--eye) / 0.2);
+.quest-rig .eye-band {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.03);
+  stroke-width: 56;
+  vector-effect: none;
+}
+.eye-ticks {
+  stroke: rgb(var(--eye) / 0.22);
+}
+.eye-ticks-major {
+  stroke: rgb(var(--eye) / 0.5);
 }
 .eye-arc {
   fill: none;
   stroke: rgb(var(--eye) / 0.5);
-  stroke-width: 1.5;
+  stroke-width: 1.4;
 }
 .eye-arc-thin {
   stroke-width: 1;
-  stroke: rgb(var(--eye) / 0.25);
+  stroke: rgb(var(--eye) / 0.28);
 }
 .eye-moon {
   fill: rgb(var(--eye) / 0.85);
 }
+.eye-planet {
+  fill: rgb(var(--eye) / 0.06);
+  stroke: rgb(var(--eye) / 0.28);
+}
+.eye-horizon {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.38);
+}
 .eye-hp {
   fill: none;
-  stroke: rgb(var(--eye-hot) / 0.85);
-  stroke-width: 4;
+  stroke: rgb(var(--eye-hot) / 0.62);
+  stroke-width: 3;
   transition:
     stroke 400ms,
     stroke-width 400ms;
@@ -1106,40 +1251,98 @@ html body {
   stroke: rgb(var(--eye) / 0.12);
   stroke-width: 1.5;
 }
+.eye-hp.is-look {
+  stroke: rgb(255 90 31);
+}
 .eye-num {
   font-family: var(--font-mono);
-  font-size: 10px;
-  fill: rgb(var(--eye) / 0.55);
+  letter-spacing: 0.08em;
+  fill: rgb(var(--eye) / 0.62);
 }
 .eye-num-done {
-  fill: rgb(var(--eye) / 0.2);
+  fill: rgb(var(--eye) / 0.22);
 }
-.eye-glow-in {
-  stop-color: rgb(var(--eye-hot));
+.eye-num.is-look {
+  fill: rgb(255 90 31);
+}
+.eye-ring-text {
+  font-family: var(--font-mono);
+  letter-spacing: 0.22em;
+  fill: rgb(var(--eye) / 0.3);
+}
+.eye-bracket {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.55);
+  stroke-width: 1.4;
+}
+.eye-bracket-dash {
+  fill: none;
+  stroke: rgb(var(--eye-hot) / 0.5);
+  stroke-dasharray: 1 4;
+}
+.eye-needle {
+  stroke: rgb(var(--eye) / 0.5);
+}
+/* Armor: plates further out, whole, chipped (dashed) or broken. */
+.eye-plate-whole {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.8);
+  stroke-width: 7;
+}
+.eye-plate-chipped {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.22);
+  stroke-width: 7;
+  stroke-dasharray: 2 4;
+}
+.eye-plate-broken .eye-plate-chipped {
+  stroke: rgb(var(--eye) / 0.14);
+  stroke-width: 3;
+}
+/* The eye: a dark sclera lit from the iris, fibres, a spoke per piece of work. */
+.eye-sclera-in {
+  stop-color: rgb(var(--eye));
   stop-opacity: 0.1;
 }
-.eye-glow-mid {
+.eye-sclera-mid {
   stop-color: rgb(var(--eye));
   stop-opacity: 0.035;
 }
-.eye-glow-out {
+.eye-sclera-out {
   stop-color: rgb(var(--eye));
-  stop-opacity: 0;
+  stop-opacity: 0.01;
+}
+.eye-iris {
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: quest-turn 180s linear infinite reverse;
+}
+.eye-iris-disc {
+  fill: rgb(var(--eye) / 0.035);
+  stroke: rgb(var(--eye) / 0.38);
+}
+.eye-fibre {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.08);
+}
+.eye-fibre-bright {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.22);
 }
 .eye-spoke line {
-  stroke: rgb(var(--eye) / 0.75);
-  stroke-width: 1.2;
+  stroke: rgb(var(--eye) / 0.82);
+  stroke-width: 1.3;
 }
 .eye-bead {
-  fill: rgb(var(--eye) / 0.7);
+  fill: rgb(var(--eye) / 0.75);
 }
 .eye-body {
-  fill: rgb(var(--eye) / 0.16);
-  stroke: rgb(var(--eye) / 0.3);
+  fill: rgb(var(--eye) / 0.13);
+  stroke: rgb(var(--eye) / 0.36);
 }
 .eye-node {
   fill: rgb(var(--eye));
-  stroke: var(--color-canvas);
+  stroke: #05060a;
   stroke-width: 1.5;
 }
 .eye-spoke-done line {
@@ -1151,100 +1354,282 @@ html body {
   opacity: 0.25;
 }
 .eye-spoke-done .eye-node {
-  fill: var(--color-canvas);
+  fill: #05060a;
   stroke: rgb(var(--eye) / 0.3);
 }
-.eye-pupil-halo {
-  fill: none;
-  stroke: rgb(var(--eye-hot) / 0.3);
+.eye-spoke.is-look line {
+  stroke: rgb(255 90 31);
+  stroke-width: 2;
 }
-.eye-pupil {
-  fill: #030405;
-  stroke: rgb(var(--eye-hot) / 0.9);
-  stroke-width: 1.5;
-  transition: r 500ms var(--ease-out-quint);
+.eye-spoke.is-look .eye-node {
+  fill: rgb(255 90 31);
 }
-.eye-pupil-core {
-  fill: none;
-  stroke: rgb(var(--eye-hot) / 0.55);
-  stroke-dasharray: 1 3;
-}
-.eye-glint {
-  fill: rgb(var(--eye) / 0.85);
+.eye-flare {
+  stroke: rgb(255 90 31);
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 6px rgb(255 90 31 / 0.9));
 }
 .eye-lid {
   fill: none;
-  stroke: rgb(var(--eye) / 0.75);
+  stroke: rgb(var(--eye) / 0.82);
+  stroke-width: 1.5;
+}
+.quest-rig[data-urgent] .eye-lid {
+  stroke: rgb(var(--eye-hot) / 0.9);
+  animation: quest-lid 1.6s ease-in-out infinite;
+}
+@keyframes quest-lid {
+  0%,
+  100% {
+    stroke-opacity: 0.6;
+  }
+  12%,
+  36% {
+    stroke-opacity: 1;
+  }
+}
+.eye-lid-contour {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.18);
+}
+.quest-rig .eye-lid-shade {
+  fill: none;
+  stroke: #030405;
+  stroke-opacity: 0.82;
+  stroke-width: 66;
+  vector-effect: none;
+}
+/* The clock that is its pupil: engraved numerals, a railway track, Breguet hands. */
+.clk-halo {
+  fill: none;
+  stroke: rgb(var(--eye-hot) / 0.3);
+}
+.clk-case {
+  fill: #040506;
+  stroke: rgb(var(--eye) / 0.85);
   stroke-width: 1.4;
 }
-.boss-eye[data-urgent] .eye-lid {
-  stroke: rgb(var(--eye-hot) / 0.85);
+.clk-knurl {
+  stroke: rgb(var(--eye) / 0.4);
 }
-/* The instrument turns slowly; the iris the other way. Faster when its date is close. */
-.eye-orbit,
-.eye-iris {
-  transform-box: view-box;
-  transform-origin: 50% 50%;
+.clk-face {
+  stroke: rgb(var(--eye) / 0.5);
 }
-.boss-eye:not([data-state='defeated']) .eye-orbit {
-  animation: eye-turn 90s linear infinite;
+.clk-rose {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.08);
 }
-.boss-eye:not([data-state='defeated']) .eye-orbit-back {
-  animation-duration: 140s;
-  animation-direction: reverse;
+.clk-chapter {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.2);
 }
-.boss-eye:not([data-state='defeated']) .eye-iris {
-  animation: eye-turn 160s linear infinite reverse;
+.clk-track {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.55);
 }
-.boss-eye[data-urgent] .eye-orbit {
-  animation-duration: 40s;
+.clk-minutes {
+  stroke: rgb(var(--eye) / 0.6);
 }
-.boss-eye[data-urgent] .eye-iris {
-  animation-duration: 70s;
+.clk-hours {
+  stroke: rgb(var(--eye) / 0.95);
+  stroke-width: 2;
 }
-@keyframes eye-turn {
-  to {
-    rotate: 360deg;
-  }
+.quest-rig .clk-num-heavy {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.95);
+  stroke-width: 1.6;
+  stroke-linecap: square;
+  vector-effect: none;
 }
-/* A hit: the struck spoke flares. */
-.eye-spoke.is-struck line {
-  stroke: rgb(255 90 31);
-  stroke-width: 2.5;
+.quest-rig .clk-num-hair {
+  fill: none;
+  stroke: rgb(var(--eye) / 0.85);
+  stroke-width: 0.7;
+  vector-effect: none;
 }
-@media (prefers-reduced-motion: reduce) {
-  .eye-orbit,
-  .eye-iris {
-    animation: none !important;
-  }
+.clk-mark {
+  font-family: var(--font-mono);
+  letter-spacing: 0.14em;
+  fill: rgb(var(--eye) / 0.55);
 }
-/* The arena: deep space behind the eye, and faint scanlines. */
-.quest-arena {
-  background:
-    radial-gradient(70% 60% at 34% 46%, rgb(236 232 223 / 0.045), transparent 70%),
-    radial-gradient(40% 40% at 34% 46%, rgb(255 90 31 / 0.025), transparent 70%), var(--color-surface);
+.clk-window {
+  fill: #0b0d10;
+  stroke: rgb(var(--eye) / 0.6);
 }
-.quest-arena::before {
-  content: '';
+.clk-window-text {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  fill: rgb(var(--eye));
+}
+.quest-rig[data-urgent] .clk-window-text {
+  fill: rgb(255 90 31);
+}
+.clk-sub {
+  fill: #030405;
+  stroke: rgb(var(--eye) / 0.4);
+}
+.clk-sec {
+  stroke: rgb(var(--eye-hot));
+}
+.clk-sec-cap {
+  fill: rgb(var(--eye-hot));
+}
+.clk-hand {
+  fill: rgb(var(--eye));
+  stroke: #05060a;
+  stroke-width: 0.6;
+}
+.quest-rig .clk-moon {
+  fill: none;
+  stroke: rgb(var(--eye));
+  stroke-width: 1.7;
+  vector-effect: none;
+}
+.clk-cap {
+  fill: rgb(var(--eye));
+}
+.clk-pin {
+  fill: #05060a;
+}
+.quest-rig .clk-glass {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.07);
+  stroke-width: 7;
+  stroke-linecap: round;
+  vector-effect: none;
+}
+/* A strike: a beam from your button to the part, a burst where it lands, a shock through the eye. */
+.quest-beams {
   position: absolute;
   inset: 0;
+  z-index: 2;
   pointer-events: none;
-  background: repeating-linear-gradient(to bottom, rgb(236 232 223 / 0.018) 0 1px, transparent 1px 3px);
 }
-/* Armor: plates on the outermost ring, whole, chipped (dashed) or broken. */
-.eye-plate-whole {
-  fill: none;
-  stroke: rgb(var(--eye) / 0.8);
-  stroke-width: 7;
-  transition: d 500ms var(--ease-out-quint);
-}
-.eye-plate-chipped {
-  fill: none;
-  stroke: rgb(var(--eye) / 0.22);
-  stroke-width: 7;
-  stroke-dasharray: 2 4;
-}
-.eye-plate-broken .eye-plate-chipped {
-  stroke: rgb(var(--eye) / 0.14);
+.quest-beam {
+  stroke: rgb(255 90 31 / 0.9);
   stroke-width: 3;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 7px rgb(255 90 31 / 0.85));
+}
+.quest-beam-core {
+  stroke: #fff3ea;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+.quest-impact {
+  fill: none;
+  stroke: rgb(255 90 31);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.quest-muzzle {
+  fill: rgb(255 90 31 / 0.55);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.quest-shock {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 1px solid rgb(236 232 223 / 0.6);
+  opacity: 0;
+  pointer-events: none;
+}
+/* What you read over it: kept legible against the light, the rings dimmed beneath it. */
+.quest-scrim {
+  position: absolute;
+  pointer-events: none;
+}
+.quest-scrim-top {
+  inset: 0 0 auto 0;
+  height: 190px;
+  background: linear-gradient(to bottom, rgb(3 4 5 / 0.88), rgb(3 4 5 / 0.5) 55%, transparent);
+}
+.quest-scrim-bottom {
+  display: none;
+}
+@media (min-width: 1024px) {
+  .quest-scrim-top {
+    right: auto;
+    width: min(820px, 64%);
+    height: 300px;
+    background: radial-gradient(100% 100% at 0 0, rgb(3 4 5 / 0.92), rgb(3 4 5 / 0.6) 45%, transparent 78%);
+  }
+  .quest-scrim-bottom {
+    display: block;
+    left: 0;
+    bottom: 0;
+    width: 560px;
+    height: 320px;
+    background: radial-gradient(100% 100% at 0 100%, rgb(3 4 5 / 0.92), rgb(3 4 5 / 0.55) 45%, transparent 78%);
+  }
+}
+.quest-hud {
+  text-shadow:
+    0 0 16px #030405,
+    0 0 4px #030405;
+}
+.quest-console {
+  background: linear-gradient(to bottom, rgb(3 4 5 / 0), rgb(3 4 5 / 0.88) 40px, rgb(3 4 5 / 0.95));
+}
+@media (min-width: 1024px) {
+  .quest-console {
+    background: rgb(5 6 8 / 0.74);
+    backdrop-filter: blur(8px);
+  }
+}
+.quest-watch {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: quest-watch 2.4s ease-in-out infinite;
+}
+@keyframes quest-watch {
+  50% {
+    opacity: 0.25;
+  }
+}
+/* Its name comes up as it wakes, like a signal finding its channel. */
+.quest-hud-in {
+  animation: quest-flicker 1.1s steps(1, end) both;
+}
+@keyframes quest-flicker {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.8;
+  }
+  36% {
+    opacity: 0.1;
+  }
+  46% {
+    opacity: 1;
+  }
+  52% {
+    opacity: 0.35;
+  }
+  60%,
+  100% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .quest-turn,
+  .quest-turn-back,
+  .eye-iris,
+  .quest-twinkle,
+  .quest-watch,
+  .quest-hud-in,
+  .quest-rig[data-urgent] .eye-lid,
+  .quest-rig[data-urgent][data-awake] .quest-glow {
+    animation: none !important;
+  }
+  .quest-ring-layer,
+  .quest-glow {
+    transition: none !important;
+  }
 }
