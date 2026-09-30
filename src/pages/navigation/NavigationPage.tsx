@@ -7,6 +7,7 @@ import { ResultModal } from '../../components/experiments/ResultModal';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button, buttonClass, IconButton } from '../../components/ui/Button';
 import { EmptyState, Progress } from '../../components/ui/primitives';
+import { EditableLine } from '../../components/ui/InlineEdit';
 import { EXPERIMENT_OUTCOME_LABEL, EXPERIMENT_STATUS_LABEL } from '../../domain/constants';
 import { currentAction, experimentCode, experimentProgress, navigationProgress, pathCode, patternCode } from '../../domain/selectors';
 import type { Experiment, NavAction, NavActionStatus } from '../../domain/types';
@@ -378,60 +379,6 @@ function MenuItem({ icon: Icon, children, onClick }: { icon: typeof Play; childr
       <Icon size={13} aria-hidden />
       {children}
     </button>
-  );
-}
-
-function EditableLine({
-  value,
-  onSave,
-  className,
-  multiline,
-  placeholder,
-}: {
-  value: string;
-  onSave(v: string): void;
-  className?: string;
-  multiline?: boolean;
-  placeholder?: string;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-  if (!editing)
-    return (
-      <button
-        type="button"
-        className={cn('block w-full rounded-[2px] text-left hover:bg-ink/[0.03]', className)}
-        onClick={() => (setDraft(value), setEditing(true))}
-        title={t('Click to edit')}
-      >
-        {value || <span className="text-ink-3">{placeholder ?? t('Add…')}</span>}
-      </button>
-    );
-  const commit = () => {
-    onSave(draft.trim());
-    setEditing(false);
-  };
-  return multiline ? (
-    <textarea
-      className="field mt-1 min-h-[56px]"
-      value={draft}
-      autoFocus
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => e.key === 'Escape' && setEditing(false)}
-    />
-  ) : (
-    <input
-      className="field"
-      value={draft}
-      autoFocus
-      onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') commit();
-        if (e.key === 'Escape') setEditing(false);
-      }}
-    />
   );
 }
 

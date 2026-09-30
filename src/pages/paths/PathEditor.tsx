@@ -3,6 +3,7 @@ import { Button } from '../../components/ui/Button';
 import { ConfirmButton } from '../../components/ui/ConfirmButton';
 import { Modal } from '../../components/ui/Modal';
 import { FieldLabel } from '../../components/ui/primitives';
+import { SKILL_STATUS_LABEL } from '../../domain/constants';
 import { pathCode } from '../../domain/selectors';
 import type { SkillRequirement, SkillStatus, StrategicPath } from '../../domain/types';
 import { lines } from '../../lib/text';
@@ -77,14 +78,28 @@ const LIST_FIELDS: { key: ListKey; label: string; placeholder: string }[] = [
   },
 ];
 
-const skillsToText = (s: SkillRequirement[]) => s.map((x) => `${x.label} | ${x.status}`).join('\n');
-function textToSkills(t: string): SkillRequirement[] {
-  return lines(t).map((l) => {
+const SKILL_STATUSES: SkillStatus[] = ['have', 'developing', 'gap'];
+
+/** Skills as text, one per line: "label | have", with the level in the interface language. */
+export const skillsToText = (s: SkillRequirement[]) => s.map((x) => `${x.label} | ${SKILL_STATUS_LABEL[x.status].toLowerCase()}`).join('\n');
+
+/** Reads "label | level" lines back; the level may be written in either language, and is "developing" when unclear. */
+export function textToSkills(text: string): SkillRequirement[] {
+  return lines(text).map((l) => {
     const [label, status] = l.split('|').map((x) => x.trim());
-    const st = (['have', 'developing', 'gap'] as SkillStatus[]).find((x) => x === status?.toLowerCase()) ?? 'developing';
+    const said = status?.toLowerCase();
+    const st = SKILL_STATUSES.find((x) => x === said || SKILL_STATUS_LABEL[x].toLowerCase() === said) ?? 'developing';
     return { label, status: st };
   });
 }
+
+/** How skills are written, in the interface language. */
+export const skillsHint = () =>
+  t('label | {have}, {developing} or {gap}', {
+    have: SKILL_STATUS_LABEL.have.toLowerCase(),
+    developing: SKILL_STATUS_LABEL.developing.toLowerCase(),
+    gap: SKILL_STATUS_LABEL.gap.toLowerCase(),
+  });
 
 /** Every path is described with the same fields, which is what makes them comparable. */
 export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): void }) {
@@ -162,7 +177,7 @@ export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): 
           <input id="p-time" className="field" value={time} onChange={(e) => setTime(e.target.value)} />
         </div>
         <div className="sm:col-span-2">
-          <FieldLabel htmlFor="p-skills" hint={t('label | have, developing or gap')}>
+          <FieldLabel htmlFor="p-skills" hint={skillsHint()}>
             {t('Skills')}
           </FieldLabel>
           <textarea id="p-skills" className="field num min-h-[88px] text-[12.5px]" value={skills} onChange={(e) => setSkills(e.target.value)} />

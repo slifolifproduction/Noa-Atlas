@@ -141,6 +141,24 @@
   }
 }
 
+/*
+ * Unlayered on purpose. A host page can wrap the app in its own skeleton
+ * (the published artifact does: a light colour scheme, a light body colour
+ * and a system font, all without a layer), and an unlayered rule always beats
+ * a layered one. Without these, text that inherits the body colour, such as
+ * what you type into a field, came out near-black on the dark surfaces.
+ */
+html:root {
+  color-scheme: dark;
+}
+html body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
 @layer components {
   /* Small mono caps label: the structural voice of the interface. */
   .label {
@@ -168,6 +186,7 @@
   }
   .field {
     width: 100%;
+    color: var(--color-ink);
     background: rgb(236 232 223 / 0.025);
     border: 1px solid var(--color-line-strong);
     border-radius: var(--radius-hair);
