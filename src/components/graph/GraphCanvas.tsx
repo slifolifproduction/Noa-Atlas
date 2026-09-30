@@ -7,9 +7,11 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useReactFlow,
+  useStore,
   useStoreApi,
   ViewportPortal,
   type Connection,
+  type CoordinateExtent,
   type NodeChange,
   type NodeTypes,
   type EdgeTypes,
@@ -75,7 +77,46 @@ export interface GraphCanvasProps {
    * activity, staged reveal, elastic neighbours and camera glides.
    */
   living?: boolean;
+  /**
+   * How far the view may zoom out, as a share of the zoom at which the whole
+   * content fits the free part of the view (e.g. 0.7): a scene that is one
+   * object, like the Causes helix, never shrinks to a speck.
+   */
+  zoomOutToFit?: number;
   children?: ReactNode;
+}
+
+const MIN_ZOOM = 0.12;
+
+/** The extent of what the view fits to (node centres, centred origin), backdrops aside except the helix, which is its own content. */
+function contentBox(nodes: AtlasFlowNode[]): { x: number; y: number; width: number; height: number } | null {
+  let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
+  for (const n of nodes) {
+    if (n.type === 'rings') continue;
+    const w = n.type === 'helix' ? n.data.spec.width : (n.measured?.width ?? 26);
+    const h = n.type === 'helix' ? n.data.spec.height : (n.measured?.height ?? 26);
+    x0 = Math.min(x0, n.position.x - w / 2);
+    x1 = Math.max(x1, n.position.x + w / 2);
+    y0 = Math.min(y0, n.position.y - h / 2);
+    y1 = Math.max(y1, n.position.y + h / 2);
+  }
+  return x1 > x0 ? { x: x0, y: y0, width: x1 - x0, height: y1 - y0 } : null;
+}
+
+/**
+ * d3-zoom's own rule for a translate extent, for moves made by hand (the glide): the view stays
+ * inside the extent, or centres on it where the extent is the smaller of the two.
+ */
+function keepInside(vp: Viewport, w: number, h: number, ext: CoordinateExtent | undefined): Viewport {
+  if (!ext || !w || !h) return vp;
+  const k = vp.zoom;
+  const dx0 = -vp.x / k - ext[0][0];
+  const dx1 = (w - vp.x) / k - ext[1][0];
+  const dy0 = -vp.y / k - ext[0][1];
+  const dy1 = (h - vp.y) / k - ext[1][1];
+  const tx = dx1 > dx0 ? (dx0 + dx1) / 2 : Math.min(0, dx0) || Math.max(0, dx1);
+  const ty = dy1 > dy0 ? (dy0 + dy1) / 2 : Math.min(0, dy0) || Math.max(0, dy1);
+  return tx || ty ? { x: vp.x + k * tx, y: vp.y + k * ty, zoom: k } : vp;
 }
 
 const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
@@ -115,6 +156,7 @@ function Canvas({
   persistViewport = true,
   occludedLeft = 0,
   living = false,
+  zoomOutToFit,
   children,
 }: GraphCanvasProps) {
   const rf = useReactFlow<AtlasFlowNode, SemanticEdge>();
@@ -200,6 +242,8 @@ function Canvas({
 
   // Momentum: a thrown pan keeps drifting and slows down, as things do in space.
   const momentum = useRef({ dragging: false, samples: [] as { t: number; x: number; y: number }[], raf: 0 });
+  /** Where panning may go (set below with the zoom-out limit); the glide keeps to it too. */
+  const extentRef = useRef<CoordinateExtent | undefined>(undefined);
   const onMoveStart = useCallback((e: MouseEvent | TouchEvent | null) => {
     if (!e) return;
     fitted.current = false;
@@ -247,6 +291,9 @@ function Canvas({
         const decay = Math.exp(-dt / 300);
         vx *= decay;
         vy *= decay;
+        const kept = keepInside({ x, y, zoom: vp.zoom }, store.getState().width, store.getState().height, extentRef.current);
+        // At the edge of where the view may go, the glide stops there.
+        if (kept.x !== x || kept.y !== y) [x, y, vx, vy] = [kept.x, kept.y, 0, 0];
         rf.setViewport({ x, y, zoom: vp.zoom });
         if (Math.hypot(vx, vy) > 0.02) m.raf = requestAnimationFrame(step);
         else {
@@ -256,7 +303,7 @@ function Canvas({
       };
       m.raf = requestAnimationFrame(step);
     },
-    [persistViewport, setViewport, layer, living, reduced, rf],
+    [persistViewport, setViewport, layer, living, reduced, rf, store],
   );
   useEffect(() => () => cancelAnimationFrame(momentum.current.raf), []);
   const fitOptionsRef = useRef<FitViewOptions>({ padding: fitPadding });
@@ -630,6 +677,28 @@ function Canvas({
   );
   fitOptionsRef.current = fitOptions;
 
+  // The zoom-out limit follows the room there is: side panels opening give a little more.
+  const viewWidth = useStore((s) => s.width);
+  const viewHeight = useStore((s) => s.height);
+  // Panning stops before it loses the content: at the widest zoom it can slide about a third of the
+  // view either way, never out of it.
+  const { minZoom, translateExtent } = useMemo((): { minZoom: number; translateExtent?: CoordinateExtent } => {
+    const box = zoomOutToFit ? contentBox(built.nodes) : null;
+    const room = viewWidth - occludedLeft - occludedRight;
+    if (!box || room <= 0 || !viewHeight) return { minZoom: MIN_ZOOM };
+    const floor = Math.min(1, Math.max(MIN_ZOOM, Math.min(room / box.width, viewHeight / box.height) * zoomOutToFit!));
+    const mx = (viewWidth / floor) * 0.35;
+    const my = (viewHeight / floor) * 0.35;
+    return {
+      minZoom: floor,
+      translateExtent: [
+        [box.x - mx, box.y - my],
+        [box.x + box.width + mx, box.y + box.height + my],
+      ],
+    };
+  }, [zoomOutToFit, built.nodes, viewWidth, viewHeight, occludedLeft, occludedRight]);
+  extentRef.current = translateExtent;
+
   return (
     <MotionContext.Provider value={motion}>
       <SpaceContext.Provider value={space}>
@@ -689,7 +758,8 @@ function Canvas({
             defaultViewport={initialViewport}
             fitView={!initialViewport}
             fitViewOptions={fitOptions}
-            minZoom={0.12}
+            minZoom={minZoom}
+            translateExtent={translateExtent}
             maxZoom={2.4}
             deleteKeyCode={null}
             selectionKeyCode={null}

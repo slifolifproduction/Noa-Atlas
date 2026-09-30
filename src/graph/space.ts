@@ -32,7 +32,7 @@ import type { ReactFlowState } from '@xyflow/react';
 import { createContext, useCallback, useContext, useRef } from 'react';
 import { YOU_ID } from '../domain/constants';
 import type { ID, LayerKey } from '../domain/types';
-import { helixDrawing, scanStep, type HelixDrawing, type HelixSpec } from './helix';
+import { helixDrawing, helixSpan, scanStep, type HelixDrawing, type HelixSpec } from './helix';
 import { hash01, HOP_MS, waveBus, type Wave } from './motion';
 import type { AtlasFlowNode, SemanticEdge } from './types';
 
@@ -141,6 +141,7 @@ interface HelixEls {
   svg: SVGSVGElement;
   paths: Map<string, SVGPathElement>;
   texts: Map<string, SVGTextElement>;
+  emitter: SVGEllipseElement | null;
 }
 
 interface EdgeEls {
@@ -588,8 +589,11 @@ export class SpaceEngine {
     const sp = Math.sin(pitch);
     // Zooming in brings the camera closer: perspective grows.
     const F = FOCAL * clamp(Math.sqrt(REF_ZOOM / k), 0.6, 1.7);
-    const Cx = (viewCx - tx) / k;
-    const Cy = (st.height / 2 - ty) / k;
+    // The pivot is the middle of the view; on the helix it stays on the helix's own axis, so the
+    // camera turns about the helix wherever it is in view and it never swings away from its place.
+    const span = this.helixSpec ? helixSpan(this.helixSpec) : null;
+    const Cx = this.helixSpec ? this.helixSpec.axis : (viewCx - tx) / k;
+    const Cy = span ? clamp((st.height / 2 - ty) / k, span.from, span.to) : (st.height / 2 - ty) / k;
     const px = (this.pointer.x - this.rect.left - tx) / k;
     const py = (this.pointer.y - this.rect.top - ty) / k;
     const gravity = this.pointer.inside && !this.pointer.down && now - this.pointer.moved < 4000;
@@ -905,11 +909,11 @@ function helixEls(svg: SVGSVGElement, spec: HelixSpec): HelixEls {
   const texts = new Map<string, SVGTextElement>();
   svg.querySelectorAll<SVGPathElement>('path[data-part]').forEach((p) => paths.set(p.dataset.part!, p));
   svg.querySelectorAll<SVGTextElement>('text[data-part]').forEach((p) => texts.set(p.dataset.part!, p));
-  return { spec, svg, paths, texts };
+  return { spec, svg, paths, texts, emitter: svg.querySelector<SVGEllipseElement>('ellipse[data-part]') };
 }
 
 /** Writes a drawing of the helix into its SVG. */
-export function paintHelix(els: Pick<HelixEls, 'paths' | 'texts'>, d: HelixDrawing) {
+export function paintHelix(els: Pick<HelixEls, 'paths' | 'texts' | 'emitter'>, d: HelixDrawing) {
   const path = (key: string, value: string) => els.paths.get(key)?.setAttribute('d', value);
   for (const s of [0, 1] as const) {
     path(`front-${s}`, d.front[s]);
@@ -920,6 +924,9 @@ export function paintHelix(els: Pick<HelixEls, 'paths' | 'texts'>, d: HelixDrawi
   path('rings', d.rings);
   path('axis', d.axis);
   path('scan', d.scan);
+  path('beam', d.beam);
+  els.emitter?.setAttribute('cx', d.emitter.x.toFixed(1));
+  els.emitter?.setAttribute('cy', d.emitter.y.toFixed(1));
   const place = (key: string, p: { x: number; y: number }, anchor?: string) => {
     const el = els.texts.get(key);
     if (!el) return;

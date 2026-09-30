@@ -192,6 +192,9 @@ export interface HelixDrawing {
   axis: string;
   /** The scanning ring, while it sweeps. */
   scan: string;
+  /** The projector's light, from the lower rings up to the top one, and where its glow centres. */
+  beam: string;
+  emitter: XY;
   /** Where the captions sit. */
   lead: XY;
   follow: XY;
@@ -257,6 +260,10 @@ export function helixDrawing(spec: HelixSpec, sway = 0, project: HelixProjector 
   const a1 = at(uEnd, 0, 0);
   const axis = `M${f(a0.x)} ${f(a0.y)}L${f(a1.x)} ${f(a1.y)}`;
   const scanning = scan !== undefined && scan >= uTop && scan <= uEnd ? ring(scan, spec.R * 1.1) : '';
+  // The light is carried with the helix, so the two never come apart.
+  const edge = (u: number, r: number, side: 1 | -1) => at(u, (side * Math.PI) / 2, r, RING_TILT);
+  const [bl, br, tr, tl] = [edge(uEnd, spec.R * 1.3, -1), edge(uEnd, spec.R * 1.3, 1), edge(uTop, spec.R * 1.05, 1), edge(uTop, spec.R * 1.05, -1)];
+  const beam = `M${f(bl.x)} ${f(bl.y)}L${f(br.x)} ${f(br.y)}L${f(tr.x)} ${f(tr.y)}L${f(tl.x)} ${f(tl.y)}Z`;
   const lift = RING_TILT * spec.R * 1.3 + 20;
   // Each strand is named beside the top ring, on the side where it begins.
   const strandCaption = (s: Strand) => {
@@ -271,6 +278,8 @@ export function helixDrawing(spec: HelixSpec, sway = 0, project: HelixProjector 
     rings,
     axis,
     scan: scanning,
+    beam,
+    emitter: { x: a1.x, y: a1.y },
     lead: { x: a0.x, y: a0.y - lift },
     follow: { x: a1.x, y: a1.y + lift + 10 },
     centre: at((spec.pairs - 1) / 2, 0, 0),
@@ -278,11 +287,9 @@ export function helixDrawing(spec: HelixSpec, sway = 0, project: HelixProjector 
   };
 }
 
-/** The centres of the two end rings, flat, in the backbone's own coordinates. */
-export function helixEnds(spec: HelixSpec): { top: XY; bottom: XY } {
-  const top = helixPoint(spec, -END_GAP, 0, 0, 0);
-  const bottom = helixPoint(spec, spec.pairs - 1 + END_GAP, 0, 0, 0);
-  return { top: { x: top.x - spec.origin.x, y: top.y - spec.origin.y }, bottom: { x: bottom.x - spec.origin.x, y: bottom.y - spec.origin.y } };
+/** How far the helix reaches along its axis, ring to ring (graph y). */
+export function helixSpan(spec: HelixSpec): { from: number; to: number } {
+  return { from: spec.top - END_GAP * spec.step, to: spec.top + (spec.pairs - 1 + END_GAP) * spec.step };
 }
 
 /** Where the scanning ring is at time t (seconds), in steps; outside the helix while it rests between sweeps. */
