@@ -1,8 +1,9 @@
-import { ArrowLeft, BookOpen, Ellipsis, History, Keyboard, LifeBuoy, Plus, Search, Settings, Sprout, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, BookOpen, Ellipsis, History, Keyboard, LifeBuoy, Plus, Search, Settings, Sparkles, Sprout, type LucideIcon } from 'lucide-react';
 import { groupTarget, hrefFor, type RouteKey } from '../../app/router';
 import { isExampleAtlas } from '../../data/seed';
 import { GROUPS, groupOf, VIEWS, type GroupKey } from '../../domain/constants';
 import { cn } from '../../lib/cn';
+import { useAccount } from '../../state/accountStore';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { PLACE_ICONS } from '../icons';
@@ -88,6 +89,7 @@ export function TopBar({ active }: { active: RouteKey }) {
 function MoreMenu() {
   const ui = useUI.getState;
   const example = useAtlas((s) => isExampleAtlas(s.data));
+  const claude = useAccount((s) => s.claude === 'available');
   return (
     <Menu label={t('More: versions, guide, settings')} icon={Ellipsis} iconOnly className="border-transparent bg-transparent" width="w-64">
       <MenuItem icon={History} hint={t('Save your atlas, go back to an earlier one, or start fresh')} onSelect={() => ui().setVersionsOpen(true)}>
@@ -111,6 +113,11 @@ function MoreMenu() {
           onSelect={() => ui().setStartFreshOpen(true, 'sample')}
         >
           {t('Open the example')}
+        </MenuItem>
+      )}
+      {claude && (
+        <MenuItem icon={Sparkles} hint={t('Claude reads your recent weeks and asks what would tell things apart')} onSelect={() => ui().setReviewOpen(true)}>
+          {t('Weekly review with Claude')}
         </MenuItem>
       )}
       <MenuItem icon={Keyboard} kbd="?" onSelect={() => ui().setShortcutsOpen(true)}>

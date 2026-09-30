@@ -96,6 +96,8 @@ function enter(uid: string, data: AtlasData) {
 }
 
 export async function connectAccount(): Promise<void> {
+  // Claude on the viewer's account is independent of where the atlas is kept.
+  void capability('sample').then((sample) => useAccount.setState({ claude: sample ? 'available' : 'unavailable' }));
   if (!insideClaude()) return onDevice('outside');
   const [db, user] = await Promise.all([capability('db'), capability('user')]);
   if (!db || !user) return onDevice('signed-out');

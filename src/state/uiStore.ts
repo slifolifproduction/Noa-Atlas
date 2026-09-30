@@ -99,6 +99,8 @@ export interface UIState {
   guideSeen: boolean;
   guideOpen: boolean;
   versionsOpen: boolean;
+  /** The weekly review with Claude. */
+  reviewOpen: boolean;
   startFreshOpen: boolean;
   /** What the start-fresh window offers first: an empty atlas, or the example. */
   startFreshMode: 'empty' | 'sample';
@@ -138,6 +140,7 @@ export interface UIState {
   setSpaceMode(mode: SpaceMode): void;
   setGuideOpen(open: boolean): void;
   setVersionsOpen(open: boolean): void;
+  setReviewOpen(open: boolean): void;
   setStartFreshOpen(open: boolean, mode?: 'empty' | 'sample'): void;
   setReturnVersion(id: string | undefined): void;
   hideExampleNote(): void;
@@ -169,6 +172,7 @@ export const useUI = create<UIState>()(
       guideSeen: false,
       guideOpen: false,
       versionsOpen: false,
+      reviewOpen: false,
       startFreshOpen: false,
       startFreshMode: 'empty',
       returnVersionId: undefined,
@@ -219,6 +223,7 @@ export const useUI = create<UIState>()(
       setSpaceMode: (spaceMode) => set({ spaceMode }),
       setGuideOpen: (guideOpen) => set((s) => ({ guideOpen, guideSeen: s.guideSeen || !guideOpen })),
       setVersionsOpen: (versionsOpen) => set({ versionsOpen }),
+      setReviewOpen: (reviewOpen) => set({ reviewOpen }),
       setStartFreshOpen: (startFreshOpen, mode) =>
         set((s) => ({ startFreshOpen, versionsOpen: false, startFreshMode: mode ?? (startFreshOpen ? 'empty' : s.startFreshMode) })),
       setReturnVersion: (returnVersionId) => set({ returnVersionId }),

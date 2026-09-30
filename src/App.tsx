@@ -11,6 +11,7 @@ import { ShortcutsDialog } from './components/shell/ShortcutsDialog';
 import { MobileTabBar, SubNav, TopBar } from './components/shell/TopBar';
 import { Toasts } from './components/ui/Toasts';
 import { StartFreshModal } from './components/versions/StartFreshModal';
+import { ReviewDialog } from './components/review/ReviewDialog';
 import { VersionsModal } from './components/versions/VersionsModal';
 import { VIEWS } from './domain/constants';
 import { useInspectorWidth } from './hooks/useMediaQuery';
@@ -90,6 +91,7 @@ export function App() {
       <Guide />
       <VersionsModal />
       <StartFreshModal />
+      <ReviewDialog />
       <ShortcutsDialog />
       <Toasts />
     </div>

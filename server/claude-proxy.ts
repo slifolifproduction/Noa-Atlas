@@ -11,7 +11,7 @@
 import http from 'node:http';
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
-import { TASKS, type TaskName } from '../src/ai/schemas.ts';
+import { LANGUAGE_RULE, TASKS, type TaskName } from '../src/ai/schemas.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const MODEL = process.env.ATLAS_MODEL ?? 'claude-opus-5';
@@ -39,11 +39,6 @@ async function readJson(req: http.IncomingMessage): Promise<unknown> {
   }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
-
-// The interface language the text fields should be written in (ids and quotes stay as they are).
-const LANGUAGE_RULE: Record<string, string> = {
-  id: '\nWrite every free-text field in Indonesian (Bahasa Indonesia). Quotes from the records stay exactly as written.',
-};
 
 async function runTask(task: TaskName, input: unknown, language?: string) {
   const spec = TASKS[task];

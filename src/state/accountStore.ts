@@ -24,6 +24,8 @@ export interface AccountState {
   /** The account can hold an atlas and has none yet: moving this one in is offered. */
   offer: boolean;
   sync?: SyncStatus;
+  /** Whether Claude can be asked from here, on the viewer's own account (inside claude.ai, signed in). */
+  claude: 'checking' | 'available' | 'unavailable';
 }
 
-export const useAccount = create<AccountState>()(() => ({ mode: 'checking', offer: false }));
+export const useAccount = create<AccountState>()(() => ({ mode: 'checking', offer: false, claude: 'checking' }));

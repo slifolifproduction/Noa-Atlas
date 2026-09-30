@@ -18,11 +18,13 @@ let claudeModule: Promise<typeof import('./claudeProvider')> | null = null;
 const loadClaude = () => (claudeModule ??= import('./claudeProvider'));
 
 export function resolveProvider(settings: ProviderSettings, onFallback?: (error: unknown) => void): AnalysisProvider {
-  if (settings.provider !== 'claude') return localProvider;
+  if (settings.provider !== 'claude' && settings.provider !== 'account') return localProvider;
+  const account = settings.provider === 'account';
   const withFallback = <K extends keyof AnalysisProvider>(key: K) =>
     (async (...args: unknown[]) => {
       try {
-        const claude = (await loadClaude()).createClaudeProvider(settings.endpoint);
+        const mod = await loadClaude();
+        const claude = account ? mod.createAccountProvider() : mod.createClaudeProvider(settings.endpoint);
         return await (claude[key] as (...a: unknown[]) => Promise<unknown>)(...args);
       } catch (error) {
         onFallback?.(error);
@@ -30,8 +32,8 @@ export function resolveProvider(settings: ProviderSettings, onFallback?: (error:
       }
     }) as AnalysisProvider[K];
   return {
-    id: 'claude',
-    label: t('Claude'),
+    id: settings.provider,
+    label: account ? t('Claude (your account)') : t('Claude'),
     analyzeEntry: withFallback('analyzeEntry'),
     detectDecisionPatterns: withFallback('detectDecisionPatterns'),
     proposeExperiments: withFallback('proposeExperiments'),

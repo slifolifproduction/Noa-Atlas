@@ -47,6 +47,7 @@ export function SettingsPage() {
   const file = useRef<HTMLInputElement>(null);
   const lang = useLang();
   const inAccount = useAccount((s) => s.mode === 'account');
+  const claude = useAccount((s) => s.claude);
   const counts = modelCounts(data);
   const bytes = (() => {
     try {
@@ -165,6 +166,13 @@ export function SettingsPage() {
                   body: t('Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.'),
                 },
                 {
+                  id: 'account',
+                  title: t('Claude, with your claude.ai account'),
+                  body: t(
+                    'Inside claude.ai, while you are signed in: the note being read, with element and pattern names, goes to Claude on your own account and usage. It asks you first, and falls back to local heuristics when it cannot.',
+                  ),
+                },
+                {
                   id: 'claude',
                   title: t('Claude, via your proxy'),
                   body: t(
@@ -185,11 +193,19 @@ export function SettingsPage() {
                   name="provider"
                   className="mt-1 accent-[var(--color-accent)]"
                   checked={settings.provider === o.id}
+                  disabled={o.id === 'account' && claude !== 'available' && settings.provider !== 'account'}
                   onChange={() => setSettings({ provider: o.id })}
                 />
                 <span>
                   <span className="block text-[13.5px] text-ink">{o.title}</span>
                   <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-2">{o.body}</span>
+                  {o.id === 'account' && claude !== 'available' && (
+                    <span className="mt-1 block text-[12px] text-ink-3">
+                      {claude === 'checking'
+                        ? t('Checking whether Claude can be asked from here…')
+                        : t('Not available here: open Cognitive Atlas inside claude.ai while signed in.')}
+                    </span>
+                  )}
                 </span>
               </label>
             ))}

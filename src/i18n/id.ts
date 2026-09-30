@@ -6,10 +6,20 @@
 export const ID: Record<string, string> = {
   'Skip to content': 'Lompat ke konten',
   'Loading…': 'Memuat…',
+  'This page was not allowed to use Claude, so the Atlas’s own rules are used.':
+    'Halaman ini tidak diizinkan memakai Claude, jadi aturan Atlas sendiri yang dipakai.',
+  'Claude is not available for this account here.': 'Claude tidak tersedia untuk akun ini di sini.',
+  'Claude is busy, or your usage limit is reached. Try again later.': 'Claude sedang sibuk, atau batas pemakaianmu tercapai. Coba lagi nanti.',
+  'Sign in to claude.ai again to use Claude.': 'Masuk lagi ke claude.ai untuk memakai Claude.',
+  'Claude declined this request.': 'Claude menolak permintaan ini.',
+  'Too much to send at once.': 'Terlalu banyak untuk dikirim sekaligus.',
+  'Claude’s answer could not be read. Try again.': 'Jawaban Claude tidak bisa dibaca. Coba lagi.',
+  'Claude could not be reached. Try again.': 'Claude tidak bisa dijangkau. Coba lagi.',
   'Could not reach the analysis proxy at {url}.': 'Tidak bisa menghubungi proxy analisis di {url}.',
   'Analysis proxy returned {status}': 'Proxy analisis membalas {status}',
   'The model response did not match the expected structure.': 'Respons model tidak sesuai dengan struktur yang diharapkan.',
   Claude: 'Claude',
+  'Claude (your account)': 'Claude (akunmu)',
   'Reported in this note.': 'Dilaporkan dalam catatan ini.',
   'Proxy responded with {status}.': 'Proxy membalas {status}.',
   'Connected · {model}.': 'Terhubung · {model}.',
@@ -1019,6 +1029,27 @@ export const ID: Record<string, string> = {
   'Relies on': 'Bergantung pada',
   'No claims attached. What would have to be true for this path to work?': 'Belum ada klaim terlampir. Apa yang harus benar agar jalur ini berhasil?',
   You: 'Kamu',
+  'Weekly review with Claude': 'Tinjauan mingguan dengan Claude',
+  'On your own claude.ai account. Claude reads, suggests and asks; nothing changes in your atlas unless you keep it.':
+    'Dengan akun claude.ai-mu sendiri. Claude membaca, menyarankan, dan bertanya; tidak ada yang berubah di atlasmu kecuali kamu menyimpannya.',
+  Stop: 'Hentikan',
+  Close: 'Tutup',
+  'Ask Claude': 'Tanya Claude',
+  'Ask again': 'Tanya lagi',
+  'What is sent: your elements and possible reasons, the notes and happenings of the last six weeks, how predictions went, and what the Atlas has learned from you. Claude may also search and read older notes.':
+    'Yang dikirim: elemen dan kemungkinan sebabmu, catatan dan kejadian enam minggu terakhir, bagaimana prediksi ternyata, dan apa yang sudah dipelajari Atlas darimu. Claude juga boleh mencari dan membaca catatan lama.',
+  'The first time, claude.ai asks you to allow it. It uses your own usage and can take a minute.':
+    'Pertama kali, claude.ai akan meminta izinmu. Ini memakai kuota pemakaianmu sendiri dan bisa butuh sekitar satu menit.',
+  'What the records show lately': 'Yang ditunjukkan catatan belakangan ini',
+  'Possible reasons not on the map yet': 'Kemungkinan sebab yang belum ada di peta',
+  'Added as a proposal · open': 'Ditambahkan sebagai usulan · buka',
+  'Add as a possible reason': 'Tambahkan sebagai kemungkinan sebab',
+  'Added reasons stay proposals, off the map, until you adopt them.':
+    'Kemungkinan sebab yang ditambahkan tetap berupa usulan, di luar peta, sampai kamu mengadopsinya.',
+  'What does not fit together': 'Yang tidak cocok satu sama lain',
+  'Questions that would tell readings apart': 'Pertanyaan yang bisa membedakan pembacaan',
+  'Kept · open': 'Disimpan · buka',
+  'Keep as a question': 'Simpan sebagai pertanyaan',
   'Saved to your account at {when}.': 'Tersimpan di akunmu pukul {when}.',
   'Up to date with your account.': 'Sudah sama dengan akunmu.',
   'Saving to your account…': 'Menyimpan ke akunmu…',
@@ -1155,6 +1186,8 @@ export const ID: Record<string, string> = {
   'What Cognitive Atlas is, in three lines': 'Apa itu Cognitive Atlas, dalam tiga baris',
   Guide: 'Panduan',
   'Leave the example for an atlas of your own; the example is kept as a version': 'Tinggalkan contoh untuk atlasmu sendiri; contohnya disimpan sebagai versi',
+  'Claude reads your recent weeks and asks what would tell things apart':
+    'Claude membaca minggu-minggu terakhirmu dan bertanya apa yang bisa membedakan berbagai kemungkinan',
   Settings: 'Pengaturan',
   Delete: 'Hapus',
   'Delete permanently': 'Hapus permanen',
@@ -1201,7 +1234,6 @@ export const ID: Record<string, string> = {
   'A test changes one thing on purpose and compares it with what you expected. Its result makes a reason surer, or less sure.':
     'Tes mengubah satu hal dengan sengaja dan membandingkannya dengan yang kamu harapkan. Hasilnya membuat sebab lebih yakin, atau kurang yakin.',
   'How this page works': 'Cara kerja halaman ini',
-  Close: 'Tutup',
   'Got it': 'Mengerti',
   'Click to edit': 'Klik untuk mengubah',
   'Edit {name}': 'Ubah {name}',
@@ -2250,9 +2282,15 @@ export const ID: Record<string, string> = {
   'Local heuristics': 'Heuristik lokal',
   'Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.':
     'Pencocokan frasa dan metadata yang pasti dan transparan. Berjalan offline; setiap saran menunjukkan frasa yang memicunya.',
+  'Claude, with your claude.ai account': 'Claude, dengan akun claude.ai-mu',
+  'Inside claude.ai, while you are signed in: the note being read, with element and pattern names, goes to Claude on your own account and usage. It asks you first, and falls back to local heuristics when it cannot.':
+    'Di dalam claude.ai, saat kamu masuk: catatan yang sedang dibaca, beserta nama elemen dan pola, dikirim ke Claude dengan akun dan kuota pemakaianmu sendiri. Ia meminta izinmu dulu, dan kembali ke heuristik lokal jika tidak bisa.',
   'Claude, via your proxy': 'Claude, lewat proxy-mu',
   'Sends the entry being analysed plus node and pattern names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.':
     'Mengirim catatan yang dianalisis beserta nama titik dan pola ke server yang kamu jalankan (server/claude-proxy.ts), yang memanggil Claude API dengan output terstruktur. Kembali ke heuristik lokal jika tidak terjangkau.',
+  'Checking whether Claude can be asked from here…': 'Memeriksa apakah Claude bisa ditanya dari sini…',
+  'Not available here: open Cognitive Atlas inside claude.ai while signed in.':
+    'Tidak tersedia di sini: buka Cognitive Atlas di dalam claude.ai dalam keadaan masuk.',
   'dev server forwards /api/analysis to localhost:8787': 'server dev meneruskan /api/analysis ke localhost:8787',
   'Proxy endpoint': 'Endpoint proxy',
   'Test connection': 'Uji koneksi',

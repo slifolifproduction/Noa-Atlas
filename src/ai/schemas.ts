@@ -115,7 +115,7 @@ export const NavigationPlanOutput = z.object({
   actions: z.array(z.object({ title: z.string(), target_index: z.number() })),
 });
 
-const SHARED_RULES = `You are the analysis layer of Cognitive Atlas, a personal metacognition tool.
+export const SHARED_RULES = `You are the analysis layer of Cognitive Atlas, a personal metacognition tool.
 Rules that always apply:
 - Work only from the records provided. Cite them by id. Never invent records or ids.
 - Keep what happened, what is claimed about causes, and what is imagined apart.
@@ -128,6 +128,11 @@ Rules that always apply:
 - Nothing written about something is not the same as it not happening: say it is unknown.
 - Describe regularities in situations ("when X, Y tends to follow"), never dispositions of the person.
 - Suggest a change to try only if it is something the person does, reversible, and never where health or money is at stake.`;
+
+/** The interface language the text fields should be written in (ids and quotes stay as they are). */
+export const LANGUAGE_RULE: Record<string, string> = {
+  id: '\nWrite every free-text field in Indonesian (Bahasa Indonesia). Quotes from the records stay exactly as written.',
+};
 
 export const TASKS = {
   entry_analysis: {

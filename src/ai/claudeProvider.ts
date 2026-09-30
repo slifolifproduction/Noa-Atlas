@@ -13,6 +13,7 @@ import type { AnalysisSuggestion, AtlasData, Decision, EntryAnalysis, Navigation
 import { addDays, todayISO, weekStart } from '../lib/dates';
 import { createId } from '../lib/ids';
 import { evaluateExperimentLocally } from './localAnalysis';
+import { accountCall } from './account';
 import { AnalysisError } from './errors';
 import { TASKS, type TaskName, type TaskOutput } from './schemas';
 import type { AnalysisProvider, PatternCandidate } from './types';
@@ -44,6 +45,10 @@ function decisionRecord(d: Decision) {
   };
 }
 
+/** Runs one task and returns its checked output. */
+type Call = <T extends TaskName>(task: T, input: unknown) => Promise<TaskOutput<T>>;
+
+/** Claude through a proxy you run (server/claude-proxy.ts), with the API key on the server. */
 export function createClaudeProvider(endpoint: string): AnalysisProvider {
   const base = endpoint.replace(/\/+$/, '');
 
@@ -68,9 +73,19 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
     return parsed.data as TaskOutput<T>;
   }
 
+  return withCall(call, 'claude', t('Claude'));
+}
+
+/** Claude on the viewer's own claude.ai account (inside claude.ai only; see ai/account). */
+export function createAccountProvider(): AnalysisProvider {
+  return withCall(accountCall, 'account', t('Claude (your account)'));
+}
+
+/** The same reading of every task's output, whichever way Claude was reached. */
+function withCall(call: Call, id: AnalysisProvider['id'], label: string): AnalysisProvider {
   return {
-    id: 'claude',
-    label: t('Claude'),
+    id,
+    label,
 
     async analyzeEntry(entry, data): Promise<EntryAnalysis> {
       const out = await call('entry_analysis', {
