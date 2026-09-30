@@ -224,13 +224,28 @@ export function tearSpecks(seed: number) {
 }
 
 /**
- * Paint the tear once: the void of the other side with a warm light deep in
- * it, its specks, the depths falling away inside it (echoes of its edge), the
- * cracks at its ends and its edge. Its burning halo goes on a second canvas,
- * so it can breathe and flare without being painted again.
+ * The tear's outline on the stage, in its pixels, for the window the eye's
+ * dimension is seen through: the same shape the canvases paint.
+ */
+export function tearWindow(seed: number, cx: number, cy: number, k: number) {
+  const [c, s] = [Math.cos((TEAR_TILT * Math.PI) / 180), Math.sin((TEAR_TILT * Math.PI) / 180)];
+  return (
+    tearOutline(seed)
+      .map(([x, y], i) => `${i ? 'L' : 'M'}${(cx + (c * x - s * y) * k).toFixed(1)} ${(cy + (s * x + c * y) * k).toFixed(1)}`)
+      .join('') + 'Z'
+  );
+}
+
+/**
+ * Paint the tear once. Behind the eye's dimension (`base`): the void of the
+ * other side with a warm light deep in it, its specks, the depths falling
+ * away inside it (echoes of its edge). In front of it: its torn edge and the
+ * cracks at its ends (`edge`), and its burning halo (`halo`), apart so it can
+ * breathe and flare without being painted again.
  */
 export function paintTear(
   base: HTMLCanvasElement,
+  edge: HTMLCanvasElement,
   halo: HTMLCanvasElement,
   o: { w: number; h: number; cx: number; cy: number; k: number; seed: number; urgent: boolean },
 ) {
@@ -293,17 +308,20 @@ export function paintTear(
       });
       ctx.restore();
     });
-    ctx.lineWidth = px;
-    ctx.strokeStyle = 'rgba(255,226,206,0.45)';
+  }
+  const ex = setup(edge);
+  if (ex) {
+    ex.lineWidth = px;
+    ex.strokeStyle = 'rgba(255,226,206,0.45)';
     for (const line of cracks) {
-      ctx.beginPath();
-      line.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
-      ctx.stroke();
+      ex.beginPath();
+      line.forEach(([x, y], i) => (i ? ex.lineTo(x, y) : ex.moveTo(x, y)));
+      ex.stroke();
     }
-    trace(ctx, outline);
-    ctx.strokeStyle = o.urgent ? 'rgba(255,176,130,0.95)' : 'rgba(255,240,228,0.8)';
-    ctx.lineWidth = px;
-    ctx.stroke();
+    trace(ex, outline);
+    ex.strokeStyle = o.urgent ? 'rgba(255,176,130,0.95)' : 'rgba(255,240,228,0.85)';
+    ex.lineWidth = 1.2 * px;
+    ex.stroke();
   }
   const hx = setup(halo);
   if (hx) {

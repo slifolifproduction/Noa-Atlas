@@ -1516,10 +1516,51 @@ html body {
 .quest-tear-shape {
   position: absolute;
   inset: -40px;
-  transition: transform 1.8s cubic-bezier(0.6, 0, 0.2, 1);
+  transform: scale(0.002, 0.004);
 }
-.quest-rig:is([data-state='defeated'], [data-state='dormant']) .quest-tear-shape {
-  transform: scaleY(0.035);
+/* The eye's dimension, seen only through the tear (its window is a clip the loop opens with it). */
+.quest-portal {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.quest-window {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+/* The crack space breaks along, before it tears open. */
+.quest-crack {
+  position: absolute;
+  height: 2px;
+  margin-top: -1px;
+  opacity: 0;
+  transform: scaleX(0);
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, #fff7ef 10%, #fff 50%, #fff7ef 90%, transparent);
+  box-shadow:
+    0 0 12px 3px rgb(255 200 160 / 0.55),
+    0 0 30px 6px rgb(255 120 60 / 0.25);
+}
+/* A flash of light where the tear breaks open. (Centred by `translate`, never set beside a
+ * `transform` in one rule: the build folds the two and drops the first.) */
+.quest-flash {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgb(255 247 239 / 0.55), rgb(255 90 31 / 0.22) 45%, transparent);
+}
+/* Light out of the tear as it breaks open. */
+.quest-burst {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgb(255 247 239 / 0.45), rgb(255 140 90 / 0.16) 40%, transparent);
 }
 .quest-tear-canvas {
   position: absolute;
@@ -1792,7 +1833,7 @@ html body {
 }
 /* Its name comes up as it wakes, like a signal finding its channel. */
 .quest-hud-in {
-  animation: quest-flicker 1.1s steps(1, end) 1.45s both;
+  animation: quest-flicker 1.1s steps(1, end) 2.1s both;
 }
 @keyframes quest-flicker {
   0% {
@@ -1831,6 +1872,8 @@ html body {
     transition: none !important;
   }
   .quest-flash,
+  .quest-burst,
+  .quest-crack,
   .quest-streams {
     display: none;
   }
