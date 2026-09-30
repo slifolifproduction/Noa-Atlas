@@ -68,9 +68,9 @@ const zoomBtn =
  */
 export function ViewMenu({ padding = 0.12, children }: { padding?: FitViewOptions['padding']; children: ReactNode }) {
   const rf = useReactFlow();
-  const fit = () => rf.fitView({ padding, duration: 400, nodes: rf.getNodes().filter((n) => n.type !== 'rings' && !n.hidden) });
+  const fit = () => rf.fitView({ padding, duration: 400, nodes: rf.getNodes().filter((n) => n.type !== 'rings' && n.type !== 'figure' && !n.hidden) });
   return (
-    <Menu label={t('View')} icon={SlidersHorizontal} width="w-[268px]">
+    <Menu label={t('View')} icon={SlidersHorizontal} width="w-[268px]" fitHeight>
       <div role="group" aria-label={t('Zoom')} className="flex gap-1 px-1 pt-1 pb-1.5">
         <button
           type="button"

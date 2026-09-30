@@ -1,12 +1,15 @@
 import type { Edge, Node } from '@xyflow/react';
-import type { AreaKey, ClaimStatus, Effect, ElementKind, LayerKey, LinkType, Origin, QuestionStatus, SkillStatus } from '../domain/types';
+import type { AreaKey, ClaimStatus, Effect, ElementKind, ID, LayerKey, LinkType, Origin, QuestionStatus, SkillStatus } from '../domain/types';
 import type { HelixSpec } from './helix';
+import type { FigureShape } from './shapes';
 
 /** The person at the centre, or an area's marker on the outer edge of its sector. */
 export type HubNodeData = {
   area: AreaKey;
   /** The person at the centre of the map. */
   center: boolean;
+  /** Seated on a constellation shape's star. */
+  onFigure?: boolean;
   label: string;
   statement: string;
   color: string;
@@ -56,6 +59,8 @@ export type ItemNodeData = {
   salient: boolean;
   /** On the Causes helix: its seat, which the space engine turns about the axis. */
   helix?: { slot: number; phase: number; side: 1 | -1 };
+  /** On a constellation shape: the star (hub) it orbits. */
+  orbitHub?: ID;
 };
 
 export type RingsNodeData = {
@@ -66,6 +71,13 @@ export type RingsNodeData = {
   spokes: number[];
   spokeInner: number;
   spokeRadius: number;
+};
+
+/** A constellation shape's figure: its lines, its other stars and each area's orbit (see graph/shapes.ts). */
+export type FigureNodeData = {
+  figure: FigureShape;
+  /** The constellation's name, set small under the figure. */
+  name: string;
 };
 
 /** The Causes helix's backbone: strands, base pairs, emitter rings and captions (see graph/helix.ts). */
@@ -114,10 +126,11 @@ export type SemanticEdgeData = {
 export type HubNode = Node<HubNodeData, 'hub'>;
 export type ItemNode = Node<ItemNodeData, 'item'>;
 export type RingsNode = Node<RingsNodeData, 'rings'>;
+export type FigureNode = Node<FigureNodeData, 'figure'>;
 export type HelixNode = Node<HelixNodeData, 'helix'>;
-export type AtlasFlowNode = HubNode | ItemNode | RingsNode | HelixNode;
+export type AtlasFlowNode = HubNode | ItemNode | RingsNode | FigureNode | HelixNode;
 /** Backdrops: drawn behind the graph, never selected, hovered, linked or travelled to. */
-export const isBackdrop = (n: { type?: string }) => n.type === 'rings' || n.type === 'helix';
+export const isBackdrop = (n: { type?: string }) => n.type === 'rings' || n.type === 'figure' || n.type === 'helix';
 export const BACKDROP_IDS = new Set(['__rings', '__helix']);
 export type SemanticEdge = Edge<SemanticEdgeData, 'semantic'>;
 

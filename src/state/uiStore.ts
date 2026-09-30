@@ -8,6 +8,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { DEFAULT_PROVIDER_SETTINGS, type ProviderSettings } from '../ai';
 import type { AreaKey, CaptureKind, ClaimStatus, EntityRef, GraphLayer, ID, LayerKey } from '../domain/types';
+import type { MapShape } from '../graph/shapes';
 import { createId } from '../lib/ids';
 import { safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
 
@@ -31,6 +32,8 @@ export interface OrbitView {
   showClaims: boolean;
   /** Show every element; otherwise each area shows its essentials until it is chosen. */
   showAll?: boolean;
+  /** The Map's shape: the round orbit (the default) or a constellation (see graph/shapes). */
+  shape?: MapShape;
 }
 
 export interface NetworkView {
@@ -89,6 +92,8 @@ export interface UIState {
   shortcutsOpen: boolean;
   hudOpen: boolean;
   layouts: Record<GraphLayer, GraphLayoutState>;
+  /** Where you dragged things on each Map shape other than the orbit (the orbit's are in `layouts`). */
+  shapePositions: Partial<Record<MapShape, Record<ID, XY>>>;
   orbitView: OrbitView;
   networkView: NetworkView;
   focusRequest: FocusRequest | null;
@@ -129,6 +134,8 @@ export interface UIState {
   setShortcutsOpen(open: boolean): void;
   setHudOpen(open: boolean): void;
   setPositions(layer: GraphLayer, positions: Record<ID, XY>): void;
+  setShapePositions(shape: MapShape, positions: Record<ID, XY>): void;
+  resetShapePositions(shape: MapShape): void;
   setViewport(layer: GraphLayer, viewport: Viewport): void;
   resetLayout(layer: GraphLayer): void;
   setOrbitView(patch: Partial<OrbitView>): void;
@@ -163,6 +170,7 @@ export const useUI = create<UIState>()(
       shortcutsOpen: false,
       hudOpen: true,
       layouts: { orbit: { positions: {} }, network: { positions: {} } },
+      shapePositions: {},
       orbitView: { collapsed: [], hiddenLayers: [], focus: false, showClaims: false },
       networkView: { hiddenStatuses: ['retired'], hiddenAreas: [], showSuggested: true, focusDepth: 0 },
       focusRequest: null,
@@ -207,6 +215,8 @@ export const useUI = create<UIState>()(
 
       setPositions: (layer, positions) =>
         set((s) => ({ layouts: { ...s.layouts, [layer]: { ...s.layouts[layer], positions: { ...s.layouts[layer].positions, ...positions } } } })),
+      setShapePositions: (shape, positions) => set((s) => ({ shapePositions: { ...s.shapePositions, [shape]: { ...s.shapePositions[shape], ...positions } } })),
+      resetShapePositions: (shape) => set((s) => ({ shapePositions: { ...s.shapePositions, [shape]: {} } })),
       setViewport: (layer, viewport) => set((s) => ({ layouts: { ...s.layouts, [layer]: { ...s.layouts[layer], viewport } } })),
       resetLayout: (layer) => set((s) => ({ layouts: { ...s.layouts, [layer]: { positions: {} } } })),
       setOrbitView: (patch) => set((s) => ({ orbitView: { ...s.orbitView, ...patch } })),
@@ -253,6 +263,7 @@ export const useUI = create<UIState>()(
       partialize: (s) => ({
         hudOpen: s.hudOpen,
         layouts: s.layouts,
+        shapePositions: s.shapePositions,
         orbitView: s.orbitView,
         networkView: s.networkView,
         settings: s.settings,

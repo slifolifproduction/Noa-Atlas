@@ -35,6 +35,7 @@ import type { NetworkView, XY } from '../state/uiStore';
 import { HELIX_DESKTOP, HELIX_PORTRAIT, helixLayout } from './helix';
 import { orbitLayout } from './layout';
 import { isBackdrop, type AtlasFlowNode, type ItemNode, type LabelSide, type SemanticEdge, type SemanticEdgeData } from './types';
+import { constellationLayout, ZODIAC_NAME, type MapShape } from './shapes';
 
 export interface BuiltGraph {
   nodes: AtlasFlowNode[];
@@ -213,6 +214,8 @@ export interface OrbitOptions {
   query: string;
   today: string;
   geometry?: OrbitGeometry;
+  /** The Map's shape: the round orbit, or one of the constellations (see graph/shapes). */
+  shape?: MapShape;
 }
 
 /** Sector boundaries, halfway between neighbouring areas. */
@@ -261,7 +264,8 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
   if (opts.lens === 'causes') return buildHelix(data, opts);
   const q = opts.query.trim().toLowerCase();
   const g = opts.geometry ?? ORBIT_DESKTOP;
-  const placed = orbitLayout(data, g);
+  const figure = opts.shape && opts.shape !== 'orbit' ? constellationLayout(data, opts.shape, g) : null;
+  const placed = figure ?? orbitLayout(data, g);
   const positions = { ...placed.positions, ...opts.stored };
   const thin = thinSpots(data, opts.today);
   const activity = Object.fromEntries(Object.keys(AREA_META).map((k) => [k, areaActivity(data, k as AreaKey, 60, opts.today)])) as Record<AreaKey, number>;
@@ -291,26 +295,38 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
   }
 
   const matches: ID[] = [];
-  const nodes: AtlasFlowNode[] = [
-    {
-      id: '__rings',
-      type: 'rings',
-      position: { x: 0, y: 0 },
-      data: {
-        radii: [LAYER_RADII.hold, LAYER_RADII.do, LAYER_RADII.around].map((r) => r * g.scale),
-        labels: [LAYER_META.hold.short, LAYER_META.do.short, LAYER_META.around.short],
-        stretch: { x: g.x, y: g.y },
-        spokes: SPOKES,
-        spokeInner: (CORE_RADIUS + 70) * g.scale,
-        spokeRadius: (AREA_MARKER_RADIUS - 60) * g.scale,
-      },
-      draggable: false,
-      selectable: false,
-      focusable: false,
-      connectable: false,
-      zIndex: -1,
-    },
-  ];
+  const backdrop: AtlasFlowNode = figure
+    ? {
+        // The same id as the rings: the space engine sets this plane at its depth.
+        id: '__rings',
+        type: 'figure',
+        position: { x: 0, y: 0 },
+        data: { figure: figure.figure, name: ZODIAC_NAME[figure.figure.key]() },
+        draggable: false,
+        selectable: false,
+        focusable: false,
+        connectable: false,
+        zIndex: -1,
+      }
+    : {
+        id: '__rings',
+        type: 'rings',
+        position: { x: 0, y: 0 },
+        data: {
+          radii: [LAYER_RADII.hold, LAYER_RADII.do, LAYER_RADII.around].map((r) => r * g.scale),
+          labels: [LAYER_META.hold.short, LAYER_META.do.short, LAYER_META.around.short],
+          stretch: { x: g.x, y: g.y },
+          spokes: SPOKES,
+          spokeInner: (CORE_RADIUS + 70) * g.scale,
+          spokeRadius: (AREA_MARKER_RADIUS - 60) * g.scale,
+        },
+        draggable: false,
+        selectable: false,
+        focusable: false,
+        connectable: false,
+        zIndex: -1,
+      };
+  const nodes: AtlasFlowNode[] = [backdrop];
 
   const itemCount = (k: AreaKey) => elements.filter((n) => n.area === k).length;
   const pushHub = (id: ID, key: AreaKey, reveal: number) => {
@@ -332,6 +348,7 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
       data: {
         area: key,
         center,
+        onFigure: Boolean(figure),
         label,
         statement,
         color: meta.color,
@@ -359,21 +376,23 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
     if (matched) matches.push(n.id);
     const core = n.area === 'self';
     const layer = layerOf(n.kind);
-    const side = labelSide(centre, pos);
-    nodes.push(
-      elementNode(
-        data,
-        n,
-        pos,
-        placed.inward.has(n.id) ? FLIP[side] : side,
-        // Staged reveal: the centre first, then each ring outward.
-        core ? 200 : layer === 'hold' ? 420 : layer === 'do' ? 560 : 700,
-        matched,
-        // With the map kept to its essentials, each one is named.
-        Boolean(opts.salient?.has(n.id) || keep?.has(n.id)),
-        opts.today,
-      ),
+    // On a figure, a name faces away from the star its element orbits.
+    const star = figure?.hubOf[n.id];
+    const side = labelSide(star ? (positions[star] ?? centre) : centre, pos);
+    const node = elementNode(
+      data,
+      n,
+      pos,
+      placed.inward.has(n.id) ? FLIP[side] : side,
+      // Staged reveal: the centre first, then each ring outward.
+      core ? 200 : layer === 'hold' ? 420 : layer === 'do' ? 560 : 700,
+      matched,
+      // With the map kept to its essentials, each one is named.
+      Boolean(opts.salient?.has(n.id) || keep?.has(n.id)),
+      opts.today,
     );
+    if (star) node.data.orbitHub = star;
+    nodes.push(node);
   }
   if (opts.selectedId) {
     const near = new Set(neighbors(data, opts.selectedId).map((x) => x.otherId));

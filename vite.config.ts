@@ -9,6 +9,8 @@ export default defineConfig({
   build: {
     // React and React Flow make up most of the entry chunk; pages and the Claude provider are split out.
     chunkSizeWarningLimit: 600,
+    // Keep third-party licence notices (/*! … */) in the built files.
+    rolldownOptions: { output: { comments: { legal: true } } },
   },
   server: {
     proxy: {

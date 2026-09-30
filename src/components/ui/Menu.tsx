@@ -19,6 +19,7 @@ export function Menu({
   width = 'w-60',
   className,
   panelClassName,
+  fitHeight,
   children,
 }: {
   label: string;
@@ -32,9 +33,12 @@ export function Menu({
   width?: string;
   className?: string;
   panelClassName?: string;
+  /** A long menu: keep it above the bottom of the screen and let it scroll. */
+  fitHeight?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [maxHeight, setMaxHeight] = useState<number>();
   const wrap = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
@@ -48,6 +52,17 @@ export function Menu({
 
   useEffect(() => {
     if (!open) return;
+    if (fitHeight && button.current) {
+      // Down to the bottom of the screen, or of whatever clips the menu first (a page above the phone's tab bar).
+      let bottom = window.innerHeight;
+      for (let el = wrap.current?.parentElement; el; el = el.parentElement) {
+        if (getComputedStyle(el).overflowY !== 'visible') {
+          bottom = Math.min(bottom, el.getBoundingClientRect().bottom);
+          break;
+        }
+      }
+      setMaxHeight(Math.max(200, bottom - button.current.getBoundingClientRect().bottom - 12));
+    }
     items()[0]?.focus();
     const outside = (e: PointerEvent) => {
       if (!wrap.current?.contains(e.target as Node)) setOpen(false);
@@ -110,9 +125,11 @@ export function Menu({
           className={cn(
             'absolute top-full z-40 mt-1 animate-rise rounded-[2px] border border-line-strong bg-overlay p-1 shadow-2xl',
             align === 'end' ? 'right-0' : 'left-0',
+            fitHeight && 'overflow-y-auto overscroll-contain',
             width,
             panelClassName,
           )}
+          style={fitHeight ? { maxHeight } : undefined}
         >
           <CloseContext.Provider value={() => close()}>{children}</CloseContext.Provider>
         </div>

@@ -52,6 +52,8 @@ const LAYER_DEPTH: Record<LayerKey | 'core', number> = { core: 130, hold: 60, do
 /** Elements float a little in front of their ring's plane. */
 const ELEMENT_LIFT = 24;
 const AREA_MARKER_DEPTH = -270;
+/** The plane a constellation shape's figure is drawn on: the area markers' depth, so its lines stay on them. */
+export const FIGURE_PLANE = 9;
 /**
  * Each ring turns slowly about the centre, all its elements together, inner
  * rings a little faster: amplitude in degrees, period in seconds.
@@ -251,7 +253,7 @@ export class SpaceEngine {
     const helix = backbone?.type === 'helix' ? backbone.data.spec : null;
     this.helixSpec = helix;
     for (const n of nodes) {
-      if (n.type === 'rings' || n.type === 'helix') continue;
+      if (n.type === 'rings' || n.type === 'figure' || n.type === 'helix') continue;
       seen.add(n.id);
       const h = hash01(n.id);
       const h2 = hash01(`${n.id}:z`);
@@ -266,7 +268,8 @@ export class SpaceEngine {
       let hub: ID | undefined;
       if (n.type === 'hub') {
         kind = 'hub';
-        base = (n.data.center ? RING_DEPTH[0] : AREA_MARKER_DEPTH) * q;
+        // On a figure every star is at one depth, so the figure's lines stay on all of them.
+        base = (n.data.center && !n.data.onFigure ? RING_DEPTH[0] : AREA_MARKER_DEPTH) * q;
         amp = n.data.center ? 16 : 22;
         wander = n.data.center ? 5 : 9;
       } else if (n.type === 'item' && n.data.helix && helix) {
@@ -276,11 +279,13 @@ export class SpaceEngine {
         amp = 7;
         wander = 1.5;
       } else if (n.type === 'item') {
-        // Elements sit on their ring's plane and turn with it about the centre.
+        // Elements sit on their ring's plane and turn with it about the centre (on a figure: about their own star).
         kind = 'item';
         const ring = n.data.core ? 'core' : n.data.layer;
-        hub = YOU_ID;
-        base = (LAYER_DEPTH[ring] + ELEMENT_LIFT + (h2 - 0.5) * 30) * q;
+        hub = n.data.orbitHub ?? YOU_ID;
+        base = n.data.orbitHub
+          ? (AREA_MARKER_DEPTH + ELEMENT_LIFT + (ring === 'around' ? -20 : ring === 'hold' || ring === 'core' ? 20 : 0) + (h2 - 0.5) * 16) * q
+          : (LAYER_DEPTH[ring] + ELEMENT_LIFT + (h2 - 0.5) * 30) * q;
         amp = 26;
         wander = 3;
         [spin, spinPeriod] = LAYER_SPIN[ring];
@@ -800,7 +805,7 @@ export class SpaceEngine {
     if (rings && this.ringEls.size) {
       const o = rings.internals.positionAbsolute;
       for (const [i, el] of this.ringEls) {
-        const z = (RING_DEPTH[i + 1] ?? 0) * q;
+        const z = (i === FIGURE_PLANE ? AREA_MARKER_DEPTH : (RING_DEPTH[i + 1] ?? 0)) * q;
         const m0 = FOCAL / (FOCAL - z);
         el.style.transformOrigin = `${(Cx - o.x).toFixed(2)}px ${(Cy - o.y).toFixed(2)}px`;
         el.style.transform = planeMatrix(z, m0, -Cx * (1 - 1 / m0), -Cy * (1 - 1 / m0), cy, sy, cp, sp, F);

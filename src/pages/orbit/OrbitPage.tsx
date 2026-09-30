@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { AddNodeModal } from '../../components/graph/AddNodeModal';
 import { GraphCanvas } from '../../components/graph/GraphCanvas';
 import { GraphSearch, ViewMenu } from '../../components/graph/GraphToolbar';
+import { ShapePicker } from '../../components/graph/ShapePicker';
 import { Legend } from '../../components/graph/Legend';
 import { refForNode } from '../../components/inspector/parts';
 import { useFocus } from '../../components/shell/Focus';
@@ -14,6 +15,7 @@ import { focusGraphId, salientIds } from '../../domain/ask';
 import { areaHubKey, isAreaHubId, LAYERS, ORBIT_DESKTOP, ORBIT_PORTRAIT, SECTOR_KEYS } from '../../domain/constants';
 import type { AreaKey, ID, LayerKey, LinkType } from '../../domain/types';
 import { buildOrbit, type CanvasLens } from '../../graph/build';
+import { ZODIAC_NAME, type MapShape } from '../../graph/shapes';
 import { useInspectorWidth, useIsDesktop, useIsMobile } from '../../hooks/useMediaQuery';
 import { useToday } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
@@ -35,8 +37,12 @@ const RAIL_WIDTH = 280;
 export function OrbitPage({ lens }: { lens: CanvasLens }) {
   const data = useAtlas((s) => s.data);
   const inspectorOpen = useUI((s) => s.inspector.length > 0);
-  const stored = useUI((s) => s.layouts.orbit.positions);
   const view = useUI((s) => s.orbitView);
+  const shape: MapShape = view.shape ?? 'orbit';
+  // Each shape keeps its own arrangement: dragging something on Leo leaves the orbit as it was.
+  const stored = useUI((s) => (shape === 'orbit' ? s.layouts.orbit.positions : s.shapePositions[shape]));
+  const setShapePositions = useUI((s) => s.setShapePositions);
+  const resetShapePositions = useUI((s) => s.resetShapePositions);
   const causes = useUI((s) => s.networkView);
   const hudOpen = useUI((s) => s.hudOpen);
   const setHudOpen = useUI((s) => s.setHudOpen);
@@ -71,7 +77,8 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
         salient,
         essentials: lens === 'map' && !view.showAll,
         // Phones get a compact portrait layout and no dragging, so desktop arrangements stay intact.
-        stored: isMobile ? {} : stored,
+        stored: isMobile ? {} : (stored ?? {}),
+        shape: lens === 'map' ? shape : 'orbit',
         geometry: isMobile ? ORBIT_PORTRAIT : ORBIT_DESKTOP,
         collapsed: lens === 'map' ? collapsed : new Set(),
         hiddenLayers: lens === 'map' ? hiddenLayers : new Set(),
@@ -81,7 +88,7 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
         query,
         today,
       }),
-    [data, lens, causes, salient, stored, isMobile, collapsed, hiddenLayers, view.showAll, view.showClaims, selectedId, view.focus, query, today],
+    [data, lens, causes, salient, stored, shape, isMobile, collapsed, hiddenLayers, view.showAll, view.showClaims, selectedId, view.focus, query, today],
   );
 
   // A search on the map that finds no element is kept, to see where the app falls short.
@@ -117,6 +124,12 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
     },
     [lens, setOrbitView],
   );
+
+  const savePositions = useMemo(
+    () => (shape === 'orbit' ? undefined : (positions: Record<ID, { x: number; y: number }>) => setShapePositions(shape, positions)),
+    [shape, setShapePositions],
+  );
+  const pickShape = (next: MapShape) => setOrbitView({ shape: next });
 
   const allCollapsed = view.collapsed.length === SECTOR_KEYS.length;
   const empty = Object.keys(data.entries).length === 0 && Object.keys(data.nodes).length === 0;
@@ -158,8 +171,10 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
         occludedRight={occluded}
         persistViewport={!isMobile && lens === 'map'}
         fitPadding={padding}
-        refitKey={startCard ? 'start' : 'map'}
+        // A new shape glides into view, fitted to the screen.
+        refitKey={`${startCard ? 'start' : 'map'}-${lens === 'map' ? shape : ''}`}
         draggable={!isMobile && lens === 'map'}
+        savePositions={lens === 'map' ? savePositions : undefined}
         occludedLeft={sideVisible ? leftInset : 0}
         // The helix is one object: zooming out stops a little past the whole of it.
         zoomOutToFit={0.7}
@@ -195,6 +210,8 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
           <ViewMenu padding={padding}>
             {lens === 'map' ? (
               <>
+                <ShapePicker value={shape} onChange={pickShape} />
+                <MenuSeparator />
                 <MenuItem
                   checked={Boolean(view.showAll)}
                   hint={t('Without this, each area shows only its key elements; choose an area to open the rest.')}
@@ -292,7 +309,11 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
             {lens === 'map' && (
               <>
                 <MenuSeparator />
-                <MenuItem icon={RotateCcw} hint={t('Put everything back where it started')} onSelect={() => resetLayout('orbit')}>
+                <MenuItem
+                  icon={RotateCcw}
+                  hint={t('Put everything back where it started')}
+                  onSelect={() => (shape === 'orbit' ? resetLayout('orbit') : resetShapePositions(shape))}
+                >
                   {t('Reset layout')}
                 </MenuItem>
               </>
@@ -356,7 +377,12 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
                 extra={
                   <>
                     <p className="text-[11.5px] leading-snug text-ink-3">
-                      {t('Angle: the area of life. Rings, from you outward: what you hold, what you do, what surrounds you.')}
+                      {shape === 'orbit'
+                        ? t('Angle: the area of life. Rings, from you outward: what you hold, what you do, what surrounds you.')
+                        : t(
+                            'Shape: {name}. You and each area of life sit on its stars, joined by its lines. Rings around each star, from it outward: what you hold, what you do, what surrounds you.',
+                            { name: ZODIAC_NAME[shape]() },
+                          )}
                     </p>
                     <p className="text-[11.5px] leading-snug text-ink-3">
                       {t(

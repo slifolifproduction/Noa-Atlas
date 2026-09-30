@@ -358,6 +358,9 @@ export const ID: Record<string, string> = {
   'A link': 'Sebuah tautan',
   'How they relate, in your own terms. True because you say so; it says nothing about causes.':
     'Bagaimana keduanya terkait, dengan istilahmu sendiri. Benar karena kamu bilang begitu; tidak menyatakan apa pun tentang sebab.',
+  Shape: 'Bentuk',
+  'Rings around you, one side per area of life': 'Cincin di sekelilingmu, satu sisi untuk tiap area hidup',
+  Orbit: 'Orbit',
   'Drag to connect': 'Seret untuk menyambung',
   '{n} active pattern involves this area': '{n} pola aktif melibatkan area ini',
   '{n} active patterns involve this area': '{n} pola aktif melibatkan area ini',
@@ -1897,6 +1900,18 @@ export const ID: Record<string, string> = {
   'No possible reasons to show': 'Belum ada kemungkinan sebab untuk ditampilkan',
   '{n} link you drew': '{n} tautan yang kamu gambar',
   '{n} links you drew': '{n} tautan yang kamu gambar',
+  Aries: 'Aries',
+  Taurus: 'Taurus',
+  Gemini: 'Gemini',
+  Cancer: 'Cancer',
+  Leo: 'Leo',
+  Virgo: 'Virgo',
+  Libra: 'Libra',
+  Scorpius: 'Scorpius',
+  Sagittarius: 'Sagittarius',
+  Capricornus: 'Capricornus',
+  Aquarius: 'Aquarius',
+  Pisces: 'Pisces',
   'This device ({zone})': 'Perangkat ini ({zone})',
   tomorrow: 'besok',
   yesterday: 'kemarin',
@@ -2038,6 +2053,8 @@ export const ID: Record<string, string> = {
   'Describe yourself': 'Gambarkan dirimu',
   'Angle: the area of life. Rings, from you outward: what you hold, what you do, what surrounds you.':
     'Sudut: area hidup. Cincin, dari kamu ke luar: apa yang kamu pegang, apa yang kamu lakukan, apa yang mengelilingimu.',
+  'Shape: {name}. You and each area of life sit on its stars, joined by its lines. Rings around each star, from it outward: what you hold, what you do, what surrounds you.':
+    'Bentuk: {name}. Kamu dan tiap area hidup duduk di bintang-bintangnya, dihubungkan oleh garis-garisnya. Cincin di sekitar tiap bintang, dari bintang itu ke luar: apa yang kamu pegang, apa yang kamu lakukan, apa yang mengelilingimu.',
   'Arrowed arcs between areas: possible reasons that cross from one to the other. Dotted plain arcs: links you drew, which say nothing about causes. Tap one to see what it holds.':
     'Busur berpanah antar-area: kemungkinan sebab yang menyeberang dari satu ke yang lain. Busur titik-titik polos: tautan yang kamu gambar, yang tidak menyatakan apa pun tentang sebab. Ketuk satu untuk melihat isinya.',
   'Each area shows its key elements; +n beside its name is what is folded inside. A dashed line to another area’s marker ties an element to what is folded there.':

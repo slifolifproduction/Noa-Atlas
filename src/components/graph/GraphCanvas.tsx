@@ -33,6 +33,7 @@ import { HelixNodeView } from './nodes/HelixNode';
 import { HubNodeView } from './nodes/HubNode';
 import { ItemNodeView } from './nodes/ItemNode';
 import { RingsNodeView } from './nodes/RingsNode';
+import { FigureNodeView } from './nodes/FigureNode';
 import { RelationPicker } from './RelationPicker';
 import { NodeProbe } from './NodeProbe';
 import { Reticle } from './Reticle';
@@ -44,6 +45,7 @@ const nodeTypes: NodeTypes = {
   hub: HubNodeView,
   item: ItemNodeView,
   rings: RingsNodeView,
+  figure: FigureNodeView,
   helix: HelixNodeView,
 };
 const edgeTypes: EdgeTypes = { semantic: SemanticEdgeView };
@@ -83,6 +85,8 @@ export interface GraphCanvasProps {
    * object, like the Causes helix, never shrinks to a speck.
    */
   zoomOutToFit?: number;
+  /** Where dragged positions go, instead of the layer's own arrangement (a Map shape keeps its own). */
+  savePositions?: (positions: Record<string, { x: number; y: number }>) => void;
   children?: ReactNode;
 }
 
@@ -92,7 +96,7 @@ const MIN_ZOOM = 0.12;
 function contentBox(nodes: AtlasFlowNode[]): { x: number; y: number; width: number; height: number } | null {
   let [x0, y0, x1, y1] = [Infinity, Infinity, -Infinity, -Infinity];
   for (const n of nodes) {
-    if (n.type === 'rings') continue;
+    if (n.type === 'rings' || n.type === 'figure') continue;
     const w = n.type === 'helix' ? n.data.spec.width : (n.measured?.width ?? 26);
     const h = n.type === 'helix' ? n.data.spec.height : (n.measured?.height ?? 26);
     x0 = Math.min(x0, n.position.x - w / 2);
@@ -157,6 +161,7 @@ function Canvas({
   occludedLeft = 0,
   living = false,
   zoomOutToFit,
+  savePositions,
   children,
 }: GraphCanvasProps) {
   const rf = useReactFlow<AtlasFlowNode, SemanticEdge>();
@@ -403,9 +408,11 @@ function Canvas({
     (_: unknown, __: AtlasFlowNode, dragged: AtlasFlowNode[]) => {
       setDragging(false);
       spring.current.dragId = null;
-      setPositions(layer, Object.fromEntries(dragged.map((n) => [n.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) }])));
+      const positions = Object.fromEntries(dragged.map((n) => [n.id, { x: Math.round(n.position.x), y: Math.round(n.position.y) }]));
+      if (savePositions) savePositions(positions);
+      else setPositions(layer, positions);
     },
-    [layer, setPositions],
+    [layer, setPositions, savePositions],
   );
 
   const onConnect = useCallback((c: Connection) => {
@@ -491,7 +498,9 @@ function Canvas({
     if (refitted.current === refitKey) return;
     refitted.current = refitKey;
     fitted.current = true;
-    rf.fitView({ ...fitOptionsRef.current, duration: reduced ? 0 : 500 });
+    // Once nodes rebuilt for the same change are in place (they arrive a render later).
+    const timer = setTimeout(() => rf.fitView({ ...fitOptionsRef.current, duration: reduced ? 0 : 500 }), 60);
+    return () => clearTimeout(timer);
   }, [refitKey]);
 
   // The network thinks: every few seconds a signal leaves one node (a domain in Orbit, a
@@ -672,7 +681,11 @@ function Canvas({
   // Fit to the content, not to decorative backdrops such as the orbit rings. The helix's box is
   // its content: the whole chain, with room for the names beside it.
   const fitOptions = useMemo(
-    () => ({ padding: fitPadding, minZoom: fitMinZoom, nodes: built.nodes.filter((n) => n.type !== 'rings').map((n) => ({ id: n.id })) }),
+    () => ({
+      padding: fitPadding,
+      minZoom: fitMinZoom,
+      nodes: built.nodes.filter((n) => n.type !== 'rings' && n.type !== 'figure').map((n) => ({ id: n.id })),
+    }),
     [built.nodes, fitPadding, fitMinZoom],
   );
   fitOptionsRef.current = fitOptions;
