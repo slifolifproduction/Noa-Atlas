@@ -2,6 +2,8 @@ import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { navigate } from '../../app/router';
 import { cn } from '../../lib/cn';
+import { isExampleAtlas } from '../../data/seed';
+import { useAtlas } from '../../state/atlasStore';
 import { toast, useUI } from '../../state/uiStore';
 import { restoreVersion, startFresh, versionStamp } from '../../state/versionOps';
 import { Button } from '../ui/Button';
@@ -15,6 +17,7 @@ import { t } from '../../i18n';
  */
 export function StartFreshModal() {
   const open = useUI((s) => s.startFreshOpen);
+  const preset = useUI((s) => s.startFreshMode);
   const setOpen = useUI((s) => s.setStartFreshOpen);
   const [save, setSave] = useState(true);
   const [name, setName] = useState('');
@@ -24,12 +27,13 @@ export function StartFreshModal() {
 
   useEffect(() => {
     if (open) {
+      const example = isExampleAtlas(useAtlas.getState().data);
       setSave(true);
-      setName(t('Before restart · {when}', { when: versionStamp() }));
-      setMode('empty');
+      setName(example ? t('The example, as I left it · {when}', { when: versionStamp() }) : t('Before restart · {when}', { when: versionStamp() }));
+      setMode(preset);
       setProfile('');
     }
-  }, [open]);
+  }, [open, preset]);
 
   const go = async () => {
     setBusy(true);
@@ -37,10 +41,19 @@ export function StartFreshModal() {
       const saved = await startFresh({ save, name, mode, profileName: profile });
       setOpen(false);
       navigate('orbit');
-      toast(saved ? t('Started fresh. Your previous atlas is saved in Versions.') : t('Started fresh.'), {
-        tone: 'success',
-        action: saved ? { label: t('Undo'), run: () => void restoreVersion(saved.id, { backup: false }) } : undefined,
-      });
+      toast(
+        mode === 'sample'
+          ? saved
+            ? t('The example is open. Your atlas is saved: “Back to my atlas” is at the top.')
+            : t('The example is open.')
+          : saved
+            ? t('Started fresh. Your previous atlas is saved in Versions.')
+            : t('Started fresh.'),
+        {
+          tone: 'success',
+          action: saved ? { label: t('Undo'), run: () => void restoreVersion(saved.id, { backup: false }) } : undefined,
+        },
+      );
     } catch {
       toast(t('Could not save a version in this browser, so nothing was changed. Use Export in Settings first.'), { tone: 'warning' });
     } finally {
@@ -96,8 +109,12 @@ export function StartFreshModal() {
 
         <div className="space-y-2" role="radiogroup" aria-label={t('Start with')}>
           <div className="label">{t('Start with')}</div>
-          {option('empty', t('An empty atlas'), t('Just the ten areas of life, ready for your own notes and points.'))}
-          {option('sample', t('The sample atlas'), t('Noa’s fictional example, to explore how everything works.'))}
+          {option('empty', t('An empty atlas'), t('Just the areas of life, ready for your own notes and points.'))}
+          {option(
+            'sample',
+            t('The example atlas'),
+            t('Noa’s fictional life around a short film, Night Ferry: a worked example to learn how everything works.'),
+          )}
         </div>
 
         {mode === 'empty' && (

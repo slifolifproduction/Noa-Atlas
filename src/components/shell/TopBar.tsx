@@ -1,7 +1,9 @@
-import { ArrowLeft, Ellipsis, History, Keyboard, LifeBuoy, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, BookOpen, Ellipsis, History, Keyboard, LifeBuoy, Plus, Search, Settings, Sprout, type LucideIcon } from 'lucide-react';
 import { groupTarget, hrefFor, type RouteKey } from '../../app/router';
+import { isExampleAtlas } from '../../data/seed';
 import { GROUPS, groupOf, VIEWS, type GroupKey } from '../../domain/constants';
 import { cn } from '../../lib/cn';
+import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { PLACE_ICONS } from '../icons';
 import { Button, IconButton } from '../ui/Button';
@@ -83,6 +85,7 @@ export function TopBar({ active }: { active: RouteKey }) {
 /** Versions, the guide, shortcuts and settings: needed now and then, so kept together out of the way. */
 function MoreMenu() {
   const ui = useUI.getState;
+  const example = useAtlas((s) => isExampleAtlas(s.data));
   return (
     <Menu label={t('More: versions, guide, settings')} icon={Ellipsis} iconOnly className="border-transparent bg-transparent" width="w-64">
       <MenuItem icon={History} hint={t('Save your atlas, go back to an earlier one, or start fresh')} onSelect={() => ui().setVersionsOpen(true)}>
@@ -91,6 +94,23 @@ function MoreMenu() {
       <MenuItem icon={LifeBuoy} hint={t('What Cognitive Atlas is, in three lines')} onSelect={() => ui().setGuideOpen(true)}>
         {t('Guide')}
       </MenuItem>
+      {example ? (
+        <MenuItem
+          icon={Sprout}
+          hint={t('Leave the example for an atlas of your own; the example is kept as a version')}
+          onSelect={() => ui().setStartFreshOpen(true, 'empty')}
+        >
+          {t('Start my own atlas')}
+        </MenuItem>
+      ) : (
+        <MenuItem
+          icon={BookOpen}
+          hint={t('A life already filled in, to learn how things work; your atlas is saved first')}
+          onSelect={() => ui().setStartFreshOpen(true, 'sample')}
+        >
+          {t('Open the example')}
+        </MenuItem>
+      )}
       <MenuItem icon={Keyboard} kbd="?" onSelect={() => ui().setShortcutsOpen(true)}>
         {t('Keyboard shortcuts')}
       </MenuItem>

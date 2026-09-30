@@ -100,6 +100,15 @@ export interface UIState {
   guideOpen: boolean;
   versionsOpen: boolean;
   startFreshOpen: boolean;
+  /** What the start-fresh window offers first: an empty atlas, or the example. */
+  startFreshMode: 'empty' | 'sample';
+  /**
+   * The person's own atlas, saved as a version when they opened the example
+   * to learn from it: the way back.
+   */
+  returnVersionId?: string;
+  /** The note saying this is the example was put away for this session. */
+  exampleNoteHidden: boolean;
   /** Pages whose "how this works" tip has been read and folded away. */
   tipsSeen: string[];
   busy: Record<string, boolean>;
@@ -129,7 +138,9 @@ export interface UIState {
   setSpaceMode(mode: SpaceMode): void;
   setGuideOpen(open: boolean): void;
   setVersionsOpen(open: boolean): void;
-  setStartFreshOpen(open: boolean): void;
+  setStartFreshOpen(open: boolean, mode?: 'empty' | 'sample'): void;
+  setReturnVersion(id: string | undefined): void;
+  hideExampleNote(): void;
   setTipSeen(page: string, seen: boolean): void;
   setBusy(key: string, busy: boolean): void;
 }
@@ -159,6 +170,9 @@ export const useUI = create<UIState>()(
       guideOpen: false,
       versionsOpen: false,
       startFreshOpen: false,
+      startFreshMode: 'empty',
+      returnVersionId: undefined,
+      exampleNoteHidden: false,
       tipsSeen: [],
       busy: {},
 
@@ -205,7 +219,10 @@ export const useUI = create<UIState>()(
       setSpaceMode: (spaceMode) => set({ spaceMode }),
       setGuideOpen: (guideOpen) => set((s) => ({ guideOpen, guideSeen: s.guideSeen || !guideOpen })),
       setVersionsOpen: (versionsOpen) => set({ versionsOpen }),
-      setStartFreshOpen: (startFreshOpen) => set({ startFreshOpen, versionsOpen: false }),
+      setStartFreshOpen: (startFreshOpen, mode) =>
+        set((s) => ({ startFreshOpen, versionsOpen: false, startFreshMode: mode ?? (startFreshOpen ? 'empty' : s.startFreshMode) })),
+      setReturnVersion: (returnVersionId) => set({ returnVersionId }),
+      hideExampleNote: () => set({ exampleNoteHidden: true }),
       setTipSeen: (page, seen) => set((s) => ({ tipsSeen: seen ? [...new Set([...s.tipsSeen, page])] : s.tipsSeen.filter((p) => p !== page) })),
       setBusy: (key, busy) => set((s) => ({ busy: { ...s.busy, [key]: busy } })),
     }),
@@ -236,6 +253,7 @@ export const useUI = create<UIState>()(
         settings: s.settings,
         spaceMode: s.spaceMode,
         guideSeen: s.guideSeen,
+        returnVersionId: s.returnVersionId,
         tipsSeen: s.tipsSeen,
       }),
     },

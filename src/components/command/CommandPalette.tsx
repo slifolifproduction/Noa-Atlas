@@ -1,4 +1,5 @@
 import {
+  BookOpen,
   ArrowRight,
   CornerDownLeft,
   FlaskConical,
@@ -103,6 +104,14 @@ function buildIndex(data: AtlasData): Item[] {
       detail: t('A new atlas; the current one is saved first'),
       icon: RotateCcw,
       run: () => ui.setStartFreshOpen(true),
+    },
+    {
+      id: 'act:example',
+      group: t('Actions'),
+      label: t('Open the example…'),
+      detail: t('A life already filled in, to learn how things work; your atlas is saved first'),
+      icon: BookOpen,
+      run: () => ui.setStartFreshOpen(true, 'sample'),
     },
   ];
   for (const d of AREAS) {

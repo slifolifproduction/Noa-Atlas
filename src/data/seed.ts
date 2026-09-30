@@ -2042,3 +2042,11 @@ export function createSeedData(today: string = todayISO()): AtlasData {
 }
 
 export const SEED_PROFILE_NAME = 'Noa Varela';
+
+/**
+ * Whether an atlas is the example (Noa's, around Night Ferry): there to learn
+ * how the Atlas works, never the person's own. Notes the person adds while
+ * exploring it do not make it theirs.
+ */
+export const isExampleAtlas = (data: Pick<AtlasData, 'profile' | 'claims' | 'entries'>) =>
+  data.profile?.name === SEED_PROFILE_NAME && Boolean(data.claims?.c01) && Boolean(data.entries?.ent_01);

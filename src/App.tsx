@@ -4,6 +4,7 @@ import { useGlobalShortcuts } from './app/useGlobalShortcuts';
 import { CaptureModal } from './components/capture/CaptureModal';
 import { CommandPalette } from './components/command/CommandPalette';
 import { Inspector } from './components/inspector/Inspector';
+import { ExampleNote } from './components/shell/ExampleNote';
 import { Guide } from './components/shell/Guide';
 import { ShortcutsDialog } from './components/shell/ShortcutsDialog';
 import { MobileTabBar, SubNav, TopBar } from './components/shell/TopBar';
@@ -69,6 +70,7 @@ export function App() {
       </a>
       <TopBar active={route.key} />
       <SubNav active={route.key} />
+      <ExampleNote />
       <main id="main" className="relative min-h-0 flex-1">
         <div
           className={cn('h-full transition-[padding] duration-200', isGraph ? 'overflow-hidden' : 'overflow-y-auto')}

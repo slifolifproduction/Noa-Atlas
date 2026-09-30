@@ -17,7 +17,7 @@
  * An atlas that is still the sample (with or without notes of the person's
  * own) is rebuilt from the new sample and keeps everything the person added.
  */
-import { createSeedData, SEED_PROFILE_NAME } from '../data/seed';
+import { createSeedData, isExampleAtlas, SEED_PROFILE_NAME } from '../data/seed';
 import type {
   AnalysisSuggestion,
   AreaKey,
@@ -354,8 +354,7 @@ export function correctSampleCauses(data: AtlasData): AtlasData {
  */
 export function upgradeSampleLogic(data: AtlasData): AtlasData {
   if ((data.causesLogic ?? 0) >= 4) return data;
-  const sample = data.profile?.name === SEED_PROFILE_NAME && Boolean(data.claims?.c01) && Boolean(data.entries?.ent_01);
-  if (!sample) return { ...data, causesLogic: 4 };
+  if (!isExampleAtlas(data)) return { ...data, causesLogic: 4 };
   const fresh = createSeedData();
   const occurrences = { ...data.occurrences };
   for (const [id, f] of Object.entries(fresh.occurrences)) {

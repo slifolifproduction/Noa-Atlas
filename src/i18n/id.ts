@@ -193,6 +193,9 @@ export const ID: Record<string, string> = {
   'Go back to a saved version': 'Kembali ke versi yang disimpan',
   'Start fresh…': 'Mulai baru…',
   'A new atlas; the current one is saved first': 'Atlas baru; yang sekarang disimpan dulu',
+  'Open the example…': 'Buka contoh…',
+  'A life already filled in, to learn how things work; your atlas is saved first':
+    'Kehidupan yang sudah terisi, untuk mempelajari cara kerjanya; atlasmu disimpan dulu',
   Questions: 'Pertanyaan',
   'On the map': 'Di peta',
   Suggested: 'Disarankan',
@@ -949,6 +952,15 @@ export const ID: Record<string, string> = {
   'Relies on': 'Bergantung pada',
   'No claims attached. What would have to be true for this path to work?': 'Belum ada klaim terlampir. Apa yang harus benar agar jalur ini berhasil?',
   You: 'Kamu',
+  'Back in your atlas. What you did in the example is saved in Versions.': 'Kembali ke atlasmu. Apa yang kamu lakukan di contoh tersimpan di Versi.',
+  'Your saved atlas could not be found. Look in Versions.': 'Atlasmu yang tersimpan tidak ditemukan. Lihat di Versi.',
+  'The example atlas': 'Atlas contoh',
+  'Noa’s life around Night Ferry, there to learn how everything works. Nothing here is yours.':
+    'Kehidupan Noa seputar Night Ferry, untuk mempelajari cara kerja semuanya. Tidak ada yang di sini milikmu.',
+  'Back to my atlas': 'Kembali ke atlasku',
+  'Start a new atlas': 'Mulai atlas baru',
+  'Start my own atlas': 'Mulai atlasku sendiri',
+  'Hide for now': 'Sembunyikan dulu',
   'Looking at': 'Melihat',
   'Let go of {name}': 'Lepaskan {name}',
   'Let go (Esc)': 'Lepaskan (Esc)',
@@ -957,6 +969,11 @@ export const ID: Record<string, string> = {
   'Show everything': 'Tampilkan semuanya',
   'Only {name}': 'Hanya {name}',
   'Let go': 'Lepaskan',
+  'The example, as I left it · {when}': 'Contoh, seperti yang kutinggalkan · {when}',
+  'Your atlas is ready. Write what happened, and it starts to fill in. The example is always one step away in the ⋯ menu.':
+    'Atlasmu siap. Tulis apa yang terjadi, dan atlas mulai terisi. Contohnya selalu tersedia di menu ⋯.',
+  'Could not save a version in this browser, so nothing was changed. Use Export in Settings first.':
+    'Tidak bisa menyimpan versi di browser ini, jadi tidak ada yang diubah. Gunakan Ekspor di Pengaturan terlebih dahulu.',
   'This is your life, drawn as a map.': 'Ini hidupmu, digambar sebagai peta.',
   'You are at the centre; the areas of your life sit around you.': 'Kamu di tengah; area-area hidupmu ada di sekelilingmu.',
   'Write what happened.': 'Tulis apa yang terjadi.',
@@ -965,10 +982,24 @@ export const ID: Record<string, string> = {
   'Why is this happening? What usually comes before it? What if I change it? Every answer shows what it rests on.':
     'Kenapa ini terjadi? Apa yang biasanya terjadi sebelumnya? Bagaimana jika aku mengubahnya? Setiap jawaban menunjukkan dasarnya.',
   'Welcome to Cognitive Atlas': 'Selamat datang di Cognitive Atlas',
+  'Explore the example': 'Jelajahi contohnya',
+  'Start my atlas': 'Mulai atlasku',
   'Write a note first': 'Tulis catatan dulu',
   'Explore the atlas': 'Jelajahi atlas',
-  'It starts with a sample life, so there is something to explore. Everything stays in this browser.':
-    'Dimulai dengan contoh kehidupan, supaya ada yang bisa dijelajahi. Semuanya tetap di browser ini.',
+  'How would you like to begin?': 'Mau mulai dari mana?',
+  'Learn with the example first': 'Pelajari dulu lewat contoh',
+  'A worked example: Noa’s life around a short film, Night Ferry, already filled in. Explore how notes, causes, repeats and tests fit together, then start your own when you are ready. What you do in it is kept as a version.':
+    'Studi kasus yang sudah terisi: kehidupan Noa seputar film pendek, Night Ferry. Jelajahi bagaimana catatan, sebab, pengulangan, dan tes saling terhubung, lalu mulai atlasmu sendiri saat siap. Apa yang kamu lakukan di dalamnya disimpan sebagai versi.',
+  'Start from blank': 'Mulai dari kosong',
+  'An empty atlas that is only yours. The example stays one step away if you want to look something up.':
+    'Atlas kosong yang hanya milikmu. Contohnya tetap tersedia kalau kamu ingin melihat sesuatu.',
+  'How the atlas addresses you': 'Cara atlas menyapamu',
+  'You are in the example atlas, there to learn how everything works. When you are ready, start an atlas of your own; the example is kept as a version.':
+    'Kamu sedang di atlas contoh, untuk mempelajari cara kerja semuanya. Saat siap, mulai atlasmu sendiri; contohnya disimpan sebagai versi.',
+  'Not sure how something works? Open the example, a life already filled in, to see it. Your atlas is saved as a version first, and one step brings you back.':
+    'Belum yakin cara kerja sesuatu? Buka contoh, kehidupan yang sudah terisi, untuk melihatnya. Atlasmu disimpan dulu sebagai versi, dan satu langkah membawamu kembali.',
+  'Open the example': 'Buka contoh',
+  'Everything stays in this browser.': 'Semuanya tetap di browser ini.',
   Language: 'Bahasa',
   'Time zone: {zone}': 'Zona waktu: {zone}',
   'Time zone': 'Zona waktu',
@@ -984,6 +1015,7 @@ export const ID: Record<string, string> = {
   'Save your atlas, go back to an earlier one, or start fresh': 'Simpan atlasmu, kembali ke versi sebelumnya, atau mulai baru',
   'What Cognitive Atlas is, in three lines': 'Apa itu Cognitive Atlas, dalam tiga baris',
   Guide: 'Panduan',
+  'Leave the example for an atlas of your own; the example is kept as a version': 'Tinggalkan contoh untuk atlasmu sendiri; contohnya disimpan sebagai versi',
   Settings: 'Pengaturan',
   Delete: 'Hapus',
   'Delete permanently': 'Hapus permanen',
@@ -1031,11 +1063,11 @@ export const ID: Record<string, string> = {
   Close: 'Tutup',
   'Got it': 'Mengerti',
   'Before restart · {when}': 'Sebelum mulai ulang · {when}',
+  'The example is open. Your atlas is saved: “Back to my atlas” is at the top.': 'Contoh sudah terbuka. Atlasmu tersimpan: “Kembali ke atlasku” ada di atas.',
+  'The example is open.': 'Contoh sudah terbuka.',
   'Started fresh. Your previous atlas is saved in Versions.': 'Sudah mulai baru. Atlas sebelumnya tersimpan di Versi.',
   'Started fresh.': 'Sudah mulai baru.',
   Undo: 'Urungkan',
-  'Could not save a version in this browser, so nothing was changed. Use Export in Settings first.':
-    'Tidak bisa menyimpan versi di browser ini, jadi tidak ada yang diubah. Gunakan Ekspor di Pengaturan terlebih dahulu.',
   'Start fresh': 'Mulai baru',
   'Begin a new atlas. Save the current one as a version first and you can come back to it at any time.':
     'Mulai atlas baru. Simpan atlas saat ini sebagai versi terlebih dahulu agar kamu bisa kembali kapan saja.',
@@ -1044,10 +1076,9 @@ export const ID: Record<string, string> = {
   'Without a saved version, the current atlas cannot be brought back.': 'Tanpa versi yang disimpan, atlas saat ini tidak bisa dikembalikan.',
   'Start with': 'Mulai dengan',
   'An empty atlas': 'Atlas kosong',
-  'Just the ten areas of life, ready for your own notes and points.': 'Hanya sepuluh area hidup, siap untuk catatan dan titikmu sendiri.',
-  'The sample atlas': 'Atlas contoh',
-  'Noa’s fictional example, to explore how everything works.': 'Contoh fiktif milik Noa, untuk menjelajahi cara kerja semuanya.',
-  'How the atlas addresses you': 'Cara atlas menyapamu',
+  'Just the areas of life, ready for your own notes and points.': 'Hanya area-area kehidupan, siap untuk catatan dan poinmu sendiri.',
+  'Noa’s fictional life around a short film, Night Ferry: a worked example to learn how everything works.':
+    'Kehidupan fiktif Noa seputar film pendek, Night Ferry: studi kasus untuk mempelajari cara kerja semuanya.',
   'Saved automatically before starting fresh': 'Tersimpan otomatis sebelum mulai baru',
   'Saved automatically before an import': 'Tersimpan otomatis sebelum impor',
   'Saved automatically before going back to another version': 'Tersimpan otomatis sebelum kembali ke versi lain',
