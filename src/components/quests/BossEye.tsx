@@ -14,7 +14,12 @@ import {
   HORIZON,
   HOUR,
   lids,
+  membraneReach,
+  NEAR,
+  NEAR_TURN,
   MINUTE,
+  paintDimension,
+  paintMembrane,
   paintStars,
   PITCH,
   R_ARMOR,
@@ -28,7 +33,6 @@ import {
   segment,
   spokes,
   paintTear,
-  STREAMS,
   SUB,
   TAU,
   TEAR_W,
@@ -58,8 +62,9 @@ const NS = 'http://www.w3.org/2000/svg';
 
 /**
  * Its arrival, in ms from when it appears. Space cracks along a line that
- * runs out from the middle (to CRACKED), then tears open on another
- * dimension (to TORN). Out of that dimension's depth the eye comes forward,
+ * runs out from the middle (to CRACKED); that line is only the trigger: it
+ * bursts and fades as space tears open on another dimension (to TORN), which
+ * rushes at us. Out of that dimension's depth the eye comes forward,
  * out of focus and dim, growing and pulling into focus (from EMERGES, see
  * .quest-emerge), its lids opening as it comes (OPENS), and it lands with a
  * shock (ARRIVES). Sealed, the tear stands open only this much (SCAR).
@@ -70,6 +75,14 @@ const EMERGES = 700;
 const OPENS = 1950;
 const ARRIVES = 2250;
 const SCAR = 0.035;
+
+/**
+ * The other dimension's two layers (its still depths, and its nearest ring of
+ * membrane, turning): how much each moves against the eye's gaze, and how far
+ * in it rushes from as the tear opens.
+ */
+const DEPTH = [0.02, 0.05];
+const RUSH = [0.84, 0.7];
 
 /** A few stars that breathe, on top of the painted sky. */
 const TWINKLES = (() => {
@@ -83,17 +96,18 @@ const TWINKLES = (() => {
  *
  * The stage is a rig of layers around one centre, shot like a film: the lens
  * is focused on the eye. Behind it, the painted sky (the far stars soft) and
- * the tear, a long lens of another dimension torn open across space, its
- * edges burning faintly, light streaming along its seam and its depths
- * falling away inside; it stays, closes to a scar when the boss is beaten,
- * and burns orange near its date. Then, seen only through the tear (its
- * window, a clip in the same shape), the eye with its glow and an orrery
- * of rings that turns (the far rings soft; its strength as the ring of
- * segments, a numbered segment per piece of work, dark once done; its armor
- * as plates further out; a line of text going round); the tear's burning
- * edges are painted again over it. In front: a thin anamorphic streak
- * through the pupil, and grain. The eye is placed as large as it can be without touching the text
- * over it (`avoid`).
+ * the tear, a long lens torn open level across space on the eye's own line;
+ * it stays, closes to a scar when the boss is beaten, and burns orange near
+ * its date. Through it, and only through it (its window, a clip in the same
+ * shape), the eye's own dimension, which is not space: a haze with light at
+ * its end, lines between points drifting in it, and a tunnel of torn
+ * membrane, ring behind ring, each turning its way. At the end of the
+ * tunnel, the eye with its glow and an orrery of rings that turns (the far
+ * rings soft; its strength as the ring of segments, a numbered segment per
+ * piece of work, dark once done; its armor as plates further out; a line of
+ * text going round). The tear's lips and burning edges are painted over it
+ * all, and grain in front. The eye is placed as large as it can be without
+ * touching the text over it (`avoid`).
  *
  * The eye is a ball that turns: its iris (a field of fibres with a spoke for
  * each piece of work, and its rings, all inside its edge) and its pupil are
@@ -160,13 +174,10 @@ export function BossEye({
   const skyNear = useRef<HTMLDivElement>(null);
   const starsFar = useRef<HTMLCanvasElement>(null);
   const starsNear = useRef<HTMLCanvasElement>(null);
-  const tearBack = useRef<HTMLDivElement>(null);
   const tearFront = useRef<HTMLDivElement>(null);
   const portal = useRef<HTMLDivElement>(null);
-  const backShape = useRef<HTMLDivElement>(null);
   const frontShape = useRef<HTMLDivElement>(null);
   const windowPath = useRef<SVGPathElement>(null);
-  const tearBase = useRef<HTMLCanvasElement>(null);
   const tearEdge = useRef<HTMLCanvasElement>(null);
   const tearHalo = useRef<HTMLCanvasElement>(null);
   const burst = useRef<HTMLDivElement>(null);
@@ -187,7 +198,10 @@ export function BossEye({
   const lidLine = useRef<SVGPathElement>(null);
   const lidOuter = useRef<SVGPathElement>(null);
   const lidShade = useRef<SVGPathElement>(null);
-  const streak = useRef<HTMLDivElement>(null);
+  // The other dimension: its two layers (its still depths, its nearest ring), and their paintings.
+  const dimLayers = useRef<(HTMLDivElement | null)[]>([]);
+  const dimBack = useRef<HTMLCanvasElement>(null);
+  const dimNear = useRef<HTMLCanvasElement>(null);
   const flash = useRef<HTMLDivElement>(null);
   const beams = useRef<SVGSVGElement>(null);
   const shock = useRef<HTMLDivElement>(null);
@@ -230,8 +244,8 @@ export function BossEye({
   // The tear is painted once per size, boss and mood (its edge burns orange near the date).
   const hot = urgent && state === 'active';
   useEffect(() => {
-    if (!geo.w || !tearBase.current || !tearEdge.current || !tearHalo.current) return;
-    paintTear(tearBase.current, tearEdge.current, tearHalo.current, {
+    if (!geo.w || !tearEdge.current || !tearHalo.current) return;
+    paintTear(tearEdge.current, tearHalo.current, {
       w: geo.w + 80,
       h: geo.h + 80,
       cx: geo.cx + 40,
@@ -241,6 +255,15 @@ export function BossEye({
       urgent: hot,
     });
   }, [geo, seed, hot]);
+  // The other dimension is painted once per size and boss: its still depths, and its nearest ring (it turns in CSS).
+  useEffect(() => {
+    if (!geo.w || !dimNear.current) return;
+    paintMembrane(dimNear.current, { k: geo.k, seed });
+  }, [geo.w, geo.k, seed]);
+  useEffect(() => {
+    if (!geo.w || !dimBack.current) return;
+    paintDimension(dimBack.current, { w: geo.w + 80, h: geo.h + 80, cx: geo.cx + 40, cy: geo.cy + 40, k: geo.k, seed });
+  }, [geo, seed]);
   // The window onto the eye's dimension: the tear's own shape, on the stage.
   const windowD = useMemo(() => (geo.w ? tearWindow(seed, geo.cx, geo.cy, geo.k) : ''), [seed, geo.w, geo.cx, geo.cy, geo.k]);
 
@@ -255,7 +278,6 @@ export function BossEye({
     if (key === t.key) return;
     t.key = key;
     const tf = `scale(${reveal.toFixed(4)}, ${gap.toFixed(4)})`;
-    if (backShape.current) backShape.current.style.transform = tf;
     if (frontShape.current) frontShape.current.style.transform = tf;
     windowPath.current?.setAttribute('transform', `translate(${cx.toFixed(1)} ${cy.toFixed(1)}) ${tf} translate(${(-cx).toFixed(1)} ${(-cy).toFixed(1)})`);
   };
@@ -407,8 +429,6 @@ export function BossEye({
       sclera.current?.setAttribute('cy', (0.5 + (t.y / 580) * 0.6).toFixed(4));
       live.current.px = t.x * live.current.k;
       live.current.py = t.y * live.current.k;
-      // The lens's streak runs level through the pupil.
-      move(streak, 0, live.current.cy + live.current.py);
       return t;
     };
 
@@ -501,7 +521,7 @@ export function BossEye({
         setTear(Math.max(0.002, reveal), gap);
         const flicker = wake < CRACKED ? (0.55 + Math.random() * 0.45).toFixed(2) : '';
         if (tearFront.current) tearFront.current.style.opacity = flicker;
-        // The crack itself: a line of white light running out, fading into the seam as the tear opens.
+        // The crack itself: a line of white light running out, gone once the tear is open.
         if (crack.current) {
           crack.current.style.transform = `scaleX(${reveal.toFixed(4)})`;
           crack.current.style.opacity = wake < CRACKED ? flicker : clamp01(1 - (wake - CRACKED) / 600).toFixed(3);
@@ -522,6 +542,10 @@ export function BossEye({
               { opacity: 0, transform: 'scale(1.5)' },
             ],
             { duration: 1000, easing: 'ease-out' },
+          );
+          // The dimension beyond rushes at us as it opens, its nearest rings the most.
+          dimLayers.current.forEach((el, i) =>
+            el?.animate([{ scale: String(RUSH[i]) }, { scale: '1' }], { duration: 2400, easing: 'cubic-bezier(.16,.8,.2,1)' }),
           );
           shudder(7);
         }
@@ -598,8 +622,12 @@ export function BossEye({
       // Depth: what lies behind the eye moves against its gaze, and the motes near the lens with it, more.
       const k = L.k;
       // The tear, and the window in it, move as one.
-      move(tearBack, -t.x * k * 0.04, -t.y * k * 0.04);
       move(portal, -t.x * k * 0.04, -t.y * k * 0.04);
+      // Inside it, the tunnel: its nearer rings move the more.
+      DEPTH.forEach((d, i) => {
+        const el = dimLayers.current[i];
+        if (el) el.style.transform = `translate3d(${(-t.x * k * d).toFixed(1)}px,${(-t.y * k * d).toFixed(1)}px,0)`;
+      });
       move(tearFront, -t.x * k * 0.04, -t.y * k * 0.04);
       move(far, -t.x * k * 0.06, -t.y * k * 0.06);
       move(mid, -t.x * k * 0.025, -t.y * k * 0.025);
@@ -645,6 +673,17 @@ export function BossEye({
   };
   const textSize = px(9);
   const lidsNow = lids(dormant || state === 'defeated' ? 0.02 : 0.012);
+  const nearReach = membraneReach(NEAR) * geo.k;
+  // The light at the end of the tunnel, where the eye is: a pale haze with a faint warm core, burning near its date.
+  const [lx, ly, lc] = [Math.round(1000 * geo.k), Math.round(560 * geo.k), Math.round(240 * geo.k)];
+  const dimLight = [
+    `radial-gradient(circle ${lc}px at ${geo.cx}px ${geo.cy}px, ${hot ? 'rgb(255 110 50 / 0.34)' : 'rgb(255 172 124 / 0.16)'}, transparent)`,
+    `radial-gradient(ellipse ${lx}px ${ly}px at ${geo.cx}px ${geo.cy}px, ${
+      hot
+        ? 'rgb(172 136 118), rgb(138 90 66) 22%, rgb(92 58 44) 42%, rgb(48 32 27) 66%, rgb(19 16 15)'
+        : 'rgb(134 136 140), rgb(104 107 112) 22%, rgb(72 75 80) 42%, rgb(40 42 47) 66%, rgb(17 18 21)'
+    })`,
+  ].join(', ');
   const grain = grainTile();
 
   return (
@@ -668,37 +707,40 @@ export function BossEye({
       ))}
 
       <div ref={body} className="quest-body">
-        {/* The tear in space: behind, the void of the other side, its seam and the light along it. */}
-        <div ref={tearBack} className="quest-tear-move">
-          <div ref={backShape} className="quest-tear-shape" style={{ transformOrigin: `${geo.cx + 40}px ${geo.cy + 40}px` }}>
-            <canvas ref={tearBase} className="quest-tear-canvas" />
-            {/* Its seam, and light streaming along it. */}
-            <div className="quest-seam-line" style={{ left: geo.cx + 40, top: geo.cy + 40 }}>
-              <div className="quest-seam" style={{ width: 2 * TEAR_W * 0.9 * geo.k }} />
-              <div className="quest-streams">
-                {STREAMS.map((s, i) => (
-                  <span
-                    key={i}
-                    className="quest-stream"
-                    style={
-                      {
-                        top: s.y * geo.k,
-                        width: s.len * geo.k,
-                        '--reach': `${s.reach * TEAR_W * geo.k}px`,
-                        '--dir': s.left ? -1 : 1,
-                        animationDuration: `${s.dur}s`,
-                        animationDelay: `${s.delay}s`,
-                      } as CSSProperties
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* The eye's dimension, seen only through the tear: its light, its rings, the eye. */}
+        {/* The eye's dimension, seen only through the tear. Not space: a haze with light at its end, lines
+            drifting in it, and a tunnel of torn membrane round the eye, ring behind ring, turning; then the eye. */}
         <div ref={portal} className="quest-portal" style={{ clipPath: `url(#${id}-window)` }}>
+          <div className="quest-dim">
+            <div className="quest-dim-light" style={{ background: dimLight }} />
+          </div>
+          <div
+            ref={(el) => {
+              dimLayers.current[0] = el;
+            }}
+            className="quest-dim-layer"
+            style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }}
+          >
+            <canvas ref={dimBack} className="quest-tear-canvas" style={{ left: -40, top: -40, width: geo.w + 80, height: geo.h + 80 }} />
+          </div>
+          <div
+            ref={(el) => {
+              dimLayers.current[1] = el;
+            }}
+            className="quest-dim-layer"
+            style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }}
+          >
+            <canvas
+              ref={dimNear}
+              className="quest-membrane"
+              style={{
+                left: geo.cx - nearReach,
+                top: geo.cy - nearReach,
+                width: 2 * nearReach,
+                height: 2 * nearReach,
+                animationDuration: `${NEAR_TURN}s`,
+              }}
+            />
+          </div>
           <div className="quest-emerge">
             <div className="quest-glow" style={{ left: geo.cx, top: geo.cy, width: 1200 * geo.k, height: 1200 * geo.k }} />
 
@@ -900,18 +942,6 @@ export function BossEye({
         {/* Light out of the tear as it breaks open, in our own space. */}
         <div ref={burst} className="quest-burst" style={{ left: geo.cx, top: geo.cy, width: 2 * TEAR_W * geo.k, height: 360 * geo.k }} />
         <div ref={flash} className="quest-flash" style={{ left: geo.cx, top: geo.cy, width: 2 * EW * 1.3 * geo.k, height: 2 * EW * 0.8 * geo.k }} />
-
-        {/* The lens: a streak through the pupil, and grain. */}
-        <div
-          ref={streak}
-          className="quest-streak"
-          style={
-            {
-              '--from': `${Math.max(0, geo.cx - EW * CONTOUR.x * geo.k)}px`,
-              '--to': `${geo.cx + EW * CONTOUR.x * geo.k}px`,
-            } as CSSProperties
-          }
-        />
       </div>
       {grain && <div className="quest-grain" style={{ backgroundImage: `url(${grain})` }} />}
       <svg ref={beams} className="quest-beams" />

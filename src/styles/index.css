@@ -1477,8 +1477,8 @@ html body {
 }
 /* The tear in space it looks through: a long lens of another dimension, there
  * from the start, a little soft (it lies behind the plane in focus). Its edge
- * burns faintly and breathes, its depths fall away inside it, light streams
- * along its seam. Beaten, it seals to a scar; near the date it burns orange. */
+ * burns faintly and breathes, and through it the eye's dimension is seen.
+ * Beaten, it seals to a scar; near the date it burns orange. */
 .quest-tear-move,
 .quest-emerge {
   position: absolute;
@@ -1573,56 +1573,31 @@ html body {
   opacity: 0.3;
   animation: none;
 }
-.quest-seam-line {
+/* The other dimension, seen only through the tear: a haze with light at the end (where the eye
+ * is), lines drifting in it, and a tunnel of torn membrane, ring behind ring, each turning its way. */
+.quest-dim,
+.quest-dim-light,
+.quest-dim-layer {
   position: absolute;
-  width: 0;
-  height: 0;
+  inset: 0;
+  pointer-events: none;
 }
-.quest-seam {
+.quest-dim {
+  background: #07080b;
+}
+.quest-dim-light {
+  transform-origin: var(--cx) var(--cy);
+}
+.quest-rig[data-urgent][data-arrived] .quest-dim-light {
+  animation: quest-beat 1.6s ease-in-out infinite;
+}
+.quest-membrane {
   position: absolute;
-  left: 0;
-  top: 0;
-  height: 1.5px;
-  translate: -50% -50%;
-  background: linear-gradient(to right, transparent, rgb(255 236 220 / 0.55) 22%, #fff7ef 50%, rgb(255 236 220 / 0.55) 78%, transparent);
-  box-shadow: 0 0 14px 2px rgb(255 190 150 / 0.35);
-  animation: tear-seam 4.5s ease-in-out infinite;
+  animation: quest-turn 300s linear infinite;
+  will-change: rotate;
 }
-@keyframes tear-seam {
-  50% {
-    opacity: 0.6;
-  }
-}
-.quest-rig[data-urgent] .quest-seam {
-  box-shadow: 0 0 16px 3px rgb(255 90 31 / 0.55);
-}
-.quest-streams {
-  position: absolute;
-  left: 0;
-  top: 0;
-}
-.quest-stream {
-  position: absolute;
-  left: 0;
-  height: 1px;
-  margin-top: -0.5px;
-  transform-origin: 0 50%;
-  background: linear-gradient(to right, transparent, rgb(255 244 234 / 0.8));
-  opacity: 0;
-  animation: tear-stream 5s linear infinite;
-}
-@keyframes tear-stream {
-  0% {
-    transform: scaleX(var(--dir)) translateX(0);
-    opacity: 0;
-  }
-  15% {
-    opacity: 0.85;
-  }
-  100% {
-    transform: scaleX(var(--dir)) translateX(var(--reach));
-    opacity: 0;
-  }
+.quest-rig:is([data-state='defeated'], [data-state='dormant']) .quest-membrane {
+  animation-play-state: paused;
 }
 /* It comes out of the tear's depth: small, dim and out of focus, pulled forward into focus. */
 .quest-emerge {
@@ -1640,36 +1615,7 @@ html body {
 .quest-rig[data-state='dormant'] .quest-emerge {
   transition: none;
 }
-/* The lens: a streak through the pupil; grain. */
-.quest-streak {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  height: 2px;
-  margin-top: -1px;
-  pointer-events: none;
-  /* Light leaking along the horizon from the eye's corners, none across the eye itself. */
-  background: linear-gradient(
-    to right,
-    transparent,
-    rgb(255 236 220 / 0.05) calc(var(--from) * 0.4),
-    rgb(255 246 238 / 0.22) var(--from),
-    transparent var(--from),
-    transparent var(--to),
-    rgb(255 246 238 / 0.22) var(--to),
-    rgb(255 236 220 / 0.05) calc(var(--to) + (100% - var(--to)) * 0.6),
-    transparent
-  );
-  opacity: 0;
-  transition: opacity 1.4s ease;
-}
-.quest-rig[data-arrived] .quest-streak {
-  opacity: 1;
-}
-.quest-rig:is([data-state='defeated'], [data-state='dormant']) .quest-streak {
-  opacity: 0.25;
-}
+/* The lens: grain. */
 .quest-grain {
   position: absolute;
   inset: -64px;
@@ -1830,17 +1776,16 @@ html body {
   }
   .quest-flash,
   .quest-burst,
-  .quest-crack,
-  .quest-streams {
+  .quest-crack {
     display: none;
   }
   .quest-emerge,
-  .quest-tear-shape,
-  .quest-streak {
+  .quest-tear-shape {
     transition: none !important;
   }
   .quest-tear-glow,
-  .quest-seam,
+  .quest-membrane,
+  .quest-dim-light,
   .quest-grain {
     animation: none !important;
   }

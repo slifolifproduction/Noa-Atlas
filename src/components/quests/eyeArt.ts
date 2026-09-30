@@ -211,16 +211,6 @@ export function tearCracks(seed: number) {
   return out;
 }
 
-/** Specks of light on the other side, seen through the tear. */
-export function tearSpecks(seed: number) {
-  const r = seeded(seed + 13);
-  return Array.from({ length: 110 }, () => {
-    const u = (r() * 2 - 1) * 0.94;
-    const h = TEAR_H * Math.max(0, 1 - u * u) ** 1.3 * 0.9;
-    return { x: u * TEAR_W, y: (r() * 2 - 1) * h, r: 0.4 + r() ** 3 * 1.8, a: 0.2 + r() * 0.6 };
-  });
-}
-
 /**
  * The tear's outline on the stage, in its pixels, for the window the eye's
  * dimension is seen through: the same shape the canvases paint.
@@ -234,14 +224,12 @@ export function tearWindow(seed: number, cx: number, cy: number, k: number) {
 }
 
 /**
- * Paint the tear once. Behind the eye's dimension (`base`): the void of the
- * other side with a warm light deep in it, its specks, the depths falling
- * away inside it (echoes of its edge). In front of it: its torn edge and the
- * cracks at its ends (`edge`), and its burning halo (`halo`), apart so it can
- * breathe and flare without being painted again.
+ * Paint the tear's edge once: its lips (the other side darkening into the
+ * edge, falling away under it), its torn edge and the cracks at its ends
+ * (`edge`), and its burning halo (`halo`), apart so it can breathe and flare
+ * without being painted again.
  */
 export function paintTear(
-  base: HTMLCanvasElement,
   edge: HTMLCanvasElement,
   halo: HTMLCanvasElement,
   o: { w: number; h: number; cx: number; cy: number; k: number; seed: number; urgent: boolean },
@@ -249,9 +237,9 @@ export function paintTear(
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const outline = tearOutline(o.seed);
   const cracks = tearCracks(o.seed);
-  const trace = (ctx: CanvasRenderingContext2D, pts: P[], sx = 1, sy = 1) => {
+  const trace = (ctx: CanvasRenderingContext2D, pts: P[]) => {
     ctx.beginPath();
-    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x * sx, y * sy) : ctx.moveTo(x * sx, y * sy)));
+    pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
     ctx.closePath();
   };
   const setup = (c: HTMLCanvasElement) => {
@@ -266,47 +254,18 @@ export function paintTear(
     return ctx;
   };
   const px = 1 / o.k;
-  const ctx = setup(base);
-  if (ctx) {
-    // The void, a little soft: it lies behind the plane in focus.
-    soft(ctx, 0.7 * dpr, (ctx) => {
-      trace(ctx, outline);
-      ctx.fillStyle = '#010203';
-      ctx.fill();
-      ctx.save();
-      trace(ctx, outline);
-      ctx.clip();
-      const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, TEAR_W * 0.9);
-      glow.addColorStop(0, 'rgba(255,236,220,0.13)');
-      glow.addColorStop(0.25, 'rgba(255,150,100,0.05)');
-      glow.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.save();
-      ctx.scale(1, 0.3);
-      ctx.fillStyle = glow;
-      ctx.fillRect(-TEAR_W, -TEAR_H / 0.3, 2 * TEAR_W, (2 * TEAR_H) / 0.3);
-      ctx.restore();
-      for (const p of tearSpecks(o.seed)) {
-        ctx.fillStyle = `rgba(255,236,220,${p.a.toFixed(2)})`;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, TAU);
-        ctx.fill();
-      }
-      // Its depths: echoes of its edge, falling away inside it.
-      ctx.lineWidth = px;
-      [
-        [0.97, 0.7, 0.11],
-        [0.93, 0.44, 0.08],
-        [0.88, 0.2, 0.06],
-      ].forEach(([sx, sy, a]) => {
-        trace(ctx, outline, sx, sy);
-        ctx.strokeStyle = `rgba(255,232,214,${a})`;
-        ctx.stroke();
-      });
-      ctx.restore();
-    });
-  }
   const ex = setup(edge);
   if (ex) {
+    soft(ex, 6 * dpr, (c) => {
+      c.save();
+      trace(c, outline);
+      c.clip();
+      trace(c, outline);
+      c.strokeStyle = 'rgba(3,4,6,0.92)';
+      c.lineWidth = 38 * px;
+      c.stroke();
+      c.restore();
+    });
     ex.lineWidth = px;
     ex.strokeStyle = 'rgba(255,226,206,0.45)';
     for (const line of cracks) {
@@ -329,18 +288,275 @@ export function paintTear(
     hx.stroke();
   }
 }
-/** Light streaming along the seam of the tear, out towards its ends. */
-export const STREAMS = (() => {
-  const r = seeded(91);
-  return Array.from({ length: 22 }, () => ({
-    y: (r() - 0.5) * 70,
-    len: 30 + r() * 90,
-    reach: 0.35 + r() * 0.5,
-    dur: 3 + r() * 5,
-    delay: -r() * 8,
-    left: r() < 0.5,
-  }));
-})();
+
+/* ---- The dimension beyond the tear ----------------------------------------- */
+
+/** How open the tear is at `x` (0 at its ends, 1 in the middle). */
+const tearProfile = (x: number) => Math.max(0, 1 - (x / TEAR_W) ** 2) ** 1.3;
+
+/**
+ * The other side of the tear is not space: it is a tunnel of torn membrane
+ * running away from us, ring behind ring, to the light at its end, where the
+ * eye is. Each ring is a band of dark membrane full of cells lying along it,
+ * thorned on its inside edge and lit along every edge by the light at the end;
+ * the deeper ones are smaller, hazier and softer. In units round the eye,
+ * deepest first. The deeper two are painted with the haze's lines, still; the
+ * nearest turns on its own (once in NEAR_TURN seconds).
+ */
+export const MEMBRANES = [
+  { r0: 250, r1: 470, cell: 34, blur: 2.4, haze: 0.5, rim: 0.1 },
+  { r0: 390, r1: 690, cell: 48, blur: 1.1, haze: 0.24, rim: 0.14 },
+  { r0: 560, r1: 960, cell: 62, blur: 0, haze: 0, rim: 0.2 },
+] as const;
+export type Membrane = (typeof MEMBRANES)[number];
+export const NEAR = MEMBRANES[2];
+export const NEAR_TURN = 300;
+/** How far a membrane reaches from the centre, in units. */
+export const membraneReach = (m: Membrane) => m.r1 + 40;
+
+/** Draw one ring of the tunnel round the origin, in units (`c` is already placed and scaled). */
+function drawMembrane(c: CanvasRenderingContext2D, m: Membrane, o: { k: number; seed: number; layer: number }) {
+  const hair = 1 / o.k;
+  const r = seeded(o.seed * 17 + o.layer * 101 + 5);
+  const [wave, fray, swell] = [0, 1, 2].map((i) => noise(o.seed + o.layer * 7 + 50 + i));
+  const u = (a: number) => (a / TAU) * 97;
+  const thorns = Array.from({ length: 9 + o.layer * 4 }, () => ({ at: r() * TAU, w: 0.03 + r() * 0.05, len: 8 + r() ** 2 * m.r0 * 0.12 }));
+  const inner = (a: number) => {
+    let v = m.r0 + 14 * wave(u(a) * 2) + 4 * fray(u(a) * 9);
+    for (const t of thorns) {
+      const d = Math.min(Math.abs(a - t.at), TAU - Math.abs(a - t.at));
+      if (d < t.w) v -= t.len * (0.5 + 0.5 * Math.cos((Math.PI * d) / t.w)) ** 1.6;
+    }
+    return v;
+  };
+  const outer = (a: number) => m.r1 + 18 * swell(u(a) * 2) + 5 * fray(u(a) * 7 + 30);
+  const ring = (at: (a: number) => number) => {
+    const N = 900;
+    for (let i = 0; i <= N; i++) {
+      const a = (i / N) * TAU;
+      const v = at(a);
+      if (i) c.lineTo(Math.cos(a) * v, Math.sin(a) * v);
+      else c.moveTo(Math.cos(a) * v, Math.sin(a) * v);
+    }
+    c.closePath();
+  };
+  // The membrane: dark against the haze, lifted a little towards the light at the end; the deeper, the more of the haze in it.
+  const tone = (v: number) => Math.round(v + (58 - v) * m.haze);
+  const body = c.createRadialGradient(0, 0, m.r0 * 0.8, 0, 0, m.r1);
+  body.addColorStop(0, `rgb(${tone(22)},${tone(23)},${tone(27)})`);
+  body.addColorStop(1, `rgb(${tone(6)},${tone(7)},${tone(9)})`);
+  c.beginPath();
+  ring(outer);
+  ring(inner);
+  c.fillStyle = body;
+  c.fill('evenodd');
+  // Its cells, a lattice like the cells of a living thing. Seeds on a jittered hex grid round the ring (a
+  // row either side of it too, to close the cells at its edges); each cell is the polygon of the centres of
+  // the triangles round its seed, so the cells tile the band, and each is drawn shrunk back from its
+  // struts and rounded. A few are left whole.
+  const rows = Math.max(2, Math.round((m.r1 - m.r0) / m.cell));
+  const band = (m.r1 - m.r0) / rows;
+  const N = Math.round((TAU * (m.r0 + m.r1) * 0.5) / m.cell);
+  const wrap = (i: number) => ((i % N) + N) % N;
+  const seeds: P[][] = Array.from({ length: rows + 2 }, (_, J) =>
+    Array.from({ length: N }, (_, i): P => {
+      const a = ((i + (J & 1) * 0.5 + (r() - 0.5) * 0.5) / N) * TAU;
+      const v = m.r0 + (J - 0.5 + (r() - 0.5) * 0.5) * band;
+      return [Math.cos(a) * v, Math.sin(a) * v];
+    }),
+  );
+  const around: P[][][] = seeds.map((row) => row.map(() => []));
+  const joints: P[] = [];
+  const tri = (...at: [number, number][]) => {
+    const pts = at.map(([J, i]) => seeds[J][wrap(i)]);
+    const cen: P = [(pts[0][0] + pts[1][0] + pts[2][0]) / 3, (pts[0][1] + pts[1][1] + pts[2][1]) / 3];
+    for (const [J, i] of at) around[J][wrap(i)].push(cen);
+    joints.push(cen);
+  };
+  for (let J = 0; J <= rows; J++) {
+    for (let i = 0; i < N; i++) {
+      if (J & 1) {
+        tri([J + 1, i], [J + 1, i + 1], [J, i]);
+        tri([J, i], [J, i + 1], [J + 1, i + 1]);
+      } else {
+        tri([J, i], [J, i + 1], [J + 1, i]);
+        tri([J, i + 1], [J + 1, i + 1], [J + 1, i]);
+      }
+    }
+  }
+  const holes: P[][] = [];
+  for (let J = 1; J <= rows; J++) {
+    const edgeRow = J === 1 || J === rows;
+    for (let i = 0; i < N; i++) {
+      if (r() < 0.04) continue;
+      const [sx, sy] = seeds[J][i];
+      const strut = band * (0.04 + r() * 0.04) * (edgeRow ? 1.8 : 1);
+      const ring = around[J][i]
+        .slice()
+        .sort((p, q) => Math.atan2(p[1] - sy, p[0] - sx) - Math.atan2(q[1] - sy, q[0] - sx))
+        .map(([x, y]): P => {
+          const d = Math.hypot(x - sx, y - sy) || 1;
+          const f = Math.max(0.1, 1 - strut / d);
+          return [sx + (x - sx) * f, sy + (y - sy) * f];
+        });
+      if (ring.length > 2) holes.push(ring);
+    }
+  }
+  const cells = () => {
+    c.beginPath();
+    for (const h of holes) {
+      const mid = (p: P, q: P): P => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+      const start = mid(h[h.length - 1], h[0]);
+      c.moveTo(start[0], start[1]);
+      h.forEach((p, n) => {
+        const next = mid(p, h[(n + 1) % h.length]);
+        c.quadraticCurveTo(p[0], p[1], next[0], next[1]);
+      });
+      c.closePath();
+    }
+  };
+  c.globalCompositeOperation = 'destination-out';
+  cells();
+  c.fillStyle = '#000';
+  c.fill();
+  c.globalCompositeOperation = 'source-over';
+  // Long strands reaching in from its inside edge towards the light.
+  for (let i = 0; i < 4; i++) {
+    const a = r() * TAU;
+    const v = inner(a);
+    const b = a + (r() - 0.5) * 0.5;
+    const w = m.r0 * (0.55 + r() * 0.2);
+    const bend = (a + b) / 2 + (r() - 0.5) * 0.35;
+    c.beginPath();
+    c.moveTo(Math.cos(a) * v, Math.sin(a) * v);
+    c.quadraticCurveTo(Math.cos(bend) * (v + w) * 0.5, Math.sin(bend) * (v + w) * 0.5, Math.cos(b) * w, Math.sin(b) * w);
+    c.strokeStyle = `rgb(${tone(9)},${tone(10)},${tone(12)})`;
+    c.lineWidth = (0.8 + r() * 1.2) * hair;
+    c.stroke();
+    c.strokeStyle = `rgba(255,240,228,${m.rim * 0.8})`;
+    c.lineWidth = 0.7 * hair;
+    c.stroke();
+  }
+  // Lit along every edge by the light at the end.
+  c.lineWidth = hair;
+  cells();
+  c.strokeStyle = `rgba(255,240,228,${m.rim * 0.8})`;
+  c.stroke();
+  c.beginPath();
+  ring(inner);
+  c.strokeStyle = `rgba(255,240,228,${Math.min(0.3, m.rim * 1.5)})`;
+  c.lineWidth = 1.2 * hair;
+  c.stroke();
+  c.beginPath();
+  ring(outer);
+  c.strokeStyle = `rgba(255,240,228,${m.rim * 0.4})`;
+  c.lineWidth = hair;
+  c.stroke();
+  // Points where its struts meet, a few, like the nodes of an instrument.
+  for (const [x, y] of joints.filter(() => r() < 0.07)) {
+    c.fillStyle = `rgba(255,240,228,${0.3 + m.rim * 2})`;
+    c.beginPath();
+    c.arc(x, y, 1.3 * hair, 0, TAU);
+    c.fill();
+  }
+}
+
+/** Paint the nearest ring once, onto a square canvas centred on the eye (it turns in CSS). */
+export function paintMembrane(canvas: HTMLCanvasElement, o: { k: number; seed: number }) {
+  const css = 2 * membraneReach(NEAR) * o.k;
+  const q = Math.min(window.devicePixelRatio || 1, 1.25, 2600 / css);
+  canvas.width = canvas.height = Math.max(1, Math.round(css * q));
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.setTransform(o.k * q, 0, 0, o.k * q, canvas.width / 2, canvas.height / 2);
+  drawMembrane(ctx, NEAR, { ...o, layer: 2 });
+}
+
+/**
+ * Paint the still depths of the other dimension, once: its deepest ring of
+ * membrane (soft), what drifts in its haze (fine dust, and points of light
+ * joined by lines, like the constellations of the Map), and its middle ring.
+ */
+export function paintDimension(canvas: HTMLCanvasElement, o: { w: number; h: number; cx: number; cy: number; k: number; seed: number }) {
+  // It all lies behind the plane in focus, so it is painted at one pixel to the stage's pixel: soft, and cheap.
+  const dpr = 1;
+  canvas.width = Math.round(o.w * dpr);
+  canvas.height = Math.round(o.h * dpr);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.translate(o.cx, o.cy);
+  ctx.scale(o.k, o.k);
+  const hair = 1 / o.k;
+  const r = seeded(o.seed + 61);
+  // Light from the end of the tunnel, falling out through it in faint shafts.
+  const rays = seeded(o.seed + 67);
+  soft(ctx, MEMBRANES[0].blur * o.k * dpr, (c) => {
+    for (let i = 0; i < 36; i++) {
+      const [a, w, len] = [rays() * TAU, 0.01 + rays() * 0.04, 500 + rays() * 500];
+      const g = c.createRadialGradient(0, 0, 0, 0, 0, len);
+      g.addColorStop(0, `rgba(236,232,223,${(0.05 + rays() * 0.06).toFixed(3)})`);
+      g.addColorStop(1, 'rgba(236,232,223,0)');
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.arc(0, 0, len, a - w, a + w);
+      c.closePath();
+      c.fillStyle = g;
+      c.fill();
+    }
+    // Its deepest ring, as soft as the light.
+    drawMembrane(c, MEMBRANES[0], { k: o.k, seed: o.seed, layer: 0 });
+  });
+  const drift = (c: CanvasRenderingContext2D) => {
+    for (let i = 0; i < 160; i++) {
+      const x = (r() * 2 - 1) * TEAR_W * 0.96;
+      const y = (r() * 2 - 1) * TEAR_H * tearProfile(x) * 0.95;
+      c.fillStyle = `rgba(236,232,223,${(0.12 + r() * 0.38).toFixed(2)})`;
+      c.beginPath();
+      c.arc(x, y, (0.4 + r() ** 3 * 1.3) * hair, 0, TAU);
+      c.fill();
+    }
+    for (let k = 0; k < 10; k++) {
+      const side = k % 2 ? 1 : -1;
+      let x = side * (370 + r() * 400);
+      let y = (r() * 2 - 1) * TEAR_H * tearProfile(x) * 0.6;
+      const pts: P[] = [[x, y]];
+      let dir = r() * TAU;
+      const n = 4 + Math.floor(r() * 4);
+      for (let i = 0; i < n; i++) {
+        dir += (r() - 0.5) * 1.8;
+        const step = 24 + r() * 44;
+        x += Math.cos(dir) * step;
+        y += Math.sin(dir) * step * 0.7;
+        pts.push([x, y]);
+      }
+      c.beginPath();
+      pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py)));
+      const [a, b] = [pts[Math.floor(r() * pts.length)], pts[Math.floor(r() * pts.length)]];
+      c.moveTo(a[0], a[1]);
+      c.lineTo(b[0], b[1]);
+      c.strokeStyle = 'rgba(236,232,223,0.2)';
+      c.lineWidth = hair;
+      c.stroke();
+      pts.forEach(([px, py], i) => {
+        const bright = i === 0 || r() < 0.15;
+        if (bright) {
+          const g = c.createRadialGradient(px, py, 0, px, py, 7 * hair);
+          g.addColorStop(0, 'rgba(255,244,234,0.5)');
+          g.addColorStop(1, 'rgba(255,244,234,0)');
+          c.fillStyle = g;
+          c.fillRect(px - 7 * hair, py - 7 * hair, 14 * hair, 14 * hair);
+        }
+        c.fillStyle = `rgba(255,244,234,${bright ? 0.95 : 0.6})`;
+        c.beginPath();
+        c.arc(px, py, (bright ? 1.6 : 1.1) * hair, 0, TAU);
+        c.fill();
+      });
+    }
+  };
+  drift(ctx);
+  soft(ctx, MEMBRANES[1].blur * o.k * dpr, (c) => drawMembrane(c, MEMBRANES[1], { k: o.k, seed: o.seed, layer: 1 }));
+}
 
 /** Where each part of the boss sits on the iris: an angle, a reach, and a few bodies along it. */
 export function spokes(parts: BossPart[]) {
