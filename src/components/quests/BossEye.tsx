@@ -28,6 +28,7 @@ import {
   spokes,
   paintTear,
   SUB,
+  TAU,
   TEAR_W,
   tearWindow,
   turn,
@@ -113,7 +114,15 @@ const RUSH = [0.84, 0.7];
  * It comes out of the tear (EMERGES..ARRIVES), then stares at you: it follows
  * the pointer (on a phone, the tilt or your touch), and with nothing moving it
  * looks straight out of the screen, never away, with the small darts of a
- * living eye. When you go to strike it narrows and the pupil swells; it looks
+ * living eye. Its pupil reacts all the time, as a machine's would: an
+ * aperture that opens and closes in stops, each reached on a servo (quick, a
+ * little past, and back), the iris giving way to it like the leaves of a lens
+ * and the ring at its rim turning like a focus ring. It tightens on you as you
+ * come near its centre and when you move quickly, opens when nobody is
+ * watching, shuts to a point when hit, lands wide-eyed, and is never quite
+ * still (a slow rhythm of its own, quick near its date; a twitch at each
+ * dart); the whole iris leans in on what it looks at and recoils when hit.
+ * When you go to strike it narrows and the pupil opens wide; it looks
  * at the spoke of the piece of work you point to, where that spoke is now; a
  * strike is a beam, and it flinches and blinks, a shock going out from its
  * pupil and the stage shuddering. Near
@@ -177,6 +186,12 @@ export function BossEye({
   const eye = useRef<SVGSVGElement>(null);
   const disc = useRef<SVGGElement>(null);
   const spin = useRef<SVGGElement>(null);
+  // The iris as a lens: its fibres, its rings and its spokes, set out between the pupil's edge and its own.
+  const fibres = useRef<SVGGElement>(null);
+  const ringInner = useRef<SVGCircleElement>(null);
+  const ringDots = useRef<SVGCircleElement>(null);
+  const ringFocus = useRef<SVGCircleElement>(null);
+  const spokeSet = useRef<SVGGElement>(null);
   const flares = useRef<SVGGElement>(null);
   const pupil = useRef<SVGGElement>(null);
   const sclera = useRef<SVGRadialGradientElement>(null);
@@ -434,11 +449,26 @@ export function BossEye({
       return { h: ((h % 12) + m / 60) * 30, m: (m + s / 60) * 6, s: s * 6 };
     };
     // The eyeball turns: iris, its rings and the pupil are one disc on it, carried and foreshortened
-    // together; the pupil only dilates about the same centre, and the light on the white follows.
-    const carry = (yaw: number, pitch: number, dil: number) => {
+    // together; the pupil only opens and closes about the same centre, and the light on the white follows.
+    // `ap` is the pupil's aperture (a scale of the clock) and `lens` the iris's (a scale of the whole disc).
+    let lastIris = -1;
+    const carry = (yaw: number, pitch: number, ap: number, lens = 1) => {
       const t = turn(yaw, pitch);
-      disc.current?.setAttribute('transform', t.matrix());
-      pupil.current?.setAttribute('transform', `scale(${dil.toFixed(3)})`);
+      disc.current?.setAttribute('transform', t.matrix(lens));
+      pupil.current?.setAttribute('transform', `scale(${ap.toFixed(3)})`);
+      // The iris gives way to the pupil like the leaves of a lens: what lies near the pupil goes with it,
+      // what lies near the rim stays; the focus ring at its rim turns as the aperture changes.
+      if (Math.abs(ap - lastIris) > 0.0008) {
+        lastIris = ap;
+        const P = RC * ap;
+        const at = (r: number) => (P + ((RI - P) * (r - RC)) / (RI - RC)) / r;
+        const scale = (n: Element | null, v: number, rest = '') => n?.setAttribute('transform', `${rest}scale(${v.toFixed(4)})`);
+        scale(ringInner.current, at(RC + 30));
+        scale(ringDots.current, at(RI * 0.74));
+        scale(ringFocus.current, at(RI - 14), `rotate(${((ap - 1) * 80).toFixed(2)}) `);
+        scale(fibres.current, Math.max(0.82, Math.min(1.02, at(160))));
+        scale(spokeSet.current, Math.max(0.8, Math.min(1.03, at(150))));
+      }
       sclera.current?.setAttribute('cx', (0.5 + (t.x / 1000) * 0.6).toFixed(4));
       sclera.current?.setAttribute('cy', (0.5 + (t.y / 580) * 0.6).toFixed(4));
       live.current.px = t.x * live.current.k;
@@ -461,7 +491,8 @@ export function BossEye({
       return () => window.clearInterval(timer);
     }
 
-    const pointer = { x: 0, y: 0, at: -1e9 };
+    // Where you point: its angle for the gaze, how near the eye's centre (0) or far (1), and how fast it moves.
+    const pointer = { x: 0, y: 0, at: -1e9, near: 1, speed: 0, lx: 0, ly: 0, lt: 0 };
     const tilt = { x: 0, y: 0, at: -1e9 };
     const cam = { x: 0, y: 0, tx: 0, ty: 0 };
     const reach = (v: number) => Math.max(-1, Math.min(1, v));
@@ -480,7 +511,11 @@ export function BossEye({
       const reach = Math.min(1, d / (r.width * 0.55));
       pointer.x = (dx / d) * reach * YAW;
       pointer.y = (dy / d) * reach * PITCH;
-      pointer.at = performance.now();
+      pointer.near = reach;
+      const t = performance.now();
+      if (t - pointer.lt < 120) pointer.speed = Math.max(pointer.speed, Math.hypot(clientX - pointer.lx, clientY - pointer.ly) / Math.max(8, t - pointer.lt));
+      [pointer.lx, pointer.ly, pointer.lt] = [clientX, clientY, t];
+      pointer.at = t;
     };
     const onMove = (e: PointerEvent) => {
       if (e.pointerType === 'touch') return;
@@ -522,7 +557,16 @@ export function BossEye({
     if (dormant) setTear(1, SCAR);
     let open = 0.012;
     let openV = 0;
-    let dil = 0.55;
+    // The pupil's aperture and the iris's lens, each on a servo: quick, a little past, and back.
+    const ap = { x: 0.55, v: 0 };
+    const lens = { x: 1, v: 0 };
+    const servo = (s: { x: number; v: number }, goal: number, k: number, c: number, dt: number) => {
+      for (let left = dt; left > 0; left -= 16) {
+        const h = Math.min(16, left);
+        s.v += (k * (goal - s.x) - c * s.v) * h;
+        s.x += s.v * h;
+      }
+    };
     // Gaze and darts are angles of the eyeball (yaw, pitch), in radians.
     const gaze = { x: 0, y: 0 };
     const dart = { x: 0, y: 0, tx: 0, ty: 0, next: 0 };
@@ -620,9 +664,6 @@ export function BossEye({
         openV = openV * 0.78 + (goal - open) * 0.035;
         open += openV;
       }
-      // The pupil: small as it opens, swollen when you go to strike, tight near its date.
-      const dGoal = wake < opensAt + 250 ? 0.55 : (L.urgent ? 0.9 : 1) * (L.alert && active ? 1.13 : 1);
-      dil += (dGoal - dil) * 0.07;
       // Where it looks: the part you point to; you (the pointer, the tilt); else straight out at you.
       let [tx, ty] = [0, 0];
       let ease = 0.05;
@@ -638,11 +679,12 @@ export function BossEye({
       else if (now - tilt.at < 3200) [tx, ty] = [tilt.x, tilt.y];
       gaze.x += (tx - gaze.x) * ease;
       gaze.y += (ty - gaze.y) * ease;
-      // Small quick darts, so it is never quite still.
+      // Small quick darts, so it is never quite still; at each the aperture twitches, as a lens hunts focus.
       if (active && now > dart.next) {
         dart.tx = (Math.random() - 0.5) * 0.05;
         dart.ty = (Math.random() - 0.5) * 0.03;
         dart.next = now + 380 + Math.random() * 1300;
+        if (wake > ARRIVES) ap.v += (Math.random() - 0.5) * 0.0016;
       }
       dart.x += (dart.tx - dart.x) * 0.35;
       dart.y += (dart.ty - dart.y) * 0.35;
@@ -651,8 +693,38 @@ export function BossEye({
       const j = L.hitAt && hs < 340 ? (1 - hs / 340) * 0.06 : 0;
       const gx = gaze.x + dart.x + (j ? (Math.random() - 0.5) * 2 * j : 0);
       const gy = gaze.y + dart.y + (j ? (Math.random() - 0.5) * 2 * j : 0);
+      // The pupil reacts, all the time, as a machine's would: in stops, each reached on a servo.
+      pointer.speed *= Math.exp(-dt / 220);
+      const watched = now - pointer.at < 3200;
+      const tilted = !watched && now - tilt.at < 3200;
+      const near = watched ? pointer.near : tilted ? Math.min(1, Math.hypot(tilt.x / YAW, tilt.y / PITCH)) : 1;
+      let apGoal = 0.55;
+      let lensGoal = 1;
+      if (!L.dormant && wake >= opensAt + 250) {
+        // Closer to its centre, the tighter it focuses on you; unwatched, it opens to see.
+        apGoal = watched || tilted ? 0.8 + 0.2 * near : 1.07;
+        if (target) apGoal = 0.84; // a part you point to: it looks closely
+        if (L.alert && active) apGoal = 1.18; // you are about to strike: it opens wide
+        if (L.urgent && active) apGoal *= 0.92;
+        if (L.state === 'escaped') apGoal = 0.78;
+        // Never quite still: a slow rhythm of its own, quick and shallow near its date, like its beat.
+        apGoal += L.urgent ? 0.03 * Math.sin((now / 1600) * TAU) : 0.022 * Math.sin((now / 4300) * TAU) + 0.012 * Math.sin((now / 7100) * TAU + 1.3);
+        // A quick movement makes it tighten.
+        apGoal -= Math.min(0.1, pointer.speed * 0.035);
+        // Hit, it shuts to a point and comes back; landing, it opens wide on you and settles.
+        if (L.hitAt && hs < 1600) apGoal -= 0.4 * Math.exp(-hs / 300);
+        if (wake >= ARRIVES) apGoal += 0.24 * Math.exp(-(wake - ARRIVES) / 520);
+        apGoal = Math.round(Math.max(0.55, Math.min(1.3, apGoal)) / 0.025) * 0.025;
+        // The lens leans in on what it looks at (you up close, a part, a strike coming) and recoils when hit.
+        const focus = target ? 1 : L.alert && active ? 0.8 : watched || tilted ? 1 - near : 0;
+        lensGoal = 1 + 0.045 * focus;
+        if (L.hitAt && hs < 1600) lensGoal -= 0.07 * Math.exp(-hs / 260);
+        if (wake >= ARRIVES) lensGoal += 0.05 * Math.exp(-(wake - ARRIVES) / 600);
+      }
+      servo(ap, apGoal, 0.0009, 0.04, dt);
+      servo(lens, lensGoal, 0.00035, 0.028, dt);
       setLids(open);
-      carry(gx, gy, dil);
+      carry(gx, gy, Math.max(0.45, ap.x), lens.x);
       // A shock stays centred on the pupil while it runs, wherever the eye turns.
       if (now < L.shockUntil && shock.current) shock.current.style.translate = `calc(-50% + ${L.px.toFixed(1)}px) calc(-50% + ${L.py.toFixed(1)}px)`;
       // The camera, eased; each layer carried by its depth. The tear and its window move as one, and what is
@@ -794,29 +866,33 @@ export function BossEye({
                   <g ref={disc}>
                     <g ref={spin}>
                       <circle r={RI} className="eye-iris-disc" />
-                      <path d={FIBRES.faint} className="eye-fibre" />
-                      <path d={FIBRES.bright} className="eye-fibre-bright" />
-                      <circle r={RI - 14} className="eye-ring-dash" />
-                      <circle r={RI * 0.74} className="eye-ring-dots" />
-                      <circle r={RC + 30} className="eye-ring" />
-                      {layout.map((s) => {
-                        const [c, si] = [Math.cos(s.angle), Math.sin(s.angle)];
-                        return (
-                          <g
-                            key={s.part.id}
-                            className={cn('eye-spoke', s.part.done && 'eye-spoke-done', look === s.part.id && 'is-look')}
-                            data-part={s.part.id}
-                          >
-                            <line x1={c * s.from} y1={si * s.from} x2={c * s.to} y2={si * s.to} />
-                            {s.beads.map((b, j) => (
-                              <circle key={j} cx={c * b} cy={si * b} r={2} className="eye-bead" />
-                            ))}
-                            {s.body > 0 && <circle cx={c * s.bodyAt} cy={si * s.bodyAt} r={s.body} className="eye-body" />}
-                            <circle cx={c * s.to} cy={si * s.to} r={s.part.kind === 'target' ? 6.5 : 4.5} className="eye-node" />
-                          </g>
-                        );
-                      })}
-                      <g ref={flares} />
+                      <g ref={fibres}>
+                        <path d={FIBRES.faint} className="eye-fibre" />
+                        <path d={FIBRES.bright} className="eye-fibre-bright" />
+                      </g>
+                      <circle ref={ringFocus} r={RI - 14} className="eye-ring-dash" />
+                      <circle ref={ringDots} r={RI * 0.74} className="eye-ring-dots" />
+                      <circle ref={ringInner} r={RC + 30} className="eye-ring" />
+                      <g ref={spokeSet}>
+                        {layout.map((s) => {
+                          const [c, si] = [Math.cos(s.angle), Math.sin(s.angle)];
+                          return (
+                            <g
+                              key={s.part.id}
+                              className={cn('eye-spoke', s.part.done && 'eye-spoke-done', look === s.part.id && 'is-look')}
+                              data-part={s.part.id}
+                            >
+                              <line x1={c * s.from} y1={si * s.from} x2={c * s.to} y2={si * s.to} />
+                              {s.beads.map((b, j) => (
+                                <circle key={j} cx={c * b} cy={si * b} r={2} className="eye-bead" />
+                              ))}
+                              {s.body > 0 && <circle cx={c * s.bodyAt} cy={si * s.bodyAt} r={s.body} className="eye-body" />}
+                              <circle cx={c * s.to} cy={si * s.to} r={s.part.kind === 'target' ? 6.5 : 4.5} className="eye-node" />
+                            </g>
+                          );
+                        })}
+                        <g ref={flares} />
+                      </g>
                     </g>
                     <circle r={RI - 5} className="eye-limbus" />
                     {/* Its armor: plates round the edge of the iris, whole, chipped or broken. */}
