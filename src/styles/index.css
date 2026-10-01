@@ -1624,7 +1624,7 @@ html body {
     transform: translate(27px, 7px);
   }
 }
-/* A strike: a beam from your button to the part, a burst where it lands, a shock through the eye. */
+/* A strike: a beam from your button to the part, and a burst where it lands. */
 .quest-beams {
   position: absolute;
   inset: 0;
@@ -1653,14 +1653,6 @@ html body {
   fill: rgb(255 90 31 / 0.55);
   transform-box: fill-box;
   transform-origin: center;
-}
-.quest-shock {
-  position: absolute;
-  translate: -50% -50%;
-  border-radius: 50%;
-  border: 1px solid rgb(236 232 223 / 0.6);
-  opacity: 0;
-  pointer-events: none;
 }
 /* What you read over it: kept legible against the light, the rings dimmed beneath it. */
 .quest-scrim {

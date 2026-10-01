@@ -67,8 +67,8 @@ const NS = 'http://www.w3.org/2000/svg';
  * bursts and fades as space tears open on another dimension (to TORN), which
  * rushes at us. Out of that dimension's depth the eye comes forward,
  * out of focus and dim, growing and pulling into focus (from EMERGES, see
- * .quest-emerge), its lids opening as it comes (OPENS), and it lands with a
- * shock (ARRIVES). Sealed, the tear stands open only this much (SCAR).
+ * .quest-emerge), its lids opening as it comes (OPENS), and it lands, the
+ * stage shuddering (ARRIVES). Sealed, the tear stands open only this much (SCAR).
  */
 const CRACKED = 480;
 const TORN = 1300;
@@ -124,7 +124,7 @@ const RUSH = [0.84, 0.7];
  * looks straight out of the screen, never away, with the small darts of a
  * living eye. When you go to strike it narrows and the pupil swells; it looks
  * at the spoke of the piece of work you point to, where that spoke is now; a
- * strike is a beam, and it flinches, a shock going out from its pupil. Near
+ * strike is a beam, and it flinches and blinks, the stage shuddering. Near
  * its date it narrows, burns orange and its light beats. Beaten, it closes,
  * its rings stop and the tear seals to a scar; got away, it half closes and
  * looks aside. Still, with reduced motion.
@@ -207,7 +207,6 @@ export function BossEye({
   const dimNear = useRef<HTMLCanvasElement>(null);
   const flash = useRef<HTMLDivElement>(null);
   const beams = useRef<SVGSVGElement>(null);
-  const shock = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState({ w: 0, h: 0, cx: 0, cy: 0, k: 1 });
   const layout = useMemo(() => spokes(parts), [parts]);
   const id = `eye${useId().replace(/[^\w]/g, '')}`;
@@ -231,8 +230,6 @@ export function BossEye({
     cy: geo.cy,
     hitAt: 0,
     reduced,
-    px: 0,
-    py: 0,
   });
   Object.assign(live.current, { state, look, alert, urgent, rest, layout, dormant, k: geo.k, w: geo.w, h: geo.h, cx: geo.cx, cy: geo.cy, reduced });
   // The camera's reach on this stage, and how far past the stage the layers it carries are painted, so no edge shows.
@@ -319,20 +316,6 @@ export function BossEye({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geo.cx, geo.cy, sealed, reduced]);
 
-  /** A shock going out from the pupil. */
-  const shockwave = (scale = 3.8) => {
-    const el = shock.current;
-    if (!el) return;
-    const { px: x, py: y } = live.current;
-    el.style.translate = `calc(-50% + ${x.toFixed(1)}px) calc(-50% + ${y.toFixed(1)}px)`;
-    el.animate(
-      [
-        { transform: 'scale(1)', opacity: 0.85 },
-        { transform: `scale(${scale})`, opacity: 0 },
-      ],
-      { duration: 950, easing: 'cubic-bezier(.2,.7,.2,1)' },
-    );
-  };
   const shudder = (amp: number) =>
     body.current?.animate(
       [
@@ -346,12 +329,11 @@ export function BossEye({
       { duration: 360, easing: 'ease-out' },
     );
 
-  // A hit: it flinches, a shock goes out from its pupil, the whole of it shudders.
+  // A hit: it flinches and blinks, the whole of it shudders.
   useEffect(() => {
     if (!hit) return;
     live.current.hitAt = performance.now();
     if (reduced) return;
-    shockwave();
     shudder(5);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hit, reduced]);
@@ -453,8 +435,6 @@ export function BossEye({
       pupil.current?.setAttribute('transform', `scale(${dil.toFixed(3)})`);
       sclera.current?.setAttribute('cx', (0.5 + (t.x / 1000) * 0.6).toFixed(4));
       sclera.current?.setAttribute('cy', (0.5 + (t.y / 580) * 0.6).toFixed(4));
-      live.current.px = t.x * live.current.k;
-      live.current.py = t.y * live.current.k;
       return t;
     };
 
@@ -600,11 +580,10 @@ export function BossEye({
         gap += (tearGoal - gap) * (1 - Math.exp(-dt / 450));
         setTear(1, gap);
       }
-      // It lands: a shock from its pupil, the stage shudders, the tear flares behind it.
+      // It lands: the stage shudders, the tear flares behind it.
       if (!arrived && wake >= ARRIVES) {
         arrived = true;
         el?.setAttribute('data-arrived', '');
-        shockwave(4.4);
         shudder(4);
       }
       // The iris turns slowly on itself (once in three minutes), until it is beaten.
@@ -964,8 +943,6 @@ export function BossEye({
                 <circle cx={410} cy={0} r={3} className="eye-moon" />
               </svg>
             </div>
-
-            <div ref={shock} className="quest-shock" style={{ left: geo.cx, top: geo.cy, width: 2 * (RC + 16) * geo.k, height: 2 * (RC + 16) * geo.k }} />
           </div>
         </div>
 
