@@ -51,6 +51,35 @@ describe('the Map as a constellation', () => {
     }
   });
 
+  it.each(ZODIAC)('%s: has depth, the person nearest and each star its own, elements by ring round their star', (key) => {
+    const placed = constellationLayout(data, key, ORBIT_DESKTOP);
+    const f = placed.figure;
+    expect(f.depths).toHaveLength(f.points.length);
+    expect(f.seats).toHaveLength(f.points.length);
+    // The person's star is the nearest, and the figure runs back from it.
+    const you = f.seats.indexOf(YOU_ID);
+    expect(you).toBeGreaterThanOrEqual(0);
+    expect(Math.max(...f.depths)).toBe(f.depths[you]);
+    expect(Math.max(...f.depths) - Math.min(...f.depths)).toBeGreaterThan(200);
+    // Every hub is seated on its star at that star's depth, and every orbit sits at it too.
+    for (const id of hubs) {
+      const i = f.seats.indexOf(id);
+      expect(i).toBeGreaterThanOrEqual(0);
+      expect(placed.depthOf[id]).toBe(f.depths[i]);
+    }
+    for (const o of f.orbits) {
+      const i = f.points.findIndex((p) => p.x === o.at.x && p.y === o.at.y);
+      expect(o.z).toBe(f.depths[i]);
+    }
+    // Round each star, what I hold lies in front of what I do, and that in front of what surrounds me.
+    for (const n of mapElements(data)) {
+      const star = placed.hubOf[n.id];
+      if (!star) continue;
+      const offset = Math.round(placed.depthOf[n.id] - placed.depthOf[star]);
+      expect([45, 0, -60]).toContain(offset);
+    }
+  });
+
   it('keeps areas on roughly their side of the round map', () => {
     // Over all twelve figures, most areas land within a quarter turn of where the orbit puts them.
     let near = 0;

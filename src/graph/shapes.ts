@@ -10,6 +10,13 @@
  * stars gets points along its longest lines. Areas keep roughly the side of
  * the map they have on the round one.
  *
+ * The figure has depth, as the round map does: the person's star nearest,
+ * the others the farther back the farther they lie from it (each a little
+ * nearer or farther, as real stars are), and each area's elements in front of
+ * or behind its star by ring, what I hold nearest and what surrounds me
+ * farthest, as the round map's rings are. The space engine shows it through
+ * its camera (see space.ts).
+ *
  * Only positions change: the records, links, claims and everything read from
  * them are the same, whichever shape is shown.
  */
@@ -47,6 +54,19 @@ const MAX_REACH = 1150;
 const LAYER_SHARE: Record<LayerKey, number> = { hold: 0.56, do: 0.78, around: 1 };
 /** Each star's name sits straight below it (above, for stars above the person); elements keep this many degrees either side of it clear. */
 const NAME_BAND = 34;
+/** Depth (graph units, toward the viewer) of the person's star, and of the farthest star from it. */
+const NEAR_Z = 150;
+const FAR_Z = -280;
+/** How far each star lies nearer or farther than its distance from the person alone would put it. */
+const STAR_SCATTER = 90;
+/** Each ring's depth in front of (or behind) its star: what I hold nearest, what surrounds me farthest. */
+export const LAYER_Z: Record<LayerKey, number> = { hold: 45, do: 0, around: -60 };
+/** A steady fraction from a string, so each figure's stars lie at the same depths every time. */
+const steady = (s: string) => {
+  let h = 2166136261;
+  for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return (h >>> 0) / 4294967295;
+};
 
 export interface FigureShape {
   key: ZodiacKey;
@@ -55,14 +75,20 @@ export interface FigureShape {
   /** Brightness per point (visual magnitude; added points have none). */
   mags: (number | null)[];
   lines: number[][];
-  /** Where each area's orbit sits, and how far it reaches. */
-  orbits: { at: XY; r: number }[];
+  /** Each point's depth (graph units, toward the viewer), before the space engine's intensity. */
+  depths: number[];
+  /** The hub sitting on each point (the person, or an area), if any. */
+  seats: (ID | null)[];
+  /** Where each area's orbit sits, how far it reaches, and its star's depth. */
+  orbits: { at: XY; r: number; z: number }[];
 }
 
 export interface ShapePlacement extends OrbitPlacement {
   figure: FigureShape;
   /** Each element's star: it orbits it, and its name faces away from it. */
   hubOf: Record<ID, ID>;
+  /** The depth of each hub (its star's) and of each element (its star's, by its ring). */
+  depthOf: Record<ID, number>;
 }
 
 const KIND_ORDER = Object.fromEntries(KINDS.map((k, i) => [k.key, i]));
@@ -144,16 +170,25 @@ export function constellationLayout(data: AtlasData, key: ZodiacKey, g: OrbitGeo
 
   const positions: Record<ID, XY> = {};
   const hubOf: Record<ID, ID> = {};
+  const depthOf: Record<ID, number> = {};
   const orbits: FigureShape['orbits'] = [];
   const hubId = (area: AreaKey) => (area === 'self' ? YOU_ID : areaHubId(area));
+  // Depth: the person's star nearest, the farther from it the farther back, each a little off.
+  const far = Math.max(...points.map((p) => Math.hypot(p.x, p.y))) || 1;
+  const depths = points.map((p, i) =>
+    i === you ? NEAR_Z : NEAR_Z + (FAR_Z - NEAR_Z) * (Math.hypot(p.x, p.y) / far) ** 0.85 + (steady(`${key}:${i}`) - 0.5) * STAR_SCATTER,
+  );
+  const seatIds: (ID | null)[] = points.map(() => null);
   const elements = mapElements(data);
   for (const [area, seat] of seatOf) {
     const at = points[seat];
     positions[hubId(area)] = at;
+    seatIds[seat] = hubId(area);
+    depthOf[hubId(area)] = depths[seat];
     // An orbit reaches a little under halfway to the nearest other star, within bounds.
     const room = Math.min(...[...seatOf.values()].filter((s) => s !== seat).map((s) => dist(at, points[s])));
     const r = Math.max(100 * g.scale, Math.min(220 * g.scale, room * 0.46));
-    orbits.push({ at, r });
+    orbits.push({ at, r, z: depths[seat] });
     // Open the orbit away from the person, so it leans outward like the round map, and keep clear of the star's name.
     const facing = seat === you ? 270 : angleOf({ x: 0, y: 0 }, at);
     const name = seat === you || at.y > 0 ? 90 : 270;
@@ -168,8 +203,9 @@ export function constellationLayout(data: AtlasData, key: ZodiacKey, g: OrbitGeo
         const rr = r * LAYER_SHARE[layer];
         positions[n.id] = { x: at.x + rr * Math.cos(a), y: at.y + rr * Math.sin(a) };
         hubOf[n.id] = hubId(area);
+        depthOf[n.id] = depths[seat] + LAYER_Z[layer];
       });
     }
   }
-  return { positions, inward: new Set(), hubOf, figure: { key, points, mags, lines, orbits } };
+  return { positions, inward: new Set(), hubOf, depthOf, figure: { key, points, mags, lines, depths, seats: seatIds, orbits } };
 }

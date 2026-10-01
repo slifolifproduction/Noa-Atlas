@@ -350,6 +350,7 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
         area: key,
         center,
         onFigure: Boolean(figure),
+        figureZ: figure?.depthOf[id],
         label,
         statement,
         color: meta.color,
@@ -392,7 +393,10 @@ export function buildOrbit(data: AtlasData, opts: OrbitOptions): BuiltGraph {
       Boolean(opts.salient?.has(n.id) || keep?.has(n.id)),
       opts.today,
     );
-    if (star) node.data.orbitHub = star;
+    if (star) {
+      node.data.orbitHub = star;
+      node.data.figureZ = figure?.depthOf[n.id];
+    }
     nodes.push(node);
   }
   if (opts.selectedId) {

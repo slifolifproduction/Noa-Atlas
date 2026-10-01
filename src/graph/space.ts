@@ -35,6 +35,7 @@ import type { ID, LayerKey } from '../domain/types';
 import { globeDrawing, type GlobeDrawing } from './globe';
 import { helixDrawing, helixSpan, scanStep, type HelixDrawing, type HelixProjector, type HelixSpec } from './helix';
 import { hash01, HOP_MS, waveBus, type Wave } from './motion';
+import { LAYER_Z, type FigureShape } from './shapes';
 import type { AtlasFlowNode, SemanticEdge } from './types';
 
 type FlowState = ReactFlowState<AtlasFlowNode, SemanticEdge>;
@@ -53,8 +54,6 @@ const LAYER_DEPTH: Record<LayerKey | 'core', number> = { core: 130, hold: 60, do
 /** Elements float a little in front of their ring's plane. */
 const ELEMENT_LIFT = 24;
 const AREA_MARKER_DEPTH = -270;
-/** The plane a constellation shape's figure is drawn on: the area markers' depth, so its lines stay on them. */
-export const FIGURE_PLANE = 9;
 /**
  * Each ring turns slowly about the centre, all its elements together, inner
  * rings a little faster: amplitude in degrees, period in seconds.
@@ -196,6 +195,7 @@ export class SpaceEngine {
   private readonly edgeEls = new Map<string, EdgeEls>();
   private readonly ringEls = new Map<number, HTMLElement | SVGElement>();
   private helix: HelixEls | null = null;
+  private figure: FigureEls | null = null;
   private helixSpec: HelixSpec | null = null;
   /** The helix's current turn about its axis (radians). */
   private sway = 0;
@@ -279,8 +279,9 @@ export class SpaceEngine {
       let hub: ID | undefined;
       if (n.type === 'hub') {
         kind = 'hub';
-        // On a figure every star is at one depth, so the figure's lines stay on all of them.
-        base = (n.data.center && !n.data.onFigure ? RING_DEPTH[0] : AREA_MARKER_DEPTH) * q;
+        // On a figure each star has its own depth (see graph/shapes.ts); the figure is drawn through the
+        // camera afresh each frame, so its lines stay on its stars at any depth.
+        base = (n.data.onFigure ? (n.data.figureZ ?? AREA_MARKER_DEPTH) : n.data.center ? RING_DEPTH[0] : AREA_MARKER_DEPTH) * q;
         amp = n.data.center ? 16 : 22;
         wander = n.data.center ? 5 : 9;
       } else if (n.type === 'item' && n.data.helix && helix) {
@@ -295,7 +296,7 @@ export class SpaceEngine {
         const ring = n.data.core ? 'core' : n.data.layer;
         hub = n.data.orbitHub ?? YOU_ID;
         base = n.data.orbitHub
-          ? (AREA_MARKER_DEPTH + ELEMENT_LIFT + (ring === 'around' ? -20 : ring === 'hold' || ring === 'core' ? 20 : 0) + (h2 - 0.5) * 16) * q
+          ? ((n.data.figureZ ?? AREA_MARKER_DEPTH) + ELEMENT_LIFT + (h2 - 0.5) * 16) * q
           : (LAYER_DEPTH[ring] + ELEMENT_LIFT + (h2 - 0.5) * 30) * q;
         amp = 26;
         wander = 3;
@@ -423,6 +424,15 @@ export class SpaceEngine {
     }
   }
 
+  registerFigure(svg: SVGSVGElement | null, figure: FigureShape) {
+    if (!svg) {
+      if (this.figure?.figure === figure) this.figure = null;
+      return;
+    }
+    this.figure = figureEls(svg, figure);
+    this.lastFull = 0;
+    if (!this.depthOn) paintFigure(this.figure);
+  }
   registerRing(index: number, el: HTMLElement | SVGElement | null) {
     if (el) this.ringEls.set(index, el);
     else this.ringEls.delete(index);
@@ -827,11 +837,39 @@ export class SpaceEngine {
     if (rings && this.ringEls.size) {
       const o = rings.internals.positionAbsolute;
       for (const [i, el] of this.ringEls) {
-        const z = (i === FIGURE_PLANE ? AREA_MARKER_DEPTH : (RING_DEPTH[i + 1] ?? 0)) * q;
+        const z = (RING_DEPTH[i + 1] ?? 0) * q;
         const m0 = FOCAL / (FOCAL - z);
         el.style.transformOrigin = `${(Cx - o.x).toFixed(2)}px ${(Cy - o.y).toFixed(2)}px`;
         el.style.transform = planeMatrix(z, m0, -Cx * (1 - 1 / m0), -Cy * (1 - 1 / m0), cy, sy, cp, sp, F);
       }
+    }
+
+    // A constellation's figure: every point of it through the camera at its own depth (a seated star
+    // exactly where its hub is), each orbit's rings at their depths, so its lines stay on its stars.
+    if (this.figure) {
+      const f = this.figure.figure;
+      const pts = f.points.map((p, i) => {
+        const seat = f.seats[i];
+        const hp = seat ? this.proj.get(seat) : undefined;
+        if (hp) return { x: p.x + hp.dx, y: p.y + hp.dy, s: hp.s };
+        const z = f.depths[i] * q;
+        const r = see(p.x, p.y, z, z);
+        return { x: r.X, y: r.Y, s: r.persp / r.m0 };
+      });
+      const ringZ = [LAYER_Z.around, LAYER_Z.do, LAYER_Z.hold];
+      paintFigure(this.figure, {
+        points: pts,
+        ring: (o, ring) => {
+          const z = (o.z + ringZ[ring]) * q;
+          const r = see(o.at.x, o.at.y, z, z);
+          const s = r.persp / r.m0;
+          return { x: r.X, y: r.Y, sx: s * Math.abs(cy), sy: s * Math.abs(cp) };
+        },
+        at: (x, y, z) => {
+          const r = see(x, y, z * q, z * q);
+          return { x: r.X, y: r.Y };
+        },
+      });
     }
 
     // The backbone: every point of it through the same camera as the elements on it.
@@ -903,6 +941,7 @@ export class SpaceEngine {
     for (const b of this.bodies.values()) if (b.helix) [b.helix.flipped, b.helix.hz, b.helix.scanned, b.helix.back] = [false, -1, false, false];
     this.sway = 0;
     if (this.helix) paintBackbone(this.helix, this.helix.spec);
+    if (this.figure) paintFigure(this.figure);
     this.proj.clear();
     this.kicks = [];
   }
@@ -1047,6 +1086,72 @@ function clearNode(el: HTMLElement) {
  * as the node projection, including the resting-depth compensation (scale 1/m0
  * and shift D about the layout origin).
  */
+/** A constellation figure's drawing (see FigureNode), found by its data attributes. */
+interface FigureEls {
+  figure: FigureShape;
+  lines: { paths: SVGPathElement[]; pts: number[] }[];
+  dots: { el: SVGCircleElement; i: number; r: number }[];
+  orbits: { rings: SVGEllipseElement[]; at: { x: number; y: number }; r: number; z: number }[];
+  name: { el: SVGTextElement; x: number; y: number; z: number } | null;
+}
+function figureEls(svg: SVGSVGElement, figure: FigureShape): FigureEls {
+  const lines = figure.lines.map((pts, i) => ({ paths: [...svg.querySelectorAll<SVGPathElement>(`[data-line="${i}"]`)], pts }));
+  const dots = [...svg.querySelectorAll<SVGCircleElement>('[data-dot]')].map((el) => ({
+    el,
+    i: Number(el.dataset.dot),
+    r: Number(el.getAttribute('r')),
+  }));
+  const orbits = figure.orbits.map((o, i) => ({
+    rings: [0, 1, 2].map((k) => svg.querySelector<SVGEllipseElement>(`[data-orbit="${i}"][data-ring="${k}"]`)!).filter(Boolean),
+    ...o,
+  }));
+  const text = svg.querySelector<SVGTextElement>('[data-part="figure-name"]');
+  const name = text ? { el: text, x: Number(text.getAttribute('x')), y: Number(text.getAttribute('y')), z: Math.min(...figure.depths) } : null;
+  return { figure, lines, dots, orbits, name };
+}
+/** The ring sizes of an orbit, outermost first (what surrounds me, what I do, what I hold), as shares of its reach. */
+export const FIGURE_RINGS = [1, 0.76, 0.5];
+/**
+ * Draw a constellation figure: through the camera (`seen`: each point where it is seen, each orbit's
+ * rings where they are seen and how they are foreshortened, and any other point), or flat as laid out.
+ */
+function paintFigure(
+  els: FigureEls,
+  seen?: {
+    points: { x: number; y: number; s: number }[];
+    ring: (o: FigureEls['orbits'][number], ring: number) => { x: number; y: number; sx: number; sy: number };
+    at: (x: number, y: number, z: number) => { x: number; y: number };
+  },
+) {
+  const f = els.figure;
+  const pt = (i: number) => seen?.points[i] ?? { x: f.points[i].x, y: f.points[i].y, s: 1 };
+  for (const l of els.lines) {
+    const d = l.pts.map((k, j) => `${j ? 'L' : 'M'} ${pt(k).x.toFixed(1)} ${pt(k).y.toFixed(1)}`).join(' ');
+    for (const p of l.paths) p.setAttribute('d', d);
+  }
+  for (const dot of els.dots) {
+    const p = pt(dot.i);
+    dot.el.setAttribute('cx', p.x.toFixed(1));
+    dot.el.setAttribute('cy', p.y.toFixed(1));
+    dot.el.setAttribute('r', (dot.r * p.s).toFixed(2));
+  }
+  els.orbits.forEach((o) =>
+    o.rings.forEach((el, k) => {
+      const r = o.r * FIGURE_RINGS[k];
+      const p = seen ? seen.ring(o, k) : { x: o.at.x, y: o.at.y, sx: 1, sy: 1 };
+      el.setAttribute('cx', p.x.toFixed(1));
+      el.setAttribute('cy', p.y.toFixed(1));
+      el.setAttribute('rx', (r * p.sx).toFixed(1));
+      el.setAttribute('ry', (r * p.sy).toFixed(1));
+    }),
+  );
+  if (els.name) {
+    const p = seen ? seen.at(els.name.x, els.name.y, els.name.z) : els.name;
+    els.name.el.setAttribute('x', p.x.toFixed(1));
+    els.name.el.setAttribute('y', p.y.toFixed(1));
+  }
+}
+
 function planeMatrix(z: number, m0: number, Dx: number, Dy: number, cy: number, sy: number, cp: number, sp: number, F: number): string {
   const k = 1 / m0;
   // q = k·(u, v) + D; then the same rotation and perspective as nodes.
@@ -1097,6 +1202,10 @@ export function useSpaceEdge(id: string, source: ID, target: ID) {
   return { svg, html };
 }
 
+export function useSpaceFigure(figure: FigureShape) {
+  const space = useSpace();
+  return useCallback((el: SVGSVGElement | null) => space?.registerFigure(el, figure), [space, figure]);
+}
 export function useSpaceRing(index: number) {
   const space = useSpace();
   return useCallback((el: HTMLElement | SVGElement | null) => space?.registerRing(index, el), [space, index]);

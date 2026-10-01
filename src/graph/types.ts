@@ -10,6 +10,8 @@ export type HubNodeData = {
   center: boolean;
   /** Seated on a constellation shape's star. */
   onFigure?: boolean;
+  /** On a constellation shape: its star's depth (see graph/shapes.ts). */
+  figureZ?: number;
   label: string;
   statement: string;
   color: string;
@@ -63,6 +65,8 @@ export type ItemNodeData = {
   far?: boolean;
   /** On a constellation shape: the star (hub) it orbits. */
   orbitHub?: ID;
+  /** On a constellation shape: its depth, its star's by its ring (see graph/shapes.ts). */
+  figureZ?: number;
 };
 
 export type RingsNodeData = {
