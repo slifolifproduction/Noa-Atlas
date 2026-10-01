@@ -66,25 +66,31 @@ export function DecisionRepeats() {
         <ul className="divide-y divide-line">
           {visible.map((c) => (
             <li key={c.signature} className="px-4 py-4">
-              <div className="text-[11.5px] text-ink-3">{c.steps.reduce((acc, step) => t('{a}, then {b}', { a: acc, b: step }))}</div>
-              <p className="display mt-1 text-[17px] leading-[1.2] text-ink">“{c.statement}”</p>
-              <p className="mt-1 text-[12.5px] text-ink-2">{c.observation}</p>
-              <p className="mt-2 text-[12px] text-ink-3">
+              <p className="display text-[17px] leading-[1.2] text-ink">“{c.statement}”</p>
+              <p className="mt-1.5 text-[12px] text-ink-3">
                 {tn(c.supporting.length, 'Seen in {n} decision', 'Seen in {n} decisions')}
                 {c.counter.length > 0 && ` · ${tn(c.counter.length, '{n} exception', '{n} exceptions')}`}
               </p>
+              {/* What it rests on, folded: how it goes, what was seen, the decisions, and what is worth asking. */}
               <details className="mt-2">
-                <summary className="cursor-pointer text-[12px] text-accent">{t('Show the decisions')}</summary>
-                <div className="mt-2 grid gap-3 md:grid-cols-2">
-                  <RefList title={t('When it happened')} stance="supports" items={c.supporting} />
-                  <RefList title={t('The exceptions')} stance="counters" items={c.counter} />
+                <summary className="cursor-pointer text-[12px] text-ink-2 hover:text-ink">{t('Show the decisions')}</summary>
+                <div className="mt-2 space-y-2">
+                  <div className="text-[11.5px] text-ink-3">{c.steps.reduce((acc, step) => t('{a}, then {b}', { a: acc, b: step }))}</div>
+                  <p className="text-[12.5px] text-ink-2">{c.observation}</p>
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <RefList title={t('When it happened')} stance="supports" items={c.supporting} />
+                    <RefList title={t('The exceptions')} stance="counters" items={c.counter} />
+                  </div>
+                  {c.explanation && (
+                    <p className="text-[12.5px] text-ink-2">
+                      <span className="text-ink-3">{t('Worth asking:')}</span> {c.explanation}
+                    </p>
+                  )}
+                  <a href={hrefFor('timeline', 'decisions')} className="inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink">
+                    {t('All decisions')} <ArrowRight size={12} aria-hidden />
+                  </a>
                 </div>
               </details>
-              {c.explanation && (
-                <p className="mt-2 text-[12.5px] text-ink-2">
-                  <span className="text-ink-3">{t('Worth asking:')}</span> {c.explanation}
-                </p>
-              )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   size="sm"
@@ -103,9 +109,6 @@ export function DecisionRepeats() {
                 <Button size="sm" variant="ghost" onClick={() => setHidden([...hidden, c.signature])}>
                   {t('Not now')}
                 </Button>
-                <a href={hrefFor('timeline', 'decisions')} className="ml-auto inline-flex items-center gap-1 self-center text-[12px] text-ink-3 hover:text-ink">
-                  {t('All decisions')} <ArrowRight size={12} aria-hidden />
-                </a>
               </div>
             </li>
           ))}

@@ -7,13 +7,13 @@ import { addDays, daysBetween } from '../../lib/dates';
  * out the seasons and the months, that turns like a machine.
  *
  * Angle is time: the year read clockwise from the top, ending today, so the
- * oldest day and today meet at the top. Every note and decision is a star in
- * the sky at the middle, at the angle of its date; round the sky, the phases
- * of a repeat (what sets it off, what you do, what follows); then the months;
- * then a ring for every repeat, with a bar from the first time it was seen to
- * the last, a mark at every time it happened and every exception. The wheel
- * turns under a reading needle that stays put, so it reads the year forward,
- * again and again: a repeat, repeating.
+ * oldest day and today meet at the top. In the middle, only space; round it,
+ * the phases of a repeat (what sets it off, what you do, what follows); then
+ * the months; then a ring for every repeat, with a bar from the first time it
+ * was seen to the last, a mark at every time it happened and every exception.
+ * The wheel moves on a week at a time under a comb that stays put, like a
+ * music box, so it plays the year forward, again and again: a repeat,
+ * repeating.
  *
  * Everything here is in degrees clockwise from the top, and in the dial's own
  * units (its radius is `DIAL`).
@@ -97,31 +97,15 @@ export interface Ring {
   since?: [number, number];
   marks: Mark[];
 }
-/** A note or a decision, as a star in the sky. */
-export interface Star {
-  key: string;
-  source: SourceRef;
-  angle: number;
-  /** Out from the middle, as a share of the sky. */
-  out: number;
-}
-
-const hash = (s: string) => {
-  let h = 2166136261;
-  for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
-  return (h >>> 0) / 4294967296;
-};
-
 export interface Almanac {
   window: Window;
   months: Month[];
   rings: Ring[];
-  stars: Star[];
   /** Where today is. */
   today: number;
 }
 
-/** The almanac for these repeats, in the order given (the first innermost), over everything written. */
+/** The almanac for these repeats, in the order given (the first innermost). */
 export function almanacOf(data: AtlasData, patterns: Pattern[], today: ISODate): Almanac {
   const stats = new Map(patterns.map((p) => [p.id, patternStats(data, p, today)]));
   const window = windowOf(
@@ -145,16 +129,7 @@ export function almanacOf(data: AtlasData, patterns: Pattern[], today: ISODate):
     const since: [number, number] | undefined = span && s.regularity === 'fading' ? [span[1], angleOf(today, window)!] : undefined;
     return { patternId: p.id, code: p.code, radius: RINGS[0] + step * (i + 0.5), regularity: s.regularity, span, since, marks };
   });
-  const stars: Star[] = [];
-  const add = (source: SourceRef, date: ISODate) => {
-    const angle = angleOf(date, window);
-    if (angle === undefined) return;
-    const key = `${source.kind}:${source.id}`;
-    stars.push({ key, source, angle, out: 0.14 + 0.8 * hash(key) });
-  };
-  for (const e of Object.values(data.entries)) add({ kind: 'entry', id: e.id }, e.date);
-  for (const d of Object.values(data.decisions)) add({ kind: 'decision', id: d.id }, d.date);
-  return { window, months: monthsOf(window), rings, stars, today: angleOf(today, window)! };
+  return { window, months: monthsOf(window), rings, today: angleOf(today, window)! };
 }
 
 /** A point on the dial at an angle (degrees clockwise from the top) and a radius. */

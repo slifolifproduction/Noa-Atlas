@@ -59,15 +59,4 @@ describe('the Repeats almanac', () => {
       expect(Boolean(r.since)).toBe(s.regularity === 'fading');
     }
   });
-
-  it('puts every note and decision in the sky at the angle of its day', () => {
-    const data = createSeedData();
-    const al = almanacOf(data, sortedPatterns(data), today);
-    const dated = [...Object.values(data.entries), ...Object.values(data.decisions)].filter((x) => angleOf(x.date, al.window) !== undefined);
-    expect(al.stars).toHaveLength(dated.length);
-    for (const s of al.stars) {
-      expect(s.out).toBeGreaterThan(0);
-      expect(s.out).toBeLessThan(1);
-    }
-  });
 });

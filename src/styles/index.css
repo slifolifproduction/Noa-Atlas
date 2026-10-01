@@ -2224,28 +2224,48 @@ html body {
 }
 /* The dial's parts. Sizes are in the dial's own units, so they scale with it. */
 .al-sky {
+  fill: none;
   stroke: rgb(236 232 223 / 0.4);
   stroke-width: 1;
 }
-.al-star {
-  fill: rgb(236 232 223 / 0.6);
+/* The space in the middle: a backdrop only, never data. */
+.al-space-star {
+  fill: #e8ecf2;
+  pointer-events: none;
+}
+.al-space-glow {
+  fill: rgb(220 228 240 / 0.07);
+  pointer-events: none;
+}
+/* The machine: the toothed rim and the pinion it turns, and the comb's tines. */
+.al-plate {
+  fill: rgb(236 232 223 / 0.045);
+}
+.al-gear {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.42);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+.al-pinion .al-gear {
+  fill: rgb(12 13 16 / 0.96);
+  stroke: rgb(236 232 223 / 0.7);
+}
+.al-tine {
+  stroke: rgb(236 232 223 / 0.7);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.al-tine.is-selected {
+  stroke: var(--color-accent);
+}
+.al-tine.is-ringing {
+  stroke: var(--color-ink);
+  stroke-width: 2;
 }
 .al-hit {
   fill: transparent;
   cursor: pointer;
-}
-.al-figure {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.7);
-  stroke-width: 1;
-}
-.al-figure-star {
-  fill: var(--color-ink);
-}
-.al-figure-exception {
-  fill: #020304;
-  stroke: var(--color-ink);
-  stroke-width: 1.2;
 }
 .al-rule {
   fill: none;
@@ -2463,6 +2483,10 @@ html body {
 }
 .almanac-note .is-dim {
   color: var(--color-ink-3);
+}
+.pattern-more {
+  border-top: 1px solid var(--color-line);
+  padding-top: 18px;
 }
 @media (max-width: 1023px) {
   /* On a narrow screen: the title, the wheel, then the list, the hint and the notes. */

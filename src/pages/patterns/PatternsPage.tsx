@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { hrefFor } from '../../app/router';
 import { KnowledgeTag, RegularityTag } from '../../components/evidence/Status';
 import { EvidenceRow, StanceMark } from '../../components/evidence/EvidenceRow';
-import { EvidenceTimeline } from '../../components/evidence/EvidenceTimeline';
 import { SourceLink } from '../../components/evidence/SourceLink';
 import { ClaimRow, NodeChip } from '../../components/inspector/parts';
 import { activeClaims, claimSentence, claimsTouching } from '../../domain/claims';
@@ -12,7 +11,7 @@ import { sharedWithRepeats } from '../../domain/ask';
 import { AddReason } from '../../components/inspector/Ask';
 import { PageHeader } from '../../components/shell/PageHeader';
 import { Button, buttonClass, IconButton } from '../../components/ui/Button';
-import { EmptyState, Label, Section, Segmented, ToggleChip } from '../../components/ui/primitives';
+import { EmptyState, Section, Segmented, ToggleChip } from '../../components/ui/primitives';
 import { EXPERIMENT_STATUS_LABEL, PATTERN_KIND_LABEL, STATUS_META } from '../../domain/constants';
 import {
   decisionCode,
@@ -192,10 +191,6 @@ function PatternListItem({ pattern: p, active, pendingCount }: { pattern: Patter
           )}
         </div>
         <div className="mt-1 text-[13px] leading-snug text-ink">{patternTitle(p)}</div>
-        <div className="num mt-1.5 text-[11.5px] text-ink-3">
-          {tn(stats.instances, '{n} time', '{n} times')} · {tn(stats.episodes, '{n} separate week', '{n} separate weeks')}
-          {stats.counter > 0 && ` · ${tn(stats.counter, '{n} exception', '{n} exceptions')}`}
-        </div>
       </a>
     </li>
   );
@@ -206,17 +201,31 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
   const setAside = useAtlas((s) => s.setPatternAside);
   const removeEvidence = useAtlas((s) => s.removePatternEvidence);
   const stats = patternStats(data, p);
+  const [all, setAll] = useState(false);
   const [filter, setFilter] = useState<'all' | Stance>('all');
-  const evidence = [...p.evidence]
-    .filter((e) => filter === 'all' || e.stance === filter)
-    .sort((a, b) => (resolveSource(data, b.source).date ?? '').localeCompare(resolveSource(data, a.source).date ?? ''));
+  const sorted = [...p.evidence].sort((a, b) => (resolveSource(data, b.source).date ?? '').localeCompare(resolveSource(data, a.source).date ?? ''));
+  const evidence = all ? sorted.filter((e) => filter === 'all' || e.stance === filter) : sorted.slice(0, 3);
   const log = data.modelLog
     .filter((l) => l.patternId === p.id)
     .slice()
     .reverse();
+  const times = tn(stats.instances, '{n} time', '{n} times');
+  const weeks = tn(stats.episodes, '{n} separate week', '{n} separate weeks');
+  const summary =
+    stats.instances === 0
+      ? stats.frequency
+      : stats.firstObserved === stats.lastObserved
+        ? t('Happened once, on {date}.', { date: formatDate(stats.firstObserved, { year: true }) })
+        : t('Happened {times} in {weeks}, first on {first} and last on {last}.', {
+            times,
+            weeks,
+            first: formatDate(stats.firstObserved, { year: true }),
+            last: formatDate(stats.lastObserved, { year: true }),
+          });
 
   return (
     <article className="min-w-0" aria-labelledby="pattern-title">
+      {/* What it is, in a line. */}
       <header>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
           <span className="label text-ink-2!">{PATTERN_KIND_LABEL[p.kind]}</span>
@@ -234,9 +243,12 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
           ))}
         </h2>
         <p className="mt-3 max-w-[70ch] text-[14px] leading-relaxed text-ink-2">
-          <span className="label mr-2">{t('What keeps happening')}</span>
-          {p.observation}
+          {summary}
+          {stats.counter > 0 && ` ${tn(stats.counter, '{n} exception', '{n} exceptions')}.`}
         </p>
+        {stats.counter === 0 && (
+          <p className="mt-1 text-[12.5px] text-ink-3">{t('No exceptions recorded yet. That usually means none has been looked for, not that none exists.')}</p>
+        )}
         {p.setAside && (
           <p className="mt-3 flex flex-wrap items-center gap-2 rounded-[2px] border border-dashed border-line-strong px-3 py-2 text-[12.5px] text-ink-2">
             {p.setAside.note
@@ -249,52 +261,24 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
         )}
       </header>
 
-      <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-[2px] border border-line bg-line sm:grid-cols-5">
-        <Stat label={t('Frequency')} value={stats.frequency} />
-        <Stat label={t('Separate weeks')} value={String(stats.episodes)} mono />
-        <Stat label={t('Exceptions')} value={String(stats.counter)} mono />
-        <Stat label={t('First seen')} value={formatDate(stats.firstObserved, { year: true })} mono />
-        <Stat label={t('Last seen')} value={formatDate(stats.lastObserved, { year: true })} mono className="col-span-2 sm:col-span-1" />
-      </dl>
-
-      <div className="mt-5 rounded-[2px] border border-line bg-surface px-4 pt-3.5 pb-2">
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-          <Label>{t('Every time it happened')}</Label>
-          <span className="flex items-center gap-3 text-[11.5px] text-ink-3">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-support" aria-hidden /> {t('it happened')}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full border-[1.5px] border-counter" aria-hidden /> {t('an exception')}
-            </span>
-          </span>
-        </div>
-        <EvidenceTimeline title={patternTitle(p)} evidence={p.evidence} />
-      </div>
-
-      <div className="mt-6 grid gap-px overflow-hidden rounded-[2px] border border-line bg-line md:grid-cols-[1fr_auto_1fr_auto_1fr]">
-        <ChainColumn title={t('Triggers')} items={p.triggers} />
-        <ChainArrow />
-        <ChainColumn title={t('Behaviour')} items={p.behaviors} />
-        <ChainArrow />
-        <ChainColumn title={t('Consequence')} items={p.consequences} />
-      </div>
-
       <div className="mt-7 space-y-7">
+        {/* The moments: the latest few, all of them on asking. */}
         <Section
           title={`${t('The moments')} · ${p.evidence.length}`}
           aside={
-            <Segmented<'all' | Stance>
-              label={t('Filter evidence')}
-              size="sm"
-              value={filter}
-              onChange={setFilter}
-              options={[
-                { value: 'all', label: t('All') },
-                { value: 'supports', label: t('Times {n}', { n: stats.instances }) },
-                { value: 'counters', label: t('Exceptions {n}', { n: stats.counter }) },
-              ]}
-            />
+            all ? (
+              <Segmented<'all' | Stance>
+                label={t('Filter evidence')}
+                size="sm"
+                value={filter}
+                onChange={setFilter}
+                options={[
+                  { value: 'all', label: t('All') },
+                  { value: 'supports', label: t('Times {n}', { n: stats.instances }) },
+                  { value: 'counters', label: t('Exceptions {n}', { n: stats.counter }) },
+                ]}
+              />
+            ) : undefined
           }
         >
           <PendingEvidence patternId={p.id} />
@@ -303,108 +287,114 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
               <EvidenceRow key={e.id} evidence={e} onRemove={() => removeEvidence(p.id, e.id)} />
             ))}
           </ul>
-          <AddEvidence pattern={p} />
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            {p.evidence.length > 3 && (
+              <Button size="sm" variant="ghost" icon={ChevronDown} onClick={() => setAll((v) => !v)} className={cn(all && '[&_svg]:rotate-180')}>
+                {all ? t('Show fewer') : t('Show all {n}', { n: p.evidence.length })}
+              </Button>
+            )}
+            <AddEvidence pattern={p} />
+          </div>
         </Section>
-
-        {stats.counter === 0 && (
-          <p className="-mt-4 text-[12.5px] text-ink-3">
-            {t('No exceptions recorded yet. That usually means none has been looked for, not that none exists.')}
-          </p>
-        )}
-
-        <Explanations pattern={p} />
-
-        <Section title={t('What it might mean for your options')}>
-          {p.implications.length ? (
-            <ul className="space-y-2.5">
-              {p.implications.map((im) => (
-                <li key={im.id}>
-                  <p className="text-[13.5px] text-ink">{im.statement}</p>
-                  {im.pathIds.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1.5">
-                      {im.pathIds.map((pid) =>
-                        data.paths[pid] ? (
-                          <a key={pid} href="#/paths" className="rounded-[2px] border border-line px-1.5 py-px text-[12px] text-ink-2 hover:text-ink">
-                            {pathCode(data.paths[pid].code)} · {data.paths[pid].title}
-                          </a>
-                        ) : null,
-                      )}
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-[13px] text-ink-3">{t('No implications recorded.')}</p>
-          )}
-        </Section>
-
-        <PatternExperiments pattern={p} />
-
-        {p.nodeIds.length > 0 && (
-          <Section title={t('Involves')}>
-            <div className="flex flex-wrap gap-1.5">
-              {p.nodeIds.map((n) => (
-                <NodeChip key={n} id={n} />
-              ))}
-            </div>
-          </Section>
-        )}
 
         <Assessment pattern={p} />
 
-        <Section title={t('How it changed')}>
-          {log.length ? (
-            <ol className="space-y-2">
-              {log.map((l) => (
-                <li key={l.id} className="grid grid-cols-[88px_1fr_auto] items-baseline gap-3 text-[12.5px]">
-                  <span className="num text-ink-3">{formatDate(l.at, { year: true })}</span>
-                  <span className="text-ink-2">{l.summary}</span>
-                  {l.after !== undefined && (
-                    <span className="text-[11.5px] text-ink-2">
-                      {l.before !== undefined ? `${statusWord(l.before)} → ` : ''}
-                      {statusWord(l.after)}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ol>
-          ) : (
-            <p className="text-[13px] text-ink-3">{t('No recorded changes.')}</p>
-          )}
-        </Section>
+        {/* Everything else, folded away until asked for. */}
+        <details className="pattern-more group">
+          <summary className="flex cursor-pointer list-none items-center justify-between">
+            <span className="label text-ink-2!">{t('Full details')}</span>
+            <ChevronDown size={14} className="text-ink-3 transition-transform group-open:rotate-180" aria-hidden />
+          </summary>
+          <div className="mt-6 space-y-7">
+            <Explanations pattern={p} />
 
-        {(p.cues.supports.length > 0 || p.cues.counters.length > 0) && (
-          <details className="group rounded-[2px] border border-line px-3.5 py-2.5">
-            <summary className="flex cursor-pointer list-none items-center justify-between">
-              <span className="label">{t('How the analyzer looks for evidence')}</span>
-              <ChevronDown size={14} className="text-ink-3 transition-transform group-open:rotate-180" aria-hidden />
-            </summary>
-            <div className="mt-2.5 grid gap-3 text-[12.5px] sm:grid-cols-2">
-              <div>
-                <div className="mb-1 text-ink-3">{t('Phrases that suggest support')}</div>
-                <div className="flex flex-wrap gap-1">
-                  {p.cues.supports.map((c) => (
-                    <code key={c} className="rounded-[2px] bg-ink/[0.05] px-1.5 py-px font-mono text-[11.5px] text-ink-2">
-                      {c}
-                    </code>
+            <Section title={t('What it might mean for your options')}>
+              {p.implications.length ? (
+                <ul className="space-y-2.5">
+                  {p.implications.map((im) => (
+                    <li key={im.id}>
+                      <p className="text-[13.5px] text-ink">{im.statement}</p>
+                      {im.pathIds.length > 0 && (
+                        <div className="mt-1 flex flex-wrap gap-1.5">
+                          {im.pathIds.map((pid) =>
+                            data.paths[pid] ? (
+                              <a key={pid} href="#/paths" className="rounded-[2px] border border-line px-1.5 py-px text-[12px] text-ink-2 hover:text-ink">
+                                {pathCode(data.paths[pid].code)} · {data.paths[pid].title}
+                              </a>
+                            ) : null,
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-[13px] text-ink-3">{t('No implications recorded.')}</p>
+              )}
+            </Section>
+
+            <PatternExperiments pattern={p} />
+
+            {p.nodeIds.length > 0 && (
+              <Section title={t('Involves')}>
+                <div className="flex flex-wrap gap-1.5">
+                  {p.nodeIds.map((n) => (
+                    <NodeChip key={n} id={n} />
                   ))}
                 </div>
-              </div>
-              <div>
-                <div className="mb-1 text-ink-3">{t('Phrases that suggest counter-evidence')}</div>
-                <div className="flex flex-wrap gap-1">
-                  {p.cues.counters.map((c) => (
-                    <code key={c} className="rounded-[2px] bg-ink/[0.05] px-1.5 py-px font-mono text-[11.5px] text-ink-2">
-                      {c}
-                    </code>
+              </Section>
+            )}
+
+            <Section title={t('How it changed')}>
+              {log.length ? (
+                <ol className="space-y-2">
+                  {log.map((l) => (
+                    <li key={l.id} className="grid grid-cols-[88px_1fr_auto] items-baseline gap-3 text-[12.5px]">
+                      <span className="num text-ink-3">{formatDate(l.at, { year: true })}</span>
+                      <span className="text-ink-2">{l.summary}</span>
+                      {l.after !== undefined && (
+                        <span className="text-[11.5px] text-ink-2">
+                          {l.before !== undefined ? `${statusWord(l.before)} → ` : ''}
+                          {statusWord(l.after)}
+                        </span>
+                      )}
+                    </li>
                   ))}
+                </ol>
+              ) : (
+                <p className="text-[13px] text-ink-3">{t('No recorded changes.')}</p>
+              )}
+            </Section>
+
+            {(p.cues.supports.length > 0 || p.cues.counters.length > 0) && (
+              <Section title={t('How the analyzer looks for evidence')}>
+                <div className="grid gap-3 text-[12.5px] sm:grid-cols-2">
+                  <div>
+                    <div className="mb-1 text-ink-3">{t('Phrases that suggest support')}</div>
+                    <div className="flex flex-wrap gap-1">
+                      {p.cues.supports.map((c) => (
+                        <code key={c} className="rounded-[2px] bg-ink/[0.05] px-1.5 py-px font-mono text-[11.5px] text-ink-2">
+                          {c}
+                        </code>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-1 text-ink-3">{t('Phrases that suggest counter-evidence')}</div>
+                    <div className="flex flex-wrap gap-1">
+                      {p.cues.counters.map((c) => (
+                        <code key={c} className="rounded-[2px] bg-ink/[0.05] px-1.5 py-px font-mono text-[11.5px] text-ink-2">
+                          {c}
+                        </code>
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-ink-3 sm:col-span-2">{t('Matches are only ever proposed. Nothing becomes evidence until you accept it.')}</p>
                 </div>
-              </div>
-              <p className="text-ink-3 sm:col-span-2">{t('Matches are only ever proposed. Nothing becomes evidence until you accept it.')}</p>
-            </div>
-          </details>
-        )}
+              </Section>
+            )}
+          </div>
+        </details>
       </div>
     </article>
   );
@@ -530,38 +520,6 @@ function StepReasons({ pattern: p }: { pattern: Pattern }) {
         );
       })}
     </ul>
-  );
-}
-
-function Stat({ label, value, mono, className }: { label: string; value: string; mono?: boolean; className?: string }) {
-  return (
-    <div className={cn('bg-surface px-3.5 py-3', className)}>
-      <dt className="label">{label}</dt>
-      <dd className={cn('mt-1.5 text-ink', mono ? 'num text-[13px]' : 'display text-[17px] leading-[1.2]')}>{value}</dd>
-    </div>
-  );
-}
-
-function ChainColumn({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div className="bg-surface px-4 py-3.5">
-      <div className="label mb-2">{title}</div>
-      <ul className="space-y-1.5">
-        {items.map((i) => (
-          <li key={i} className="text-[13px] leading-snug text-ink-2">
-            {i}
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-function ChainArrow() {
-  return (
-    <div className="hidden items-center justify-center bg-surface px-1.5 font-mono text-[11px] text-ink-3 md:flex" aria-hidden>
-      {t('then')}
-    </div>
   );
 }
 
@@ -754,14 +712,17 @@ function Assessment({ pattern }: { pattern: Pattern }) {
           </Button>
         )}
       </div>
-      <textarea
-        className="field mt-2.5 min-h-[56px]"
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
-        onBlur={() => current && note !== (pattern.userAssessment?.note ?? '') && assess(pattern.id, current, note)}
-        placeholder={t('What does it miss? (optional)')}
-        aria-label={t('Assessment note')}
-      />
+      {/* A note, once there is a view to note. */}
+      {current && (
+        <textarea
+          className="field mt-2.5 min-h-[56px]"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          onBlur={() => note !== (pattern.userAssessment?.note ?? '') && assess(pattern.id, current, note)}
+          placeholder={t('What does it miss? (optional)')}
+          aria-label={t('Assessment note')}
+        />
+      )}
       {pattern.userAssessment && (
         <p className="mt-1.5 text-[11.5px] text-ink-3">{t('Last assessed {date}', { date: formatDate(pattern.userAssessment.at, { year: true }) })}</p>
       )}

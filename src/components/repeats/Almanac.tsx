@@ -7,26 +7,71 @@ import type { Pattern } from '../../domain/types';
 import { useIsDesktop, useMediaQuery } from '../../hooks/useMediaQuery';
 import { t } from '../../i18n';
 import { cn } from '../../lib/cn';
-import { formatDate, formatMonthShort, useToday } from '../../lib/dates';
+import { formatDate, formatMonthShort, useToday, weekStart } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
-import { almanacOf, arc, BEZEL, DIAL, MONTHS, PHASES, polar, RIM, SKY, dateAt, type Mark, type Ring, type Star } from './almanac';
-
-/** Once round in this many seconds: the year's disc (backwards, so the needle reads it forwards), and the gears. */
-const TURN = 180;
-const BEZEL_TURN = 600;
-const PHASES_TURN = 420;
-/** A mark that passes under the needle lights for this long; what passed stays read out for this long. */
-const FLASH_MS = 1100;
-const READ_MS = 3600;
-const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
-
-type Hover = { kind: 'mark'; mark: Mark } | { kind: 'ring'; ring: Ring } | { kind: 'star'; star: Star } | null;
+import { almanacOf, arc, BEZEL, MONTHS, PHASES, polar, RIM, RINGS, SKY, dateAt, type Mark, type Ring } from './almanac';
 
 /**
- * Repeats as an almanac that turns (see almanac.ts): the sky of what you wrote, the phases of a repeat, the
- * months, and a ring for every repeat, on a disc that turns slowly under a reading needle that stays put. What
- * passes under the needle is read out, and each time a repeat happened lights as it passes.
+ * The machine's beat: the year's disc moves on a week at every beat, quickly, a little past and back, as an
+ * escapement lets a clock's wheel go, and holds for the rest of it. It turns backwards, so the needle reads the
+ * year forwards.
+ */
+const BEAT_MS = 1400;
+const MOVE_MS = 340;
+/** The gears it drives: teeth round the disc's rim, and a pinion at the needle they turn. */
+const RIM_TEETH = 180;
+const PIN_TEETH = 14;
+const PITCH = RIM[1] + 4;
+const PIN_R = (PITCH * PIN_TEETH) / RIM_TEETH;
+const PIN_Y = -(PITCH + PIN_R);
+/** The space in the middle drifts on its own, slowly, as space does: it is not part of the machine. */
+const SPACE_TURN = 900;
+/** A mark that passes the comb lights for this long; a plucked tine rings for this long; what passed stays read out. */
+const FLASH_MS = 1100;
+const PLUCK_MS = 900;
+const READ_MS = 3600;
+/** Quick, a little past, and back: an escapement's step. */
+const escape = (k: number) => {
+  const c1 = 1.9;
+  return 1 + (c1 + 1) * (k - 1) ** 3 + c1 * (k - 1) ** 2;
+};
+/** A gear's outline: `n` teeth between two radii, as SVG path data, centred on the origin. */
+function gear(n: number, root: number, tip: number) {
+  const pitch = 360 / n;
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const a = i * pitch;
+    const pts = [polar(a - pitch * 0.32, root), polar(a - pitch * 0.18, tip), polar(a + pitch * 0.18, tip), polar(a + pitch * 0.32, root)];
+    d += pts.map(([x, y], j) => `${i === 0 && j === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`).join('');
+  }
+  return `${d}Z`;
+}
+/** Distant stars for the space in the middle: only a backdrop, made once, the same every time. */
+function spaceStars() {
+  let a = 0x2f6b9c1;
+  const r = () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let x = Math.imul(a ^ (a >>> 15), 1 | a);
+    x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
+    return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
+  };
+  return Array.from({ length: 110 }, () => {
+    const d = (SKY - 4) * Math.sqrt(r());
+    const th = r() * Math.PI * 2;
+    const big = r() < 0.08;
+    return { x: Math.cos(th) * d, y: Math.sin(th) * d, r: big ? 1.4 + r() : 0.4 + r() * 0.8, o: big ? 0.85 : 0.2 + r() * 0.45, glow: big };
+  });
+}
+const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
+
+type Hover = { kind: 'mark'; mark: Mark } | { kind: 'ring'; ring: Ring } | null;
+
+/**
+ * Repeats as an almanac that runs like a music box (see almanac.ts): round empty space, the phases of a repeat,
+ * the months, and a ring for every repeat, on a disc that moves on a week at every beat under a comb that stays
+ * put. Its toothed rim turns a pinion at the comb; each time a repeat happened plucks the comb's tine as it
+ * passes, lights, and is read out: the year plays again and again, a repeat repeating.
  */
 export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[]; selected?: Pattern; schedule: ReactNode }) {
   const data = useAtlas((s) => s.data);
@@ -39,47 +84,88 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
   const disc = useRef<SVGGElement>(null);
   const bezel = useRef<SVGGElement>(null);
   const phases = useRef<SVGGElement>(null);
+  const space = useRef<SVGGElement>(null);
+  const pinion = useRef<SVGGElement>(null);
   const readDate = useRef<SVGTextElement>(null);
   const flashEls = useRef(new Map<string, SVGCircleElement>());
+  const tineEls = useRef(new Map<string, SVGLineElement>());
+  const stars = useMemo(spaceStars, []);
   const [hover, setHover] = useState<Hover>(null);
   const [tip, setTip] = useState<[number, number]>([0, 0]);
   const [read, setRead] = useState<Mark | null>(null);
   // The needle starts a little before the first time anything repeated, so the year it plays has something in it.
   const firstMark = Math.min(...al.rings.flatMap((r) => r.marks.map((m) => m.angle)), al.today);
-  const motion = useRef({ angle: -(firstMark - 6), bezel: 0, phases: 0, speed: 1, held: false });
-  const sel = selected ? al.rings.find((r) => r.patternId === selected.id) : undefined;
-  const starByKey = useMemo(() => new Map(al.stars.map((s) => [s.key, s])), [al]);
+  const motion = useRef({ angle: -(firstMark - 6), space: 0, held: false });
 
-  // The machine: the year's disc turning back so the needle reads it forward, the gears each at their own pace,
-  // easing to a stop while you point at it. Each time a repeat happened lights as it passes the needle.
+  // The machine. At every beat the disc moves on a week (unless you are pointing at it), and everything it drives
+  // moves with it: the pinion at the comb, faster and the other way; the bezel the other way; the phases a little
+  // the same way. Each time a repeat happened plucks the comb's tine as it passes, lights, and is read out.
   useEffect(() => {
     let raf = 0;
-    let last = performance.now();
     const m = motion.current;
-    let prev = ((-m.angle % 360) + 360) % 360;
+    const week = (7 / al.window.days) * 360;
+    const readAt = (angle: number) => ((-angle % 360) + 360) % 360;
+    let from = m.angle;
+    let to = m.angle;
+    let moveAt = -Infinity;
+    let nextAt = performance.now() + 700;
+    let settled = true;
+    let last = performance.now();
+    let prev = readAt(m.angle);
     const flashes = new Map<string, number>();
-    let frame = 0;
+    const plucks = new Map<string, number>();
+    const show = () => {
+      if (readDate.current)
+        readDate.current.textContent = t('Week of {date}', { date: formatDate(weekStart(dateAt(readAt(m.angle), al.window))) }).toUpperCase();
+    };
+    show();
     const tick = (now: number) => {
       raf = requestAnimationFrame(tick);
       const dt = Math.min(64, now - last);
       last = now;
-      frame++;
-      m.speed += ((reduced || m.held ? 0 : 1) - m.speed) * Math.min(1, dt / 600);
-      if (reduced) m.angle = -al.today;
-      const s = (dt / 1000) * m.speed;
-      m.angle -= s * (360 / TURN);
-      m.bezel += s * (360 / BEZEL_TURN);
-      m.phases += s * (360 / PHASES_TURN);
+      if (reduced) {
+        m.angle = -al.today;
+      } else {
+        if (now >= nextAt) {
+          if (m.held) nextAt = now + 200;
+          else {
+            from = m.angle;
+            to = from - week;
+            moveAt = now;
+            nextAt = now + BEAT_MS;
+            settled = false;
+          }
+        }
+        const k = Math.min(1, (now - moveAt) / MOVE_MS);
+        if (!settled) {
+          m.angle = from + (to - from) * escape(k);
+          if (k >= 1) {
+            m.angle = to;
+            settled = true;
+            show();
+          }
+        }
+        m.space += (dt / 1000) * (360 / SPACE_TURN);
+      }
       disc.current?.setAttribute('transform', `rotate(${m.angle.toFixed(3)})`);
-      bezel.current?.setAttribute('transform', `rotate(${m.bezel.toFixed(3)})`);
-      phases.current?.setAttribute('transform', `rotate(${m.phases.toFixed(3)})`);
-      const at = ((-m.angle % 360) + 360) % 360;
+      bezel.current?.setAttribute('transform', `rotate(${(-m.angle * 1.5).toFixed(3)})`);
+      phases.current?.setAttribute('transform', `rotate(${(m.angle * 0.3).toFixed(3)})`);
+      space.current?.setAttribute('transform', `rotate(${m.space.toFixed(3)})`);
+      pinion.current?.setAttribute(
+        'transform',
+        `translate(0 ${PIN_Y.toFixed(2)}) rotate(${((-m.angle * RIM_TEETH) / PIN_TEETH + 180 / PIN_TEETH).toFixed(3)})`,
+      );
+      // What passed the comb this frame.
+      const at = readAt(m.angle);
       if (!reduced && at !== prev) {
-        const crossed = (a: number) => (at >= prev ? a > prev && a <= at : a > prev || a <= at);
+        const forward = (at - prev + 360) % 360 < 180;
+        const [lo, hi] = forward ? [prev, at] : [at, prev];
+        const crossed = (a: number) => (lo <= hi ? a > lo && a <= hi : a > lo || a <= hi);
         for (const r of al.rings)
           for (const mk of r.marks)
             if (crossed(mk.angle)) {
               flashes.set(mk.key, now);
+              plucks.set(r.patternId, now);
               setRead(mk);
             }
       }
@@ -95,7 +181,20 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
         el.setAttribute('r', (6 + k * 16).toFixed(1));
         el.setAttribute('opacity', ((1 - k) * 0.9).toFixed(2));
       }
-      if (readDate.current && frame % 8 === 0) readDate.current.textContent = formatDate(dateAt(at, al.window)).toUpperCase();
+      // A plucked tine rings: bent by the mark, then back and forth, dying away.
+      for (const [id, t0] of plucks) {
+        const el = tineEls.current.get(id);
+        const k = (now - t0) / PLUCK_MS;
+        const r = al.rings.find((x) => x.patternId === id)?.radius ?? 0;
+        if (!el || k >= 1) {
+          el?.setAttribute('transform', `rotate(0 0 ${-r})`);
+          el?.classList.remove('is-ringing');
+          plucks.delete(id);
+          continue;
+        }
+        el.classList.add('is-ringing');
+        el.setAttribute('transform', `rotate(${(-24 * Math.exp(-k * 4.5) * Math.cos(k * Math.PI * 2 * 5)).toFixed(2)} 0 ${-r})`);
+      }
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
@@ -113,21 +212,6 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
   };
   const choose = (id: string) => navigate('patterns', id);
   const readOut = read ? `${patternCode(data.patterns[read.patternId]?.code ?? 0)} · ${read.stance === 'supports' ? t('it happened') : t('an exception')}` : '';
-
-  // The selected repeat's times as stars in the sky, joined in order: its constellation.
-  const constellation = sel
-    ? sel.marks
-        .filter((m) => m.stance === 'supports')
-        .map((m) => starByKey.get(`${m.source.kind}:${m.source.id}`))
-        .filter((s): s is Star => Boolean(s))
-    : [];
-  const exceptionsInSky = sel
-    ? sel.marks
-        .filter((m) => m.stance === 'counters')
-        .map((m) => starByKey.get(`${m.source.kind}:${m.source.id}`))
-        .filter((s): s is Star => Boolean(s))
-    : [];
-  const skyAt = (s: Star) => polar(s.angle, SKY * 0.96 * s.out);
 
   // Fixed paths: the ticks round the rim and on the bezel, made once.
   const rimTicks = useMemo(() => {
@@ -162,6 +246,8 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
     return d;
   }, []);
   const manyMonths = al.months.length > 18;
+  const rimGear = useMemo(() => gear(RIM_TEETH, RIM[1], RIM[1] + 8), []);
+  const pinGear = useMemo(() => gear(PIN_TEETH, PIN_R - 4, PIN_R + 4), []);
 
   // The phases of the selected repeat: what sets it off, what you do, what follows.
   const phaseText = [
@@ -218,44 +304,42 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
               </g>
             ))}
             <radialGradient id="al-sky" r="0.5" cx="0.5" cy="0.5">
-              <stop offset="0" stopColor="#0b0d10" />
+              <stop offset="0" stopColor="#0a0c10" />
               <stop offset="1" stopColor="#020304" />
             </radialGradient>
+            <radialGradient id="al-nebula" r="0.5" cx="0.5" cy="0.5">
+              <stop offset="0" stopColor="rgb(150 170 210)" stopOpacity="0.07" />
+              <stop offset="1" stopColor="rgb(150 170 210)" stopOpacity="0" />
+            </radialGradient>
+            <clipPath id="al-space-clip">
+              <circle r={SKY - 1} />
+            </clipPath>
           </defs>
 
-          {/* The year's disc: the sky, the months, the repeats, the rim. */}
-          <g ref={disc}>
-            <circle r={SKY} fill="url(#al-sky)" className="al-sky" />
-            {al.stars.map((s) => {
-              const [x, y] = skyAt(s);
-              return (
-                <g key={s.key} onPointerEnter={(e) => point(e, { kind: 'star', star: s })} onPointerLeave={() => setHover(null)} onClick={() => open(s.source)}>
-                  <circle cx={x} cy={y} r={7} className="al-hit" />
-                  <circle cx={x} cy={y} r={1 + s.out * 1.2} className="al-star" />
+          {/* In the middle, only space, drifting on its own. */}
+          <g clipPath="url(#al-space-clip)" aria-hidden>
+            <circle r={SKY} fill="url(#al-sky)" />
+            <g ref={space}>
+              <circle cx={-SKY * 0.3} cy={SKY * 0.2} r={SKY * 0.7} fill="url(#al-nebula)" />
+              {stars.map((st, i) => (
+                <g key={i}>
+                  {st.glow && <circle cx={st.x} cy={st.y} r={st.r * 4} className="al-space-glow" />}
+                  <circle cx={st.x} cy={st.y} r={st.r} opacity={st.o} className="al-space-star" />
                 </g>
-              );
-            })}
-            {constellation.length > 1 && (
-              <path
-                d={`M${constellation
-                  .map((s) =>
-                    skyAt(s)
-                      .map((v) => v.toFixed(1))
-                      .join(' '),
-                  )
-                  .join('L')}`}
-                className="al-figure"
-              />
-            )}
-            {constellation.map((s) => {
-              const [x, y] = skyAt(s);
-              return <circle key={`c-${s.key}`} cx={x} cy={y} r={3.4} className="al-figure-star" />;
-            })}
-            {exceptionsInSky.map((s) => {
-              const [x, y] = skyAt(s);
-              return <circle key={`x-${s.key}`} cx={x} cy={y} r={3.6} className="al-figure-exception" />;
-            })}
+              ))}
+            </g>
+          </g>
+          <circle r={SKY} className="al-sky" />
 
+          {/* The dial's plate, round the space in the middle. */}
+          <path
+            d={`M${-RIM[1]} 0A${RIM[1]} ${RIM[1]} 0 1 0 ${RIM[1]} 0A${RIM[1]} ${RIM[1]} 0 1 0 ${-RIM[1]} 0ZM${-SKY} 0A${SKY} ${SKY} 0 1 1 ${SKY} 0A${SKY} ${SKY} 0 1 1 ${-SKY} 0Z`}
+            fillRule="evenodd"
+            className="al-plate"
+          />
+
+          {/* The year's disc: the months, the repeats, the toothed rim. */}
+          <g ref={disc}>
             {/* The months, with a tick for every week, and today. */}
             <circle r={MONTHS[0]} className="al-rule" />
             <circle r={MONTHS[1]} className="al-rule" />
@@ -344,8 +428,8 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
               );
             })}
 
-            {/* The rim: a tick for every day, a longer one at every month. */}
-            <circle r={RIM[1]} className="al-rule" />
+            {/* The rim: a tick for every day, a longer one at every month, and the teeth that turn the pinion. */}
+            <path d={rimGear} className="al-gear" />
             <path d={rimTicks} className="al-tick is-fine" />
             {al.months.map((mo) => {
               const [x0, y0] = polar(mo.from, RIM[0] - 2);
@@ -354,7 +438,7 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
             })}
           </g>
 
-          {/* The bezel: a gear of its own, grooved and graduated. */}
+          {/* The bezel: geared to the disc, turning the other way. */}
           <g ref={bezel} className="al-bezel">
             {[0, 3, 6, 9, 12].map((d) => (
               <circle key={d} r={BEZEL[0] + 1 + d} />
@@ -362,7 +446,7 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
             <path d={bezelTicks} />
           </g>
 
-          {/* The phases of a repeat, turning slowly the other way: what sets it off, what you do, what follows. No
+          {/* The phases of a repeat, geared to turn a little with the disc: what sets it off, what you do, what follows. No
               arrow back from what follows to what sets it off: a repeat is a chain; whether it closes a loop is a
               question for Causes. */}
           <g ref={phases} className="al-phases">
@@ -393,13 +477,37 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
             })}
           </g>
 
-          {/* The reading needle, which stays put, and what it reads. */}
+          {/* The comb, which stays put: a line read across the year, a tine at every repeat's ring for the marks to
+              pluck, and the pinion the rim turns. What it reads is set out either side of the pinion. */}
           <g className="al-needle" aria-hidden>
-            <path d={`M-3 ${-SKY}L3 ${-SKY}L1.4 ${-RIM[1] - 16}L-1.4 ${-RIM[1] - 16}Z`} className="al-needle-band" />
-            <line x1={0} y1={-SKY + 6} x2={0} y2={-RIM[1] - 16} />
-            <path d={`M-7 ${-RIM[1] - 28}L7 ${-RIM[1] - 28}L0 ${-RIM[1] - 16}Z`} className="al-needle-head" />
-            <text ref={readDate} x={0} y={-DIAL - 44} textAnchor="middle" className="al-read-date" />
-            <text x={0} y={-DIAL - 70} textAnchor="middle" className={cn('al-read', read?.stance === 'supports' && 'is-on')}>
+            <path d={`M-3 ${-SKY}L3 ${-SKY}L1.4 ${-RIM[1]}L-1.4 ${-RIM[1]}Z`} className="al-needle-band" />
+            <line x1={0} y1={-SKY + 6} x2={0} y2={PIN_Y} />
+            <line x1={-6} y1={-(RINGS[0] - 10)} x2={6} y2={-(RINGS[0] - 10)} />
+            {al.rings.map((r) => (
+              <line
+                key={r.patternId}
+                x1={0}
+                y1={-r.radius}
+                x2={17}
+                y2={-r.radius - 4}
+                className={cn('al-tine', r.patternId === selected?.id && 'is-selected')}
+                ref={(el) => {
+                  if (el) tineEls.current.set(r.patternId, el);
+                  else tineEls.current.delete(r.patternId);
+                }}
+              />
+            ))}
+            <g ref={pinion} className="al-pinion">
+              <path d={pinGear} className="al-gear" />
+              <circle r={PIN_R - 9} className="al-rule" />
+              {[0, 120, 240].map((a) => {
+                const [x, y] = polar(a, PIN_R - 9);
+                return <line key={a} x1={0} y1={0} x2={x} y2={y} className="al-rule" />;
+              })}
+            </g>
+            <circle cy={PIN_Y} r={5} className="al-needle-head" />
+            <text ref={readDate} x={-PIN_R - 16} y={PIN_Y + 5} textAnchor="end" className="al-read-date" />
+            <text x={PIN_R + 16} y={PIN_Y + 5} textAnchor="start" className={cn('al-read', read?.stance === 'supports' && 'is-on')}>
               {readOut.toUpperCase()}
             </text>
           </g>
@@ -417,13 +525,6 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
                 <div className="almanac-tip-sub">
                   {resolveSource(data, hover.mark.source).code} · {patternCode(data.patterns[hover.mark.patternId]?.code ?? 0)}
                 </div>
-              </>
-            )}
-            {hover.kind === 'star' && (
-              <>
-                <div className="almanac-tip-meta">{formatDate(resolveSource(data, hover.star.source).date, { year: true }).toUpperCase()}</div>
-                <div className="almanac-tip-title">{resolveSource(data, hover.star.source).title}</div>
-                <div className="almanac-tip-sub">{resolveSource(data, hover.star.source).code}</div>
               </>
             )}
             {hover.kind === 'ring' && data.patterns[hover.ring.patternId] && (
