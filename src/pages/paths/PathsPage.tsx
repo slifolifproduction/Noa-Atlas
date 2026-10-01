@@ -18,7 +18,7 @@ import { useAtlas } from '../../state/atlasStore';
 import { adoptExperimentDraft, commitDirection } from '../../state/operations';
 import { useUI } from '../../state/uiStore';
 import { CurrentStateEditor } from './CurrentStateEditor';
-import { AheadCortex } from '../../components/ahead/AheadCortex';
+import { AheadTree } from '../../components/ahead/AheadTree';
 import { PathEditor, skillsHint, skillsToText, textToSkills } from './PathEditor';
 import { FocusBanner, useFocusFilter } from '../../components/shell/Focus';
 import { focusElements, optionsTouching } from '../../domain/ask';
@@ -141,9 +141,9 @@ const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns' | 'assumptio
 const SKILL_MARK: Record<SkillStatus, string> = { have: '●', developing: '◐', gap: '○' };
 
 /**
- * Ahead: what could happen from here. Your options drawn as nerves growing
- * from where you are, each asked the same questions and never ranked (see
- * AheadCortex); what you chose is lit. The full comparison, every answer
+ * Ahead: what could happen from here. Your options drawn as the limbs of a
+ * tree grown from where you are, each asked the same questions and never
+ * ranked (see AheadTree); what you chose is lit. The full comparison, every answer
  * editable where it stands, is one tap away under it. Nothing here has
  * happened; it is drawn dashed. With something in focus, the options that
  * count on it.
@@ -191,7 +191,7 @@ export function PathsPage() {
         </div>
       ) : (
         <>
-          <AheadCortex paths={paths} onEditPath={setEditing} onEditState={() => setEditingState(true)} onCompare={compare} />
+          <AheadTree paths={paths} onEditPath={setEditing} onEditState={() => setEditingState(true)} onCompare={compare} />
           <Expecting />
           <section id="ahead-compare" className="mt-5 scroll-mt-4">
             <button

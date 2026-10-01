@@ -2171,10 +2171,14 @@ export const ID: Record<string, string> = {
     'Sejauh ini: {held} terbukti, {failed} tidak, {unobserved} tidak tercatat ke arah mana pun.',
   'Every answer side by side, and editable where it stands': 'Setiap jawaban berdampingan, dan bisa diubah di tempatnya',
   'Compare in detail': 'Bandingkan secara rinci',
-  // The Ahead plate: options as nerves growing out of where you are.
-  'Your options as nerves growing from where you are': 'Pilihan-pilihanmu sebagai saraf yang tumbuh dari posisimu sekarang',
+  // The Ahead plate: options as the limbs of a tree, scanned, growing out of where you are.
+  'Your options as a tree growing from where you are': 'Pilihan-pilihanmu sebagai pohon yang tumbuh dari posisimu sekarang',
   'Plate · Ahead': 'Lembar · Ke depan',
-  'What could happen from here · not ranked': 'Yang bisa terjadi dari sini · tidak diperingkat',
+  'The tree of what could be · a scan': 'Pohon dari yang bisa terjadi · hasil pindai',
+  '{n} options · {m} answers · not ranked': '{n} pilihan · {m} jawaban · tidak diperingkat',
+  'Bearing {deg}°': 'Arah {deg}°',
+  'Bearing {deg}° · looking down {pitch}°': 'Arah {deg}° · menunduk {pitch}°',
+  'Drag to turn it': 'Seret untuk memutarnya',
   'You are here': 'Kamu di sini',
   'Holds you': 'Menahanmu',
   'Carries you': 'Membawamu',
@@ -2182,9 +2186,8 @@ export const ID: Record<string, string> = {
   'Carries you · an asset': 'Membawamu · modal yang kamu punya',
   'Edit where you are': 'Ubah posisimu',
   'Where are you starting from?': 'Dari mana kamu memulai?',
-  'Point at a nerve to read its option · at a band to compare them · click a mark to open it':
-    'Arahkan ke saraf untuk membaca pilihannya · ke pita untuk membandingkannya · klik tanda untuk membukanya',
-  'An option': 'Sebuah pilihan',
+  'Drag to turn it · point at a limb to read its option · at a level to compare them · click a bud to open it':
+    'Seret untuk memutarnya · arahkan ke dahan untuk membaca pilihannya · ke sebuah level untuk membandingkannya · klik tunas untuk membukanya',
   'Edit this option': 'Ubah pilihan ini',
   'One mark wants attention: a gap, or a reason the exceptions outweigh.':
     'Satu tanda perlu perhatian: kekurangan, atau sebab yang kalah oleh pengecualiannya.',

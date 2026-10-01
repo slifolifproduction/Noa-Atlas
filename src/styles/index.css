@@ -1736,241 +1736,59 @@ html body {
   }
 }
 
-/* ---- Ahead: the options as a nervous system (see AheadCortex) ---------------------------------- */
+/* ---- Ahead: the options as a world tree, scanned, on an architect's plate (see AheadTree) ------------------ */
 .ahead-stage {
   position: relative;
   margin-top: 1.25rem;
   height: clamp(580px, 76vh, 880px);
   border: 1px solid var(--color-line);
-  background: radial-gradient(ellipse 60% 70% at 36% 68%, rgb(236 232 223 / 0.04), transparent 70%), var(--color-canvas);
+  background:
+    radial-gradient(ellipse 52% 62% at 40% 60%, rgb(236 232 223 / 0.035), transparent 72%),
+    radial-gradient(circle at 1px 1px, rgb(236 232 223 / 0.075) 1px, transparent 1.3px) 0 0 / 24px 24px,
+    var(--color-canvas);
   overflow: hidden;
 }
 .ahead-plate {
   position: absolute;
   inset: 0;
 }
-.cortex {
-  display: block;
+.tree-plate {
+  cursor: grab;
   user-select: none;
+  touch-action: pan-y;
 }
-.cortex text {
-  font-family: var(--font-mono);
+.tree-plate:active {
+  cursor: grabbing;
 }
-.cortex-band {
-  fill: rgb(236 232 223 / 0.012);
-  transition: fill 0.3s;
-}
-.cortex-band.is-odd {
-  fill: rgb(236 232 223 / 0.026);
-}
-.cortex-band.is-lit {
-  fill: rgb(236 232 223 / 0.07);
-}
-.cortex-rays {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.035);
-}
-.cortex-arc {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.12);
-}
-.cortex-arc.is-rim {
-  stroke: rgb(236 232 223 / 0.3);
-}
-.cortex-ticks,
-.cortex-horizon {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.2);
-}
-.cortex-numeral {
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  fill: var(--color-ink-3);
-}
-.cortex-band-name {
-  font-size: 9.5px;
-  letter-spacing: 0.24em;
-  fill: var(--color-ink-3);
-  cursor: pointer;
-  transition: fill 0.2s;
-}
-.cortex-band-name:hover,
-.cortex-band-name.is-lit {
-  fill: var(--color-ink);
-}
-/* Where you are. */
-.cortex-brain {
-  fill: rgb(7 8 10 / 0.9);
-  stroke: rgb(236 232 223 / 0.55);
-}
-.cortex-grey {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.12);
-}
-.cortex-sulci {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.3);
-  stroke-linecap: round;
-}
-.cortex-callosum {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.32);
-}
-.cortex-roots {
-  fill: none;
-  stroke: rgb(255 90 31 / 0.35);
-  stroke-dasharray: 1 3;
-}
-.cortex-fissure {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.32);
-}
-.cortex-ventricle {
-  fill: rgb(236 232 223 / 0.035);
-  stroke: rgb(236 232 223 / 0.24);
-}
-.cortex-stem {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.38);
-}
-.cortex-vertebrae {
-  stroke: rgb(236 232 223 / 0.2);
-}
-.cortex-you {
-  fill: var(--color-accent);
-}
-.cortex-you-ring {
-  fill: none;
-  stroke: rgb(255 90 31 / 0.55);
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: cortex-you 2.8s ease-out infinite;
-}
-@keyframes cortex-you {
-  from {
-    scale: 0.5;
-    opacity: 1;
-  }
-  to {
-    scale: 1.9;
-    opacity: 0;
-  }
-}
-.cortex-caption {
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  fill: var(--color-ink-3);
-  paint-order: stroke;
-  stroke: var(--color-canvas);
-  stroke-width: 3px;
-}
-.cortex-caption.is-you {
-  fill: var(--color-accent);
-}
-.cortex-nerve {
+.tree-plate.is-pointing {
   cursor: pointer;
 }
-.cortex-nerve-line {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.28);
-  transition: stroke 0.2s;
+.tree-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
 }
-.cortex-nerve-end {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.55);
+/* The buds: each answer's mark, where its twig ends. */
+.tree-buds {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
 }
-.cortex-nerve-dot {
-  fill: rgb(236 232 223 / 0.7);
-}
-.cortex-nerve:hover .cortex-nerve-line,
-.cortex-nerve.is-lit .cortex-nerve-line {
-  stroke: var(--color-ink);
-}
-.cortex-hit {
-  fill: none;
+.tree-bud-halo {
+  fill: transparent;
   stroke: transparent;
-  stroke-width: 16;
-  pointer-events: stroke;
+  transition:
+    fill 0.2s,
+    stroke 0.2s;
 }
-/* The options. */
-.cortex-path {
-  cursor: pointer;
-  outline: none;
-  transition: opacity 0.3s;
+.tree-bud.is-lit .tree-bud-halo {
+  fill: rgb(236 232 223 / 0.1);
+  stroke: rgb(236 232 223 / 0.55);
 }
-.cortex[data-focus] .cortex-path:not(.is-on) {
-  opacity: 0.18;
-}
-.cortex-trunk {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.5);
-  stroke-width: 1.2;
-  stroke-dasharray: 4 4;
-  transition: stroke 0.2s;
-}
-.cortex-path.is-on .cortex-trunk,
-.cortex-path:focus-visible .cortex-trunk {
-  stroke: var(--color-ink);
-}
-.cortex-path.is-chosen .cortex-trunk {
-  stroke: var(--color-accent);
-  stroke-width: 1.6;
-  stroke-dasharray: none;
-}
-.cortex-trunk-ticks {
-  stroke: rgb(236 232 223 / 0.2);
-}
-.cortex-twig {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.3);
-}
-.cortex-fringe {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.13);
-}
-.cortex-arbor {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.32);
-}
-.cortex-path.is-chosen :is(.cortex-twig, .cortex-arbor) {
-  stroke: rgb(255 90 31 / 0.42);
-}
-.cortex-pulse {
-  fill: rgb(236 232 223 / 0.75);
-}
-.cortex-path.is-chosen .cortex-pulse {
-  fill: var(--color-accent);
-}
-.cortex-code {
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
-  fill: var(--color-ink-3);
-}
-.cortex-path.is-chosen .cortex-code {
-  fill: var(--color-accent);
-}
-.cortex .cortex-title {
-  font-family: var(--font-sans);
-  font-weight: 500;
-  font-size: 16px;
-  letter-spacing: -0.01em;
-  fill: var(--color-ink);
-}
-/* An answer's mark. */
-.cortex-mark {
-  cursor: pointer;
-  outline: none;
-}
-.cortex-mark-hit {
-  fill: transparent;
-}
-.cortex-mark-halo {
-  fill: transparent;
-  transition: fill 0.2s;
-}
-.cortex-mark.is-lit .cortex-mark-halo,
-.cortex-mark:focus-visible .cortex-mark-halo {
-  fill: rgb(236 232 223 / 0.13);
+.tree-bud.is-chosen .g-line:not(.g-warn) {
+  stroke: rgb(255 150 105 / 0.85);
 }
 .g-fill {
   fill: rgb(236 232 223 / 0.85);
@@ -1988,46 +1806,256 @@ html body {
 .g-fill.g-warn {
   fill: var(--color-accent);
 }
-.cortex-mark.is-lit .g-line {
+.tree-bud.is-lit .g-line {
   stroke: var(--color-ink);
 }
-/* Notes on the plate. */
-.cortex-notes {
-  pointer-events: none;
-}
-.cortex-count {
-  font-size: 9.5px;
-  letter-spacing: 0.14em;
-  fill: var(--color-ink);
-  paint-order: stroke;
-  stroke: var(--color-canvas);
-  stroke-width: 3px;
-}
-.cortex-leader {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.6);
-}
-.cortex-annotation-bg {
-  fill: rgb(7 8 10 / 0.88);
-  stroke: rgb(236 232 223 / 0.14);
-}
-.cortex-annotation-meta {
+/* The title block, as on a drawing. */
+.tree-block {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: flex;
+  border: 1px solid rgb(236 232 223 / 0.24);
+  background: rgb(5 6 8 / 0.74);
+  font-family: var(--font-mono);
   font-size: 9px;
   letter-spacing: 0.14em;
+  color: var(--color-ink-3);
+  pointer-events: none;
+}
+.tree-block-main {
+  display: flex;
+  flex-direction: column;
+}
+.tree-block-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  border-top: 1px solid rgb(236 232 223 / 0.11);
+  white-space: nowrap;
+}
+.tree-block-row:first-child {
+  border-top: none;
+}
+.tree-block-row.is-head {
+  justify-content: space-between;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  color: var(--color-ink);
+}
+.tree-block-row.is-sub {
+  color: var(--color-ink-2);
+}
+.tree-block-no {
+  color: var(--color-accent);
+  letter-spacing: 0.12em;
+}
+.tree-block-dim {
+  margin-left: auto;
+  opacity: 0.7;
+}
+.tree-scale {
+  height: 5px;
+  border: 1px solid rgb(236 232 223 / 0.6);
+  background: repeating-linear-gradient(90deg, rgb(236 232 223 / 0.6) 0 20%, transparent 0 40%);
+}
+.tree-gizmo {
+  align-self: center;
+  margin: 0 6px;
+  overflow: visible;
+}
+.tree-block-main + .tree-gizmo {
+  border-left: 1px solid rgb(236 232 223 / 0.11);
+  padding-left: 6px;
+  box-sizing: content-box;
+}
+.tree-gizmo-ring {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.14);
+  stroke-dasharray: 2 3;
+}
+.tree-gizmo circle:not(.tree-gizmo-ring) {
+  fill: var(--color-ink-2);
+}
+.tree-gizmo line {
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+.tree-gizmo line.is-x {
+  stroke: var(--color-accent);
+}
+.tree-gizmo line.is-y {
+  stroke: var(--color-ink);
+}
+.tree-gizmo line.is-z {
+  stroke: var(--color-ink-3);
+}
+.tree-gizmo text {
+  font-family: var(--font-mono);
+  font-size: 8px;
   fill: var(--color-ink-3);
 }
-.cortex .cortex-annotation-text {
+/* Registration marks at the plate's corners. */
+.tree-register i {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border: 0 solid rgb(236 232 223 / 0.4);
+  pointer-events: none;
+}
+.tree-register i:nth-child(1) {
+  top: 5px;
+  left: 5px;
+  border-top-width: 1px;
+  border-left-width: 1px;
+}
+.tree-register i:nth-child(2) {
+  top: 5px;
+  right: 5px;
+  border-top-width: 1px;
+  border-right-width: 1px;
+}
+.tree-register i:nth-child(3) {
+  bottom: 5px;
+  left: 5px;
+  border-bottom-width: 1px;
+  border-left-width: 1px;
+}
+.tree-register i:nth-child(4) {
+  right: 5px;
+  bottom: 5px;
+  border-right-width: 1px;
+  border-bottom-width: 1px;
+}
+/* The levels, as on a section: a mark, its height, and what is asked there. */
+.tree-levels {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+.tree-level {
+  position: absolute;
+  top: 0;
+  left: 14px;
+  display: grid;
+  grid-template-columns: 10px 86px;
+  column-gap: 6px;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  line-height: 18px;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-3);
+  text-align: left;
+  pointer-events: auto;
+  transition: color 0.2s;
+}
+.tree-level svg path {
+  fill: none;
+  stroke: currentColor;
+}
+.tree-level-num {
+  color: var(--color-ink-2);
+}
+.tree-level-name {
+  display: -webkit-box;
+  grid-column: 2;
+  max-width: 86px;
+  overflow: hidden;
+  font-size: 8.5px;
+  line-height: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.tree-level:hover,
+.tree-level.is-lit {
+  color: var(--color-accent);
+}
+.tree-level:hover .tree-level-num,
+.tree-level.is-lit .tree-level-num {
+  color: var(--color-accent);
+}
+.tree-level.is-lit svg path,
+.tree-level.is-ground svg path {
+  fill: currentColor;
+}
+.tree-level.is-ground {
+  color: var(--color-ink-2);
+}
+/* The cards called out from the tree. */
+.tree-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 208px;
+  padding: 6px;
+  border: 1px solid rgb(236 232 223 / 0.32);
+  background: rgb(5 6 8 / 0.86);
+  font-family: var(--font-mono);
+  cursor: pointer;
+  will-change: transform;
+}
+.tree-card:hover {
+  border-color: rgb(236 232 223 / 0.6);
+}
+.tree-card.is-warm {
+  border-color: rgb(255 90 31 / 0.55);
+}
+.tree-card-crop {
+  display: block;
+  width: 194px;
+  height: 84px;
+  margin-bottom: 6px;
+  border: 1px solid rgb(236 232 223 / 0.12);
+}
+.tree-card-meta {
+  font-size: 8.5px;
+  line-height: 1.45;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-3);
+}
+.tree-card.is-warm .tree-card-meta {
+  color: var(--color-accent);
+}
+.tree-card-title {
+  margin-top: 3px;
   font-family: var(--font-sans);
   font-size: 12px;
-  fill: var(--color-ink);
+  line-height: 1.3;
+  color: var(--color-ink);
 }
-/* The reading panel and the key. */
-.ahead-panel {
+.tree-card-sub,
+.tree-card-at {
+  margin-top: 4px;
+  font-size: 8.5px;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-3);
+  text-transform: uppercase;
+}
+.tree-card-at {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+  border-top: 1px solid rgb(236 232 223 / 0.1);
+  opacity: 0.8;
+}
+/* The side: the options as a legend, the reading panel under it; and the key. */
+.ahead-side {
   position: absolute;
   top: 16px;
   right: 16px;
+  display: flex;
   width: 340px;
   max-height: calc(100% - 206px);
+  flex-direction: column;
+  gap: 8px;
+}
+.ahead-panel {
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
   border: 1px solid var(--color-line);
@@ -2045,42 +2073,10 @@ html body {
   color: var(--color-ink-3);
   pointer-events: none;
 }
-.cortex-key-glyph .g-line {
+.ahead-key-glyph .g-line {
   fill: none;
 }
-.cortex-key-line path {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.6);
-  stroke-dasharray: 3 3;
-}
-.cortex-key-line.is-chosen path {
-  stroke: var(--color-accent);
-  stroke-width: 1.6;
-  stroke-dasharray: none;
-}
-.cortex-letter-disc {
-  fill: var(--color-canvas);
-  stroke: rgb(236 232 223 / 0.55);
-}
-.cortex-path.is-chosen .cortex-letter-disc {
-  stroke: var(--color-accent);
-}
-.cortex .cortex-letter {
-  font-size: 10px;
-  fill: var(--color-ink);
-}
-.cortex-plate {
-  font-size: 9.5px;
-  letter-spacing: 0.24em;
-  fill: var(--color-ink-2);
-}
-.cortex-plate.is-sub {
-  fill: var(--color-ink-3);
-  letter-spacing: 0.16em;
-}
-.cortex-register {
-  stroke: rgb(236 232 223 / 0.3);
-}
+/* The options, as a list too: a legend over the plate on a wide screen, under it on a narrow one. */
 .ahead-options {
   display: flex;
   flex-wrap: wrap;
@@ -2097,6 +2093,7 @@ html body {
   padding: 5px 9px;
   font-size: 12.5px;
   color: var(--color-ink-2);
+  background: rgb(5 6 8 / 0.7);
 }
 .ahead-option.is-chosen {
   border-style: solid;
@@ -2104,12 +2101,51 @@ html body {
 }
 .ahead-option.is-on {
   color: var(--color-ink);
-  background: rgb(236 232 223 / 0.05);
+  background: rgb(236 232 223 / 0.06);
 }
-.ahead-option-letter {
+.ahead-option-letter,
+.ahead-option-bearing {
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--color-ink-3);
+}
+.ahead-option.is-chosen .ahead-option-letter {
+  color: var(--color-accent);
+}
+@media (min-width: 1024px) {
+  /* A schedule of the options, as on a drawing: letter, name, bearing. */
+  .ahead-options {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    flex-shrink: 0;
+    gap: 0;
+    margin: 0;
+    border: 1px solid var(--color-line);
+    background: rgb(5 6 8 / 0.78);
+  }
+  .ahead-option {
+    display: grid;
+    grid-template-columns: 18px 1fr auto;
+    border-width: 1px 0 0;
+    border-style: solid;
+    border-color: var(--color-line);
+    border-radius: 0;
+    padding: 7px 12px;
+    font-size: 12.5px;
+    text-align: left;
+    background: none;
+  }
+  .ahead-option:first-child {
+    border-top: none;
+  }
+  .ahead-option:hover {
+    color: var(--color-ink);
+    background: rgb(236 232 223 / 0.04);
+  }
+  .ahead-option.is-chosen {
+    border-color: var(--color-line);
+    box-shadow: inset 2px 0 0 var(--color-accent);
+  }
 }
 @media (max-width: 1023px) {
   .ahead-stage {
@@ -2120,9 +2156,18 @@ html body {
   }
   .ahead-plate {
     position: relative;
-    height: 440px;
+    height: 460px;
     border: 1px solid var(--color-line);
     overflow: hidden;
+    background:
+      radial-gradient(circle at 1px 1px, rgb(236 232 223 / 0.075) 1px, transparent 1.3px) 0 0 / 24px 24px,
+      var(--color-canvas);
+  }
+  .ahead-side {
+    position: static;
+    display: block;
+    width: auto;
+    max-height: none;
   }
   .ahead-panel,
   .ahead-key {
@@ -2132,9 +2177,7 @@ html body {
     margin-top: 14px;
     backdrop-filter: none;
   }
-}
-@media (prefers-reduced-motion: reduce) {
-  .cortex-you-ring {
-    animation: none;
+  .tree-card {
+    width: 168px;
   }
 }
