@@ -2170,3 +2170,364 @@ html body {
     height: 500px;
   }
 }
+
+/* ---- Repeats: an almanac of the year that turns (see Almanac) --------------------------------------------- */
+.almanac-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: 250px minmax(0, 1fr) 280px;
+  height: clamp(660px, 84vh, 940px);
+  margin-top: 1.25rem;
+  border: 1px solid var(--color-line);
+  background:
+    radial-gradient(ellipse 46% 56% at 50% 52%, rgb(236 232 223 / 0.035), transparent 72%),
+    radial-gradient(circle at 1px 1px, rgb(236 232 223 / 0.07) 1px, transparent 1.3px) 0 0 / 24px 24px,
+    var(--color-canvas);
+  overflow: hidden;
+}
+.almanac-side {
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+}
+.almanac-block {
+  position: static;
+  display: inline-flex;
+  max-width: 100%;
+  margin-bottom: 18px;
+}
+.almanac-block .tree-block-row {
+  white-space: normal;
+}
+.almanac-hint {
+  margin-top: 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.6;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-3);
+  text-transform: uppercase;
+}
+.almanac-plate {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+}
+.almanac-plate.is-pointing {
+  cursor: pointer;
+}
+.almanac-dial {
+  display: block;
+  width: 100%;
+  height: 100%;
+  user-select: none;
+}
+/* The dial's parts. Sizes are in the dial's own units, so they scale with it. */
+.al-sky {
+  stroke: rgb(236 232 223 / 0.4);
+  stroke-width: 1;
+}
+.al-star {
+  fill: rgb(236 232 223 / 0.6);
+}
+.al-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+.al-figure {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.7);
+  stroke-width: 1;
+}
+.al-figure-star {
+  fill: var(--color-ink);
+}
+.al-figure-exception {
+  fill: #020304;
+  stroke: var(--color-ink);
+  stroke-width: 1.2;
+}
+.al-rule {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.26);
+  stroke-width: 1;
+}
+.al-tick {
+  stroke: rgb(236 232 223 / 0.38);
+  stroke-width: 1;
+}
+.al-tick.is-fine {
+  stroke: rgb(236 232 223 / 0.16);
+}
+.al-month {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.32em;
+  fill: var(--color-ink-2);
+}
+.al-today line {
+  stroke: var(--color-accent);
+  stroke-width: 1.6;
+}
+.al-today text {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  fill: var(--color-accent);
+}
+.al-track {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.07);
+}
+.al-ring-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 30;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+.al-span {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.82);
+  stroke-width: 7;
+  transition: stroke 0.25s;
+}
+/* New: dotted, for it has shown in fewer than three separate weeks; fading: faint, and dotted on since. */
+.al-ring.is-emerging .al-span {
+  stroke-dasharray: 0.1 10;
+  stroke-linecap: round;
+}
+.al-ring.is-fading .al-span {
+  opacity: 0.5;
+}
+.al-since {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.4);
+  stroke-width: 3;
+  stroke-dasharray: 0.1 7;
+  stroke-linecap: round;
+}
+.al-ring.is-selected .al-span {
+  stroke: var(--color-accent);
+  opacity: 1;
+}
+.al-ring.is-lit .al-span {
+  stroke: var(--color-ink);
+  opacity: 1;
+}
+.al-ring-title {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  fill: var(--color-ink-3);
+}
+.al-ring.is-selected .al-ring-title,
+.al-ring.is-lit .al-ring-title {
+  fill: var(--color-ink);
+}
+.al-mark {
+  fill: var(--color-ink);
+  stroke: var(--color-canvas);
+  stroke-width: 2.4;
+  pointer-events: none;
+}
+.al-mark.is-exception {
+  fill: var(--color-canvas);
+  stroke: var(--color-ink);
+  stroke-width: 1.6;
+}
+.al-flash {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+.al-bezel circle {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.16);
+}
+.al-bezel path {
+  stroke: rgb(236 232 223 / 0.34);
+}
+.al-phase {
+  font-family: var(--font-sans);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: 0.42em;
+  fill: var(--color-ink);
+}
+.al-phase-text {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  fill: var(--color-ink-3);
+}
+.al-arrow {
+  fill: none;
+  stroke: var(--color-ink-2);
+  stroke-width: 1.4;
+}
+.al-needle line {
+  stroke: rgb(236 232 223 / 0.75);
+  stroke-width: 1.2;
+}
+.al-needle-band {
+  fill: rgb(236 232 223 / 0.06);
+}
+.al-needle-head {
+  fill: var(--color-accent);
+}
+.al-read-date {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  letter-spacing: 0.24em;
+  fill: var(--color-ink);
+}
+.al-read {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  fill: var(--color-ink-3);
+}
+.al-read.is-on {
+  fill: var(--color-ink);
+}
+/* What you point at on the wheel. */
+.almanac-tip {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 230px;
+  padding: 8px 10px;
+  border: 1px solid rgb(236 232 223 / 0.32);
+  background: rgb(5 6 8 / 0.92);
+  pointer-events: none;
+  z-index: 2;
+}
+.almanac-tip-meta,
+.almanac-tip-sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-3);
+}
+.almanac-tip-title {
+  margin: 3px 0;
+  font-size: 12.5px;
+  line-height: 1.3;
+  color: var(--color-ink);
+}
+/* The notes set out beside the wheel. */
+.almanac-note {
+  margin-bottom: 20px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-ink-2);
+}
+.almanac-note-head {
+  margin-bottom: 7px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  color: var(--color-ink);
+  text-transform: uppercase;
+}
+.almanac-note-head::before {
+  content: '';
+  display: block;
+  width: 26px;
+  height: 3px;
+  margin-bottom: 7px;
+  background: var(--color-ink);
+}
+.almanac-note ul {
+  display: grid;
+  gap: 8px;
+}
+.almanac-note button {
+  text-align: left;
+}
+.almanac-note button:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.almanac-note-meta {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-3);
+  text-transform: uppercase;
+}
+.almanac-note .is-dim {
+  color: var(--color-ink-3);
+}
+@media (max-width: 1023px) {
+  /* On a narrow screen: the title, the wheel, then the list, the hint and the notes. */
+  .almanac-stage {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    border: none;
+    background: none;
+    overflow: visible;
+  }
+  .almanac-side.is-left {
+    display: contents;
+  }
+  .almanac-block {
+    order: 0;
+    align-self: flex-start;
+  }
+  .almanac-plate {
+    order: 1;
+  }
+  .almanac-schedule {
+    order: 2;
+    margin-top: 16px;
+  }
+  .almanac-hint {
+    order: 3;
+  }
+  .almanac-side.is-right {
+    order: 4;
+  }
+  .almanac-plate {
+    aspect-ratio: 1000 / 1062;
+    border: 1px solid var(--color-line);
+    background: var(--color-canvas);
+  }
+  .almanac-side {
+    padding: 14px 0;
+    overflow: visible;
+  }
+  .almanac-side.is-left {
+    padding-top: 0;
+  }
+}
+@media (max-width: 639px) {
+  .al-ring-title,
+  .al-phase-text {
+    display: none;
+  }
+  /* The wheel is small here, so what must be read is set larger in its own units. */
+  .al-month {
+    font-size: 18px;
+    letter-spacing: 0.18em;
+  }
+  .al-phase {
+    font-size: 24px;
+    letter-spacing: 0.3em;
+  }
+  .al-read-date {
+    font-size: 26px;
+  }
+  .al-read {
+    font-size: 17px;
+  }
+  .al-today text {
+    font-size: 15px;
+  }
+}

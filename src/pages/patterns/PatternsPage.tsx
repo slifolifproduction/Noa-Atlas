@@ -1,7 +1,7 @@
-import { ArrowLeft, Check, ChevronDown, Plus, ScanSearch, X } from 'lucide-react';
+import { Check, ChevronDown, Plus, ScanSearch, X } from 'lucide-react';
 import { PatternIcon } from '../../components/icons';
 import { useMemo, useState } from 'react';
-import { hrefFor, navigate } from '../../app/router';
+import { hrefFor } from '../../app/router';
 import { KnowledgeTag, RegularityTag } from '../../components/evidence/Status';
 import { EvidenceRow, StanceMark } from '../../components/evidence/EvidenceRow';
 import { EvidenceTimeline } from '../../components/evidence/EvidenceTimeline';
@@ -27,7 +27,6 @@ import {
   sortedPatterns,
 } from '../../domain/selectors';
 import type { ClaimStatus, ID, Pattern, PatternVerdict, SourceRef, Stance } from '../../domain/types';
-import { useIsDesktop } from '../../hooks/useMediaQuery';
 import { formatDate } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { excerpt } from '../../lib/text';
@@ -35,19 +34,20 @@ import { useAtlas } from '../../state/atlasStore';
 import { scanAllEntries } from '../../state/operations';
 import { toast, useUI } from '../../state/uiStore';
 import { DecisionRepeats } from './DecisionRepeats';
+import { Almanac } from '../../components/repeats/Almanac';
 import { DescribePatternModal } from './DescribePatternModal';
 import { FocusBanner, useFocusFilter } from '../../components/shell/Focus';
 import { focusElements, focusGraphId } from '../../domain/ask';
 import { t, tn } from '../../i18n';
 
 /**
- * Repeats: things that keep happening, drawn from your notes and decisions.
- * With something in focus, only what involves it.
+ * Repeats: things that keep happening, drawn from your notes and decisions,
+ * as an almanac of the year that turns (see Almanac), and under it the full
+ * record of the one you read. With something in focus, only what involves it.
  */
 export function PatternsPage({ patternId }: { patternId?: string }) {
   const data = useAtlas((s) => s.data);
   const busyScan = useUI((s) => s.busy.scan);
-  const isDesktop = useIsDesktop();
   const { focus, on, setOn } = useFocusFilter();
   const involved = useMemo(() => {
     if (!focus) return null;
@@ -58,7 +58,7 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
   const allLive = sortedPatterns(data);
   const live = on && involved ? allLive.filter((p) => involved.has(p.id)) : allLive;
   const dismissed = Object.values(data.patterns).filter((p) => p.setAside && (!on || !involved || involved.has(p.id)));
-  const selected = (patternId && data.patterns[patternId]) || (isDesktop ? live[0] : undefined);
+  const selected = (patternId && data.patterns[patternId]) || live[0];
   const pending = pendingSuggestions(data).filter((p) => p.suggestion.type === 'pattern_evidence');
 
   const [describing, setDescribing] = useState(false);
@@ -69,7 +69,6 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
     toast(n ? tn(n, '{n} suggestion for you to confirm.', '{n} suggestions for you to confirm.') : t('Nothing new found.'), { tone: 'success' });
   };
 
-  const showList = isDesktop || !patternId;
   return (
     <div className="mx-auto max-w-[1320px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
@@ -122,49 +121,44 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
               {t('Nothing that repeats involves this yet. A repeat shows once something similar happens in separate weeks.')}
             </p>
           )}
-          <div className="mt-6 grid gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
-            {showList && (
-              <nav aria-label={t('Patterns')} className="lg:sticky lg:top-0 lg:self-start">
-                <>
-                  <div className="label mb-2">
-                    {t('Keeps coming back')} · {live.length}
-                  </div>
-                  <ul className="space-y-1">
-                    {live.map((p) => (
-                      <PatternListItem
-                        key={p.id}
-                        pattern={p}
-                        active={selected?.id === p.id}
-                        pendingCount={pending.filter((x) => x.suggestion.type === 'pattern_evidence' && x.suggestion.patternId === p.id).length}
-                      />
-                    ))}
-                  </ul>
-                  {dismissed.length > 0 && (
-                    <>
-                      <div className="label mt-5 mb-2">
-                        {t('Put aside by you')} · {dismissed.length}
-                      </div>
-                      <ul className="space-y-1">
-                        {dismissed.map((p) => (
-                          <PatternListItem key={p.id} pattern={p} active={selected?.id === p.id} pendingCount={0} />
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </>
-              </nav>
-            )}
-            {selected && (isDesktop || patternId) ? (
-              <div>
-                {!isDesktop && (
-                  <Button size="sm" variant="ghost" icon={ArrowLeft} className="mb-3" onClick={() => navigate('patterns')}>
-                    {t('All patterns')}
-                  </Button>
+          <Almanac
+            patterns={live}
+            selected={selected}
+            schedule={
+              <nav aria-label={t('Patterns')}>
+                <div className="label mb-2">
+                  {t('Keeps coming back')} · {live.length}
+                </div>
+                <ul className="space-y-1">
+                  {live.map((p) => (
+                    <PatternListItem
+                      key={p.id}
+                      pattern={p}
+                      active={selected?.id === p.id}
+                      pendingCount={pending.filter((x) => x.suggestion.type === 'pattern_evidence' && x.suggestion.patternId === p.id).length}
+                    />
+                  ))}
+                </ul>
+                {dismissed.length > 0 && (
+                  <>
+                    <div className="label mt-5 mb-2">
+                      {t('Put aside by you')} · {dismissed.length}
+                    </div>
+                    <ul className="space-y-1">
+                      {dismissed.map((p) => (
+                        <PatternListItem key={p.id} pattern={p} active={selected?.id === p.id} pendingCount={0} />
+                      ))}
+                    </ul>
+                  </>
                 )}
-                <PatternDetail key={selected.id} pattern={selected} />
-              </div>
-            ) : null}
-          </div>
+              </nav>
+            }
+          />
+          {selected && (
+            <div className="mt-8">
+              <PatternDetail key={selected.id} pattern={selected} />
+            </div>
+          )}
         </>
       )}
       <DecisionRepeats />

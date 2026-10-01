@@ -221,6 +221,14 @@ export function formatMonth(date: ISODate): string {
   return fmt(`month:${locale()}`, () => new Intl.DateTimeFormat(locale(), { timeZone: 'UTC', month: 'short', year: 'numeric' })).format(parseISODate(date));
 }
 
+/** "Sep" (or "Sep 2026" when asked), the month alone, in the interface language. */
+export function formatMonthShort(date: ISODate, opts: { year?: boolean } = {}): string {
+  return fmt(
+    `monthShort:${locale()}:${Boolean(opts.year)}`,
+    () => new Intl.DateTimeFormat(locale(), { timeZone: 'UTC', month: 'short', year: opts.year ? 'numeric' : undefined }),
+  ).format(parseISODate(date));
+}
+
 /** "Tuesday, 29 September" in the interface language. */
 export function formatLongDate(date: ISODate): string {
   return fmt(`long:${locale()}`, () => new Intl.DateTimeFormat(locale(), { timeZone: 'UTC', weekday: 'long', month: 'long', day: 'numeric' })).format(

@@ -2278,8 +2278,15 @@ export const ID: Record<string, string> = {
     'Belum ada pengulangan yang melibatkan ini. Pengulangan muncul setelah hal serupa terjadi di minggu-minggu berbeda.',
   Patterns: 'Pola',
   'Keeps coming back': 'Terus kembali',
+  // The Repeats almanac: the year as a wheel that turns under a reading needle.
+  'Plate · Repeats': 'Lembar · Pengulangan',
+  'The year, turning · every time it happened': 'Tahun yang berputar · tiap kali terjadi',
+  'Point at the wheel to stop it · at a ring to read it · at a mark to open the note':
+    'Arahkan ke roda untuk menghentikannya · ke cincin untuk membacanya · ke tanda untuk membuka catatannya',
+  'Every time each repeat happened, on a year that turns': 'Tiap kali setiap pengulangan terjadi, pada tahun yang berputar',
+  Today: 'Hari ini',
+  'Not said yet': 'Belum kamu nilai',
   'Put aside by you': 'Kamu sisihkan',
-  'All patterns': 'Semua pola',
   'Notes that might belong here, waiting for a yes or no': 'Catatan yang mungkin termasuk di sini, menunggu ya atau tidak',
   '{n} to confirm': '{n} perlu dikonfirmasi',
   '{n} time': '{n} kali',
