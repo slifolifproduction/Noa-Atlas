@@ -1667,12 +1667,27 @@ html body {
 .quest-hud-in {
   animation: quest-flicker 1.1s steps(1, end) var(--in, 2.1s) both;
 }
+/* The frame of the console flickers in on a wide screen (on a phone it is only its contents); what is
+   only ever shown on a phone (its details) flickers in only there, so opening it later never waits. */
+@media (min-width: 1024px) {
+  .quest-console-in {
+    animation: quest-flicker 1.1s steps(1, end) var(--in, 2.1s) both;
+  }
+}
+@media (max-width: 1023px) {
+  .quest-in-narrow {
+    animation: quest-flicker 1.1s steps(1, end) var(--in, 2.1s) both;
+  }
+}
+/* Until it comes in, it is not there at all: nothing to see, click or reach with Tab. */
 @keyframes quest-flicker {
   0% {
     opacity: 0;
+    visibility: hidden;
   }
   30% {
     opacity: 0.8;
+    visibility: visible;
   }
   36% {
     opacity: 0.1;
@@ -1692,6 +1707,8 @@ html body {
   .clk-orbit,
   .quest-watch,
   .quest-hud-in,
+  .quest-console-in,
+  .quest-in-narrow,
   .quest-rig[data-urgent] .eye-lid,
   .quest-rig[data-urgent][data-awake] .quest-glow {
     animation: none !important;

@@ -283,7 +283,8 @@ export function QuestsPage() {
 
         {/* Top: where you are, and what is watching you. */}
         <div ref={hudTop} className="quest-hud absolute top-3 right-4 left-4 lg:top-5 lg:right-auto lg:left-6 lg:w-fit lg:max-w-[min(560px,calc(100%-470px))]">
-          <div className="flex items-center gap-3">
+          {/* Only space at first: the page's own controls come out after the eye, after its name and strength. */}
+          <div className="quest-hud-in flex items-center gap-3" style={{ '--in': '2.75s' } as CSSProperties}>
             {pageLabel}
             <div className="ml-auto flex items-center gap-1 lg:hidden">
               <IconButton icon={PLACE_ICONS.ahead} label={t('Open the plan')} onClick={() => navigate('navigation')} />
@@ -324,28 +325,34 @@ export function QuestsPage() {
           <Readout boss={boss} urgent={urgent} />
         </div>
 
-        {/* The console: what brings it down (beside it on a wide screen, below it on a phone). */}
+        {/* The console: what brings it down (beside it on a wide screen, below it on a phone). It comes out
+            last, after the eye and the page's controls, each piece of work in turn; again for each boss. */}
         <aside
+          key={boss.id}
           ref={consoleBox}
-          className="quest-console absolute inset-x-0 top-[66%] bottom-0 overflow-y-auto px-4 pt-8 pb-5 lg:inset-x-auto lg:top-4 lg:right-4 lg:bottom-auto lg:max-h-[calc(100%-2rem)] lg:w-[384px] lg:border lg:border-line lg:p-0"
+          style={{ '--in': '2.85s' } as CSSProperties}
+          className="quest-console quest-console-in absolute inset-x-0 top-[66%] bottom-0 overflow-y-auto px-4 pt-8 pb-5 lg:inset-x-auto lg:top-4 lg:right-4 lg:bottom-auto lg:max-h-[calc(100%-2rem)] lg:w-[384px] lg:border lg:border-line lg:p-0"
           aria-label={t('What brings it down')}
         >
           <div ref={consoleMain} className="lg:p-4">
             <div className="lg:hidden">
               <Readout boss={boss} urgent={urgent} />
             </div>
-            <div className="mt-5 flex items-baseline justify-between gap-2 lg:mt-0">
+            <div className="quest-hud-in mt-5 flex items-baseline justify-between gap-2 lg:mt-0" style={{ '--in': '2.9s' } as CSSProperties}>
               <h3 className="label">{t('What brings it down')}</h3>
               <span className="font-mono text-[10.5px] text-ink-3">{tn(open.length, 'one open', '{n} open')}</span>
             </div>
             {open.length === 0 ? (
-              <p className="mt-2 text-[12.5px] text-ink-3">{t('Nothing left open.')}</p>
+              <p className="quest-hud-in mt-2 text-[12.5px] text-ink-3" style={{ '--in': '2.95s' } as CSSProperties}>
+                {t('Nothing left open.')}
+              </p>
             ) : (
               <ul className="mt-2 divide-y divide-line border-y border-line">
-                {open.map((p) => (
+                {open.map((p, i) => (
                   <li
                     key={p.id}
-                    className="flex items-start gap-2.5 py-2"
+                    style={{ '--in': `${(2.95 + i * 0.07).toFixed(2)}s` } as CSSProperties}
+                    className="quest-hud-in flex items-start gap-2.5 py-2"
                     onMouseEnter={() => setLook(p.id)}
                     onMouseLeave={() => setLook(undefined)}
                     onFocus={() => setLook(p.id)}
@@ -399,7 +406,8 @@ export function QuestsPage() {
             )}
             {boss.state === 'escaped' && (
               <form
-                className="mt-3 flex flex-wrap items-center gap-2"
+                style={{ '--in': '3.05s' } as CSSProperties}
+                className="quest-hud-in mt-3 flex flex-wrap items-center gap-2"
                 onSubmit={(e) => {
                   e.preventDefault();
                   if (!again || again <= today) return;
@@ -426,13 +434,18 @@ export function QuestsPage() {
               onClick={() => setDetails((d) => !d)}
               aria-expanded={details}
               aria-controls="quest-details"
-              className="mt-3 hidden w-full items-center justify-between gap-2 font-mono text-[10.5px] tracking-[0.14em] text-ink-3 uppercase hover:text-ink lg:flex"
+              style={{ '--in': '3.1s' } as CSSProperties}
+              className="quest-hud-in mt-3 hidden w-full items-center justify-between gap-2 font-mono text-[10.5px] tracking-[0.14em] text-ink-3 uppercase hover:text-ink lg:flex"
             >
               {details ? t('Hide details') : t('Details')}
               <ChevronDown size={13} aria-hidden className={cn('transition-transform duration-200', details && 'rotate-180')} />
             </button>
           </div>
-          <div id="quest-details" className={cn(!details && 'lg:hidden', 'lg:mx-4 lg:border-t lg:border-line lg:pt-3 lg:pb-4')}>
+          <div
+            id="quest-details"
+            style={{ '--in': '3.15s' } as CSSProperties}
+            className={cn('quest-in-narrow', !details && 'lg:hidden', 'lg:mx-4 lg:border-t lg:border-line lg:pt-3 lg:pb-4')}
+          >
             {done.length > 0 && (
               <details className="mt-3 text-[12.5px] lg:mt-0">
                 <summary className="cursor-pointer text-ink-3 hover:text-ink">{t('Already down ({n})', { n: done.length })}</summary>
