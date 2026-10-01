@@ -12,7 +12,6 @@ import {
   FIBRES,
   fitEye,
   grainTile,
-  HORIZON,
   HOUR,
   lids,
   makeStars,
@@ -24,20 +23,13 @@ import {
   paintMembrane,
   PITCH,
   R_ARMOR,
-  R_HP,
-  R_TEXT,
-  R_TICKS,
   RC,
   RI,
-  ringText,
-  segment,
   spokes,
   paintTear,
   SUB,
-  TAU,
   TEAR_W,
   tearWindow,
-  ticks,
   turn,
   YAW,
   type Box,
@@ -58,7 +50,6 @@ interface Plate {
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const backOut = (t: number) => 1 + 2.4 * (t - 1) ** 3 + 1.4 * (t - 1) ** 2;
 const clamp01 = (t: number) => Math.max(0, Math.min(1, t));
-const pad = (n: number) => String(n).padStart(2, '0');
 const NS = 'http://www.w3.org/2000/svg';
 
 /**
@@ -67,8 +58,9 @@ const NS = 'http://www.w3.org/2000/svg';
  * bursts and fades as space tears open on another dimension (to TORN), which
  * rushes at us. Out of that dimension's depth the eye comes forward,
  * out of focus and dim, growing and pulling into focus (from EMERGES, see
- * .quest-emerge), its lids opening as it comes (OPENS), and it lands, the
- * stage shuddering (ARRIVES). Sealed, the tear stands open only this much (SCAR).
+ * .quest-emerge), its lids opening as it comes (OPENS), and it lands, a
+ * shock going out from its pupil and the stage shuddering (ARRIVES). Sealed,
+ * the tear stands open only this much (SCAR).
  */
 const CRACKED = 480;
 const TORN = 1300;
@@ -87,7 +79,7 @@ const SCAR = 0.035;
  * The stars take theirs from their own distance.
  */
 const PULL = 0.04;
-const DEPTH = { tear: -0.3, haze: 0.6, back: 0.5, ring: 0.25, far: 0.12, mid: 0.06, near: 0.02 };
+const DEPTH = { tear: -0.3, haze: 0.6, back: 0.5, ring: 0.25 };
 /** The other dimension's two layers (its still depths, its nearest ring): their depth, and how far in they rush from as the tear opens. */
 const DIM_DEPTH = [DEPTH.back, DEPTH.ring];
 const RUSH = [0.84, 0.7];
@@ -105,16 +97,15 @@ const RUSH = [0.84, 0.7];
  * shape), the eye's own dimension, which is not space: a haze with light at
  * its end, lines between points drifting in it, and a tunnel of torn
  * membrane, ring behind ring, each turning its way. At the end of the
- * tunnel, the eye with its glow and an orrery of rings that turns (the far
- * rings soft; its strength as the ring of segments, a numbered segment per
- * piece of work, dark once done; its armor as plates further out; a line of
- * text going round). The tear's lips and burning edges are painted over it
- * all, and grain in front. The eye is placed as large as it can be without
+ * tunnel, the eye with its glow, and nothing of it outside its lids: no ring
+ * floats loose round it. The tear's lips and burning edges are painted over
+ * it all, and grain in front. The eye is placed as large as it can be without
  * touching the text over it (`avoid`).
  *
  * The eye is a ball that turns: its iris (a field of fibres with a spoke for
- * each piece of work, and its rings, all inside its edge) and its pupil are
- * one disc on the ball, so they always move together; turning carries the disc across and
+ * each piece of work, and its rings, all inside its edge), its armor as
+ * plates round the iris's edge, and its pupil are one disc on the ball, so
+ * they always move together; turning carries the disc across and
  * foreshortens it, the pupil only dilates about the iris's centre, and the
  * light on the white follows. The pupil is a clock drawn as one of the
  * atlas's instruments, keeping the real time in your zone.
@@ -124,7 +115,8 @@ const RUSH = [0.84, 0.7];
  * looks straight out of the screen, never away, with the small darts of a
  * living eye. When you go to strike it narrows and the pupil swells; it looks
  * at the spoke of the piece of work you point to, where that spoke is now; a
- * strike is a beam, and it flinches and blinks, the stage shuddering. Near
+ * strike is a beam, and it flinches and blinks, a shock going out from its
+ * pupil and the stage shuddering. Near
  * its date it narrows, burns orange and its light beats. Beaten, it closes,
  * its rings stop and the tear seals to a scar; got away, it half closes and
  * looks aside. Still, with reduced motion.
@@ -139,7 +131,6 @@ export function BossEye({
   armor = [],
   wide,
   avoid = [],
-  ring,
   label,
   seed = 1,
   dormant = false,
@@ -155,14 +146,12 @@ export function BossEye({
   look?: string;
   /** You are about to strike. */
   alert?: boolean;
-  /** Its armor plates, as a ring further out: whole, chipped, or broken. */
+  /** Its armor plates, round the edge of its iris: whole, chipped, or broken. */
   armor?: Plate[];
   /** A wide screen: the eye stays whole on the stage. */
   wide: boolean;
   /** Boxes of text on the stage (in its pixels) the eye must not touch. */
   avoid?: Box[];
-  /** What the turning ring of text says. */
-  ring: string;
   label: string;
   /** Shapes its tear, so each boss looks through its own. */
   seed?: number;
@@ -185,9 +174,6 @@ export function BossEye({
   const tearHalo = useRef<HTMLCanvasElement>(null);
   const burst = useRef<HTMLDivElement>(null);
   const crack = useRef<HTMLDivElement>(null);
-  const far = useRef<HTMLDivElement>(null);
-  const mid = useRef<HTMLDivElement>(null);
-  const near = useRef<HTMLDivElement>(null);
   const eye = useRef<SVGSVGElement>(null);
   const disc = useRef<SVGGElement>(null);
   const spin = useRef<SVGGElement>(null);
@@ -207,10 +193,10 @@ export function BossEye({
   const dimNear = useRef<HTMLCanvasElement>(null);
   const flash = useRef<HTMLDivElement>(null);
   const beams = useRef<SVGSVGElement>(null);
+  const shock = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState({ w: 0, h: 0, cx: 0, cy: 0, k: 1 });
   const layout = useMemo(() => spokes(parts), [parts]);
   const id = `eye${useId().replace(/[^\w]/g, '')}`;
-  const n = Math.max(parts.length, 1);
   const rest = dormant || state === 'defeated' ? 0.02 : state === 'escaped' ? 0.42 : urgent ? 0.84 : 1;
   const avoidKey = avoid.map((b) => `${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)},${Math.round(b.h)}`).join(';');
 
@@ -230,6 +216,10 @@ export function BossEye({
     cy: geo.cy,
     hitAt: 0,
     reduced,
+    // Where its pupil is on the stage, and until when a shock from it is running (it follows the pupil).
+    px: 0,
+    py: 0,
+    shockUntil: 0,
   });
   Object.assign(live.current, { state, look, alert, urgent, rest, layout, dormant, k: geo.k, w: geo.w, h: geo.h, cx: geo.cx, cy: geo.cy, reduced });
   // The camera's reach on this stage, and how far past the stage the layers it carries are painted, so no edge shows.
@@ -316,6 +306,21 @@ export function BossEye({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [geo.cx, geo.cy, sealed, reduced]);
 
+  /** A shock going out from the pupil; the loop keeps it on the pupil as the eye turns. */
+  const shockwave = (scale = 3.8) => {
+    const el = shock.current;
+    if (!el) return;
+    const L = live.current;
+    L.shockUntil = performance.now() + 1000;
+    el.style.translate = `calc(-50% + ${L.px.toFixed(1)}px) calc(-50% + ${L.py.toFixed(1)}px)`;
+    el.animate(
+      [
+        { transform: 'scale(1)', opacity: 0.85 },
+        { transform: `scale(${scale})`, opacity: 0 },
+      ],
+      { duration: 950, easing: 'cubic-bezier(.2,.7,.2,1)' },
+    );
+  };
   const shudder = (amp: number) =>
     body.current?.animate(
       [
@@ -329,11 +334,12 @@ export function BossEye({
       { duration: 360, easing: 'ease-out' },
     );
 
-  // A hit: it flinches and blinks, the whole of it shudders.
+  // A hit: it flinches and blinks, a shock goes out from its pupil, the whole of it shudders.
   useEffect(() => {
     if (!hit) return;
     live.current.hitAt = performance.now();
     if (reduced) return;
+    shockwave();
     shudder(5);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hit, reduced]);
@@ -435,6 +441,8 @@ export function BossEye({
       pupil.current?.setAttribute('transform', `scale(${dil.toFixed(3)})`);
       sclera.current?.setAttribute('cx', (0.5 + (t.x / 1000) * 0.6).toFixed(4));
       sclera.current?.setAttribute('cy', (0.5 + (t.y / 580) * 0.6).toFixed(4));
+      live.current.px = t.x * live.current.k;
+      live.current.py = t.y * live.current.k;
       return t;
     };
 
@@ -580,10 +588,11 @@ export function BossEye({
         gap += (tearGoal - gap) * (1 - Math.exp(-dt / 450));
         setTear(1, gap);
       }
-      // It lands: the stage shudders, the tear flares behind it.
+      // It lands: a shock from its pupil, the stage shudders, the tear flares behind it.
       if (!arrived && wake >= ARRIVES) {
         arrived = true;
         el?.setAttribute('data-arrived', '');
+        shockwave(4.4);
         shudder(4);
       }
       // The iris turns slowly on itself (once in three minutes), until it is beaten.
@@ -644,6 +653,8 @@ export function BossEye({
       const gy = gaze.y + dart.y + (j ? (Math.random() - 0.5) * 2 * j : 0);
       setLids(open);
       carry(gx, gy, dil);
+      // A shock stays centred on the pupil while it runs, wherever the eye turns.
+      if (now < L.shockUntil && shock.current) shock.current.style.translate = `calc(-50% + ${L.px.toFixed(1)}px) calc(-50% + ${L.py.toFixed(1)}px)`;
       // The camera, eased; each layer carried by its depth. The tear and its window move as one, and what is
       // inside the window is carried relative to it.
       const ce = 1 - Math.exp(-dt / 380);
@@ -660,9 +671,6 @@ export function BossEye({
       put(dim, DEPTH.haze - DEPTH.tear);
       DIM_DEPTH.forEach((d, i) => put(dimLayers.current[i], d - DEPTH.tear));
       put(emerge, -DEPTH.tear);
-      put(far, DEPTH.far);
-      put(mid, DEPTH.mid);
-      put(near, DEPTH.near);
       const sc = sky.current?.getContext('2d');
       if (sc) drawStars(sc, field.current.stars, { w: L.w, h: L.h, q: field.current.q, vx: L.cx, vy: L.cy, ox, oy, dt, t: now });
       // The hands: they sweep to the hour as it opens, then keep the time; the seconds step, with a small recoil.
@@ -693,8 +701,6 @@ export function BossEye({
   }, [reduced]);
 
   const box = (hw: number, hh: number) => ({ left: geo.cx - hw * geo.k, top: geo.cy - hh * geo.k, width: 2 * hw * geo.k, height: 2 * hh * geo.k });
-  /** A size in pixels, in units. */
-  const px = (v: number) => v / geo.k;
   const plate = (i: number, count: number, whole: number): [string | null, string | null] => {
     const span = 360 / count;
     const gap = Math.min(6, span * 0.18);
@@ -703,7 +709,6 @@ export function BossEye({
     const m = a0 + (a1 - a0) * whole;
     return [m - a0 > 0.5 ? arc(R_ARMOR, a0, m) : null, a1 - m > 0.5 ? arc(R_ARMOR, m, a1) : null];
   };
-  const textSize = px(9);
   const lidsNow = lids(dormant || state === 'defeated' ? 0.02 : 0.012);
   const nearReach = membraneReach(NEAR) * geo.k;
   // The light at the end of the tunnel, where the eye is: a pale haze with a faint warm core, burning near its date.
@@ -768,77 +773,6 @@ export function BossEye({
           <div ref={emerge} className="quest-emerge">
             <div className="quest-glow" style={{ left: geo.cx, top: geo.cy, width: 1200 * geo.k, height: 1200 * geo.k }} />
 
-            {/* Far: the great rings of the instrument, turning. */}
-            <div ref={far} className="quest-layer quest-ring-layer" style={box(660, 660)}>
-              <svg viewBox="-660 -660 1320 1320" className="quest-turn">
-                <g>
-                  <circle r={600} className="eye-band" />
-                  <circle r={520} className="eye-ring-faint" />
-                  <circle r={548} className="eye-ring-dots" />
-                  <circle r={572} className="eye-ring-faint" />
-                  <circle r={640} className="eye-ring-faint" />
-                  <path d={ticks(72, 628, 634)} className="eye-ticks" />
-                  <path d={arc(520, -40, 58)} className="eye-arc" />
-                  <path d={arc(640, 150, 206)} className="eye-arc eye-arc-thin" />
-                  <circle cx={520 * Math.cos((58 * Math.PI) / 180)} cy={520 * Math.sin((58 * Math.PI) / 180)} r={4} className="eye-moon" />
-                  <circle cx={640 * Math.cos((150 * Math.PI) / 180)} cy={640 * Math.sin((150 * Math.PI) / 180)} r={3} className="eye-moon" />
-                  {[
-                    [118, 600, 24],
-                    [322, 600, 13],
-                    [205, 520, 9],
-                    [36, 572, 6],
-                  ].map(([a, r, s]) => {
-                    const [x, y] = [r * Math.cos((a * Math.PI) / 180), r * Math.sin((a * Math.PI) / 180)];
-                    return (
-                      <g key={a}>
-                        <circle cx={x} cy={y} r={s} className="eye-planet" />
-                        <circle cx={x} cy={y} r={s * 1.7} className="eye-ring-faint" />
-                      </g>
-                    );
-                  })}
-                </g>
-              </svg>
-            </div>
-
-            {/* Middle: its ticks, its strength (a numbered segment per piece of work), its armor, its horizon. */}
-            <div ref={mid} className="quest-layer quest-ring-layer" style={box(460, 460)}>
-              <svg viewBox="-460 -460 920 920">
-                <path d={ticks(120, R_TICKS, R_TICKS + 5, (i) => i % 10 === 0)} className="eye-ticks" />
-                <path d={ticks(12, R_TICKS - 2, R_TICKS + 12)} className="eye-ticks-major" />
-                {parts.map((p, i) => (
-                  <path key={p.id} d={segment(i, n, R_HP)} className={cn('eye-hp', p.done && 'eye-hp-done', look === p.id && 'is-look')} />
-                ))}
-                {parts.map((p, i) => {
-                  const a = -Math.PI / 2 + ((i + 0.5) * TAU) / n;
-                  return (
-                    <text
-                      key={p.id}
-                      x={Math.cos(a) * (R_HP + 24)}
-                      y={Math.sin(a) * (R_HP + 24) + px(10.5) * 0.36}
-                      fontSize={px(10.5)}
-                      textAnchor="middle"
-                      className={cn('eye-num', p.done && 'eye-num-done', look === p.id && 'is-look')}
-                    >
-                      {pad(i + 1)}
-                    </text>
-                  );
-                })}
-                {armor.map((p, i) => {
-                  const [whole, chipped] = plate(i, armor.length, p.broken || p.withdrawn ? 0 : p.integrity);
-                  return (
-                    <g key={i} className={p.broken || p.withdrawn ? 'eye-plate eye-plate-broken' : 'eye-plate'}>
-                      {whole && <path d={whole} className="eye-plate-whole" />}
-                      {chipped && <path d={chipped} className="eye-plate-chipped" />}
-                    </g>
-                  );
-                })}
-                <path
-                  d={`M${-HORIZON.from} 0L${-HORIZON.to} 0M${HORIZON.from} 0L${HORIZON.to} 0M${-HORIZON.to} -5L${-HORIZON.to} 5M${HORIZON.to} -5L${HORIZON.to} 5`}
-                  className="eye-horizon"
-                />
-              </svg>
-            </div>
-
             {/* The eye, inside its lids; its pupil is a clock. */}
             <div className="quest-layer" style={box(500, 290)}>
               <svg ref={eye} viewBox="-500 -290 1000 580" className="boss-eye" data-state={dormant ? 'dormant' : state}>
@@ -885,6 +819,16 @@ export function BossEye({
                       <g ref={flares} />
                     </g>
                     <circle r={RI - 5} className="eye-limbus" />
+                    {/* Its armor: plates round the edge of the iris, whole, chipped or broken. */}
+                    {armor.map((p, i) => {
+                      const [whole, chipped] = plate(i, armor.length, p.broken || p.withdrawn ? 0 : p.integrity);
+                      return (
+                        <g key={i} className={p.broken || p.withdrawn ? 'eye-plate eye-plate-broken' : 'eye-plate'}>
+                          {whole && <path d={whole} className="eye-plate-whole" />}
+                          {chipped && <path d={chipped} className="eye-plate-chipped" />}
+                        </g>
+                      );
+                    })}
 
                     {/* The pupil: an old clock, drawn as an instrument. */}
                     <g ref={pupil}>
@@ -926,23 +870,8 @@ export function BossEye({
               </svg>
             </div>
 
-            {/* Near: brackets of light, a needle, and a line of text going round the other way. */}
-            <div ref={near} className="quest-layer quest-ring-layer" style={box(490, 490)}>
-              <svg viewBox="-490 -490 980 980" className="quest-turn-back">
-                <defs>
-                  <path id={`${id}-ring`} d={`M0 ${-R_TEXT}A${R_TEXT} ${R_TEXT} 0 1 1 0 ${R_TEXT}A${R_TEXT} ${R_TEXT} 0 1 1 0 ${-R_TEXT}`} />
-                </defs>
-                {geo.w > 0 && (
-                  <text fontSize={textSize} className="eye-ring-text">
-                    <textPath href={`#${id}-ring`} textLength={TAU * R_TEXT * 0.995} lengthAdjust="spacing">
-                      {ringText(ring, R_TEXT, textSize)}
-                    </textPath>
-                  </text>
-                )}
-                <line x1={410} y1={0} x2={446} y2={0} className="eye-needle" />
-                <circle cx={410} cy={0} r={3} className="eye-moon" />
-              </svg>
-            </div>
+            {/* A shock going out from its pupil as it lands, and when it is hit. */}
+            <div ref={shock} className="quest-shock" style={{ left: geo.cx, top: geo.cy, width: 2 * (RC + 16) * geo.k, height: 2 * (RC + 16) * geo.k }} />
           </div>
         </div>
 

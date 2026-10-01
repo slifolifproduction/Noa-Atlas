@@ -201,17 +201,7 @@ export function QuestsPage() {
     return (
       <>
         <section ref={stage} className="quest-stage relative h-full min-h-[520px] overflow-hidden">
-          <BossEye
-            dormant
-            parts={[]}
-            state="active"
-            urgent={false}
-            hit={0}
-            wide={wide}
-            avoid={avoid}
-            ring={t('Nothing is watching yet').toUpperCase()}
-            label={t('A closed eye: no boss yet')}
-          />
+          <BossEye dormant parts={[]} state="active" urgent={false} hit={0} wide={wide} avoid={avoid} label={t('A closed eye: no boss yet')} />
           <div ref={hudTop} className="quest-hud absolute top-3 left-4 lg:top-5 lg:left-6">
             {pageLabel}
           </div>
@@ -285,7 +275,6 @@ export function QuestsPage() {
           wide={wide}
           avoid={avoid}
           seed={seedOf(boss.id)}
-          ring={`${WATCH_LABEL(boss)} · ${boss.title} · ${countdown(boss)} · HP ${boss.hp}/${boss.maxHp}`.toUpperCase()}
           label={t('{title}: {hp} of {max} still open, due {date}', { title: boss.title, hp: boss.hp, max: boss.maxHp, date: formatDate(boss.due) })}
         />
 

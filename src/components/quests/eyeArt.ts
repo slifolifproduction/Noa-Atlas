@@ -14,14 +14,11 @@ export const RI = 232;
 /** Half the width of the eye, and half its height when wide open. */
 export const EW = 350;
 export const EH = 236;
-/** The rings: its ticks, its strength, its armor, the text that turns. */
-export const R_TICKS = 372;
-export const R_HP = 392;
-export const R_ARMOR = 436;
-export const R_TEXT = 462;
+/** Its armor: plates round the edge of the iris, on the white just outside it. */
+export const R_ARMOR = RI + 9;
 /** The outer contour drawn round the lids, as a scale of them. */
 export const CONTOUR = { x: 1.07, y: 1.14 };
-/** The horizon it sits on: short lines running on from its corners. */
+/** Room kept clear past its corners, along its line (where the tear runs on), so no text crowds it. */
 export const HORIZON = { from: EW + 16, to: EW + 104 };
 
 const f = (n: number) => n.toFixed(1);
@@ -76,7 +73,7 @@ function sample(start: P, seg: Seg, n: number) {
   return Array.from({ length: n + 1 }, (_, i) => bez(start, seg, i / n));
 }
 
-/** The eye's outer edge at its widest (its contour, a little past open, and its horizon), to keep it clear of text. */
+/** The eye's outer edge at its widest (its contour, a little past open, and the room past its corners), to keep it clear of text. */
 export const OUTLINE: P[] = (() => {
   const { upper, lower } = lidSegs(1.08);
   const contour = [...sample([-EW, 0], upper, 16), ...sample([EW, 0], lower, 16)].map(([x, y]): P => [x * CONTOUR.x, y * CONTOUR.y]);
@@ -621,12 +618,6 @@ export function ticks(count: number, r0: number, r1: number, skip?: (i: number) 
   return d;
 }
 
-/** A ring of the boss's strength: segment `i` of `n` at radius `r`. */
-export function segment(i: number, n: number, r: number) {
-  const gap = Math.min(2.6, 110 / n);
-  return arc(r, -90 + (i * 360) / n + gap / 2, -90 + ((i + 1) * 360) / n - gap / 2);
-}
-
 /* ---- The eyeball ------------------------------------------------------------ */
 
 /**
@@ -823,15 +814,6 @@ export function drawStars(
     c.stroke();
   }
   c.globalAlpha = 1;
-}
-
-/** A phrase repeated to go once around a circle of radius `r`, at `size` units per letter. */
-export function ringText(phrase: string, r: number, size: number) {
-  const perChar = size * 0.82;
-  const need = Math.floor((TAU * r) / perChar);
-  let s = '';
-  while (s.length < need) s += `${phrase}  ·  `;
-  return s.slice(0, need);
 }
 
 /* ---- The lens ---------------------------------------------------------------- */

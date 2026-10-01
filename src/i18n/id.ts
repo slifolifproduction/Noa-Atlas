@@ -2438,7 +2438,6 @@ export const ID: Record<string, string> = {
   '{title} is beaten. +{xp} XP': '{title} dikalahkan. +{xp} XP',
   'Hit: {title}. +{xp} XP': 'Kena: {title}. +{xp} XP',
   'Set aside: {title}. It no longer counts for or against you.': 'Disisihkan: {title}. Tidak lagi dihitung untuk atau melawanmu.',
-  'Nothing is watching yet': 'Belum ada yang mengawasi',
   'A closed eye: no boss yet': 'Mata yang terpejam: belum ada boss',
   'No boss yet': 'Belum ada boss',
   'Bosses come from the plan you choose in Ahead (its milestone, each target with a date, this week’s steps) and from quests you start yourself: something with a date and the steps that bring it down.':

@@ -1093,17 +1093,6 @@ html body {
 .quest-body {
   inset: 0;
 }
-/* It wakes: the rings come out of the dark. */
-.quest-ring-layer {
-  opacity: 0;
-  transition: opacity 1.4s var(--ease-out-quint) 0.35s;
-}
-.quest-rig[data-awake] .quest-ring-layer {
-  opacity: 1;
-}
-.quest-rig[data-awake]:is([data-state='defeated'], [data-state='dormant']) .quest-ring-layer {
-  opacity: 0.4;
-}
 .quest-glow {
   position: absolute;
   translate: -50% -50%;
@@ -1145,21 +1134,7 @@ html body {
     scale: 1.025;
   }
 }
-.quest-turn {
-  animation: quest-turn 320s linear infinite;
-  will-change: transform;
-}
-.quest-turn-back {
-  animation: quest-turn 210s linear infinite reverse;
-  will-change: transform;
-}
-.quest-rig[data-urgent] .quest-turn {
-  animation-duration: 140s;
-}
-.quest-rig[data-urgent] .quest-turn-back {
-  animation-duration: 95s;
-}
-.quest-rig:is([data-state='defeated'], [data-state='dormant']) :is(.quest-turn, .quest-turn-back, .clk-orbit) {
+.quest-rig:is([data-state='defeated'], [data-state='dormant']) .clk-orbit {
   animation-play-state: paused;
 }
 @keyframes quest-turn {
@@ -1167,11 +1142,7 @@ html body {
     rotate: 360deg;
   }
 }
-/* The rings. */
-.eye-ring-faint {
-  fill: none;
-  stroke: rgb(var(--eye) / 0.08);
-}
+/* The rings, inside the iris. */
 .eye-ring {
   fill: none;
   stroke: rgb(var(--eye) / 0.3);
@@ -1186,69 +1157,7 @@ html body {
   stroke: rgb(var(--eye) / 0.22);
   stroke-dasharray: 1 6;
 }
-.quest-rig .eye-band {
-  fill: none;
-  stroke: rgb(var(--eye) / 0.03);
-  stroke-width: 56;
-  vector-effect: none;
-}
-.eye-ticks {
-  stroke: rgb(var(--eye) / 0.22);
-}
-.eye-ticks-major {
-  stroke: rgb(var(--eye) / 0.5);
-}
-.eye-arc {
-  fill: none;
-  stroke: rgb(var(--eye) / 0.5);
-  stroke-width: 1.4;
-}
-.eye-arc-thin {
-  stroke-width: 1;
-  stroke: rgb(var(--eye) / 0.28);
-}
-.eye-moon {
-  fill: rgb(var(--eye) / 0.85);
-}
-.eye-planet {
-  fill: rgb(var(--eye) / 0.06);
-  stroke: rgb(var(--eye) / 0.28);
-}
-.eye-hp {
-  fill: none;
-  stroke: rgb(var(--eye-hot) / 0.62);
-  stroke-width: 3;
-  transition:
-    stroke 400ms,
-    stroke-width 400ms;
-}
-.eye-hp-done {
-  stroke: rgb(var(--eye) / 0.12);
-  stroke-width: 1.5;
-}
-.eye-hp.is-look {
-  stroke: rgb(255 90 31);
-}
-.eye-num {
-  font-family: var(--font-mono);
-  letter-spacing: 0.08em;
-  fill: rgb(var(--eye) / 0.62);
-}
-.eye-num-done {
-  fill: rgb(var(--eye) / 0.22);
-}
-.eye-num.is-look {
-  fill: rgb(255 90 31);
-}
-.eye-ring-text {
-  font-family: var(--font-mono);
-  letter-spacing: 0.22em;
-  fill: rgb(var(--eye) / 0.3);
-}
-.eye-needle {
-  stroke: rgb(var(--eye) / 0.5);
-}
-/* Armor: plates further out, whole, chipped (dashed) or broken. */
+/* Armor: plates round the edge of the iris, whole, chipped (dashed) or broken. */
 .eye-plate-whole {
   fill: none;
   stroke: rgb(var(--eye) / 0.8);
@@ -1362,10 +1271,6 @@ html body {
 .eye-lid-contour {
   fill: none;
   stroke: rgb(var(--eye) / 0.18);
-}
-.eye-horizon {
-  fill: none;
-  stroke: rgb(var(--eye) / 0.38);
 }
 /* The clock that is its pupil, drawn as an instrument: hairline numerals, a
  * ring of ticks on its rim, hands ending in nodes like the spokes, and the
@@ -1654,7 +1559,16 @@ html body {
   transform-box: fill-box;
   transform-origin: center;
 }
-/* What you read over it: kept legible against the light, the rings dimmed beneath it. */
+/* A shock going out from its pupil as it lands and when it is hit (kept on the pupil as the eye turns). */
+.quest-shock {
+  position: absolute;
+  translate: -50% -50%;
+  border-radius: 50%;
+  border: 1px solid rgb(236 232 223 / 0.6);
+  opacity: 0;
+  pointer-events: none;
+}
+/* What you read over it: kept legible against the light, the stage dimmed beneath it. */
 .quest-scrim {
   position: absolute;
   pointer-events: none;
@@ -1736,8 +1650,6 @@ html body {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .quest-turn,
-  .quest-turn-back,
   .clk-orbit,
   .quest-watch,
   .quest-hud-in,
@@ -1745,13 +1657,13 @@ html body {
   .quest-rig[data-urgent][data-awake] .quest-glow {
     animation: none !important;
   }
-  .quest-ring-layer,
   .quest-glow {
     transition: none !important;
   }
   .quest-flash,
   .quest-burst,
-  .quest-crack {
+  .quest-crack,
+  .quest-shock {
     display: none;
   }
   .quest-emerge,
