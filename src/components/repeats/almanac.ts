@@ -3,17 +3,18 @@ import type { AtlasData, ISODate, Pattern, Regularity, SourceRef } from '../../d
 import { addDays, daysBetween } from '../../lib/dates';
 
 /*
- * Repeats as an almanac: a wheel of the year, the way a printed almanac sets
- * out the seasons and the months, that turns like a machine.
+ * Repeats as a mechanism, drawn the way an engineer draws one: a wheel of
+ * the year, with the workings of a repeat inside it, that runs like a machine.
  *
  * Angle is time: the year read clockwise from the top, ending today, so the
- * oldest day and today meet at the top. In the middle, only space; round it,
- * the phases of a repeat (what sets it off, what you do, what follows); then
- * the months; then a ring for every repeat, with a bar from the first time it
- * was seen to the last, a mark at every time it happened and every exception.
- * The wheel moves on a week at a time under a comb that stays put, like a
- * music box, so it plays the year forward, again and again: a repeat,
- * repeating.
+ * oldest day and today meet at the top. The year's circle is graduated in
+ * days, weeks and months; outside it, an arc of beads for every repeat: a bar
+ * from the first time it was seen to the last, a bead at every time it
+ * happened and a hollow one at every exception. Inside it, over empty space,
+ * the workings of the repeat being read: a gear for each of its phases (what
+ * sets it off, what you do, what follows), each driving the next. The year
+ * moves on a week at a time under a comb that stays put, like a music box, so
+ * it plays the year forward, again and again: a repeat, repeating.
  *
  * Everything here is in degrees clockwise from the top, and in the dial's own
  * units (its radius is `DIAL`).
@@ -21,11 +22,10 @@ import { addDays, daysBetween } from '../../lib/dates';
 
 export const DIAL = 470;
 /** The radii of its parts, from the middle out. */
-export const SKY = 150;
-export const BEZEL: [number, number] = [150, 172];
-export const PHASES: [number, number] = [178, 236];
-export const MONTHS: [number, number] = [244, 292];
-export const RINGS: [number, number] = [308, 452];
+/** The year's circle, graduated between these radii; the arcs of beads; the toothed rim. */
+export const MAIN = 330;
+export const BAND: [number, number] = [330, 352];
+export const RINGS: [number, number] = [380, 448];
 export const RIM: [number, number] = [458, 470];
 
 /** The stretch of time on the wheel: at least the last year, and back to the first time any repeat was seen. */
@@ -113,7 +113,7 @@ export function almanacOf(data: AtlasData, patterns: Pattern[], today: ISODate):
     today,
   );
   const n = Math.max(1, patterns.length);
-  const step = Math.min(36, (RINGS[1] - RINGS[0]) / n);
+  const step = Math.min(22, (RINGS[1] - RINGS[0]) / n);
   const rings: Ring[] = patterns.map((p, i) => {
     const s = stats.get(p.id)!;
     const marks: Mark[] = [];

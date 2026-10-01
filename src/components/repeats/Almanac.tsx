@@ -10,24 +10,55 @@ import { cn } from '../../lib/cn';
 import { formatDate, formatMonthShort, useToday, weekStart } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
-import { almanacOf, arc, BEZEL, MONTHS, PHASES, polar, RIM, RINGS, SKY, dateAt, type Mark, type Ring } from './almanac';
+import { almanacOf, arc, BAND, dateAt, MAIN, polar, RIM, type Mark, type Ring } from './almanac';
 
 /**
- * The machine's beat: the year's disc moves on a week at every beat, quickly, a little past and back, as an
- * escapement lets a clock's wheel go, and holds for the rest of it. It turns backwards, so the needle reads the
- * year forwards.
+ * The machine's beat: the year moves on a week at every beat, quickly, a little past and back, as an escapement
+ * lets a clock's wheel go, and holds for the rest of it. It turns backwards, so the comb reads the year forwards.
  */
 const BEAT_MS = 1400;
 const MOVE_MS = 340;
-/** The gears it drives: teeth round the disc's rim, and a pinion at the needle they turn. */
+/** The toothed rim turns a pinion at the comb. */
 const RIM_TEETH = 180;
 const PIN_TEETH = 14;
 const PITCH = RIM[1] + 4;
 const PIN_R = (PITCH * PIN_TEETH) / RIM_TEETH;
 const PIN_Y = -(PITCH + PIN_R);
-/** The space in the middle drifts on its own, slowly, as space does: it is not part of the machine. */
+/**
+ * The workings inside: a gear for each phase of the repeat being read, each driving the next and none driving
+ * the first again (a repeat is a chain; whether it closes a loop is for Causes to show). Teeth of one size, so
+ * they mesh: a gear's radius is its teeth times the pitch over a full turn. Laid out round the axle, clear of it
+ * and of the year's circle.
+ */
+const TOOTH = 14;
+const PHASE_TEETH = [50, 40, 32];
+const GEAR_R = PHASE_TEETH.map((n) => (n * TOOTH) / (2 * Math.PI));
+/** How far the first gear turns for the year's every degree. */
+const DRIVE = 2.2;
+const add = (a: [number, number], b: [number, number]): [number, number] => [a[0] + b[0], a[1] + b[1]];
+const GEAR_AT: [number, number][] = (() => {
+  const g1 = polar(-3, 135);
+  const g2 = add(g1, polar(207, GEAR_R[0] + GEAR_R[1]));
+  const g3 = add(g2, polar(101, GEAR_R[1] + GEAR_R[2]));
+  return [g1, g2, g3];
+})();
+/** Where each pair meets (degrees clockwise from the top, from the first of the pair), so their teeth can be set to mesh. */
+const towards = (a: [number, number], b: [number, number]) => ((Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI + 90 + 360) % 360;
+/** Which way each gear's callout leaves it (degrees clockwise from the top), into clear space. */
+const CALLOUT = [-65, -140, 140];
+const GEAR_PHASE: number[] = (() => {
+  const pitch = PHASE_TEETH.map((n) => 360 / n);
+  const a12 = towards(GEAR_AT[0], GEAR_AT[1]);
+  const a23 = towards(GEAR_AT[1], GEAR_AT[2]);
+  const p1 = a12;
+  const p2 = a12 + 180 - pitch[1] / 2;
+  const u = ((((a23 - p2) / pitch[1]) % 1) + 1) % 1;
+  const p3 = a23 + 180 - (0.5 - u) * pitch[2];
+  return [p1, p2, p3];
+})();
+/** The space inside the year's circle drifts on its own, slowly, as space does: it is not part of the machine. */
 const SPACE_TURN = 900;
-/** A mark that passes the comb lights for this long; a plucked tine rings for this long; what passed stays read out. */
+/** A bead that passes the comb lights for this long; a plucked tine rings for this long; what passed stays read out. */
 const FLASH_MS = 1100;
 const PLUCK_MS = 900;
 const READ_MS = 3600;
@@ -47,7 +78,18 @@ function gear(n: number, root: number, tip: number) {
   }
   return `${d}Z`;
 }
-/** Distant stars for the space in the middle: only a backdrop, made once, the same every time. */
+/** Ticks round a circle, as SVG path data: `n` of them between two radii. */
+function ticks(n: number, r0: number, r1: number) {
+  let d = '';
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * 360;
+    const [x0, y0] = polar(a, r0);
+    const [x1, y1] = polar(a, r1);
+    d += `M${x0.toFixed(1)} ${y0.toFixed(1)}L${x1.toFixed(1)} ${y1.toFixed(1)}`;
+  }
+  return d;
+}
+/** Distant stars for the space inside: only a backdrop, made once, the same every time. */
 function spaceStars() {
   let a = 0x2f6b9c1;
   const r = () => {
@@ -56,22 +98,23 @@ function spaceStars() {
     x = (x + Math.imul(x ^ (x >>> 7), 61 | x)) ^ x;
     return ((x ^ (x >>> 14)) >>> 0) / 4294967296;
   };
-  return Array.from({ length: 110 }, () => {
-    const d = (SKY - 4) * Math.sqrt(r());
+  return Array.from({ length: 150 }, () => {
+    const d = (MAIN - 12) * Math.sqrt(r());
     const th = r() * Math.PI * 2;
-    const big = r() < 0.08;
-    return { x: Math.cos(th) * d, y: Math.sin(th) * d, r: big ? 1.4 + r() : 0.4 + r() * 0.8, o: big ? 0.85 : 0.2 + r() * 0.45, glow: big };
+    const big = r() < 0.06;
+    return { x: Math.cos(th) * d, y: Math.sin(th) * d, r: big ? 1.3 + r() : 0.4 + r() * 0.7, o: big ? 0.6 : 0.12 + r() * 0.3, glow: big };
   });
 }
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 
-type Hover = { kind: 'mark'; mark: Mark } | { kind: 'ring'; ring: Ring } | null;
+type Hover = { kind: 'mark'; mark: Mark } | { kind: 'ring'; ring: Ring } | { kind: 'phase'; i: number } | null;
 
 /**
- * Repeats as an almanac that runs like a music box (see almanac.ts): round empty space, the phases of a repeat,
- * the months, and a ring for every repeat, on a disc that moves on a week at every beat under a comb that stays
- * put. Its toothed rim turns a pinion at the comb; each time a repeat happened plucks the comb's tine as it
- * passes, lights, and is read out: the year plays again and again, a repeat repeating.
+ * Repeats as a mechanism, drawn like an engineer's drawing (see almanac.ts): the year's graduated circle, an arc of
+ * beads outside it for every repeat, and inside, over empty space, the workings of the repeat being read: its
+ * phases as gears, each driving the next. At every beat the year moves on a week; its toothed rim turns a pinion
+ * at the comb, and the gears inside turn with it. Each time a repeat happened plucks the comb's tine as it passes,
+ * lights, and is read out: the year plays again and again, a repeat repeating.
  */
 export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[]; selected?: Pattern; schedule: ReactNode }) {
   const data = useAtlas((s) => s.data);
@@ -82,10 +125,10 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
   const al = useMemo(() => almanacOf(data, patterns, today), [data, patterns, today]);
   const plateRef = useRef<HTMLDivElement>(null);
   const disc = useRef<SVGGElement>(null);
-  const bezel = useRef<SVGGElement>(null);
-  const phases = useRef<SVGGElement>(null);
   const space = useRef<SVGGElement>(null);
   const pinion = useRef<SVGGElement>(null);
+  const guide = useRef<SVGGElement>(null);
+  const gears = useRef<(SVGGElement | null)[]>([]);
   const readDate = useRef<SVGTextElement>(null);
   const flashEls = useRef(new Map<string, SVGCircleElement>());
   const tineEls = useRef(new Map<string, SVGLineElement>());
@@ -93,13 +136,13 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
   const [hover, setHover] = useState<Hover>(null);
   const [tip, setTip] = useState<[number, number]>([0, 0]);
   const [read, setRead] = useState<Mark | null>(null);
-  // The needle starts a little before the first time anything repeated, so the year it plays has something in it.
+  // The comb starts a little before the first time anything repeated, so the year it plays has something in it.
   const firstMark = Math.min(...al.rings.flatMap((r) => r.marks.map((m) => m.angle)), al.today);
   const motion = useRef({ angle: -(firstMark - 6), space: 0, held: false });
 
-  // The machine. At every beat the disc moves on a week (unless you are pointing at it), and everything it drives
-  // moves with it: the pinion at the comb, faster and the other way; the bezel the other way; the phases a little
-  // the same way. Each time a repeat happened plucks the comb's tine as it passes, lights, and is read out.
+  // The machine. At every beat the year moves on a week (unless you are pointing at it), and everything it drives
+  // moves with it: the pinion at the comb, the gears inside, the guide circle outside. Each time a repeat happened
+  // plucks the comb's tine as it passes, lights, and is read out.
   useEffect(() => {
     let raf = 0;
     const m = motion.current;
@@ -148,12 +191,17 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
         m.space += (dt / 1000) * (360 / SPACE_TURN);
       }
       disc.current?.setAttribute('transform', `rotate(${m.angle.toFixed(3)})`);
-      bezel.current?.setAttribute('transform', `rotate(${(-m.angle * 1.5).toFixed(3)})`);
-      phases.current?.setAttribute('transform', `rotate(${(m.angle * 0.3).toFixed(3)})`);
       space.current?.setAttribute('transform', `rotate(${m.space.toFixed(3)})`);
+      guide.current?.setAttribute('transform', `rotate(${(-m.angle * 0.25).toFixed(3)})`);
       pinion.current?.setAttribute(
         'transform',
         `translate(0 ${PIN_Y.toFixed(2)}) rotate(${((-m.angle * RIM_TEETH) / PIN_TEETH + 180 / PIN_TEETH).toFixed(3)})`,
+      );
+      // The gears inside: the first driven by the year, each next one the other way, by their teeth.
+      const turn1 = -m.angle * DRIVE;
+      const turns = [turn1, (-turn1 * PHASE_TEETH[0]) / PHASE_TEETH[1], (turn1 * PHASE_TEETH[0]) / PHASE_TEETH[2]];
+      gears.current.forEach((g, i) =>
+        g?.setAttribute('transform', `translate(${GEAR_AT[i][0].toFixed(2)} ${GEAR_AT[i][1].toFixed(2)}) rotate(${(GEAR_PHASE[i] + turns[i]).toFixed(3)})`),
       );
       // What passed the comb this frame.
       const at = readAt(m.angle);
@@ -181,7 +229,7 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
         el.setAttribute('r', (6 + k * 16).toFixed(1));
         el.setAttribute('opacity', ((1 - k) * 0.9).toFixed(2));
       }
-      // A plucked tine rings: bent by the mark, then back and forth, dying away.
+      // A plucked tine rings: bent by the bead, then back and forth, dying away.
       for (const [id, t0] of plucks) {
         const el = tineEls.current.get(id);
         const k = (now - t0) / PLUCK_MS;
@@ -213,47 +261,34 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
   const choose = (id: string) => navigate('patterns', id);
   const readOut = read ? `${patternCode(data.patterns[read.patternId]?.code ?? 0)} · ${read.stance === 'supports' ? t('it happened') : t('an exception')}` : '';
 
-  // Fixed paths: the ticks round the rim and on the bezel, made once.
-  const rimTicks = useMemo(() => {
-    let d = '';
+  // Fixed paths, made once: the year's graduation (a tick a day, longer every week, longest every month), the
+  // toothed rim, the pinion, and each phase gear.
+  const band = useMemo(() => {
+    let days = '';
+    let weeks = '';
     for (let i = 0; i < al.window.days; i++) {
-      const a = (i / al.window.days) * 360;
-      const [x0, y0] = polar(a, RIM[0] + 4);
-      const [x1, y1] = polar(a, RIM[0] + 8);
-      d += `M${x0.toFixed(1)} ${y0.toFixed(1)}L${x1.toFixed(1)} ${y1.toFixed(1)}`;
-    }
-    return d;
-  }, [al]);
-  const weekTicks = useMemo(() => {
-    let d = '';
-    for (let i = 0; i < al.window.days; i++) {
-      const date = dateAt(((i + 0.5) / al.window.days) * 360, al.window);
-      if (new Date(`${date}T12:00:00Z`).getUTCDay() !== 1) continue;
       const a = ((i + 0.5) / al.window.days) * 360;
-      const [x0, y0] = polar(a, MONTHS[1] - 7);
-      const [x1, y1] = polar(a, MONTHS[1]);
-      d += `M${x0.toFixed(1)} ${y0.toFixed(1)}L${x1.toFixed(1)} ${y1.toFixed(1)}`;
+      const monday = new Date(`${dateAt(a, al.window)}T12:00:00Z`).getUTCDay() === 1;
+      const [x0, y0] = polar(a, monday ? BAND[0] : BAND[0] + 4);
+      const [x1, y1] = polar(a, monday ? BAND[1] : BAND[0] + 12);
+      const seg = `M${x0.toFixed(1)} ${y0.toFixed(1)}L${x1.toFixed(1)} ${y1.toFixed(1)}`;
+      if (monday) weeks += seg;
+      else days += seg;
     }
-    return d;
+    return { days, weeks };
   }, [al]);
-  const bezelTicks = useMemo(() => {
-    let d = '';
-    for (let a = 0; a < 360; a += 3) {
-      const [x0, y0] = polar(a, a % 30 === 0 ? BEZEL[0] + 12 : BEZEL[0] + 16);
-      const [x1, y1] = polar(a, BEZEL[1]);
-      d += `M${x0.toFixed(1)} ${y0.toFixed(1)}L${x1.toFixed(1)} ${y1.toFixed(1)}`;
-    }
-    return d;
-  }, []);
-  const manyMonths = al.months.length > 18;
   const rimGear = useMemo(() => gear(RIM_TEETH, RIM[1], RIM[1] + 8), []);
+  const rimTicks = useMemo(() => ticks(72, RIM[0], RIM[0] + 5), []);
   const pinGear = useMemo(() => gear(PIN_TEETH, PIN_R - 4, PIN_R + 4), []);
+  const phaseGears = useMemo(() => GEAR_R.map((r, i) => gear(PHASE_TEETH[i], r - 3.5, r + 3.5)), []);
+  const manyMonths = al.months.length > 18;
+  const sel = selected ? al.rings.find((r) => r.patternId === selected.id) : undefined;
 
-  // The phases of the selected repeat: what sets it off, what you do, what follows.
-  const phaseText = [
-    { word: t('Triggers'), text: selected?.triggers[0] },
-    { word: t('Behaviour'), text: selected?.behaviors[0] },
-    { word: t('Consequence'), text: selected?.consequences[0] },
+  // The phases of the selected repeat, a gear each: what sets it off, what you do, what follows.
+  const phases = [
+    { word: t('Triggers'), items: selected?.triggers ?? [] },
+    { word: t('Behaviour'), items: selected?.behaviors ?? [] },
+    { word: t('Consequence'), items: selected?.consequences ?? [] },
   ];
 
   const claims = selected
@@ -292,35 +327,22 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
         >
           <defs>
             {al.months.map((mo, i) => (
-              <path key={i} id={`al-month-${i}`} d={arc(mo.from, mo.to, (MONTHS[0] + MONTHS[1]) / 2 - 4)} />
+              <path key={i} id={`al-month-${i}`} d={arc(mo.from, mo.to, BAND[1] + 9)} />
             ))}
-            {al.rings.map((r) => (
-              <path key={r.patternId} id={`al-ring-${r.patternId}`} d={arc((r.span?.[0] ?? 0) + 1, (r.span?.[0] ?? 0) + 300, r.radius + 13)} />
-            ))}
-            {[0, 1, 2].map((i) => (
-              <g key={i}>
-                <path id={`al-phase-${i}`} d={arc(i * 120 + 4, (i + 1) * 120 - 4, 216)} />
-                <path id={`al-phase-text-${i}`} d={arc(i * 120 + 4, (i + 1) * 120 - 4, 194)} />
-              </g>
-            ))}
+            {sel && <path id="al-ring-title" d={arc((sel.span?.[0] ?? 0) + 1, (sel.span?.[0] ?? 0) + 300, sel.radius + 9)} />}
             <radialGradient id="al-sky" r="0.5" cx="0.5" cy="0.5">
               <stop offset="0" stopColor="#0a0c10" />
-              <stop offset="1" stopColor="#020304" />
-            </radialGradient>
-            <radialGradient id="al-nebula" r="0.5" cx="0.5" cy="0.5">
-              <stop offset="0" stopColor="rgb(150 170 210)" stopOpacity="0.07" />
-              <stop offset="1" stopColor="rgb(150 170 210)" stopOpacity="0" />
+              <stop offset="1" stopColor="#030405" />
             </radialGradient>
             <clipPath id="al-space-clip">
-              <circle r={SKY - 1} />
+              <circle r={MAIN - 1} />
             </clipPath>
           </defs>
 
-          {/* In the middle, only space, drifting on its own. */}
+          {/* Inside the year's circle, empty space, drifting on its own. */}
           <g clipPath="url(#al-space-clip)" aria-hidden>
-            <circle r={SKY} fill="url(#al-sky)" />
+            <circle r={MAIN} fill="url(#al-sky)" />
             <g ref={space}>
-              <circle cx={-SKY * 0.3} cy={SKY * 0.2} r={SKY * 0.7} fill="url(#al-nebula)" />
               {stars.map((st, i) => (
                 <g key={i}>
                   {st.glow && <circle cx={st.x} cy={st.y} r={st.r * 4} className="al-space-glow" />}
@@ -329,29 +351,109 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
               ))}
             </g>
           </g>
-          <circle r={SKY} className="al-sky" />
 
-          {/* The dial's plate, round the space in the middle. */}
-          <path
-            d={`M${-RIM[1]} 0A${RIM[1]} ${RIM[1]} 0 1 0 ${RIM[1]} 0A${RIM[1]} ${RIM[1]} 0 1 0 ${-RIM[1]} 0ZM${-SKY} 0A${SKY} ${SKY} 0 1 1 ${SKY} 0A${SKY} ${SKY} 0 1 1 ${-SKY} 0Z`}
-            fillRule="evenodd"
-            className="al-plate"
-          />
+          {/* A guide circle outside it all, dashed, turning slowly the other way, as a drawing's construction does. */}
+          <g ref={guide} aria-hidden>
+            <circle r={492} className="al-guide" />
+            {[38, 212].map((a) => {
+              const [x, y] = polar(a, 492);
+              return <circle key={a} cx={x} cy={y} r={3.2} className="al-node" />;
+            })}
+          </g>
 
-          {/* The year's disc: the months, the repeats, the toothed rim. */}
+          {/* The workings: a gear for each phase of the repeat being read, round the axle, each driving the next. */}
+          <g className="al-works">
+            {GEAR_AT.map(([x, y], i) => (
+              <g key={`c${i}`} aria-hidden>
+                <line x1={0} y1={0} x2={x} y2={y} className="al-construct" />
+                <circle cx={x} cy={y} r={GEAR_R[i] + 18} className="al-construct" />
+              </g>
+            ))}
+            {phases.map((ph, i) => {
+              const r = GEAR_R[i];
+              const [gx, gy] = GEAR_AT[i];
+              const n = ph.items.length;
+              // Its callout: out of the gear into the clear space inside the year's circle, then level.
+              const [ux, uy] = polar(CALLOUT[i], 1);
+              const [rx, ry] = [gx + ux * (r + 8), gy + uy * (r + 8)];
+              const [lx, ly] = [gx + ux * (r + 24), gy + uy * (r + 24)];
+              const side = ux < 0 ? -1 : 1;
+              const ex = lx + side * 20;
+              return (
+                <g
+                  key={i}
+                  onPointerEnter={(e) => point(e, { kind: 'phase', i })}
+                  onPointerMove={(e) => point(e, { kind: 'phase', i })}
+                  onPointerLeave={() => setHover(null)}
+                >
+                  <g
+                    ref={(el) => {
+                      gears.current[i] = el;
+                    }}
+                    className="al-gear-phase"
+                  >
+                    <path d={phaseGears[i]} className="al-gear" />
+                    <circle r={r - 14} className="al-rule" />
+                    <circle r={r * 0.36} className="al-rule is-faint" />
+                    <line x1={-(r - 14)} y1={0} x2={r - 14} y2={0} className="al-rule is-faint" />
+                    <line x1={0} y1={-(r - 14)} x2={0} y2={r - 14} className="al-rule is-faint" />
+                    {/* A spoke for every one written down for this phase. */}
+                    {Array.from({ length: n }, (_, k) => {
+                      const [sx, sy] = polar((k * 360) / Math.max(1, n) + 45, r * 0.68);
+                      return (
+                        <g key={k}>
+                          <line x1={0} y1={0} x2={sx} y2={sy} className="al-spoke" />
+                          <circle cx={sx} cy={sy} r={4.2} className="al-node" />
+                        </g>
+                      );
+                    })}
+                  </g>
+                  <circle cx={gx} cy={gy} r={r} className="al-hit" />
+                  <circle cx={gx} cy={gy} r={9} className="al-hub" />
+                  <circle cx={gx} cy={gy} r={2.6} className="al-node" />
+                  <path d={`M${rx} ${ry}L${lx} ${ly}L${ex} ${ly}`} className="al-leader" />
+                  <circle cx={rx} cy={ry} r={2.4} className="al-node" />
+                  <text x={ex + side * 5} y={ly + 3.5} textAnchor={side < 0 ? 'end' : 'start'} className="al-callout">
+                    {ph.word.toUpperCase()}
+                    {n > 0 ? ` · ${n}` : ''}
+                  </text>
+                </g>
+              );
+            })}
+            {/* Arrows on the way from one phase to the next, where they mesh: none back from the last to the first. */}
+            {[0, 1].map((i) => {
+              const [a, b] = [GEAR_AT[i], GEAR_AT[i + 1]];
+              const m = [a[0] + ((b[0] - a[0]) * GEAR_R[i]) / (GEAR_R[i] + GEAR_R[i + 1]), a[1] + ((b[1] - a[1]) * GEAR_R[i]) / (GEAR_R[i] + GEAR_R[i + 1])];
+              const ang = (Math.atan2(b[1] - a[1], b[0] - a[0]) * 180) / Math.PI;
+              return (
+                <path
+                  key={i}
+                  d="M-6 -7L4 0L-6 7"
+                  transform={`translate(${m[0].toFixed(1)} ${m[1].toFixed(1)}) rotate(${ang.toFixed(1)})`}
+                  className="al-arrow"
+                />
+              );
+            })}
+            {/* The axle in the middle. */}
+            <circle r={22} className="al-hub is-axle" />
+            <circle r={34} className="al-construct" />
+            <circle r={5} className="al-node" />
+          </g>
+
+          {/* The year: its graduated circle, the months, today, the arcs of beads, the toothed rim. */}
           <g ref={disc}>
-            {/* The months, with a tick for every week, and today. */}
-            <circle r={MONTHS[0]} className="al-rule" />
-            <circle r={MONTHS[1]} className="al-rule" />
-            <path d={weekTicks} className="al-tick" />
+            <circle r={MAIN} className="al-main" />
+            <circle r={BAND[1]} className="al-rule" />
+            <path d={band.days} className="al-tick is-fine" />
+            <path d={band.weeks} className="al-tick" />
             {al.months.map((mo, i) => {
-              const [x0, y0] = polar(mo.from, MONTHS[0]);
-              const [x1, y1] = polar(mo.from, MONTHS[1]);
+              const [x0, y0] = polar(mo.from, BAND[0] - 10);
+              const [x1, y1] = polar(mo.from, BAND[1] + 2);
               const label = !manyMonths || ['01', '04', '07', '10'].includes(mo.first.slice(5, 7));
               const year = i === 0 || mo.first.slice(5, 7) === '01';
               return (
                 <g key={mo.first}>
-                  <line x1={x0} y1={y0} x2={x1} y2={y1} className="al-rule" />
+                  <line x1={x0} y1={y0} x2={x1} y2={y1} className="al-tick is-bold" />
                   {label && mo.to - mo.from > 14 && (
                     <text className="al-month">
                       <textPath href={`#al-month-${i}`} startOffset="50%" textAnchor="middle">
@@ -363,12 +465,14 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
               );
             })}
             {(() => {
-              const [x0, y0] = polar(al.today, PHASES[1] + 2);
-              const [x1, y1] = polar(al.today, RIM[1] + 6);
-              const [tx, ty] = polar(al.today + 1.2, MONTHS[1] + 10);
+              const [x0, y0] = polar(al.today, MAIN - 14);
+              const [x1, y1] = polar(al.today, 492);
+              const [cx, cy] = polar(al.today, 500);
+              const [tx, ty] = polar(al.today + 1.4, 478);
               return (
                 <g className="al-today">
                   <line x1={x0} y1={y0} x2={x1} y2={y1} />
+                  <path d={`M${cx - 5} ${cy}L${cx + 5} ${cy}M${cx} ${cy - 5}L${cx} ${cy + 5}`} />
                   <text x={tx} y={ty} transform={`rotate(${al.today} ${tx} ${ty})`}>
                     {t('Today').toUpperCase()}
                   </text>
@@ -376,11 +480,10 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
               );
             })()}
 
-            {/* A ring for every repeat. */}
+            {/* An arc of beads for every repeat. */}
             {al.rings.map((r) => {
               const isSel = r.patternId === selected?.id;
               const lit = hover?.kind === 'ring' && hover.ring.patternId === r.patternId;
-              const p = data.patterns[r.patternId];
               return (
                 <g key={r.patternId} className={cn('al-ring', `is-${r.regularity}`, isSel && 'is-selected', lit && 'is-lit')}>
                   <circle r={r.radius} className="al-track" />
@@ -394,11 +497,6 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
                   />
                   {r.span && <path d={arc(r.span[0], r.span[1], r.radius)} className="al-span" />}
                   {r.since && <path d={arc(r.since[0], r.since[1], r.radius)} className="al-since" />}
-                  {p && (
-                    <text className="al-ring-title">
-                      <textPath href={`#al-ring-${r.patternId}`}>{clip(`${patternCode(p.code)} · ${p.title}`, 72).toUpperCase()}</textPath>
-                    </text>
-                  )}
                   {r.marks.map((mk) => {
                     const [x, y] = polar(mk.angle, r.radius);
                     return (
@@ -420,69 +518,29 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
                           }}
                         />
                         <circle cx={x} cy={y} r={10} className="al-hit" />
-                        <circle cx={x} cy={y} r={5.2} className={mk.stance === 'supports' ? 'al-mark' : 'al-mark is-exception'} />
+                        <circle cx={x} cy={y} r={5.4} className={mk.stance === 'supports' ? 'al-mark' : 'al-mark is-exception'} />
                       </g>
                     );
                   })}
                 </g>
               );
             })}
+            {sel && selected && (
+              <text className="al-ring-title">
+                <textPath href="#al-ring-title">{clip(`${patternCode(selected.code)} · ${selected.title}`, 72).toUpperCase()}</textPath>
+              </text>
+            )}
 
-            {/* The rim: a tick for every day, a longer one at every month, and the teeth that turn the pinion. */}
             <path d={rimGear} className="al-gear" />
             <path d={rimTicks} className="al-tick is-fine" />
-            {al.months.map((mo) => {
-              const [x0, y0] = polar(mo.from, RIM[0] - 2);
-              const [x1, y1] = polar(mo.from, RIM[1]);
-              return <line key={`rim-${mo.first}`} x1={x0} y1={y0} x2={x1} y2={y1} className="al-tick" />;
-            })}
           </g>
 
-          {/* The bezel: geared to the disc, turning the other way. */}
-          <g ref={bezel} className="al-bezel">
-            {[0, 3, 6, 9, 12].map((d) => (
-              <circle key={d} r={BEZEL[0] + 1 + d} />
-            ))}
-            <path d={bezelTicks} />
-          </g>
-
-          {/* The phases of a repeat, geared to turn a little with the disc: what sets it off, what you do, what follows. No
-              arrow back from what follows to what sets it off: a repeat is a chain; whether it closes a loop is a
-              question for Causes. */}
-          <g ref={phases} className="al-phases">
-            <circle r={PHASES[0]} className="al-rule" />
-            <circle r={PHASES[1]} className="al-rule" />
-            {phaseText.map((ph, i) => {
-              const [x0, y0] = polar(i * 120, PHASES[0]);
-              const [x1, y1] = polar(i * 120, PHASES[1]);
-              const [ax, ay] = polar(i * 120, 210);
-              return (
-                <g key={i}>
-                  <line x1={x0} y1={y0} x2={x1} y2={y1} className="al-rule" />
-                  {i > 0 && <path d="M-5 -6L3 0L-5 6" transform={`translate(${ax} ${ay}) rotate(${i * 120})`} className="al-arrow" />}
-                  <text className="al-phase">
-                    <textPath href={`#al-phase-${i}`} startOffset="50%" textAnchor="middle">
-                      {ph.word.toUpperCase()}
-                    </textPath>
-                  </text>
-                  {ph.text && (
-                    <text className="al-phase-text">
-                      <textPath href={`#al-phase-text-${i}`} startOffset="50%" textAnchor="middle">
-                        {clip(ph.text, 58)}
-                      </textPath>
-                    </text>
-                  )}
-                </g>
-              );
-            })}
-          </g>
-
-          {/* The comb, which stays put: a line read across the year, a tine at every repeat's ring for the marks to
-              pluck, and the pinion the rim turns. What it reads is set out either side of the pinion. */}
+          {/* The comb, which stays put: a line read across the year, a tine at every arc of beads for them to pluck,
+              and the pinion the rim turns. What it reads is set out either side of the pinion. */}
           <g className="al-needle" aria-hidden>
-            <path d={`M-3 ${-SKY}L3 ${-SKY}L1.4 ${-RIM[1]}L-1.4 ${-RIM[1]}Z`} className="al-needle-band" />
-            <line x1={0} y1={-SKY + 6} x2={0} y2={PIN_Y} />
-            <line x1={-6} y1={-(RINGS[0] - 10)} x2={6} y2={-(RINGS[0] - 10)} />
+            <path d={`M-3 ${-MAIN}L3 ${-MAIN}L1.4 ${-RIM[1]}L-1.4 ${-RIM[1]}Z`} className="al-needle-band" />
+            <line x1={0} y1={-MAIN + 16} x2={0} y2={PIN_Y} />
+            <path d={`M-6 ${-MAIN + 16}L6 ${-MAIN + 16}`} />
             {al.rings.map((r) => (
               <line
                 key={r.patternId}
@@ -535,12 +593,26 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
                 <div className="almanac-tip-title">{data.patterns[hover.ring.patternId].title}</div>
               </>
             )}
+            {hover.kind === 'phase' && (
+              <>
+                <div className="almanac-tip-meta">{phases[hover.i].word.toUpperCase()}</div>
+                {phases[hover.i].items.length ? (
+                  <ul className="almanac-tip-list">
+                    {phases[hover.i].items.map((x, k) => (
+                      <li key={k}>{x}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="almanac-tip-sub">—</div>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
 
-      {/* Set out beside the wheel, as an almanac sets out its notes: what the selected repeat is, why it may happen,
-          what it may mean for your options, and your view of it. Its full record is below. */}
+      {/* Set out beside the wheel, as notes on a drawing: what the selected repeat is, why it may happen, what it may
+          mean for your options, and your view of it. Its record is below. */}
       {selected && (
         <div className="almanac-side is-right">
           <section className="almanac-note">

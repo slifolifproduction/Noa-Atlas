@@ -2223,10 +2223,10 @@ html body {
   user-select: none;
 }
 /* The dial's parts. Sizes are in the dial's own units, so they scale with it. */
-.al-sky {
+.al-main {
   fill: none;
-  stroke: rgb(236 232 223 / 0.4);
-  stroke-width: 1;
+  stroke: var(--color-ink);
+  stroke-width: 2.6;
 }
 /* The space in the middle: a backdrop only, never data. */
 .al-space-star {
@@ -2238,8 +2238,52 @@ html body {
   pointer-events: none;
 }
 /* The machine: the toothed rim and the pinion it turns, and the comb's tines. */
-.al-plate {
-  fill: rgb(236 232 223 / 0.045);
+/* The drawing's line work: construction (dashed, faint), leaders and callouts, nodes, hubs, spokes. */
+.al-guide {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.3);
+  stroke-dasharray: 3 7;
+}
+.al-construct {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.18);
+  stroke-dasharray: 4 6;
+}
+.al-node {
+  fill: var(--color-ink);
+}
+.al-hub {
+  fill: var(--color-canvas);
+  stroke: var(--color-ink);
+  stroke-width: 2.4;
+}
+.al-hub.is-axle {
+  stroke-width: 3.2;
+}
+.al-spoke {
+  stroke: rgb(236 232 223 / 0.55);
+  stroke-width: 1.2;
+}
+.al-leader {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.55);
+}
+.al-callout {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  fill: var(--color-ink);
+}
+.al-works .al-gear {
+  fill: rgb(7 8 10 / 0.55);
+  stroke: rgb(236 232 223 / 0.6);
+}
+.al-rule.is-faint {
+  stroke: rgb(236 232 223 / 0.14);
+}
+.al-tick.is-bold {
+  stroke: var(--color-ink);
+  stroke-width: 1.6;
 }
 .al-gear {
   fill: none;
@@ -2281,8 +2325,8 @@ html body {
 }
 .al-month {
   font-family: var(--font-mono);
-  font-size: 13px;
-  letter-spacing: 0.32em;
+  font-size: 11px;
+  letter-spacing: 0.26em;
   fill: var(--color-ink-2);
 }
 .al-today line {
@@ -2362,25 +2406,6 @@ html body {
   stroke-width: 1.5;
   pointer-events: none;
 }
-.al-bezel circle {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.16);
-}
-.al-bezel path {
-  stroke: rgb(236 232 223 / 0.34);
-}
-.al-phase {
-  font-family: var(--font-sans);
-  font-size: 19px;
-  font-weight: 500;
-  letter-spacing: 0.42em;
-  fill: var(--color-ink);
-}
-.al-phase-text {
-  font-family: var(--font-sans);
-  font-size: 11px;
-  fill: var(--color-ink-3);
-}
 .al-arrow {
   fill: none;
   stroke: var(--color-ink-2);
@@ -2429,6 +2454,14 @@ html body {
   font-size: 9px;
   letter-spacing: 0.14em;
   color: var(--color-ink-3);
+}
+.almanac-tip-list {
+  margin-top: 4px;
+  padding-left: 14px;
+  list-style: square;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--color-ink);
 }
 .almanac-tip-title {
   margin: 3px 0;
@@ -2532,18 +2565,17 @@ html body {
   }
 }
 @media (max-width: 639px) {
-  .al-ring-title,
-  .al-phase-text {
+  .al-ring-title {
     display: none;
+  }
+  .al-callout {
+    font-size: 13px;
+    letter-spacing: 0.1em;
   }
   /* The wheel is small here, so what must be read is set larger in its own units. */
   .al-month {
     font-size: 18px;
     letter-spacing: 0.18em;
-  }
-  .al-phase {
-    font-size: 24px;
-    letter-spacing: 0.3em;
   }
   .al-read-date {
     font-size: 26px;
