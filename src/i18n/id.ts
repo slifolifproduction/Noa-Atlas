@@ -2158,8 +2158,8 @@ export const ID: Record<string, string> = {
   'Repeats in play': 'Pengulangan yang berperan',
   'From your notes': 'Dari catatanmu',
   'Ways to find out': 'Cara mencari tahu',
-  'Your options side by side, described the same way. None of it has happened yet, and they are never ranked: the choice is yours.':
-    'Pilihan-pilihanmu berdampingan, digambarkan dengan cara yang sama. Belum ada yang terjadi, dan tidak pernah diperingkat: pilihannya ada di tanganmu.',
+  'Your options, grown from where you are and asked the same questions. None of it has happened yet, and they are never ranked.':
+    'Pilihan-pilihanmu, tumbuh dari posisimu sekarang dan diberi pertanyaan yang sama. Belum ada yang terjadi, dan tidak pernah diperingkat.',
   'Add an option': 'Tambahkan pilihan',
   'None of your options counts on this yet. Open an option to say what it relies on.':
     'Belum ada pilihanmu yang bergantung pada ini. Buka sebuah pilihan untuk menyatakan apa yang diandalkannya.',
@@ -2169,9 +2169,44 @@ export const ID: Record<string, string> = {
   'What you expect': 'Yang kamu perkirakan',
   'So far: {held} held, {failed} did not, {unobserved} not recorded either way.':
     'Sejauh ini: {held} terbukti, {failed} tidak, {unobserved} tidak tercatat ke arah mana pun.',
-  'Nothing open. Add the next step to your plan.': 'Tidak ada yang terbuka. Tambahkan langkah berikutnya ke rencanamu.',
-  'Trying now': 'Sedang dicoba',
-  'No test running.': 'Tidak ada tes yang berjalan.',
+  'Every answer side by side, and editable where it stands': 'Setiap jawaban berdampingan, dan bisa diubah di tempatnya',
+  'Compare in detail': 'Bandingkan secara rinci',
+  // The Ahead plate: options as nerves growing out of where you are.
+  'Your options as nerves growing from where you are': 'Pilihan-pilihanmu sebagai saraf yang tumbuh dari posisimu sekarang',
+  'Plate · Ahead': 'Lembar · Ke depan',
+  'What could happen from here · not ranked': 'Yang bisa terjadi dari sini · tidak diperingkat',
+  'You are here': 'Kamu di sini',
+  'Holds you': 'Menahanmu',
+  'Carries you': 'Membawamu',
+  'Holds you · a constraint': 'Menahanmu · sebuah batasan',
+  'Carries you · an asset': 'Membawamu · modal yang kamu punya',
+  'Edit where you are': 'Ubah posisimu',
+  'Where are you starting from?': 'Dari mana kamu memulai?',
+  'Point at a nerve to read its option · at a band to compare them · click a mark to open it':
+    'Arahkan ke saraf untuk membaca pilihannya · ke pita untuk membandingkannya · klik tanda untuk membukanya',
+  'An option': 'Sebuah pilihan',
+  'Edit this option': 'Ubah pilihan ini',
+  'One mark wants attention: a gap, or a reason the exceptions outweigh.':
+    'Satu tanda perlu perhatian: kekurangan, atau sebab yang kalah oleh pengecualiannya.',
+  '{n} marks want attention: gaps, or reasons the exceptions outweigh.': '{n} tanda perlu perhatian: kekurangan, atau sebab yang kalah oleh pengecualiannya.',
+  Needs: 'Kebutuhan',
+  Costs: 'Biaya',
+  'What each option needs: requirements, what it depends on, capital and time.': 'Yang dibutuhkan tiap pilihan: syarat, apa yang diandalkan, modal, dan waktu.',
+  'The skills each option takes, and where you stand on each.': 'Keterampilan yang dibutuhkan tiap pilihan, dan posisimu pada masing-masing.',
+  'What each option risks, trades away and rules out.': 'Apa yang dipertaruhkan, dilepas, dan ditutup oleh tiap pilihan.',
+  'What is not known yet: open questions, the reasons it relies on, tests, and repeats in play.':
+    'Yang belum diketahui: pertanyaan terbuka, sebab yang diandalkan, uji, dan pengulangan yang berperan.',
+  'More marks is not better or worse: it is how much there is to read.':
+    'Lebih banyak tanda tidak berarti lebih baik atau lebih buruk: itu hanya seberapa banyak yang bisa dibaca.',
+  Requirement: 'Syarat',
+  Dependency: 'Ketergantungan',
+  'Skill you have': 'Keterampilan yang kamu punya',
+  Risk: 'Risiko',
+  'Trade-off': 'Untung-rugi',
+  'Opportunity cost': 'Biaya peluang',
+  Unknown: 'Belum diketahui',
+  'Idea for a test': 'Ide untuk diuji',
+  'Repeat in play': 'Pengulangan yang berperan',
   'Current state · you are here': 'Kondisi saat ini · kamu di sini',
   'Edit current state': 'Ubah kondisi saat ini',
   'Where are you starting from? Describe your position, constraints and assets.': 'Dari mana kamu memulai? Gambarkan posisi, batasan, dan modalmu.',

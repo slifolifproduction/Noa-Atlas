@@ -1,4 +1,4 @@
-import { Check, Pencil, Plus } from 'lucide-react';
+import { Check, ChevronDown, Pencil, Plus } from 'lucide-react';
 import { AssumptionIcon, ExperimentIcon, PLACE_ICONS } from '../../components/icons';
 import { StatusBadge } from '../../components/evidence/Status';
 import { claimSentence, claimStatus } from '../../domain/claims';
@@ -9,7 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { EditableLine } from '../../components/ui/InlineEdit';
 import { EmptyState } from '../../components/ui/primitives';
 import { EXPERIMENT_STATUS_LABEL, SKILL_STATUS_LABEL } from '../../domain/constants';
-import { currentAction, currentExperiment, experimentCode, pathCode, patternStats, patternTitle } from '../../domain/selectors';
+import { experimentCode, pathCode, patternStats, patternTitle } from '../../domain/selectors';
 import { RegularityTag } from '../../components/evidence/Status';
 import type { SkillStatus, StrategicPath } from '../../domain/types';
 import { formatDate, useToday } from '../../lib/dates';
@@ -18,6 +18,7 @@ import { useAtlas } from '../../state/atlasStore';
 import { adoptExperimentDraft, commitDirection } from '../../state/operations';
 import { useUI } from '../../state/uiStore';
 import { CurrentStateEditor } from './CurrentStateEditor';
+import { AheadCortex } from '../../components/ahead/AheadCortex';
 import { PathEditor, skillsHint, skillsToText, textToSkills } from './PathEditor';
 import { FocusBanner, useFocusFilter } from '../../components/shell/Focus';
 import { focusElements, optionsTouching } from '../../domain/ask';
@@ -140,8 +141,10 @@ const ROWS: { key: keyof StrategicPath | 'experiments' | 'patterns' | 'assumptio
 const SKILL_MARK: Record<SkillStatus, string> = { have: '●', developing: '◐', gap: '○' };
 
 /**
- * Ahead: what could happen from here. Your options side by side, described
- * the same way and never ranked, with what you chose on top. Nothing here has
+ * Ahead: what could happen from here. Your options drawn as nerves growing
+ * from where you are, each asked the same questions and never ranked (see
+ * AheadCortex); what you chose is lit. The full comparison, every answer
+ * editable where it stands, is one tap away under it. Nothing here has
  * happened; it is drawn dashed. With something in focus, the options that
  * count on it.
  */
@@ -154,13 +157,18 @@ export function PathsPage() {
   const paths = on && touching ? all.filter((p) => touching.has(p.id)) : all;
   const [editing, setEditing] = useState<string | null>(null);
   const [editingState, setEditingState] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const compare = () => {
+    setComparing(true);
+    requestAnimationFrame(() => document.getElementById('ahead-compare')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  };
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-6">
       <PageHeader
         view="paths"
         help="paths"
-        description={t('Your options side by side, described the same way. None of it has happened yet, and they are never ranked: the choice is yours.')}
+        description={t('Your options, grown from where you are and asked the same questions. None of it has happened yet, and they are never ranked.')}
         actions={
           <Button size="sm" variant="ghost" icon={Plus} onClick={() => setEditing(addPath())}>
             {t('Add an option')}
@@ -168,8 +176,6 @@ export function PathsPage() {
         }
       />
 
-      <ChosenStrip />
-      <Expecting />
       <FocusBanner focus={focus} on={on} setOn={setOn} shown={paths.length} total={all.length} className="mt-5" />
 
       {all.length > 0 && paths.length === 0 ? (
@@ -184,7 +190,25 @@ export function PathsPage() {
           </EmptyState>
         </div>
       ) : (
-        <PathMatrix paths={paths} onEdit={setEditing} onEditState={() => setEditingState(true)} />
+        <>
+          <AheadCortex paths={paths} onEditPath={setEditing} onEditState={() => setEditingState(true)} onCompare={compare} />
+          <Expecting />
+          <section id="ahead-compare" className="mt-5 scroll-mt-4">
+            <button
+              type="button"
+              onClick={() => setComparing((c) => !c)}
+              aria-expanded={comparing}
+              className="flex w-full items-center justify-between gap-3 border-y border-line py-3 text-left font-mono text-[10.5px] tracking-[0.14em] text-ink-2 uppercase hover:text-ink"
+            >
+              <span>
+                {t('Compare in detail')}
+                <span className="ml-3 normal-case tracking-normal text-ink-3">{t('Every answer side by side, and editable where it stands')}</span>
+              </span>
+              <ChevronDown size={14} aria-hidden className={cn('transition-transform', comparing && 'rotate-180')} />
+            </button>
+            {comparing && <PathMatrix paths={paths} onEdit={setEditing} onEditState={() => setEditingState(true)} />}
+          </section>
+        </>
       )}
 
       {editing && data.paths[editing] && <PathEditor path={data.paths[editing]} onClose={() => setEditing(null)} />}
@@ -229,49 +253,6 @@ function Expecting() {
           </li>
         ))}
       </ul>
-    </section>
-  );
-}
-
-/** What you chose: the direction, this week's step and the test that is running. The plan itself is one tap away. */
-function ChosenStrip() {
-  const data = useAtlas((s) => s.data);
-  const open = useUI((s) => s.openEntity);
-  const nav = data.navigation;
-  if (!nav) return null;
-  const path = data.paths[nav.pathId];
-  const step = currentAction(nav);
-  const test = currentExperiment(data);
-  return (
-    <section aria-labelledby="chosen-title" className="mt-5 rounded-[2px] border border-accent/35 bg-surface px-4 py-3.5">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h2 id="chosen-title" className="label text-ink-2!">
-          {t('What you chose')}
-        </h2>
-        {path && <span className="text-[12px] text-ink-3">{path.title}</span>}
-        <Button size="sm" className="ml-auto" onClick={() => navigate('navigation')}>
-          {t('Open the plan')}
-        </Button>
-      </div>
-      <p className="display mt-1.5 text-[18px] leading-[1.2] text-ink">{nav.objective.title}</p>
-      <dl className="mt-2.5 grid gap-x-8 gap-y-2 text-[12.5px] sm:grid-cols-2">
-        <div>
-          <dt className="text-[11.5px] text-ink-3">{t('Next step')}</dt>
-          <dd className="text-ink-2">{step ? step.title : t('Nothing open. Add the next step to your plan.')}</dd>
-        </div>
-        <div>
-          <dt className="text-[11.5px] text-ink-3">{t('Trying now')}</dt>
-          <dd className="text-ink-2">
-            {test ? (
-              <button type="button" className="text-left hover:text-ink hover:underline" onClick={() => open({ kind: 'experiment', id: test.id })}>
-                {test.title}
-              </button>
-            ) : (
-              t('No test running.')
-            )}
-          </dd>
-        </div>
-      </dl>
     </section>
   );
 }

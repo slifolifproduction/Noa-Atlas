@@ -1765,3 +1765,406 @@ html body {
     animation: none !important;
   }
 }
+
+/* ---- Ahead: the options as a nervous system (see AheadCortex) ---------------------------------- */
+.ahead-stage {
+  position: relative;
+  margin-top: 1.25rem;
+  height: clamp(580px, 76vh, 880px);
+  border: 1px solid var(--color-line);
+  background: radial-gradient(ellipse 60% 70% at 36% 68%, rgb(236 232 223 / 0.04), transparent 70%), var(--color-canvas);
+  overflow: hidden;
+}
+.ahead-plate {
+  position: absolute;
+  inset: 0;
+}
+.cortex {
+  display: block;
+  user-select: none;
+}
+.cortex text {
+  font-family: var(--font-mono);
+}
+.cortex-band {
+  fill: rgb(236 232 223 / 0.012);
+  transition: fill 0.3s;
+}
+.cortex-band.is-odd {
+  fill: rgb(236 232 223 / 0.026);
+}
+.cortex-band.is-lit {
+  fill: rgb(236 232 223 / 0.07);
+}
+.cortex-rays {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.035);
+}
+.cortex-arc {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.12);
+}
+.cortex-arc.is-rim {
+  stroke: rgb(236 232 223 / 0.3);
+}
+.cortex-ticks,
+.cortex-horizon {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.2);
+}
+.cortex-numeral {
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  fill: var(--color-ink-3);
+}
+.cortex-band-name {
+  font-size: 9.5px;
+  letter-spacing: 0.24em;
+  fill: var(--color-ink-3);
+  cursor: pointer;
+  transition: fill 0.2s;
+}
+.cortex-band-name:hover,
+.cortex-band-name.is-lit {
+  fill: var(--color-ink);
+}
+/* Where you are. */
+.cortex-brain {
+  fill: rgb(7 8 10 / 0.9);
+  stroke: rgb(236 232 223 / 0.55);
+}
+.cortex-grey {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.12);
+}
+.cortex-sulci {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.3);
+  stroke-linecap: round;
+}
+.cortex-callosum {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.32);
+}
+.cortex-roots {
+  fill: none;
+  stroke: rgb(255 90 31 / 0.35);
+  stroke-dasharray: 1 3;
+}
+.cortex-fissure {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.32);
+}
+.cortex-ventricle {
+  fill: rgb(236 232 223 / 0.035);
+  stroke: rgb(236 232 223 / 0.24);
+}
+.cortex-stem {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.38);
+}
+.cortex-vertebrae {
+  stroke: rgb(236 232 223 / 0.2);
+}
+.cortex-you {
+  fill: var(--color-accent);
+}
+.cortex-you-ring {
+  fill: none;
+  stroke: rgb(255 90 31 / 0.55);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: cortex-you 2.8s ease-out infinite;
+}
+@keyframes cortex-you {
+  from {
+    scale: 0.5;
+    opacity: 1;
+  }
+  to {
+    scale: 1.9;
+    opacity: 0;
+  }
+}
+.cortex-caption {
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  fill: var(--color-ink-3);
+  paint-order: stroke;
+  stroke: var(--color-canvas);
+  stroke-width: 3px;
+}
+.cortex-caption.is-you {
+  fill: var(--color-accent);
+}
+.cortex-nerve {
+  cursor: pointer;
+}
+.cortex-nerve-line {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.28);
+  transition: stroke 0.2s;
+}
+.cortex-nerve-end {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.55);
+}
+.cortex-nerve-dot {
+  fill: rgb(236 232 223 / 0.7);
+}
+.cortex-nerve:hover .cortex-nerve-line,
+.cortex-nerve.is-lit .cortex-nerve-line {
+  stroke: var(--color-ink);
+}
+.cortex-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  pointer-events: stroke;
+}
+/* The options. */
+.cortex-path {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.3s;
+}
+.cortex[data-focus] .cortex-path:not(.is-on) {
+  opacity: 0.18;
+}
+.cortex-trunk {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.5);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 4;
+  transition: stroke 0.2s;
+}
+.cortex-path.is-on .cortex-trunk,
+.cortex-path:focus-visible .cortex-trunk {
+  stroke: var(--color-ink);
+}
+.cortex-path.is-chosen .cortex-trunk {
+  stroke: var(--color-accent);
+  stroke-width: 1.6;
+  stroke-dasharray: none;
+}
+.cortex-trunk-ticks {
+  stroke: rgb(236 232 223 / 0.2);
+}
+.cortex-twig {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.3);
+}
+.cortex-fringe {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.13);
+}
+.cortex-arbor {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.32);
+}
+.cortex-path.is-chosen :is(.cortex-twig, .cortex-arbor) {
+  stroke: rgb(255 90 31 / 0.42);
+}
+.cortex-pulse {
+  fill: rgb(236 232 223 / 0.75);
+}
+.cortex-path.is-chosen .cortex-pulse {
+  fill: var(--color-accent);
+}
+.cortex-code {
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  fill: var(--color-ink-3);
+}
+.cortex-path.is-chosen .cortex-code {
+  fill: var(--color-accent);
+}
+.cortex .cortex-title {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  fill: var(--color-ink);
+}
+/* An answer's mark. */
+.cortex-mark {
+  cursor: pointer;
+  outline: none;
+}
+.cortex-mark-hit {
+  fill: transparent;
+}
+.cortex-mark-halo {
+  fill: transparent;
+  transition: fill 0.2s;
+}
+.cortex-mark.is-lit .cortex-mark-halo,
+.cortex-mark:focus-visible .cortex-mark-halo {
+  fill: rgb(236 232 223 / 0.13);
+}
+.g-fill {
+  fill: rgb(236 232 223 / 0.85);
+}
+.g-line {
+  fill: var(--color-canvas);
+  stroke: rgb(236 232 223 / 0.8);
+}
+.g-dots {
+  stroke-dasharray: 1.2 1.7;
+}
+.g-line.g-warn {
+  stroke: var(--color-accent);
+}
+.g-fill.g-warn {
+  fill: var(--color-accent);
+}
+.cortex-mark.is-lit .g-line {
+  stroke: var(--color-ink);
+}
+/* Notes on the plate. */
+.cortex-notes {
+  pointer-events: none;
+}
+.cortex-count {
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  fill: var(--color-ink);
+  paint-order: stroke;
+  stroke: var(--color-canvas);
+  stroke-width: 3px;
+}
+.cortex-leader {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.6);
+}
+.cortex-annotation-bg {
+  fill: rgb(7 8 10 / 0.88);
+  stroke: rgb(236 232 223 / 0.14);
+}
+.cortex-annotation-meta {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  fill: var(--color-ink-3);
+}
+.cortex .cortex-annotation-text {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  fill: var(--color-ink);
+}
+/* The reading panel and the key. */
+.ahead-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 340px;
+  max-height: calc(100% - 206px);
+  overflow-y: auto;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  background: rgb(5 6 8 / 0.78);
+  backdrop-filter: blur(8px);
+}
+.ahead-key {
+  position: absolute;
+  right: 16px;
+  bottom: 14px;
+  width: 340px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-3);
+  pointer-events: none;
+}
+.cortex-key-glyph .g-line {
+  fill: none;
+}
+.cortex-key-line path {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.6);
+  stroke-dasharray: 3 3;
+}
+.cortex-key-line.is-chosen path {
+  stroke: var(--color-accent);
+  stroke-width: 1.6;
+  stroke-dasharray: none;
+}
+.cortex-letter-disc {
+  fill: var(--color-canvas);
+  stroke: rgb(236 232 223 / 0.55);
+}
+.cortex-path.is-chosen .cortex-letter-disc {
+  stroke: var(--color-accent);
+}
+.cortex .cortex-letter {
+  font-size: 10px;
+  fill: var(--color-ink);
+}
+.cortex-plate {
+  font-size: 9.5px;
+  letter-spacing: 0.24em;
+  fill: var(--color-ink-2);
+}
+.cortex-plate.is-sub {
+  fill: var(--color-ink-3);
+  letter-spacing: 0.16em;
+}
+.cortex-register {
+  stroke: rgb(236 232 223 / 0.3);
+}
+.ahead-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.ahead-option {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 8px;
+  border: 1px dashed var(--color-line-strong);
+  border-radius: 2px;
+  padding: 5px 9px;
+  font-size: 12.5px;
+  color: var(--color-ink-2);
+}
+.ahead-option.is-chosen {
+  border-style: solid;
+  border-color: rgb(255 90 31 / 0.5);
+}
+.ahead-option.is-on {
+  color: var(--color-ink);
+  background: rgb(236 232 223 / 0.05);
+}
+.ahead-option-letter {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-ink-3);
+}
+@media (max-width: 1023px) {
+  .ahead-stage {
+    height: auto;
+    border: none;
+    background: none;
+    overflow: visible;
+  }
+  .ahead-plate {
+    position: relative;
+    height: 440px;
+    border: 1px solid var(--color-line);
+    overflow: hidden;
+  }
+  .ahead-panel,
+  .ahead-key {
+    position: static;
+    width: auto;
+    max-height: none;
+    margin-top: 14px;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cortex-you-ring {
+    animation: none;
+  }
+}
