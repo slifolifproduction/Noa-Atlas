@@ -1401,7 +1401,10 @@ html body {
   transform: scaleX(0);
   pointer-events: none;
   background: linear-gradient(to right, transparent, #fff7ef 10%, #fff 50%, #fff7ef 90%, transparent);
+  /* The light split either side of it, as through broken glass, like the tear's edge. */
   box-shadow:
+    0 -1.5px 0 rgb(255 58 96 / 0.6),
+    0 1.5px 0 rgb(60 200 255 / 0.55),
     0 0 12px 3px rgb(255 200 160 / 0.55),
     0 0 30px 6px rgb(255 120 60 / 0.25);
 }

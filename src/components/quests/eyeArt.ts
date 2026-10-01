@@ -175,44 +175,93 @@ function noise(seed: number) {
 /**
  * The tear, in units round the eye: a long lens of another dimension that
  * tapers to a crack at each end. Its edges are torn at every scale at once
- * (a slow waver, smaller rips, fine fraying), each edge its own; the same for
- * a boss every time. The top edge left to right, then the bottom back.
+ * (a slow waver, smaller rips), each edge its own, and broken like glass:
+ * straight facets meeting at sharp corners, with a shard standing out here
+ * and there. The same for a boss every time. The top edge left to right, then
+ * the bottom back.
  */
 export function tearOutline(seed: number) {
   const layers = [0, 1].map((side) => [noise(seed + side * 31 + 1), noise(seed + side * 31 + 2), noise(seed + side * 31 + 3)]);
   const step = 5;
   const n = Math.round((2 * TEAR_W) / step);
-  const edge = (side: 0 | 1) =>
-    Array.from({ length: n + 1 }, (_, i): P => {
+  const edge = (side: 0 | 1) => {
+    const r = seeded(seed * 13 + side * 101 + 3);
+    const pts: P[] = [];
+    // Facets 10 to 35 units long: only some of the torn edge's points are kept, joined straight.
+    for (let i = 0; i <= n; i += i === n ? 1 : Math.min(n - i, 2 + Math.floor(r() * 6))) {
       const x = -TEAR_W + i * step;
       const u = x / TEAR_W;
       const prof = Math.max(0, 1 - u * u) ** 1.3;
       const [a, b, c] = layers[side];
-      const rough = (12 * a(x / 90) + 4.5 * b(x / 22) + 1.6 * c(x / 5)) * Math.min(1, prof * 3 + 0.25);
-      const y = i === 0 || i === n ? 0 : TEAR_H * prof + rough;
-      return [x, side ? Math.max(0.5, y) : -Math.max(0.5, y)];
-    });
+      const reach = Math.min(1, prof * 3 + 0.25);
+      const rough = (12 * a(x / 90) + 4.5 * b(x / 22) + 1.6 * c(x / 5)) * reach;
+      // A shard: a corner pushed out into space, or in.
+      const shard = i > 0 && i < n && r() < 0.16 ? (r() < 0.6 ? 1 : -0.6) * (3 + r() * 6) * reach : 0;
+      const y = i === 0 || i === n ? 0 : TEAR_H * prof + rough + shard;
+      pts.push([x, side ? Math.max(0.5, y) : -Math.max(0.5, y)]);
+      if (i === n) break;
+    }
+    return pts;
+  };
   return [...edge(0), ...edge(1).reverse()];
 }
 
-/** Cracks running on from the tear's ends into the space around it. */
+/**
+ * Cracks running on from the tear's ends into the space around it: at each
+ * end one carrying on along the tear's line, and a shorter one splitting off
+ * it. Each is drawn tapering and fading out, so it ends in nothing.
+ */
 export function tearCracks(seed: number) {
   const r = seeded(seed + 7);
-  const out: P[][] = [];
+  const out: { pts: P[]; weight: number }[] = [];
   for (const side of [-1, 1]) {
-    for (let k = 0; k < 4; k++) {
-      let [x, y] = [side * TEAR_W * (0.98 - k * 0.06), (r() - 0.5) * 6];
-      const line: P[] = [[x, y]];
-      const dir = (r() - 0.5) * 1.1;
-      for (let j = 0; j < 6; j++) {
-        x += side * (16 + r() * 34);
-        y += dir * 20 + (r() - 0.5) * 14;
-        line.push([x, y]);
-      }
-      out.push(line);
+    let [x, y] = [side * TEAR_W, 0];
+    const main: P[] = [[x, y]];
+    let a = (r() - 0.5) * 0.12;
+    for (let d = 0, len = 120 + r() * 70; d < len;) {
+      const step = 12 + r() * 16;
+      // It wanders, but keeps to the line.
+      a = (a + (r() - 0.5) * 0.35) * 0.7;
+      x += side * step * Math.cos(a);
+      y += step * Math.sin(a);
+      d += step;
+      main.push([x, y]);
     }
+    out.push({ pts: main, weight: 1 });
+    const from = main[1 + Math.floor(r() * 2)];
+    const turn = (r() < 0.5 ? -1 : 1) * (0.35 + r() * 0.25);
+    const branch: P[] = [from];
+    [x, y] = from;
+    for (let d = 0, len = 45 + r() * 35; d < len;) {
+      const step = 10 + r() * 12;
+      const b = turn + (r() - 0.5) * 0.3;
+      x += side * step * Math.cos(b);
+      y += step * Math.sin(b);
+      d += step;
+      branch.push([x, y]);
+    }
+    out.push({ pts: branch, weight: 0.6 });
   }
   return out;
+}
+
+/**
+ * Each point of a closed outline moved along its normal, away from the tear's
+ * line (`by` > 0) or towards it, by `by(x)` units.
+ */
+function along(pts: P[], by: (x: number) => number): P[] {
+  const n = pts.length;
+  return pts.map(([x, y], i) => {
+    const [px, py] = pts[(i - 1 + n) % n];
+    const [qx, qy] = pts[(i + 1) % n];
+    let [nx, ny] = [-(qy - py), qx - px];
+    const len = Math.hypot(nx, ny) || 1;
+    [nx, ny] = [nx / len, ny / len];
+    // Outward is away from the tear's line (up on the top edge, down on the bottom one).
+    if (ny * y < 0) [nx, ny] = [-nx, -ny];
+    const d = by(x);
+    return [x + nx * d, y + ny * d];
+  });
 }
 
 /**
@@ -229,9 +278,9 @@ export function tearWindow(seed: number, cx: number, cy: number, k: number) {
 
 /**
  * Paint the tear's edge once: its lips (the other side darkening into the
- * edge, falling away under it), its torn edge and the cracks at its ends
- * (`edge`), and its burning halo (`halo`), apart so it can breathe and flare
- * without being painted again.
+ * edge, falling away under it), its torn edge as the broken edge of glass and
+ * the cracks at its ends (`edge`), and its burning halo (`halo`), apart so it
+ * can breathe and flare without being painted again.
  */
 export function paintTear(
   edge: HTMLCanvasElement,
@@ -270,17 +319,80 @@ export function paintTear(
       c.stroke();
       c.restore();
     });
-    ex.lineWidth = px;
-    ex.strokeStyle = 'rgba(255,226,206,0.45)';
-    for (const line of cracks) {
-      ex.beginPath();
-      line.forEach(([x, y], i) => (i ? ex.lineTo(x, y) : ex.moveTo(x, y)));
-      ex.stroke();
+    // The cracks at its ends: tapering and fading as they run out, so they end in nothing.
+    ex.lineCap = 'round';
+    for (const { pts, weight } of cracks) {
+      const total = pts.slice(1).reduce((t, p, i) => t + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
+      let run = weight < 1 ? total * 0.35 : 0;
+      const span = weight < 1 ? total * 1.35 : total;
+      for (let i = 1; i < pts.length; i++) {
+        const f = run / span;
+        run += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+        ex.beginPath();
+        ex.moveTo(pts[i - 1][0], pts[i - 1][1]);
+        ex.lineTo(pts[i][0], pts[i][1]);
+        ex.lineWidth = Math.max(0.3, 1.8 * weight * (1 - f)) * px;
+        ex.strokeStyle = `rgba(255,232,214,${(0.6 * weight * (1 - f) ** 1.6).toFixed(3)})`;
+        ex.stroke();
+      }
     }
+    ex.lineCap = 'butt';
+    ex.lineJoin = 'miter';
+    // Its torn edge, broken like glass: a core of light, the light split either side of it (red out,
+    // blue in, wider towards the ends, as through the edge of a pane), a bevel inside, and glints on
+    // its sharpest corners.
     trace(ex, outline);
-    ex.strokeStyle = o.urgent ? 'rgba(255,176,130,0.95)' : 'rgba(255,240,228,0.85)';
-    ex.lineWidth = 1.2 * px;
+    ex.strokeStyle = o.urgent ? 'rgba(255,176,130,0.95)' : 'rgba(255,240,228,0.9)';
+    ex.lineWidth = 2.2 * px;
     ex.stroke();
+    const split = (x: number) => (0.9 + 1.2 * Math.abs(x / TEAR_W)) * px;
+    ex.globalCompositeOperation = 'lighter';
+    // The split light is soft, as it is through glass: hugging the core, never a line of its own.
+    soft(ex, 0.7 * dpr, (c) => {
+      for (const [sign, colour] of [
+        [1, o.urgent ? 'rgba(255,70,30,0.7)' : 'rgba(255,58,96,0.7)'],
+        [-1, o.urgent ? 'rgba(70,190,255,0.4)' : 'rgba(60,200,255,0.62)'],
+      ] as const) {
+        trace(
+          c,
+          along(outline, (x) => sign * split(x)),
+        );
+        c.strokeStyle = colour;
+        c.lineWidth = 1.2 * px;
+        c.stroke();
+      }
+    });
+    trace(
+      ex,
+      along(outline, () => -4.5 * px),
+    );
+    ex.strokeStyle = 'rgba(255,240,228,0.14)';
+    ex.lineWidth = 0.8 * px;
+    ex.stroke();
+    // Glints where the glass breaks at its sharpest: a point of light, and a short streak along the edge.
+    const rg = seeded(o.seed * 7 + 19);
+    ex.lineCap = 'round';
+    outline.forEach(([x, y], i) => {
+      const [a, b] = [outline[(i - 1 + outline.length) % outline.length], outline[(i + 1) % outline.length]];
+      const turn = Math.abs(Math.atan2(b[1] - y, b[0] - x) - Math.atan2(y - a[1], x - a[0]));
+      const sharp = Math.min(turn, Math.PI * 2 - turn);
+      if (sharp < 0.5 || rg() > 0.35) return;
+      const [tx, ty] = [b[0] - a[0], b[1] - a[1]];
+      const tl = Math.hypot(tx, ty) || 1;
+      const g = (4 + rg() * 5) * px;
+      ex.strokeStyle = 'rgba(255,248,240,0.5)';
+      ex.lineWidth = 0.8 * px;
+      ex.beginPath();
+      ex.moveTo(x - (tx / tl) * g, y - (ty / tl) * g);
+      ex.lineTo(x + (tx / tl) * g, y + (ty / tl) * g);
+      ex.stroke();
+      ex.fillStyle = 'rgba(255,250,244,0.9)';
+      ex.beginPath();
+      ex.arc(x, y, 1.3 * px, 0, TAU);
+      ex.fill();
+    });
+    ex.lineCap = 'butt';
+    ex.globalCompositeOperation = 'source-over';
   }
   const hx = setup(halo);
   if (hx) {
@@ -288,7 +400,7 @@ export function paintTear(
     hx.shadowColor = o.urgent ? 'rgba(255,90,31,0.9)' : 'rgba(255,150,100,0.6)';
     hx.shadowBlur = 14 * dpr;
     hx.strokeStyle = o.urgent ? 'rgba(255,90,31,0.7)' : 'rgba(255,190,150,0.35)';
-    hx.lineWidth = 2.2 * px;
+    hx.lineWidth = 3.2 * px;
     hx.stroke();
   }
 }
