@@ -1480,17 +1480,39 @@ html body {
 }
 .quest-dim-light {
   transform-origin: var(--cx) var(--cy);
+  /* The light at the end of the tunnel breathes, slowly. */
+  animation: quest-breathe-light 8s ease-in-out infinite;
+}
+@keyframes quest-breathe-light {
+  50% {
+    scale: 1.06;
+    opacity: 0.86;
+  }
 }
 .quest-rig[data-urgent][data-arrived] .quest-dim-light {
   animation: quest-beat 1.6s ease-in-out infinite;
 }
+/* Each depth of the dimension turns its own way and breathes (see DEPTHS: set on each). */
 .quest-membrane {
   position: absolute;
-  animation: quest-turn 300s linear infinite;
-  will-change: rotate;
+  will-change: rotate, scale, translate;
+}
+@keyframes quest-breathe {
+  50% {
+    scale: 1.025;
+  }
+}
+@keyframes quest-wander {
+  33% {
+    translate: 1.6% -0.9%;
+  }
+  66% {
+    translate: -1.2% 1%;
+  }
 }
 .quest-rig:is([data-state='defeated'], [data-state='dormant']) .quest-membrane {
-  animation-play-state: paused;
+  /* Over the animation each depth sets for itself. */
+  animation-play-state: paused !important;
 }
 /* It comes out of the tear's depth: small, dim and out of focus, pulled forward into focus. */
 .quest-emerge {

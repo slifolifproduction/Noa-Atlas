@@ -15,12 +15,9 @@ import {
   HOUR,
   lids,
   makeStars,
-  membraneReach,
-  NEAR,
-  NEAR_TURN,
   MINUTE,
-  paintDimension,
-  paintMembrane,
+  DEPTHS,
+  paintDepth,
   PITCH,
   R_ARMOR,
   RC,
@@ -80,10 +77,14 @@ const SCAR = 0.035;
  * The stars take theirs from their own distance.
  */
 const PULL = 0.04;
-const DEPTH = { tear: -0.3, haze: 0.6, back: 0.5, ring: 0.25 };
-/** The other dimension's two layers (its still depths, its nearest ring): their depth, and how far in they rush from as the tear opens. */
-const DIM_DEPTH = [DEPTH.back, DEPTH.ring];
-const RUSH = [0.84, 0.7];
+const DEPTH = { tear: -0.3, haze: 1 };
+/**
+ * The other dimension's depths (see DEPTHS: its deepest ring, what drifts in its haze, its middle ring,
+ * its nearest ring): how deep each lies, spread wide so each is seen to move on its own, and how far in
+ * each rushes from as the tear opens, the nearest the most.
+ */
+const DIM_DEPTH = [0.95, 0.7, 0.45, 0.15];
+const RUSH = [0.9, 0.84, 0.76, 0.66];
 
 /**
  * The boss: the eye of something vast, looking into our space through a tear
@@ -202,10 +203,9 @@ export function BossEye({
   const lidLine = useRef<SVGPathElement>(null);
   const lidOuter = useRef<SVGPathElement>(null);
   const lidShade = useRef<SVGPathElement>(null);
-  // The other dimension: its two layers (its still depths, its nearest ring), and their paintings.
+  // The other dimension: its depths, each carried by the camera at its own depth, and their paintings.
   const dimLayers = useRef<(HTMLDivElement | null)[]>([]);
-  const dimBack = useRef<HTMLCanvasElement>(null);
-  const dimNear = useRef<HTMLCanvasElement>(null);
+  const dimCanvas = useRef<(HTMLCanvasElement | null)[]>([]);
   const flash = useRef<HTMLDivElement>(null);
   const beams = useRef<SVGSVGElement>(null);
   const shock = useRef<HTMLDivElement>(null);
@@ -286,15 +286,11 @@ export function BossEye({
       urgent: hot,
     });
   }, [geo, seed, hot, over]);
-  // The other dimension is painted once per size and boss: its still depths, and its nearest ring (it turns in CSS).
+  // The other dimension is painted once per scale and boss, a canvas for each of its depths (they turn and breathe in CSS).
   useEffect(() => {
-    if (!geo.w || !dimNear.current) return;
-    paintMembrane(dimNear.current, { k: geo.k, seed });
+    if (!geo.w) return;
+    dimCanvas.current.forEach((c, i) => c && paintDepth(c, i, { k: geo.k, seed }));
   }, [geo.w, geo.k, seed]);
-  useEffect(() => {
-    if (!geo.w || !dimBack.current) return;
-    paintDimension(dimBack.current, { w: geo.w + 2 * over, h: geo.h + 2 * over, cx: geo.cx + over, cy: geo.cy + over, k: geo.k, seed });
-  }, [geo, seed, over]);
   // The window onto the eye's dimension: the tear's own shape, on the stage.
   const windowD = useMemo(() => (geo.w ? tearWindow(seed, geo.cx, geo.cy, geo.k) : ''), [seed, geo.w, geo.cx, geo.cy, geo.k]);
 
@@ -602,16 +598,18 @@ export function BossEye({
         // The crack itself: a line of white light running out, gone once the tear is open.
         if (crack.current) {
           crack.current.style.transform = `scaleX(${reveal.toFixed(4)})`;
-          crack.current.style.opacity = wake < CRACKED ? flicker : clamp01(1 - (wake - CRACKED) / 600).toFixed(3);
+          // It is the seam the tear opens along: gone as the tear opens, not after.
+          crack.current.style.opacity = wake < CRACKED ? flicker : ((1 - clamp01((wake - CRACKED) / 140)) ** 2).toFixed(3);
         }
         if (!broke && wake >= CRACKED) {
           broke = true;
           burst.current?.animate(
             [
-              { transform: 'scale(0.2, 0.05)', opacity: 0.9 },
+              { transform: 'scale(0.35, 0.25)', opacity: 0.85 },
+              { transform: 'scale(0.9, 0.55)', opacity: 0.35, offset: 0.3 },
               { transform: 'scale(1.6, 0.9)', opacity: 0 },
             ],
-            { duration: 1100, easing: 'cubic-bezier(.2,.7,.2,1)' },
+            { duration: 900, easing: 'cubic-bezier(.2,.7,.2,1)' },
           );
           flash.current?.animate(
             [
@@ -782,7 +780,6 @@ export function BossEye({
     return [m - a0 > 0.5 ? arc(R_ARMOR, a0, m) : null, a1 - m > 0.5 ? arc(R_ARMOR, m, a1) : null];
   };
   const lidsNow = lids(dormant || state === 'defeated' ? 0.02 : 0.012);
-  const nearReach = membraneReach(NEAR) * geo.k;
   // The light at the end of the tunnel, where the eye is: a pale haze with a faint warm core, burning near its date.
   const [lx, ly, lc] = [Math.round(1000 * geo.k), Math.round(560 * geo.k), Math.round(240 * geo.k)];
   const dimLight = [
@@ -814,34 +811,30 @@ export function BossEye({
           <div ref={dim} className="quest-dim" style={{ inset: -over }}>
             <div className="quest-dim-light" style={{ background: dimLight, transformOrigin: `${geo.cx + over}px ${geo.cy + over}px` }} />
           </div>
-          <div
-            ref={(el) => {
-              dimLayers.current[0] = el;
-            }}
-            className="quest-dim-layer"
-            style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }}
-          >
-            <canvas ref={dimBack} className="quest-tear-canvas" style={{ left: -over, top: -over, width: geo.w + 2 * over, height: geo.h + 2 * over }} />
-          </div>
-          <div
-            ref={(el) => {
-              dimLayers.current[1] = el;
-            }}
-            className="quest-dim-layer"
-            style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }}
-          >
-            <canvas
-              ref={dimNear}
-              className="quest-membrane"
-              style={{
-                left: geo.cx - nearReach,
-                top: geo.cy - nearReach,
-                width: 2 * nearReach,
-                height: 2 * nearReach,
-                animationDuration: `${NEAR_TURN}s`,
+          {DEPTHS.map(({ reach, turn, wander, breathe }, i) => (
+            <div
+              key={i}
+              ref={(el) => {
+                dimLayers.current[i] = el;
               }}
-            />
-          </div>
+              className="quest-dim-layer"
+              style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }}
+            >
+              <canvas
+                ref={(el) => {
+                  dimCanvas.current[i] = el;
+                }}
+                className="quest-membrane"
+                style={{
+                  left: geo.cx - reach * geo.k,
+                  top: geo.cy - reach * geo.k,
+                  width: 2 * reach * geo.k,
+                  height: 2 * reach * geo.k,
+                  animation: `${turn ? `quest-turn ${Math.abs(turn)}s linear infinite ${turn < 0 ? 'reverse' : 'normal'}` : `quest-wander ${wander}s ease-in-out infinite`}, quest-breathe ${breathe}s ease-in-out infinite`,
+                }}
+              />
+            </div>
+          ))}
           <div ref={emerge} className="quest-emerge">
             <div className="quest-glow" style={{ left: geo.cx, top: geo.cy, width: 1200 * geo.k, height: 1200 * geo.k }} />
 

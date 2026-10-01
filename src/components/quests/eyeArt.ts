@@ -407,17 +407,13 @@ export function paintTear(
 
 /* ---- The dimension beyond the tear ----------------------------------------- */
 
-/** How open the tear is at `x` (0 at its ends, 1 in the middle). */
-const tearProfile = (x: number) => Math.max(0, 1 - (x / TEAR_W) ** 2) ** 1.3;
-
 /**
  * The other side of the tear is not space: it is a tunnel of torn membrane
  * running away from us, ring behind ring, to the light at its end, where the
  * eye is. Each ring is a band of dark membrane full of cells lying along it,
  * thorned on its inside edge and lit along every edge by the light at the end;
  * the deeper ones are smaller, hazier and softer. In units round the eye,
- * deepest first. The deeper two are painted with the haze's lines, still; the
- * nearest turns on its own (once in NEAR_TURN seconds).
+ * deepest first. Each turns on its own (see DEPTHS).
  */
 export const MEMBRANES = [
   { r0: 250, r1: 470, cell: 34, blur: 2.4, haze: 0.5, rim: 0.1 },
@@ -426,7 +422,6 @@ export const MEMBRANES = [
 ] as const;
 export type Membrane = (typeof MEMBRANES)[number];
 export const NEAR = MEMBRANES[2];
-export const NEAR_TURN = 300;
 /** How far a membrane reaches from the centre, in units. */
 export const membraneReach = (m: Membrane) => m.r1 + 40;
 
@@ -577,101 +572,116 @@ function drawMembrane(c: CanvasRenderingContext2D, m: Membrane, o: { k: number; 
   }
 }
 
-/** Paint the nearest ring once, onto a square canvas centred on the eye (it turns in CSS). */
-export function paintMembrane(canvas: HTMLCanvasElement, o: { k: number; seed: number }) {
-  const css = 2 * membraneReach(NEAR) * o.k;
-  const q = Math.min(window.devicePixelRatio || 1, 1.25, 2600 / css);
+/**
+ * The other dimension's depths, deepest first, each painted once onto its own
+ * square canvas centred on the eye, so that each turns and breathes on its own
+ * (in CSS) and moves at its own depth: its deepest ring of membrane with the
+ * light from the end falling out through it in shafts (soft), what drifts in
+ * its haze (fine dust, and points of light joined by lines, like the
+ * constellations of the Map), its middle ring, and its nearest ring. `reach`
+ * is how far each runs from the centre, in units; the deeper ones lie behind
+ * the plane in focus and are painted at less than a pixel to the stage's
+ * pixel (`q`): soft, and cheap. Each ring turns once in `turn` seconds (the
+ * other way when negative), each against the next; what drifts in the haze
+ * does not turn (`turn` 0) but wanders, slowly, once in `wander` seconds; and
+ * each breathes (swells a little and settles) once in `breathe` seconds.
+ */
+export const DEPTHS = [
+  { reach: 540, q: 0.5, turn: 420, wander: 0, breathe: 13 },
+  { reach: TEAR_W, q: 0.75, turn: 0, wander: 34, breathe: 17 },
+  { reach: membraneReach(MEMBRANES[1]), q: 0.75, turn: -230, wander: 0, breathe: 9.5 },
+  { reach: membraneReach(NEAR), q: 1.25, turn: 300, wander: 0, breathe: 11 },
+] as const;
+
+/** Paint one of the dimension's depths (see DEPTHS) onto its canvas. */
+export function paintDepth(canvas: HTMLCanvasElement, depth: number, o: { k: number; seed: number }) {
+  const { reach, q: most } = DEPTHS[depth];
+  const css = 2 * reach * o.k;
+  const q = Math.min(window.devicePixelRatio || 1, most, 2600 / css);
   canvas.width = canvas.height = Math.max(1, Math.round(css * q));
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.setTransform(o.k * q, 0, 0, o.k * q, canvas.width / 2, canvas.height / 2);
-  drawMembrane(ctx, NEAR, { ...o, layer: 2 });
+  const blur = (m: Membrane) => m.blur * o.k * q;
+  if (depth === 0)
+    soft(ctx, blur(MEMBRANES[0]), (c) => {
+      shafts(c, o.seed);
+      drawMembrane(c, MEMBRANES[0], { k: o.k, seed: o.seed, layer: 0 });
+    });
+  else if (depth === 1) drift(ctx, o);
+  else if (depth === 2) soft(ctx, blur(MEMBRANES[1]), (c) => drawMembrane(c, MEMBRANES[1], { k: o.k, seed: o.seed, layer: 1 }));
+  else drawMembrane(ctx, NEAR, { ...o, layer: 2 });
+}
+
+/** Light from the end of the tunnel, falling out through it in faint shafts. */
+function shafts(c: CanvasRenderingContext2D, seed: number) {
+  const rays = seeded(seed + 67);
+  for (let i = 0; i < 36; i++) {
+    const [a, w, len] = [rays() * TAU, 0.01 + rays() * 0.04, 320 + rays() * 210];
+    const g = c.createRadialGradient(0, 0, 0, 0, 0, len);
+    g.addColorStop(0, `rgba(236,232,223,${(0.05 + rays() * 0.06).toFixed(3)})`);
+    g.addColorStop(1, 'rgba(236,232,223,0)');
+    c.beginPath();
+    c.moveTo(0, 0);
+    c.arc(0, 0, len, a - w, a + w);
+    c.closePath();
+    c.fillStyle = g;
+    c.fill();
+  }
 }
 
 /**
- * Paint the still depths of the other dimension, once: its deepest ring of
- * membrane (soft), what drifts in its haze (fine dust, and points of light
- * joined by lines, like the constellations of the Map), and its middle ring.
+ * What drifts in its haze: fine dust, and points of light joined by lines,
+ * strewn over a disc round the eye, so that as it turns there is always as
+ * much of it in the tear.
  */
-export function paintDimension(canvas: HTMLCanvasElement, o: { w: number; h: number; cx: number; cy: number; k: number; seed: number }) {
-  // It all lies behind the plane in focus, so it is painted at one pixel to the stage's pixel: soft, and cheap.
-  const dpr = 1;
-  canvas.width = Math.round(o.w * dpr);
-  canvas.height = Math.round(o.h * dpr);
-  const ctx = canvas.getContext('2d');
-  if (!ctx) return;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.translate(o.cx, o.cy);
-  ctx.scale(o.k, o.k);
+function drift(c: CanvasRenderingContext2D, o: { k: number; seed: number }) {
   const hair = 1 / o.k;
   const r = seeded(o.seed + 61);
-  // Light from the end of the tunnel, falling out through it in faint shafts.
-  const rays = seeded(o.seed + 67);
-  soft(ctx, MEMBRANES[0].blur * o.k * dpr, (c) => {
-    for (let i = 0; i < 36; i++) {
-      const [a, w, len] = [rays() * TAU, 0.01 + rays() * 0.04, 500 + rays() * 500];
-      const g = c.createRadialGradient(0, 0, 0, 0, 0, len);
-      g.addColorStop(0, `rgba(236,232,223,${(0.05 + rays() * 0.06).toFixed(3)})`);
-      g.addColorStop(1, 'rgba(236,232,223,0)');
-      c.beginPath();
-      c.moveTo(0, 0);
-      c.arc(0, 0, len, a - w, a + w);
-      c.closePath();
-      c.fillStyle = g;
-      c.fill();
+  const R = TEAR_W * 0.98;
+  for (let i = 0; i < 480; i++) {
+    const [a, d] = [r() * TAU, Math.sqrt(r()) * R];
+    c.fillStyle = `rgba(236,232,223,${(0.12 + r() * 0.38).toFixed(2)})`;
+    c.beginPath();
+    c.arc(Math.cos(a) * d, Math.sin(a) * d, (0.4 + r() ** 3 * 1.3) * hair, 0, TAU);
+    c.fill();
+  }
+  for (let k = 0; k < 26; k++) {
+    const [a0, d0] = [r() * TAU, 330 + r() * (R - 400)];
+    let [x, y] = [Math.cos(a0) * d0, Math.sin(a0) * d0];
+    const pts: P[] = [[x, y]];
+    let dir = r() * TAU;
+    const n = 4 + Math.floor(r() * 4);
+    for (let i = 0; i < n; i++) {
+      dir += (r() - 0.5) * 1.8;
+      const step = 24 + r() * 44;
+      x += Math.cos(dir) * step;
+      y += Math.sin(dir) * step * 0.7;
+      pts.push([x, y]);
     }
-    // Its deepest ring, as soft as the light.
-    drawMembrane(c, MEMBRANES[0], { k: o.k, seed: o.seed, layer: 0 });
-  });
-  const drift = (c: CanvasRenderingContext2D) => {
-    for (let i = 0; i < 160; i++) {
-      const x = (r() * 2 - 1) * TEAR_W * 0.96;
-      const y = (r() * 2 - 1) * TEAR_H * tearProfile(x) * 0.95;
-      c.fillStyle = `rgba(236,232,223,${(0.12 + r() * 0.38).toFixed(2)})`;
-      c.beginPath();
-      c.arc(x, y, (0.4 + r() ** 3 * 1.3) * hair, 0, TAU);
-      c.fill();
-    }
-    for (let k = 0; k < 10; k++) {
-      const side = k % 2 ? 1 : -1;
-      let x = side * (370 + r() * 400);
-      let y = (r() * 2 - 1) * TEAR_H * tearProfile(x) * 0.6;
-      const pts: P[] = [[x, y]];
-      let dir = r() * TAU;
-      const n = 4 + Math.floor(r() * 4);
-      for (let i = 0; i < n; i++) {
-        dir += (r() - 0.5) * 1.8;
-        const step = 24 + r() * 44;
-        x += Math.cos(dir) * step;
-        y += Math.sin(dir) * step * 0.7;
-        pts.push([x, y]);
+    c.beginPath();
+    pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py)));
+    const [a, b] = [pts[Math.floor(r() * pts.length)], pts[Math.floor(r() * pts.length)]];
+    c.moveTo(a[0], a[1]);
+    c.lineTo(b[0], b[1]);
+    c.strokeStyle = 'rgba(236,232,223,0.2)';
+    c.lineWidth = hair;
+    c.stroke();
+    pts.forEach(([px, py], i) => {
+      const bright = i === 0 || r() < 0.15;
+      if (bright) {
+        const g = c.createRadialGradient(px, py, 0, px, py, 7 * hair);
+        g.addColorStop(0, 'rgba(255,244,234,0.5)');
+        g.addColorStop(1, 'rgba(255,244,234,0)');
+        c.fillStyle = g;
+        c.fillRect(px - 7 * hair, py - 7 * hair, 14 * hair, 14 * hair);
       }
+      c.fillStyle = `rgba(255,244,234,${bright ? 0.95 : 0.6})`;
       c.beginPath();
-      pts.forEach(([px, py], i) => (i ? c.lineTo(px, py) : c.moveTo(px, py)));
-      const [a, b] = [pts[Math.floor(r() * pts.length)], pts[Math.floor(r() * pts.length)]];
-      c.moveTo(a[0], a[1]);
-      c.lineTo(b[0], b[1]);
-      c.strokeStyle = 'rgba(236,232,223,0.2)';
-      c.lineWidth = hair;
-      c.stroke();
-      pts.forEach(([px, py], i) => {
-        const bright = i === 0 || r() < 0.15;
-        if (bright) {
-          const g = c.createRadialGradient(px, py, 0, px, py, 7 * hair);
-          g.addColorStop(0, 'rgba(255,244,234,0.5)');
-          g.addColorStop(1, 'rgba(255,244,234,0)');
-          c.fillStyle = g;
-          c.fillRect(px - 7 * hair, py - 7 * hair, 14 * hair, 14 * hair);
-        }
-        c.fillStyle = `rgba(255,244,234,${bright ? 0.95 : 0.6})`;
-        c.beginPath();
-        c.arc(px, py, (bright ? 1.6 : 1.1) * hair, 0, TAU);
-        c.fill();
-      });
-    }
-  };
-  drift(ctx);
-  soft(ctx, MEMBRANES[1].blur * o.k * dpr, (c) => drawMembrane(c, MEMBRANES[1], { k: o.k, seed: o.seed, layer: 1 }));
+      c.arc(px, py, (bright ? 1.6 : 1.1) * hair, 0, TAU);
+      c.fill();
+    });
+  }
 }
 
 /** Where each part of the boss sits on the iris: an angle, a reach, and a few bodies along it. */
