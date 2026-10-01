@@ -533,25 +533,6 @@ export function AheadTree({
         shape(cc.pts, false);
         ctx.stroke();
       }
-      // Its name, on the far wall that faces you most squarely.
-      {
-        let best = 0;
-        let most = Infinity;
-        WALLS.forEach((w, i) => {
-          const d = w.n[0] * E[0] + w.n[2] * E[2];
-          if (d < most) [best, most] = [i, d];
-        });
-        const w = WALLS[best];
-        const a = w.a(TOP - 2.6);
-        const b = w.b(TOP - 2.6);
-        const [px, py] = P([a[0] + (b[0] - a[0]) * 0.84, TOP - 2.6, a[2] + (b[2] - a[2]) * 0.84]);
-        ctx.font = '500 9px "IBM Plex Mono", ui-monospace, monospace';
-        ctx.textAlign = 'left';
-        ctx.fillStyle = 'rgba(16,20,18,0.72)';
-        ctx.textAlign = 'right';
-        ctx.fillText('a h e a d . b l o o m . e x e', px, py);
-      }
-
       // The strata: a line round the case at each, on its far walls here and its near walls later; lit when you
       // compare on it. And the light that runs down the case now and then.
       const strata = (front: boolean) => {
