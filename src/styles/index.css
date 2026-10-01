@@ -1288,8 +1288,10 @@ html body {
   fill: none;
   stroke: rgb(var(--eye-hot) / 0.45);
   stroke-dasharray: 2 5;
-  transform-box: view-box;
-  transform-origin: 50% 50%;
+  /* It turns about its own centre, the clock's: the eye's view box puts 50% 50% far off to one side,
+     and it would swing out of the clock. */
+  transform-box: fill-box;
+  transform-origin: center;
   animation: quest-turn 60s linear infinite;
 }
 .clk-rim {
