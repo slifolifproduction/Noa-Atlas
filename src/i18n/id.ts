@@ -2171,10 +2171,10 @@ export const ID: Record<string, string> = {
     'Sejauh ini: {held} terbukti, {failed} tidak, {unobserved} tidak tercatat ke arah mana pun.',
   'Every answer side by side, and editable where it stands': 'Setiap jawaban berdampingan, dan bisa diubah di tempatnya',
   'Compare in detail': 'Bandingkan secara rinci',
-  // The Ahead plate: options as the limbs of a tree, scanned, growing out of where you are.
-  'Your options as a tree growing from where you are': 'Pilihan-pilihanmu sebagai pohon yang tumbuh dari posisimu sekarang',
+  // The Ahead plate: options as the roots of a tree in a glass case, growing out of where you are.
+  'Your options as roots growing from where you are': 'Pilihan-pilihanmu sebagai akar yang tumbuh dari posisimu sekarang',
   'Plate · Ahead': 'Lembar · Ke depan',
-  'The tree of what could be · a scan': 'Pohon dari yang bisa terjadi · hasil pindai',
+  'What could grow from here · a section': 'Yang bisa tumbuh dari sini · potongan',
   '{n} options · {m} answers · not ranked': '{n} pilihan · {m} jawaban · tidak diperingkat',
   'Bearing {deg}°': 'Arah {deg}°',
   'Bearing {deg}° · looking down {pitch}°': 'Arah {deg}° · menunduk {pitch}°',
@@ -2186,8 +2186,8 @@ export const ID: Record<string, string> = {
   'Carries you · an asset': 'Membawamu · modal yang kamu punya',
   'Edit where you are': 'Ubah posisimu',
   'Where are you starting from?': 'Dari mana kamu memulai?',
-  'Drag to turn it · point at a limb to read its option · at a level to compare them · click a bud to open it':
-    'Seret untuk memutarnya · arahkan ke dahan untuk membaca pilihannya · ke sebuah level untuk membandingkannya · klik tunas untuk membukanya',
+  'Drag to turn it · point at a root to read its option · at a level to compare them · click a node to open it':
+    'Seret untuk memutarnya · arahkan ke akar untuk membaca pilihannya · ke sebuah level untuk membandingkannya · klik simpul untuk membukanya',
   'Edit this option': 'Ubah pilihan ini',
   'One mark wants attention: a gap, or a reason the exceptions outweigh.':
     'Satu tanda perlu perhatian: kekurangan, atau sebab yang kalah oleh pengecualiannya.',

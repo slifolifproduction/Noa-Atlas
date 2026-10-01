@@ -1736,7 +1736,7 @@ html body {
   }
 }
 
-/* ---- Ahead: the options as a world tree, scanned, on an architect's plate (see AheadTree) ------------------ */
+/* ---- Ahead: the options as roots in a glass case, on an architect's plate (see AheadTree) ------------------- */
 .ahead-stage {
   position: relative;
   margin-top: 1.25rem;
@@ -1861,14 +1861,11 @@ html body {
   background: repeating-linear-gradient(90deg, rgb(236 232 223 / 0.6) 0 20%, transparent 0 40%);
 }
 .tree-gizmo {
-  align-self: center;
-  margin: 0 6px;
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
   overflow: visible;
-}
-.tree-block-main + .tree-gizmo {
-  border-left: 1px solid rgb(236 232 223 / 0.11);
-  padding-left: 6px;
-  box-sizing: content-box;
+  pointer-events: none;
 }
 .tree-gizmo-ring {
   fill: none;
@@ -2156,7 +2153,7 @@ html body {
   }
   .ahead-plate {
     position: relative;
-    height: 460px;
+    height: 560px;
     border: 1px solid var(--color-line);
     overflow: hidden;
     background:
@@ -2179,5 +2176,10 @@ html body {
   }
   .tree-card {
     width: 168px;
+  }
+}
+@media (max-width: 639px) {
+  .ahead-plate {
+    height: 500px;
   }
 }

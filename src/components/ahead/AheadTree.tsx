@@ -13,36 +13,58 @@ import { useUI } from '../../state/uiStore';
 import { Button } from '../ui/Button';
 import { BAND_LABEL, BANDS, KIND_LABEL, answersOf, type Band } from './answers';
 import { BandPanel, Glyph, ItemPanel, KEY, PathPanel, Section } from './AheadPanels';
-import { CROWN_Y, DISTANCE, faceYaw, GROUND_R, growTree, LEVELS, project, projectAll, type Camera, type Tree, type TreeAnswer, type V3 } from './tree';
+import { DISTANCE, eye, faceYaw, FLOOR, growTree, HALF, LEVELS, project, projectAll, SOIL, TOP, type Camera, type TreeAnswer, type V3 } from './tree';
 
-type Pick = { kind: 'path'; id: string } | { kind: 'item'; key: string } | { kind: 'root'; key: string } | { kind: 'band'; band: Band } | null;
+type Pick = { kind: 'path'; id: string } | { kind: 'item'; key: string } | { kind: 'bough'; key: string } | { kind: 'band'; band: Band } | null;
 const same = (a: Pick, b: Pick) => JSON.stringify(a) === JSON.stringify(b);
 
 /** The reading panel's width on a wide screen, kept clear of the plate. */
 const ROOM = 372;
 /** Room on the plate's left for the level marks. */
 const MARGIN = 112;
-/** The camera at rest: looking a little down on the tree. */
-const PITCH = 14;
+/** The camera at rest: looking a little down into the case, from under its ceiling. */
+const PITCH = 8;
 /** Once round in this many seconds, when nothing is held. */
 const TURN = 150;
-/** The scan builds the tree up from the ground over this long, and passes over it again every so often. */
-const BUILD_MS = 2600;
-const PASS_EVERY = 16000;
-const PASS_MS = 3200;
+/** The tree grows in, up and down at once, over this long; and light runs down its roots every so often. */
+const BUILD_MS = 3200;
+const PASS_EVERY = 9000;
+const PASS_MS = 2600;
 const ROMAN = ['I', 'II', 'III', 'IV'];
 /** The close-ups on the cards: drawn this much sharper than their size, and this much nearer than the plate. */
 const CROP_DPR = typeof window === 'undefined' ? 1 : Math.min(2, window.devicePixelRatio || 1);
 const ZOOM = 2.4;
+/** Lines are drawn in bins of width (on a log scale) and brightness, so a frame is a few dozen strokes. */
+const WB = 14;
+const AB = 5;
+const W0 = 0.45;
+const NONE = 65535;
+const binWidth = (b: number) => W0 * 2 ** (b / 2.2);
+const widthBin = (w: number) => Math.max(0, Math.min(WB - 1, Math.round(Math.log2(Math.max(W0, w) / W0) * 2.2)));
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
 const bearingOf = (deg: number) => Math.round((((deg + 90) % 360) + 360) % 360);
 const ease = (x: number) => 1 - (1 - x) ** 3;
 /** The shortest way round from one angle to another, in degrees. */
 const turnTo = (from: number, to: number) => ((((to - from) % 360) + 540) % 360) - 180;
+const level = (y: number) => (Math.abs(y) < 0.05 ? '±0.0' : `${y < 0 ? '−' : '+'}${Math.abs(y).toFixed(1)}`);
+
+/** The case's walls: each one's outward normal, and its two corners along it (at a given height). */
+const WALLS: { n: V3; a: (y: number) => V3; b: (y: number) => V3 }[] = [
+  { n: [1, 0, 0], a: (y) => [HALF, y, -HALF], b: (y) => [HALF, y, HALF] },
+  { n: [-1, 0, 0], a: (y) => [-HALF, y, HALF], b: (y) => [-HALF, y, -HALF] },
+  { n: [0, 0, 1], a: (y) => [HALF, y, HALF], b: (y) => [-HALF, y, HALF] },
+  { n: [0, 0, -1], a: (y) => [-HALF, y, -HALF], b: (y) => [HALF, y, -HALF] },
+];
+const CORNERS: [number, number][] = [
+  [HALF, HALF],
+  [HALF, -HALF],
+  [-HALF, HALF],
+  [-HALF, -HALF],
+];
 
 interface Card {
   key: string;
-  /** What it points at, in the tree. */
+  /** What it points at. */
   at: V3;
   meta: string;
   title: string;
@@ -53,10 +75,10 @@ interface Card {
 }
 
 /**
- * Ahead as a world tree, scanned (see tree.ts), on a plate drawn like an
- * architect's: the scan as points through a camera you can turn, its four
- * sections and their levels, the ground's compass, an axis mark, a title
- * block and a scale, and cards called out from the tree to what they read.
+ * Ahead as a section through a glass case (see tree.ts): a young tree for where you are, standing in a slab of
+ * earth, and under it, lit, a root for every option, through four strata, among circuits on the walls. Drawn
+ * through a camera you can turn all the way round, on a plate with the levels, the floor's compass, an axis
+ * mark, a title block and a scale, and cards called out from the roots on traces to what they read.
  */
 export function AheadTree({
   paths,
@@ -116,8 +138,8 @@ export function AheadTree({
   const answers = useMemo(() => new Map(paths.map((p) => [p.id, answersOf(data, p)])), [data, paths]);
   const tree = useMemo(() => growTree(paths, answers, state.constraints, state.assets), [paths, answers, state.constraints, state.assets]);
   const byKey = useMemo(() => new Map(tree.answers.map((a) => [a.key, a])), [tree]);
-  const rootByKey = useMemo(() => new Map(tree.roots.map((r) => [r.key, r])), [tree]);
-  const limbById = useMemo(() => new Map(tree.limbs.map((l) => [l.pathId, l])), [tree]);
+  const boughByKey = useMemo(() => new Map(tree.boughs.map((b) => [b.key, b])), [tree]);
+  const rootById = useMemo(() => new Map(tree.roots.map((l) => [l.pathId, l])), [tree]);
   const pathById = useMemo(() => new Map(paths.map((p) => [p.id, p])), [paths]);
   const counts = (pathId: string, band: Band) => (answers.get(pathId) ?? []).filter((i) => i.band === band).length;
   const total = tree.answers.length;
@@ -128,7 +150,7 @@ export function AheadTree({
     setConfirm(null);
   };
 
-  // The cards called out from the tree: what you chose and what wants attention always; what you point at or pick.
+  // The cards called out from the roots: what you chose and what wants attention always; what you point at or pick.
   const cards = useMemo(() => {
     const out: Card[] = [];
     const put = (c: Card) => !out.some((o) => o.key === c.key) && out.push(c);
@@ -141,14 +163,14 @@ export function AheadTree({
       warm: a.warn,
       pick: { kind: 'item', key: a.key },
     });
-    const limbCard = (id: string): Card | null => {
-      const l = limbById.get(id);
+    const rootCard = (id: string): Card | null => {
+      const l = rootById.get(id);
       const p = pathById.get(id);
       if (!l || !p) return null;
       const chosen = nav?.pathId === id;
       const step = chosen && nav ? currentAction(nav) : undefined;
       return {
-        key: `limb:${id}`,
+        key: `root:${id}`,
         at: l.tip,
         meta: `${pathCode(p.code).toUpperCase()}${chosen ? ` · ${t('What you chose').toUpperCase()}` : ''} · ${t('Bearing {deg}°', { deg: bearingOf(l.bearing) }).toUpperCase()}`,
         title: p.title,
@@ -159,21 +181,21 @@ export function AheadTree({
     };
     if (show?.kind === 'item' && byKey.get(show.key)) put(answerCard(byKey.get(show.key)!));
     if (show?.kind === 'path') {
-      const c = limbCard(show.id);
+      const c = rootCard(show.id);
       if (c) put(c);
     }
-    if (show?.kind === 'root' && rootByKey.get(show.key)) {
-      const r = rootByKey.get(show.key)!;
+    if (show?.kind === 'bough' && boughByKey.get(show.key)) {
+      const b = boughByKey.get(show.key)!;
       put({
-        key: r.key,
-        at: r.end,
-        meta: (r.side === 'constraint' ? t('Holds you') : t('Carries you')).toUpperCase(),
-        title: clip(r.text, 64),
-        pick: { kind: 'root', key: r.key },
+        key: b.key,
+        at: b.end,
+        meta: (b.side === 'constraint' ? t('Holds you') : t('Carries you')).toUpperCase(),
+        title: clip(b.text, 64),
+        pick: { kind: 'bough', key: b.key },
       });
     }
-    if (nav && limbById.has(nav.pathId)) {
-      const c = limbCard(nav.pathId);
+    if (nav && rootById.has(nav.pathId)) {
+      const c = rootCard(nav.pathId);
       if (c) put(c);
     }
     if (wide) {
@@ -190,12 +212,11 @@ export function AheadTree({
   const cam = useRef({ yaw: 20, pitch: PITCH, lookX: 0, lookY: 0, drag: null as null | { x: number; y: number; yaw: number; pitch: number; moved: boolean } });
   const seen = useRef({
     buds: new Map<string, [number, number]>(),
-    limbs: new Map<string, [number, number][]>(),
-    roots: new Map<string, [number, number]>(),
-    tree: null as Tree | null,
+    roots: new Map<string, [number, number][]>(),
+    boughs: new Map<string, [number, number]>(),
   });
 
-  // The loop: the camera, the scan, the plate's furniture that moves with it, the buds and the cards.
+  // The loop: the camera, the case and what is in it, the furniture that moves with it, the nodes and the cards.
   useEffect(() => {
     const cv = canvas.current;
     if (!cv || !size.w) return;
@@ -207,40 +228,119 @@ export function AheadTree({
     const area = { left: compact ? 0 : MARGIN, right: size.w - (wide ? ROOM : 0) };
     const cx = (area.left + area.right) / 2;
     const span = area.right - area.left;
-    const scale = Math.min((size.h - (compact ? 70 : 110)) / (CROWN_Y + 10), span / (GROUND_R * 2 + 6));
-    const camera: Camera = { yaw: 0, pitch: PITCH, cx, cy: size.h - (compact ? 44 : 78), scale };
-    const N = tree.points.length / 3;
-    const step = compact ? 2 : 1;
-    // Per point, this frame: x, y, alpha; and which are warm.
-    const sx = new Float32Array(N);
-    const sy = new Float32Array(N);
-    const sz = new Float32Array(N);
-    const sa = new Float32Array(N);
-    const BINS = 8;
-    const binOf = new Uint8Array(N);
-    const bins = new Uint32Array(BINS * 2);
-    const start = new Uint32Array(BINS * 2 + 1);
-    const cursor = new Uint32Array(BINS * 2 + 1);
-    const order = new Uint32Array(N);
-    // Which points are drawn warm: some of what you chose, and the twigs that want attention.
-    const warm = new Uint8Array(N);
-    let warmFor: string | undefined | null = null;
-    const warmTwigs = new Set(tree.answers.filter((a) => a.warn).map((a) => tree.groups.twig.get(a.key)!));
-    const paintWarm = (chosen: string | undefined) => {
-      const limb = chosen ? tree.groups.limb.get(chosen) : undefined;
-      for (let i = 0; i < N; i++) {
-        const g = tree.group[i];
-        warm[i] = Number(warmTwigs.has(g) || (limb !== undefined && (g === limb || tree.limbOf.get(g) === limb) && (i * 7) % 10 < 4));
+    // Fitted to the plate: the case, and the compass in front of it, from straight on and from its corner.
+    const R = HALF * 1.58;
+    const fit = { top: Infinity, bottom: -Infinity, side: 0 };
+    {
+      const probe: Camera = { yaw: 0, pitch: PITCH, cx: 0, cy: 0, scale: 1 };
+      const box: V3[] = CORNERS.flatMap(([x, z]): V3[] => [
+        [x, TOP, z],
+        [x, FLOOR, z],
+      ]);
+      const compass: V3[] = Array.from({ length: 24 }, (_, i): V3 => [Math.cos(i / 3.82) * (R + 4), FLOOR, Math.sin(i / 3.82) * (R + 4)]);
+      for (const yaw of [0, 45]) {
+        probe.yaw = yaw;
+        for (const p of [...box, ...compass]) {
+          const y = project(probe, p)[1];
+          fit.top = Math.min(fit.top, y);
+          fit.bottom = Math.max(fit.bottom, y);
+        }
+        for (const p of box) fit.side = Math.max(fit.side, Math.abs(project(probe, p)[0]));
       }
-      warmFor = chosen;
+    }
+    const pad = compact ? 14 : 22;
+    const scale = Math.min((size.h - pad * 2) / (fit.bottom - fit.top), (span - 16) / (fit.side * 2));
+    // Centred top to bottom when the width is what limits it.
+    const cy = Math.max(pad, (size.h - (fit.bottom - fit.top) * scale) / 2) - fit.top * scale;
+    const camera: Camera = { yaw: 0, pitch: PITCH, cx, cy, scale };
+
+    const V = tree.verts.length / 3;
+    const vx = new Float32Array(V);
+    const vy = new Float32Array(V);
+    const vz = new Float32Array(V);
+    const NL = tree.leaves.length / 3;
+    const lx = new Float32Array(NL);
+    const ly = new Float32Array(NL);
+    const lz = new Float32Array(NL);
+    const ND = tree.dirt.length / 3;
+    const dx = new Float32Array(ND);
+    const dy = new Float32Array(ND);
+    const dz = new Float32Array(ND);
+    const NC = tree.crumbs.length / 3;
+    const crx = new Float32Array(NC);
+    const cry = new Float32Array(NC);
+    const crz = new Float32Array(NC);
+    const S = tree.width.length;
+    const binOf = new Uint16Array(S);
+    const BINS = WB * AB * 2;
+    const bins = new Uint32Array(BINS);
+    const start = new Uint32Array(BINS + 1);
+    const cursor = new Uint32Array(BINS + 1);
+    const order = new Uint32Array(S);
+    /** Sorts the lines into their bins (counting), so each bin can be drawn as one stroke. */
+    const sortBins = (nb: number) => {
+      bins.fill(0);
+      for (let s = 0; s < S; s++) if (binOf[s] !== NONE) bins[binOf[s]]++;
+      start[0] = 0;
+      for (let b = 0; b < nb; b++) start[b + 1] = start[b] + bins[b];
+      cursor.set(start);
+      for (let s = 0; s < S; s++) if (binOf[s] !== NONE) order[cursor[binOf[s]]++] = s;
     };
+    const traceBin = (b: number) => {
+      ctx.beginPath();
+      for (let k = start[b]; k < start[b + 1]; k++) {
+        const s = order[k];
+        const i = tree.seg[s * 2];
+        const j = tree.seg[s * 2 + 1];
+        ctx.moveTo(vx[i], vy[i]);
+        ctx.lineTo(vx[j], vy[j]);
+      }
+    };
+    // Which roots are drawn warm: some of what you chose, and the rootlets that want attention.
+    const warmTwigs = new Set(tree.answers.filter((a) => a.warn).map((a) => tree.groups.twig.get(a.key)!));
+    const rootGroup = (g: number) => tree.rootOf.get(g) ?? g;
     const started = performance.now();
     let last = started;
     let raf = 0;
     let frame = 0;
     const cardPos = new Map<string, { x: number; y: number }>();
     const cardSide = new Map<string, number>();
-    seen.current.tree = tree;
+    const P = (p: V3) => project(camera, p);
+    const shape = (pts: V3[], close: boolean) => {
+      ctx.beginPath();
+      pts.forEach((p, i) => {
+        const [x, y] = P(p);
+        if (i) ctx.lineTo(x, y);
+        else ctx.moveTo(x, y);
+      });
+      if (close) ctx.closePath();
+    };
+    const lineAt = (a: V3, b: V3) => {
+      const [ax, ay] = P(a);
+      const [bx, by] = P(b);
+      ctx.moveTo(ax, ay);
+      ctx.lineTo(bx, by);
+    };
+    const edge = (a: V3, b: V3, alpha: number) => {
+      ctx.strokeStyle = `rgba(214,230,222,${alpha})`;
+      ctx.beginPath();
+      lineAt(a, b);
+      ctx.stroke();
+    };
+    const ring = (radius: number, y: number, stepDeg = 4) => {
+      ctx.beginPath();
+      for (let d = 0; d <= 360; d += stepDeg) {
+        const [px, py] = P([Math.cos((d * Math.PI) / 180) * radius, y, Math.sin((d * Math.PI) / 180) * radius]);
+        if (d === 0) ctx.moveTo(px, py);
+        else ctx.lineTo(px, py);
+      }
+    };
+    const lamp: V3[] = [
+      [-HALF * 0.62, TOP - 0.4, -0.9],
+      [HALF * 0.62, TOP - 0.4, -0.9],
+      [HALF * 0.62, TOP - 0.4, 0.9],
+      [-HALF * 0.62, TOP - 0.4, 0.9],
+    ];
 
     const frameFn = (now: number) => {
       raf = requestAnimationFrame(frameFn);
@@ -252,226 +352,477 @@ export function AheadTree({
       // The camera: it turns by itself when nothing is held, faces an option you pick, and leans to the pointer.
       const focusPath = L.sel?.kind === 'path' ? L.sel.id : L.sel?.kind === 'item' ? byKey.get(L.sel.key)?.pathId : undefined;
       if (!c.drag) {
-        if (focusPath && limbById.get(focusPath)) c.yaw += turnTo(c.yaw, faceYaw(limbById.get(focusPath)!.bearing)) * Math.min(1, dt / 420);
+        if (focusPath && rootById.get(focusPath)) c.yaw += turnTo(c.yaw, faceYaw(rootById.get(focusPath)!.bearing)) * Math.min(1, dt / 420);
         else if (!L.reduced && !L.show) c.yaw += (dt / 1000) * (360 / TURN);
       }
       camera.yaw = c.yaw + c.lookX * 6;
-      camera.pitch = c.pitch + c.lookY * 3;
+      camera.pitch = c.pitch + c.lookY * 2.5;
+      const E = eye(camera);
+      const facing = (n: V3, p: V3) => n[0] * (E[0] - p[0]) + n[1] * (E[1] - p[1]) + n[2] * (E[2] - p[2]) > 0;
+      const wallFront = WALLS.map((w) => facing(w.n, w.a(0)));
+      const screenY = (y: number) => P([0, y, 0])[1];
 
       const age = now - started;
       const building = !L.reduced && age < BUILD_MS;
-      const scanY = building ? -2 + (CROWN_Y + 8) * ease(age / BUILD_MS) : Infinity;
+      const reveal = building ? ease(age / BUILD_MS) : 1;
       const pass = L.reduced ? -1 : (age - BUILD_MS) % PASS_EVERY;
-      const passY = pass >= 0 && pass < PASS_MS && age > BUILD_MS ? -1 + (CROWN_Y + 4) * (pass / PASS_MS) : NaN;
+      const pulse = pass >= 0 && pass < PASS_MS && age > BUILD_MS ? pass / PASS_MS : NaN;
 
       // What is lit.
       const show = L.show;
-      const litLimb =
-        show?.kind === 'path' ? tree.groups.limb.get(show.id) : show?.kind === 'item' ? tree.groups.limb.get(byKey.get(show.key)?.pathId ?? '') : undefined;
+      const litRoot =
+        show?.kind === 'path' ? tree.groups.root.get(show.id) : show?.kind === 'item' ? tree.groups.root.get(byKey.get(show.key)?.pathId ?? '') : undefined;
       const litTwig = show?.kind === 'item' ? tree.groups.twig.get(show.key) : undefined;
-      const litRoot = show?.kind === 'root' ? tree.groups.root.get(show.key) : undefined;
+      const litBough = show?.kind === 'bough' ? tree.groups.bough.get(show.key) : undefined;
       const litBand = show?.kind === 'band' ? BANDS.indexOf(show.band) : -1;
       const anything = Boolean(show);
-      const chosenLimb = L.chosen ? tree.groups.limb.get(L.chosen) : undefined;
+      const chosenRoot = L.chosen ? tree.groups.root.get(L.chosen) : undefined;
 
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size.w, size.h);
-
-      // The ground's survey: rings every five metres, rays, and its compass.
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
       ctx.lineWidth = 1;
-      const ring = (radius: number, y: number, from = 0, to = 360, stepDeg = 6) => {
-        ctx.beginPath();
-        for (let d = from; d <= to; d += stepDeg) {
-          const [px, py] = project(camera, [Math.cos((d * Math.PI) / 180) * radius, y, Math.sin((d * Math.PI) / 180) * radius]);
-          if (d === from) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-      };
-      ctx.strokeStyle = 'rgba(236,232,223,0.07)';
-      for (const rr of [5, 10, 15]) {
-        ring(rr, 0);
-        ctx.stroke();
+
+      // The floor the case stands on: its tiles, a pool of light under the roots, and its compass.
+      ctx.strokeStyle = 'rgba(214,226,220,0.05)';
+      ctx.beginPath();
+      for (let u = -42; u <= 42; u += 6) {
+        lineAt([u, FLOOR, -42], [u, FLOOR, 42]);
+        lineAt([-42, FLOOR, u], [42, FLOOR, u]);
       }
-      ctx.strokeStyle = 'rgba(236,232,223,0.22)';
-      ring(GROUND_R, 0, 0, 360, 3);
+      ctx.stroke();
+      {
+        const [fx, fy] = P([0, FLOOR, 0]);
+        const rx = HALF * 1.1 * scale;
+        const ry = Math.max(4, rx * Math.sin((Math.max(2, camera.pitch) * Math.PI) / 180));
+        const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
+        glow.addColorStop(0, 'rgba(214,236,226,0.16)');
+        glow.addColorStop(1, 'rgba(214,236,226,0)');
+        ctx.save();
+        ctx.translate(fx, fy);
+        ctx.scale(rx, ry);
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(0, 0, 1, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+      ctx.strokeStyle = 'rgba(236,232,223,0.2)';
+      ring(R, FLOOR, 3);
       ctx.stroke();
       ctx.font = '500 9px "IBM Plex Mono", ui-monospace, monospace';
       ctx.textAlign = 'center';
       for (let d = 0; d < 360; d += 5) {
         const rad = ((d - 90) * Math.PI) / 180;
         const major = d % 30 === 0;
-        const [ax, ay] = project(camera, [Math.cos(rad) * GROUND_R, 0, Math.sin(rad) * GROUND_R]);
-        const [bx, by, bz] = project(camera, [Math.cos(rad) * (GROUND_R + (major ? 1.4 : 0.6)), 0, Math.sin(rad) * (GROUND_R + (major ? 1.4 : 0.6))]);
+        const at = (rr: number): V3 => [Math.cos(rad) * rr, FLOOR, Math.sin(rad) * rr];
+        const [ax, ay] = P(at(R));
+        const [bx, by, bz] = P(at(R + (major ? 1.6 : 0.7)));
         const near = bz < 0;
-        ctx.strokeStyle = `rgba(236,232,223,${near ? 0.4 : 0.18})`;
+        ctx.strokeStyle = `rgba(236,232,223,${near ? 0.4 : 0.16})`;
         ctx.beginPath();
         ctx.moveTo(ax, ay);
         ctx.lineTo(bx, by);
         ctx.stroke();
         if (major) {
-          const [lx, ly] = project(camera, [Math.cos(rad) * (GROUND_R + 3), 0, Math.sin(rad) * (GROUND_R + 3)]);
+          const [qx, qy] = P(at(R + 3.6));
           const name = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }[d] ?? String(d).padStart(3, '0');
-          ctx.fillStyle = name.length === 1 ? `rgba(236,232,223,${near ? 0.8 : 0.4})` : `rgba(236,232,223,${near ? 0.42 : 0.2})`;
-          ctx.fillText(name, lx, ly + 3);
+          ctx.fillStyle = name.length === 1 ? `rgba(236,232,223,${near ? 0.8 : 0.36})` : `rgba(236,232,223,${near ? 0.42 : 0.18})`;
+          ctx.fillText(name, qx, qy + 3);
         }
       }
 
-      // The sections: a ring round the tree at each level, dashed, lit when you compare on it.
-      LEVELS.forEach((y, b) => {
-        const reach = Math.hypot(tree.limbs[0]?.levels[b][0] ?? 6, tree.limbs[0]?.levels[b][2] ?? 0) + 4.5;
-        ctx.setLineDash([3, 5]);
-        ctx.strokeStyle = litBand === b ? 'rgba(255,90,31,0.75)' : `rgba(236,232,223,${anything && litBand !== b ? 0.07 : 0.14})`;
-        ring(reach, y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        // Its datum: a line from the level mark to the trunk.
-        const [ax, ay] = project(camera, [0, y, 0]);
-        const el = levelEls.current[b];
-        if (el) el.style.transform = `translateY(${(ay - 9).toFixed(1)}px)`;
-        ctx.strokeStyle = litBand === b ? 'rgba(255,90,31,0.6)' : 'rgba(236,232,223,0.12)';
-        ctx.setLineDash([2, 4]);
-        ctx.beginPath();
-        ctx.moveTo(compact ? 34 : MARGIN - 6, ay);
-        ctx.lineTo(ax - 8, ay);
-        ctx.stroke();
-        ctx.setLineDash([]);
+      // The case's far side: its floor, its walls (lit and misty above the earth, dark below), its ceiling.
+      if (!facing([0, -1, 0], [0, FLOOR, 0])) {
+        shape(
+          WALLS.map((w) => w.a(FLOOR)),
+          true,
+        );
+        ctx.fillStyle = 'rgba(6,8,7,0.62)';
+        ctx.fill();
+      }
+      WALLS.forEach((w, i) => {
+        if (wallFront[i]) return;
+        shape([w.a(FLOOR), w.b(FLOOR), w.b(-SOIL), w.a(-SOIL)], true);
+        const dark = ctx.createLinearGradient(0, screenY(-SOIL), 0, screenY(FLOOR));
+        dark.addColorStop(0, 'rgba(22,30,26,0.6)');
+        dark.addColorStop(1, 'rgba(6,8,7,0.7)');
+        ctx.fillStyle = dark;
+        ctx.fill();
+        shape([w.a(0), w.b(0), w.b(TOP), w.a(TOP)], true);
+        const mist = ctx.createLinearGradient(0, screenY(TOP), 0, screenY(0));
+        mist.addColorStop(0, 'rgba(206,222,213,0.5)');
+        mist.addColorStop(1, 'rgba(150,168,158,0.2)');
+        ctx.fillStyle = mist;
+        ctx.fill();
+        edge(w.a(FLOOR), w.b(FLOOR), 0.16);
+        edge(w.a(TOP), w.b(TOP), 0.2);
       });
+      if (!facing([0, 1, 0], [0, TOP, 0])) {
+        shape(
+          WALLS.map((w) => w.a(TOP)),
+          true,
+        );
+        ctx.fillStyle = 'rgba(206,222,213,0.3)';
+        ctx.fill();
+      }
+      // The lamp's light spilling down the far walls above the earth.
       {
-        const [, gy] = project(camera, [0, 0, 0]);
-        const el = levelEls.current[4];
-        if (el) el.style.transform = `translateY(${(gy - 9).toFixed(1)}px)`;
+        ctx.save();
+        ctx.beginPath();
+        WALLS.forEach((w, i) => {
+          if (wallFront[i]) return;
+          const pts = [w.a(0), w.b(0), w.b(TOP), w.a(TOP)].map(P);
+          ctx.moveTo(pts[0][0], pts[0][1]);
+          for (const q of pts.slice(1)) ctx.lineTo(q[0], q[1]);
+          ctx.closePath();
+        });
+        ctx.clip();
+        const [lx0, ly0] = P([0, TOP, 0]);
+        const r0 = HALF * 1.3 * scale;
+        const spill = ctx.createRadialGradient(lx0, ly0, 0, lx0, ly0, r0);
+        spill.addColorStop(0, 'rgba(236,248,242,0.32)');
+        spill.addColorStop(1, 'rgba(236,248,242,0)');
+        ctx.fillStyle = spill;
+        ctx.fillRect(lx0 - r0, ly0 - r0, r0 * 2, r0 * 2);
+        ctx.restore();
       }
+      for (const [x, z] of CORNERS) {
+        if (!facing([Math.sign(x), 0, 0], [x, 0, z]) && !facing([0, 0, Math.sign(z)], [x, 0, z])) edge([x, FLOOR, z], [x, TOP, z], 0.22);
+      }
+      // The lamp under its ceiling.
+      ctx.save();
+      ctx.shadowColor = 'rgba(232,246,238,0.9)';
+      ctx.shadowBlur = 28;
+      shape(lamp, true);
+      ctx.fillStyle = 'rgba(240,250,245,0.92)';
+      ctx.fill();
+      ctx.restore();
 
-      // The scan itself: every point placed, then how bright it is, then drawn in a few bins of brightness, white,
-      // and warm for what you chose and what wants attention.
-      const P = tree.points;
-      projectAll(camera, P, step, sx, sy, sz);
-      bins.fill(0);
-      if (warmFor !== L.chosen) paintWarm(L.chosen);
-      for (let i = 0; i < N; i += step) {
-        const y = P[i * 3 + 1];
-        if (y > scanY) {
-          sa[i] = 0;
-          continue;
-        }
-        const z = sz[i];
-        const g = tree.group[i];
-        let a = tree.weight[i] * Math.max(0.22, Math.min(1, 0.62 - z / 46)) * (0.8 + 0.4 * (DISTANCE / (DISTANCE + z)));
-        if (anything) {
-          const limb = g === litLimb || tree.limbOf.get(g) === litLimb;
-          if (litTwig !== undefined) a *= g === litTwig ? 2.4 : limb ? 1.15 : 0.45;
-          else if (litLimb !== undefined) a *= limb ? 1.7 : 0.42;
-          else if (litRoot !== undefined) a *= g === litRoot ? 2.6 : 0.5;
-          else if (litBand >= 0) a *= Math.abs(y - LEVELS[litBand]) < 2.4 ? 1.9 : 0.5;
-        }
-        if (building && y > scanY - 1.4) a *= 3;
-        if (!Number.isNaN(passY) && Math.abs(y - passY) < 0.9) a *= 1.8;
-        a = Math.min(1, a);
-        sa[i] = a;
-        const bin = (warm[i] ? BINS : 0) + Math.min(BINS - 1, Math.floor(a * BINS));
-        binOf[i] = bin;
-        bins[bin]++;
-      }
-      // Sorted into their bins (counting), then each bin drawn in one colour.
-      for (let b = 0; b < BINS * 2; b++) start[b + 1] = start[b] + bins[b];
-      cursor.set(start);
-      for (let i = 0; i < N; i += step) if (sa[i] > 0) order[cursor[binOf[i]]++] = i;
+      // What the far walls carry: circuits under the earth, marks on the light above it.
       ctx.globalCompositeOperation = 'lighter';
-      for (let b = 0; b < BINS * 2; b++) {
-        if (start[b + 1] === start[b]) continue;
-        const alpha = (((b % BINS) + 1) / BINS).toFixed(3);
-        ctx.fillStyle = b >= BINS ? `rgba(255,120,60,${alpha})` : `rgba(236,232,223,${alpha})`;
-        for (let j = start[b]; j < start[b + 1]; j++) {
-          const i = order[j];
-          ctx.fillRect(sx[i] - 0.6, sy[i] - 0.6, 1.25, 1.25);
+      for (const cc of tree.circuits) {
+        if (wallFront[cc.wall] || cc.kind === 'mark') continue;
+        const tone = cc.warm ? '255,128,70' : '214,230,222';
+        if (cc.kind === 'chip') {
+          shape(cc.pts, true);
+          ctx.fillStyle = `rgba(${tone},${cc.warm ? 0.13 : 0.05})`;
+          ctx.fill();
+          ctx.strokeStyle = `rgba(${tone},${cc.warm ? 0.42 : 0.2})`;
+          ctx.stroke();
+        } else if (cc.kind === 'bar') {
+          ctx.strokeStyle = `rgba(${tone},0.28)`;
+          ctx.beginPath();
+          for (let i = 0; i < cc.pts.length; i += 2) lineAt(cc.pts[i], cc.pts[i + 1]);
+          ctx.stroke();
+        } else if (cc.kind === 'via') {
+          const [px, py] = P(cc.pts[0]);
+          ctx.fillStyle = `rgba(${tone},0.5)`;
+          ctx.fillRect(px - 1.5, py - 1.5, 3, 3);
+        } else {
+          ctx.strokeStyle = `rgba(${tone},${cc.warm ? 0.36 : 0.13})`;
+          shape(cc.pts, false);
+          ctx.stroke();
         }
       }
       ctx.globalCompositeOperation = 'source-over';
+      for (const cc of tree.circuits) {
+        if (wallFront[cc.wall] || cc.kind !== 'mark') continue;
+        ctx.strokeStyle = cc.warm ? 'rgba(255,110,50,0.7)' : 'rgba(18,22,20,0.55)';
+        shape(cc.pts, false);
+        ctx.stroke();
+      }
+      // Its name, on the far wall that faces you most squarely.
+      {
+        let best = 0;
+        let most = Infinity;
+        WALLS.forEach((w, i) => {
+          const d = w.n[0] * E[0] + w.n[2] * E[2];
+          if (d < most) [best, most] = [i, d];
+        });
+        const w = WALLS[best];
+        const a = w.a(TOP - 2.6);
+        const b = w.b(TOP - 2.6);
+        const [px, py] = P([a[0] + (b[0] - a[0]) * 0.84, TOP - 2.6, a[2] + (b[2] - a[2]) * 0.84]);
+        ctx.font = '500 9px "IBM Plex Mono", ui-monospace, monospace';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(16,20,18,0.72)';
+        ctx.textAlign = 'right';
+        ctx.fillText('a h e a d . b l o o m . e x e', px, py);
+      }
 
-      // Sap: light rising through the trunk and up what you chose.
-      if (chosenLimb !== undefined && !L.reduced && L.chosen) {
-        const limb = limbById.get(L.chosen);
-        if (limb) {
-          const route = [...tree.trunk, ...limb.curve];
-          ctx.fillStyle = 'rgba(255,110,50,0.95)';
-          for (let k = 0; k < 6; k++) {
-            const f = ((now / 3200 + k / 6) % 1) * (route.length - 1);
+      // The strata: a line round the case at each, on its far walls here and its near walls later; lit when you
+      // compare on it. And the light that runs down the case now and then.
+      const strata = (front: boolean) => {
+        LEVELS.forEach((y, b) => {
+          ctx.setLineDash([4, 5]);
+          ctx.strokeStyle = litBand === b ? 'rgba(255,90,31,0.85)' : `rgba(214,230,222,${anything && litBand !== b ? 0.08 : front ? 0.2 : 0.14})`;
+          ctx.beginPath();
+          WALLS.forEach((w, i) => {
+            if (wallFront[i] === front) lineAt(w.a(y), w.b(y));
+          });
+          ctx.stroke();
+          ctx.setLineDash([]);
+        });
+        if (!Number.isNaN(pulse)) {
+          const y = -SOIL - (-SOIL - FLOOR) * pulse;
+          ctx.strokeStyle = `rgba(214,236,226,${(0.26 * Math.sin(Math.PI * pulse)).toFixed(3)})`;
+          ctx.beginPath();
+          WALLS.forEach((w, i) => {
+            if (wallFront[i] === front) lineAt(w.a(y), w.b(y));
+          });
+          ctx.stroke();
+        }
+      };
+      strata(false);
+
+      // Crumbs on the case's floor.
+      projectAll(camera, tree.crumbs, crx, cry, crz);
+      ctx.fillStyle = 'rgba(150,160,150,0.4)';
+      for (let i = 0; i < NC; i++) ctx.fillRect(crx[i] - 0.7, cry[i] - 0.5, 1.4, 1);
+
+      // The roots, lit: in bins, a wide faint glow, the line itself, white or warm, and a hot core in the thickest.
+      projectAll(camera, tree.verts, vx, vy, vz);
+      const pulseG = Number.isNaN(pulse) ? -9 : pulse;
+      for (let s = 0; s < S; s++) {
+        binOf[s] = NONE;
+        if (tree.kind[s] !== 0 || tree.grow[s] > reveal) continue;
+        const i = tree.seg[s * 2];
+        const j = tree.seg[s * 2 + 1];
+        const z = (vz[i] + vz[j]) / 2;
+        const g = tree.group[s];
+        const rg = rootGroup(g);
+        let a = 0.88 * Math.max(0.3, Math.min(1, 0.66 - z / 64));
+        if (anything) {
+          if (litTwig !== undefined) a *= g === litTwig ? 2.2 : rg === litRoot ? 1 : 0.32;
+          else if (litRoot !== undefined) a *= rg === litRoot ? 1.5 : 0.3;
+          else if (litBand >= 0) {
+            const y = (tree.verts[i * 3 + 1] + tree.verts[j * 3 + 1]) / 2;
+            a *= Math.abs(y - LEVELS[litBand]) < 2.6 ? 1.7 : 0.4;
+          } else a *= 0.6;
+        }
+        const grow = tree.grow[s];
+        if (Math.abs(grow - pulseG) < 0.035) a *= 2;
+        if (building && reveal - grow < 0.025) a *= 2.2;
+        a = Math.min(1, a);
+        const wb = widthBin(tree.width[s] * scale * (DISTANCE / (DISTANCE + z)));
+        const ab = Math.min(AB - 1, Math.floor(a * AB));
+        const warm = warmTwigs.has(g) || (chosenRoot !== undefined && rg === chosenRoot && (s * 7) % 10 < 4) ? 1 : 0;
+        binOf[s] = (warm * WB + wb) * AB + ab;
+      }
+      sortBins(BINS);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const pass of ['glow', 'core', 'hot'] as const) {
+        for (let b = 0; b < BINS; b++) {
+          if (start[b + 1] === start[b]) continue;
+          const ab = b % AB;
+          const wb = Math.floor(b / AB) % WB;
+          if (pass === 'hot' && wb < 7) continue;
+          const alpha = (ab + 1) / AB;
+          const w = binWidth(wb);
+          const tone = b >= WB * AB ? '255,128,70' : '228,240,234';
+          if (pass === 'glow') {
+            ctx.lineWidth = w * 2.4 + 2.5;
+            ctx.strokeStyle = `rgba(${tone},${(alpha * 0.11).toFixed(3)})`;
+          } else if (pass === 'core') {
+            ctx.lineWidth = w;
+            ctx.strokeStyle = `rgba(${tone},${alpha.toFixed(3)})`;
+          } else {
+            ctx.lineWidth = w * 0.35;
+            ctx.strokeStyle = `rgba(255,255,255,${(alpha * 0.9).toFixed(3)})`;
+          }
+          traceBin(b);
+          ctx.stroke();
+        }
+      }
+      // Sap: light running down the taproot and out along what you chose.
+      if (chosenRoot !== undefined && !L.reduced && L.chosen && !building) {
+        const root = rootById.get(L.chosen);
+        if (root) {
+          const route = [...tree.taproot, ...root.curve];
+          ctx.fillStyle = 'rgba(255,150,100,0.95)';
+          for (let k = 0; k < 5; k++) {
+            const f = ((now / 3600 + k / 5) % 1) * (route.length - 1);
             const a = route[Math.floor(f)];
             const b = route[Math.min(route.length - 1, Math.floor(f) + 1)];
             const p: V3 = [a[0] + (b[0] - a[0]) * (f % 1), a[1] + (b[1] - a[1]) * (f % 1), a[2] + (b[2] - a[2]) * (f % 1)];
-            if (p[1] > scanY) continue;
-            const [px, py] = project(camera, p);
+            const [px, py] = P(p);
             ctx.beginPath();
-            ctx.arc(px, py, 1.8, 0, Math.PI * 2);
+            ctx.arc(px, py, 2, 0, Math.PI * 2);
             ctx.fill();
           }
         }
       }
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.lineWidth = 1;
 
-      // The scanner's plane as it builds the tree up, and as it passes over again.
-      for (const y of [scanY, passY]) {
-        if (!Number.isFinite(y)) continue;
-        ctx.strokeStyle = `rgba(236,232,223,${y === scanY ? 0.5 : 0.22})`;
-        ring(GROUND_R * 0.62, y, 0, 360, 4);
+      // The slab of earth: whichever of its faces you see, dark, with its grain; a line of light along its edges.
+      const slab = [
+        { n: [0, 1, 0] as V3, pts: WALLS.map((w) => w.a(0)) },
+        { n: [0, -1, 0] as V3, pts: WALLS.map((w) => w.a(-SOIL)) },
+        ...WALLS.map((w) => ({ n: w.n, pts: [w.a(0), w.b(0), w.b(-SOIL), w.a(-SOIL)] })),
+      ];
+      const slabFront = slab.map((f) => facing(f.n, f.pts[0]));
+      slab.forEach((f, i) => {
+        if (!slabFront[i]) return;
+        shape(f.pts, true);
+        if (i >= 2) {
+          const side = ctx.createLinearGradient(0, screenY(0), 0, screenY(-SOIL));
+          side.addColorStop(0, 'rgba(34,31,26,0.98)');
+          side.addColorStop(1, 'rgba(12,12,11,0.98)');
+          ctx.fillStyle = side;
+        } else ctx.fillStyle = i === 0 ? 'rgba(26,25,21,0.98)' : 'rgba(10,10,9,0.98)';
+        ctx.fill();
+      });
+      projectAll(camera, tree.dirt, dx, dy, dz);
+      for (let i = 0; i < ND; i++) {
+        const f = tree.dirtFace[i];
+        if (!slabFront[f === 0 ? 0 : f + 1]) continue;
+        ctx.fillStyle = i % 3 ? 'rgba(150,140,120,0.22)' : 'rgba(4,4,4,0.5)';
+        ctx.fillRect(dx[i] - 0.6, dy[i] - 0.6, 1.3, 1.3);
+      }
+      ctx.strokeStyle = 'rgba(214,230,222,0.28)';
+      ctx.beginPath();
+      WALLS.forEach((w, i) => {
+        if (slabFront[i + 2]) {
+          lineAt(w.a(0), w.b(0));
+          lineAt(w.a(-SOIL), w.b(-SOIL));
+        }
+      });
+      ctx.stroke();
+
+      // The tree above, dark against the light: its wood and grass, then its leaves. What you point at, warm.
+      for (let s = 0; s < S; s++) {
+        binOf[s] = NONE;
+        if (tree.kind[s] === 0 || tree.grow[s] > reveal) continue;
+        const i = tree.seg[s * 2];
+        const j = tree.seg[s * 2 + 1];
+        const z = (vz[i] + vz[j]) / 2;
+        const wb = widthBin(tree.width[s] * scale * (DISTANCE / (DISTANCE + z)));
+        const fog = z > 8 ? 0 : z > -8 ? 1 : 2;
+        const lit = litBough !== undefined && tree.group[s] === litBough ? 1 : 0;
+        binOf[s] = (lit * WB + wb) * 3 + fog;
+      }
+      sortBins(WB * 3 * 2);
+      for (let b = 0; b < WB * 3 * 2; b++) {
+        if (start[b + 1] === start[b]) continue;
+        const fog = b % 3;
+        ctx.lineWidth = binWidth(Math.floor(b / 3) % WB);
+        ctx.strokeStyle = b >= WB * 3 ? 'rgba(255,100,40,0.95)' : `rgba(12,15,13,${[0.55, 0.75, 0.92][fog]})`;
+        traceBin(b);
         ctx.stroke();
       }
+      ctx.lineWidth = 1;
+      projectAll(camera, tree.leaves, lx, ly, lz);
+      for (let i = 0; i < NL; i++) {
+        if (tree.leafGrow[i] > reveal) continue;
+        const lit = litBough !== undefined && tree.leafGroup[i] === litBough;
+        ctx.fillStyle = lit ? 'rgba(255,110,50,0.9)' : `rgba(10,13,11,${lz[i] > 8 ? 0.6 : 0.92})`;
+        const s = lz[i] < 0 ? 2.6 : 2;
+        ctx.fillRect(lx[i] - s / 2, ly[i] - s / 2, s, s);
+      }
 
-      // The roots' ends: what holds you, a bar; what carries you, a ringed point.
+      // The case's near side: its glass catching a little light, its edges, and the strata on it.
+      WALLS.forEach((w, i) => {
+        if (!wallFront[i]) return;
+        shape([w.a(FLOOR), w.b(FLOOR), w.b(TOP), w.a(TOP)], true);
+        const [gx0, gy0] = P(w.a(TOP));
+        const [gx1, gy1] = P(w.b(FLOOR));
+        const sheen = ctx.createLinearGradient(gx0, gy0, gx1, gy1);
+        sheen.addColorStop(0, 'rgba(220,236,228,0.05)');
+        sheen.addColorStop(0.5, 'rgba(220,236,228,0)');
+        sheen.addColorStop(1, 'rgba(220,236,228,0.025)');
+        ctx.fillStyle = sheen;
+        ctx.fill();
+        edge(w.a(FLOOR), w.b(FLOOR), 0.32);
+        edge(w.a(TOP), w.b(TOP), 0.36);
+      });
+      for (const [x, z] of CORNERS) {
+        const f1 = facing([Math.sign(x), 0, 0], [x, 0, z]);
+        const f2 = facing([0, 0, Math.sign(z)], [x, 0, z]);
+        if (f1 || f2) edge([x, FLOOR, z], [x, TOP, z], f1 && f2 ? 0.5 : 0.34);
+      }
+      strata(true);
+
+      // Each root's letter below its tip; each bough's end: what holds you a cross, what carries you a ring.
       const seenRoots = seen.current.roots;
-      for (const r of tree.roots) {
-        const [px, py] = project(camera, r.end);
-        seenRoots.set(r.key, [px, py]);
-        const lit = litRoot === tree.groups.root.get(r.key);
-        ctx.strokeStyle = lit ? 'rgba(255,90,31,0.95)' : 'rgba(236,232,223,0.6)';
-        ctx.beginPath();
-        if (r.side === 'constraint') {
-          ctx.moveTo(px, py - 5);
-          ctx.lineTo(px, py + 5);
-        } else ctx.arc(px, py, 4.5, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      // The limbs as you see them, for pointing at; their tips marked with their letter.
-      const seenLimbs = seen.current.limbs;
       ctx.textAlign = 'center';
       ctx.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
-      for (const l of tree.limbs) {
-        seenLimbs.set(
+      for (const l of tree.roots) {
+        seenRoots.set(
           l.pathId,
           l.curve
-            .filter((_, i) => i % 3 === 0)
+            .filter((_, i) => i % 2 === 0)
             .map((p) => {
-              const [px, py] = project(camera, p);
+              const [px, py] = P(p);
               return [px, py];
             }),
         );
-        if (l.tip[1] > scanY) continue;
-        const [px, py] = project(camera, l.tip);
+        if (reveal < 0.98) continue;
+        const [px, py] = P(l.tip);
         const chosen = L.chosen === l.pathId;
-        ctx.strokeStyle = chosen ? 'rgba(255,90,31,0.9)' : 'rgba(236,232,223,0.55)';
-        ctx.fillStyle = 'rgba(7,8,10,0.85)';
+        ctx.strokeStyle = chosen ? 'rgba(255,90,31,0.95)' : 'rgba(228,240,234,0.65)';
+        ctx.fillStyle = 'rgba(7,8,10,0.9)';
         ctx.beginPath();
-        ctx.arc(px, py - 14, 8, 0, Math.PI * 2);
+        ctx.arc(px, py + 14, 8, 0, Math.PI * 2);
         ctx.fill();
         ctx.stroke();
-        ctx.fillStyle = chosen ? 'rgb(255,120,70)' : 'rgba(236,232,223,0.9)';
-        ctx.fillText(l.code, px, py - 10.5);
+        ctx.fillStyle = chosen ? 'rgb(255,120,70)' : 'rgba(228,240,234,0.95)';
+        ctx.fillText(l.code, px, py + 17.5);
       }
+      const seenBoughs = seen.current.boughs;
+      ctx.lineWidth = 1.3;
+      for (const b of tree.boughs) {
+        const [px, py] = P(b.end);
+        seenBoughs.set(b.key, [px, py]);
+        if (reveal < 0.9) continue;
+        const lit = litBough === tree.groups.bough.get(b.key);
+        ctx.strokeStyle = lit ? 'rgba(255,90,31,0.95)' : 'rgba(12,15,13,0.85)';
+        ctx.beginPath();
+        if (b.side === 'constraint') {
+          ctx.moveTo(px - 3.5, py - 3.5);
+          ctx.lineTo(px + 3.5, py + 3.5);
+          ctx.moveTo(px + 3.5, py - 3.5);
+          ctx.lineTo(px - 3.5, py + 3.5);
+        } else ctx.arc(px, py, 3.6, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 1;
 
-      // The buds: each answer's mark where its twig ends.
+      // The nodes: each answer's mark where its rootlet ends.
       const seenBuds = seen.current.buds;
       const buds = budsRef.current;
       if (buds) {
         for (const a of tree.answers) {
           const el = buds.querySelector<SVGGElement>(`[data-bud="${CSS.escape(a.key)}"]`);
-          const [px, py, z] = project(camera, a.at);
+          const [px, py, z] = P(a.at);
           seenBuds.set(a.key, [px, py]);
           if (!el) continue;
-          const hidden = a.at[1] > scanY;
           el.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)})`);
-          el.style.opacity = hidden ? '0' : String(Math.max(0.35, Math.min(1, 0.85 - z / 40)));
+          el.style.opacity = reveal < 0.97 ? '0' : String(Math.max(0.35, Math.min(1, 0.9 - z / 50)));
         }
       }
+
+      // The levels at the side, each with a datum out to the case.
+      const datum = (y: number, el: HTMLElement | null | undefined, lit: boolean) => {
+        let x0 = Infinity;
+        let y0 = 0;
+        for (const w of WALLS) {
+          const [px, py] = P(w.a(y));
+          if (px < x0) [x0, y0] = [px, py];
+        }
+        if (el) el.style.transform = `translateY(${(y0 - 9).toFixed(1)}px)`;
+        ctx.strokeStyle = lit ? 'rgba(255,90,31,0.6)' : 'rgba(236,232,223,0.13)';
+        ctx.setLineDash([2, 4]);
+        ctx.beginPath();
+        ctx.moveTo(compact ? 34 : MARGIN - 6, y0);
+        ctx.lineTo(x0 - 6, y0);
+        ctx.stroke();
+        ctx.setLineDash([]);
+      };
+      LEVELS.forEach((y, b) => datum(y, levelEls.current[b], litBand === b));
+      datum(0, levelEls.current[4], false);
 
       // The axis mark, turning with the camera; and the readout.
       const g = gizmo.current;
@@ -502,19 +853,19 @@ export function AheadTree({
         }).toUpperCase();
       }
       if (scaleBar.current && frame % 30 === 1) {
-        const [, , , k] = project(camera, [0, 0, 0]);
+        const [, , , k] = P([0, LEVELS[0], 0]);
         scaleBar.current.style.width = `${(10 * camera.scale * k).toFixed(1)}px`;
       }
 
-      // The cards: each in a column beside the tree, as near level with what it reads as they allow, and a
-      // leader line out to it. Each shows the scan close up round what it reads.
+      // The cards: each in a column beside the case, as near level with what it reads as they allow, and a trace
+      // out to it, turning square as on a board. Each shows the plate close up round what it reads.
       const under = (el: HTMLElement | null) => (el && el.offsetParent ? el.offsetTop + el.offsetHeight + 12 : 16);
       const top = { [-1]: under(blockRef.current), [1]: L.compact ? under(blockRef.current) : 16 } as Record<number, number>;
       const placed: { key: string; el: HTMLDivElement; ax: number; ay: number; side: number; w: number; h: number; y: number }[] = [];
       for (const card of L.cards) {
         const el = cardEls.current.get(card.key);
         if (!el) continue;
-        const [ax, ay] = project(camera, card.at);
+        const [ax, ay] = P(card.at);
         const was = cardSide.get(card.key);
         // On a phone the levels take the left, so every card goes right.
         const side = L.compact ? 1 : was && Math.abs(ax - cx) < 36 ? was : ax < cx ? -1 : 1;
@@ -532,6 +883,7 @@ export function AheadTree({
           }
         }
       for (const p of placed) cardSide.set(p.key, p.side);
+      const leaders: { ax: number; ay: number; ex: number; ey: number; side: number; warm?: boolean }[] = [];
       for (const side of [-1, 1]) {
         const column = placed.filter((p) => p.side === side).sort((a, b) => a.ay - b.ay);
         // Down from the top, each level with what it reads where it can be; then up from the bottom, so none falls off.
@@ -552,21 +904,9 @@ export function AheadTree({
           const pos = { x: prev.x + (x - prev.x) * 0.25, y: prev.y + (p.y - prev.y) * 0.25 };
           cardPos.set(p.key, pos);
           el.style.transform = `translate(${pos.x.toFixed(1)}px, ${pos.y.toFixed(1)}px)`;
-          // The leader: from what it reads to the card's near edge, a point at either end.
-          const ex = side < 0 ? pos.x + w : pos.x;
-          const ey = pos.y + 14;
           const warm = L.cards.find((c) => c.key === p.key)?.warm;
-          ctx.strokeStyle = warm ? 'rgba(255,90,31,0.7)' : 'rgba(236,232,223,0.55)';
-          ctx.fillStyle = ctx.strokeStyle;
-          ctx.beginPath();
-          ctx.moveTo(p.ax, p.ay);
-          ctx.lineTo(ex, ey);
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(p.ax, p.ay, 2.4, 0, Math.PI * 2);
-          ctx.arc(ex, ey, 1.8, 0, Math.PI * 2);
-          ctx.fill();
-          // Close up: the scan round it, larger, every other frame.
+          leaders.push({ ax: p.ax, ay: p.ay, ex: side < 0 ? pos.x + w : pos.x, ey: pos.y + 14, side, warm });
+          // Close up: the plate round it, larger, every other frame, before any trace is drawn over it.
           const crop = cropEls.current.get(p.key);
           if (crop && (frame + p.key.length) % 2 === 0) {
             const cc = crop.getContext('2d');
@@ -576,38 +916,48 @@ export function AheadTree({
               cc.setTransform(CROP_DPR, 0, 0, CROP_DPR, 0, 0);
               cc.fillStyle = '#050607';
               cc.fillRect(0, 0, cw, ch);
-              cc.globalCompositeOperation = 'lighter';
-              cc.fillStyle = warm ? 'rgba(255,140,90,0.5)' : 'rgba(236,232,223,0.45)';
-              for (let i = 0; i < N; i++) {
-                if (sa[i] <= 0) continue;
-                const qx = (sx[i] - p.ax) * ZOOM + cw / 2;
-                const qy = (sy[i] - p.ay) * ZOOM + ch / 2;
-                if (qx < 0 || qy < 0 || qx > cw || qy > ch) continue;
-                cc.fillRect(qx - 0.7, qy - 0.7, 1.4 + sa[i], 1.4 + sa[i]);
-              }
-              cc.globalCompositeOperation = 'source-over';
-              // A reticle on what it reads, and the detail's scale.
-              cc.strokeStyle = warm ? 'rgba(255,90,31,0.9)' : 'rgba(236,232,223,0.7)';
+              const sw = cw / ZOOM;
+              const sh = ch / ZOOM;
+              cc.imageSmoothingQuality = 'high';
+              cc.drawImage(cv, (p.ax - sw / 2) * dpr, (p.ay - sh / 2) * dpr, sw * dpr, sh * dpr, 0, 0, cw, ch);
+              cc.strokeStyle = warm ? 'rgba(255,90,31,0.9)' : 'rgba(236,232,223,0.75)';
               cc.lineWidth = 1;
               cc.beginPath();
-              for (const [dx, dy] of [
+              for (const [sx, sy] of [
                 [-1, -1],
                 [1, -1],
                 [1, 1],
                 [-1, 1],
               ]) {
-                cc.moveTo(cw / 2 + dx * 7, ch / 2 + dy * 3);
-                cc.lineTo(cw / 2 + dx * 7, ch / 2 + dy * 7);
-                cc.lineTo(cw / 2 + dx * 3, ch / 2 + dy * 7);
+                cc.moveTo(cw / 2 + sx * 8, ch / 2 + sy * 3);
+                cc.lineTo(cw / 2 + sx * 8, ch / 2 + sy * 8);
+                cc.lineTo(cw / 2 + sx * 3, ch / 2 + sy * 8);
               }
               cc.stroke();
-              cc.fillStyle = 'rgba(236,232,223,0.55)';
+              cc.fillStyle = 'rgba(236,232,223,0.6)';
               cc.font = '500 8px "IBM Plex Mono", ui-monospace, monospace';
               cc.textAlign = 'left';
               cc.fillText(`DETAIL ×${ZOOM}`, 5, ch - 5);
             }
           }
         }
+      }
+      // The traces: out of what it reads level, then square up or down, then into the card; a pad at each end.
+      for (const l of leaders) {
+        const bend = l.ex - l.side * 18;
+        ctx.strokeStyle = l.warm ? 'rgba(255,90,31,0.75)' : 'rgba(228,240,234,0.55)';
+        ctx.fillStyle = ctx.strokeStyle;
+        ctx.beginPath();
+        ctx.moveTo(l.ax, l.ay);
+        ctx.lineTo(bend, l.ay);
+        ctx.lineTo(bend, l.ey);
+        ctx.lineTo(l.ex, l.ey);
+        ctx.stroke();
+        ctx.fillRect(l.ax - 2.5, l.ay - 2.5, 5, 5);
+        ctx.fillRect(bend - 1.5, l.ay - 1.5, 3, 3);
+        ctx.beginPath();
+        ctx.arc(l.ex, l.ey, 1.8, 0, Math.PI * 2);
+        ctx.fill();
       }
       for (const key of [...cardPos.keys()])
         if (!L.cards.some((c) => c.key === key)) {
@@ -630,13 +980,13 @@ export function AheadTree({
     }
     if (best) return best;
     bestD = 12;
-    for (const [key, [px, py]] of seen.current.roots) {
+    for (const [key, [px, py]] of seen.current.boughs) {
       const d = Math.hypot(px - x, py - y);
-      if (d < bestD) [best, bestD] = [{ kind: 'root', key }, d];
+      if (d < bestD) [best, bestD] = [{ kind: 'bough', key }, d];
     }
     if (best) return best;
     bestD = 11;
-    for (const [id, pts] of seen.current.limbs) {
+    for (const [id, pts] of seen.current.roots) {
       for (const [px, py] of pts) {
         const d = Math.hypot(px - x, py - y);
         if (d < bestD) [best, bestD] = [{ kind: 'path', id }, d];
@@ -651,6 +1001,7 @@ export function AheadTree({
 
   const chosen = nav ? data.paths[nav.pathId] : undefined;
   const step = nav ? currentAction(nav) : undefined;
+  const bough = sel?.kind === 'bough' ? boughByKey.get(sel.key) : undefined;
 
   return (
     <div className="ahead-stage">
@@ -658,7 +1009,7 @@ export function AheadTree({
         ref={plateRef}
         className={cn('ahead-plate tree-plate', hover && 'is-pointing')}
         role="img"
-        aria-label={t('Your options as a tree growing from where you are')}
+        aria-label={t('Your options as roots growing from where you are')}
         onPointerDown={(e) => {
           if ((e.target as Element).closest('button, .tree-card')) return;
           const c = cam.current;
@@ -675,7 +1026,7 @@ export function AheadTree({
             const dy = e.clientY - c.drag.y;
             if (Math.hypot(dx, dy) > 4) c.drag.moved = true;
             c.yaw = c.drag.yaw - dx * 0.35;
-            c.pitch = Math.max(4, Math.min(32, c.drag.pitch + dy * 0.12));
+            c.pitch = Math.max(0, Math.min(24, c.drag.pitch + dy * 0.1));
             return;
           }
           if ((e.target as Element).closest('button, .tree-card')) return;
@@ -701,7 +1052,7 @@ export function AheadTree({
       >
         <canvas ref={canvas} className="tree-canvas" />
 
-        {/* The buds: a mark for each answer, kept where its twig ends. */}
+        {/* The nodes: a mark for each answer, kept where its rootlet ends. */}
         <svg ref={budsRef} className="tree-buds" width={size.w} height={size.h} aria-hidden>
           {tree.answers.map((a) => (
             <g
@@ -715,14 +1066,14 @@ export function AheadTree({
           ))}
         </svg>
 
-        {/* The plate's title block, as on a drawing: what it is, what is on it, the view, the scale, the axes. */}
+        {/* The plate's title block, as on a drawing: what it is, what is on it, the view and the scale. */}
         <div ref={blockRef} className="tree-block" aria-hidden>
           <div className="tree-block-main">
             <div className="tree-block-row is-head">
               <span>{t('Plate · Ahead').toUpperCase()}</span>
-              <span className="tree-block-no">A—01</span>
+              <span className="tree-block-no">A—02</span>
             </div>
-            <div className="tree-block-row is-sub">{t('The tree of what could be · a scan').toUpperCase()}</div>
+            <div className="tree-block-row is-sub">{t('What could grow from here · a section').toUpperCase()}</div>
             {wide && (
               <>
                 <div className="tree-block-row">{t('{n} options · {m} answers · not ranked', { n: paths.length, m: total }).toUpperCase()}</div>
@@ -737,23 +1088,24 @@ export function AheadTree({
               </>
             )}
           </div>
-          {wide && (
-            <svg className="tree-gizmo" width={64} height={64} viewBox="-32 -32 64 64">
-              <circle r={27} className="tree-gizmo-ring" />
-              <g ref={gizmo}>
-                <circle r={1.8} />
-                {(['x', 'y', 'z'] as const).map((a) => (
-                  <g key={a}>
-                    <line data-axis={a} x1={0} y1={0} x2={0} y2={0} className={`is-${a}`} />
-                    <text data-axis-label={a} textAnchor="middle">
-                      {a.toUpperCase()}
-                    </text>
-                  </g>
-                ))}
-              </g>
-            </svg>
-          )}
         </div>
+        {/* The axis mark, in the plate's corner. */}
+        {wide && (
+          <svg className="tree-gizmo" width={64} height={64} viewBox="-32 -32 64 64">
+            <circle r={27} className="tree-gizmo-ring" />
+            <g ref={gizmo}>
+              <circle r={1.8} />
+              {(['x', 'y', 'z'] as const).map((a) => (
+                <g key={a}>
+                  <line data-axis={a} x1={0} y1={0} x2={0} y2={0} className={`is-${a}`} />
+                  <text data-axis-label={a} textAnchor="middle">
+                    {a.toUpperCase()}
+                  </text>
+                </g>
+              ))}
+            </g>
+          </svg>
+        )}
         {/* Registration marks at the plate's corners. */}
         <div className="tree-register" aria-hidden>
           <i />
@@ -777,14 +1129,14 @@ export function AheadTree({
               <svg width={10} height={8} viewBox="0 0 10 8" aria-hidden>
                 <path d="M0 0H10L5 8Z" />
               </svg>
-              <span className="tree-level-num">{band ? `+${(LEVELS[i] - 0).toFixed(1)}` : '±0.0'}</span>
+              <span className="tree-level-num">{level(band ? LEVELS[i] : 0)}</span>
               {!compact && <span className="tree-level-name">{band ? `${ROMAN[i]} · ${BAND_LABEL[band]()}` : t('You are here')}</span>}
               {compact && <span className="tree-level-name">{band ? ROMAN[i] : '±'}</span>}
             </button>
           ))}
         </div>
 
-        {/* The cards called out from the tree. */}
+        {/* The cards called out from the roots. */}
         {cards.map((c) => (
           <div
             key={c.key}
@@ -828,7 +1180,6 @@ export function AheadTree({
           </li>
         ))}
       </ul>
-
       {/* The side: the options as a legend, then the reading panel. */}
       <div className="ahead-side">
         {/* The options, as a list too: to pick one with a key, and on a phone. */}
@@ -844,7 +1195,7 @@ export function AheadTree({
             >
               <span className="ahead-option-letter">{p.code}</span>
               <span className="truncate">{p.title}</span>
-              {limbById.get(p.id) && <span className="ahead-option-bearing">{bearingOf(limbById.get(p.id)!.bearing)}°</span>}
+              {rootById.get(p.id) && <span className="ahead-option-bearing">{bearingOf(rootById.get(p.id)!.bearing)}°</span>}
             </button>
           ))}
         </div>
@@ -878,9 +1229,9 @@ export function AheadTree({
               onEdit={() => onEditPath(sel.id)}
               onCompare={onCompare}
             />
-          ) : sel?.kind === 'root' && rootByKey.get(sel.key) ? (
-            <Section label={rootByKey.get(sel.key)!.side === 'constraint' ? t('Holds you · a constraint') : t('Carries you · an asset')}>
-              <p className="mt-2 text-[14px] leading-snug text-ink">{rootByKey.get(sel.key)!.text}</p>
+          ) : bough ? (
+            <Section label={bough.side === 'constraint' ? t('Holds you · a constraint') : t('Carries you · an asset')}>
+              <p className="mt-2 text-[14px] leading-snug text-ink">{bough.text}</p>
               <div className="mt-4 flex gap-1.5">
                 <Button size="sm" icon={Pencil} onClick={onEditState}>
                   {t('Edit where you are')}
@@ -918,7 +1269,7 @@ export function AheadTree({
                 </Button>
               </div>
               <p className="mt-4 font-mono text-[10.5px] leading-relaxed tracking-[0.06em] text-ink-3 uppercase">
-                {t('Drag to turn it · point at a limb to read its option · at a level to compare them · click a bud to open it')}
+                {t('Drag to turn it · point at a root to read its option · at a level to compare them · click a node to open it')}
               </p>
             </Section>
           )}
