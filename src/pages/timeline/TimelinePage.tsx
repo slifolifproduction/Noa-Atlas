@@ -11,7 +11,7 @@ import { momentsOf } from '../../domain/ask';
 import { AREA_META, AREAS, MODE_LABEL, OCCURRENCE_KIND_LABEL } from '../../domain/constants';
 import { historyItems, recordGaps, type HistoryItem } from '../../domain/history';
 import { offerFor } from '../../domain/weave';
-import type { AreaKey, AtlasData } from '../../domain/types';
+import type { AreaKey, AtlasData, OccurrenceKind } from '../../domain/types';
 import { formatDate, formatMonth, useToday } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
@@ -105,7 +105,12 @@ export function TimelinePage({ preset }: { preset?: string }) {
   const gaps = recordGaps(data, today);
 
   const planned = items.filter((h) => h.mode !== 'actual');
-  const actual = items.filter((h) => h.mode === 'actual');
+  // What was read from a note is shown under that note when the note is in the list too: one moment, one row.
+  const notesShown = new Set(items.filter((h) => h.kind === 'record').map((h) => h.ref.id));
+  const underNote = (h: HistoryItem) => h.kind !== 'record' && h.kind !== 'decision' && h.source?.kind === 'entry' && notesShown.has(h.source.id);
+  const readFrom = new Map<string, HistoryItem[]>();
+  for (const h of items) if (h.mode === 'actual' && underNote(h)) readFrom.set(h.source!.id, [...(readFrom.get(h.source!.id) ?? []), h]);
+  const actual = items.filter((h) => h.mode === 'actual' && !underNote(h));
   const months = new Map<string, HistoryItem[]>();
   for (const h of actual) {
     const k = h.date.slice(0, 7);
@@ -256,7 +261,7 @@ export function TimelinePage({ preset }: { preset?: string }) {
                     const active = top?.kind === h.ref.kind && top.id === h.ref.id;
                     const onOpen = () => (h.route ? navigate(h.route) : open(h.ref));
                     return h.kind === 'record' ? (
-                      <NoteRow key={h.key} item={h} active={active} onOpen={onOpen} />
+                      <NoteRow key={h.key} item={h} active={active} onOpen={onOpen} happened={readFrom.get(h.ref.id)} onOpenItem={(x) => open(x.ref)} />
                     ) : h.kind === 'decision' ? (
                       <ForkRow key={h.key} item={h} active={active} onOpen={onOpen} />
                     ) : (
@@ -275,9 +280,22 @@ export function TimelinePage({ preset }: { preset?: string }) {
 }
 
 /** A note: what you wrote, with the first lines of it and anything waiting for a yes or no. */
-function NoteRow({ item: h, active, onOpen }: { item: HistoryItem; active: boolean; onOpen(): void }) {
-  const e = useAtlas((s) => s.data.entries[h.ref.id]);
-  const pending = e?.analysis?.suggestions.filter((s) => s.state === 'pending').length ?? 0;
+function NoteRow({
+  item: h,
+  active,
+  onOpen,
+  happened = [],
+  onOpenItem,
+}: {
+  item: HistoryItem;
+  active: boolean;
+  onOpen(): void;
+  happened?: HistoryItem[];
+  onOpenItem(item: HistoryItem): void;
+}) {
+  const data = useAtlas((s) => s.data);
+  const e = data.entries[h.ref.id];
+  const pending = pendingIn(data, h);
   if (!e) return null;
   const Icon = CAPTURE_ICONS[e.kind];
   return (
@@ -307,6 +325,20 @@ function NoteRow({ item: h, active, onOpen }: { item: HistoryItem; active: boole
           )}
         </div>
       </button>
+      {happened.length > 0 && (
+        <ul className="-mt-1.5 space-y-0.5 pr-2 pb-3 pl-[105px]">
+          {happened.map((x) => (
+            <li key={x.key}>
+              <button type="button" onClick={() => onOpenItem(x)} className="flex w-full items-baseline gap-2 text-left text-[12px] text-ink-2 hover:text-ink">
+                <span className="shrink-0 font-mono text-[10px] tracking-wide text-ink-3 uppercase">
+                  {OCCURRENCE_KIND_LABEL[x.kind as OccurrenceKind] ?? ''}
+                </span>
+                <span className="min-w-0 truncate">{x.label}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </li>
   );
 }

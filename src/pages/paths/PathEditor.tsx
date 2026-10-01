@@ -112,6 +112,8 @@ export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): 
   const [time, setTime] = useState(path.time);
   const [skills, setSkills] = useState(skillsToText(path.skills));
   const [lists, setLists] = useState(() => Object.fromEntries(LIST_FIELDS.map((f) => [f.key, path[f.key].join('\n')])) as Record<ListKey, string>);
+  // A new option needs only what it is and what it would bring; everything else can be filled in later, or where it stands.
+  const fresh = !path.objective && !path.summary && !path.capital && !path.time && !path.skills.length && LIST_FIELDS.every((f) => !path[f.key].length);
 
   const save = () => {
     update(path.id, {
@@ -156,44 +158,56 @@ export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): 
       <div className="grid gap-3.5 sm:grid-cols-2">
         <div className="sm:col-span-2">
           <FieldLabel htmlFor="p-title">{t('Title')}</FieldLabel>
-          <input id="p-title" className="field" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input
+            id="p-title"
+            className="field"
+            value={title === t('Untitled path') ? '' : title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={t('e.g. Take a full-time role at a studio')}
+            autoFocus={fresh}
+          />
         </div>
         <div className="sm:col-span-2">
           <FieldLabel htmlFor="p-obj">{t('Objective')}</FieldLabel>
           <textarea id="p-obj" className="field min-h-[56px]" value={objective} onChange={(e) => setObjective(e.target.value)} />
         </div>
-        <div className="sm:col-span-2">
-          <FieldLabel htmlFor="p-sum" hint="optional">
-            {t('Summary')}
-          </FieldLabel>
-          <input id="p-sum" className="field" value={summary} onChange={(e) => setSummary(e.target.value)} />
-        </div>
-        <div>
-          <FieldLabel htmlFor="p-cap">{t('Capital')}</FieldLabel>
-          <input id="p-cap" className="field" value={capital} onChange={(e) => setCapital(e.target.value)} />
-        </div>
-        <div>
-          <FieldLabel htmlFor="p-time">{t('Time')}</FieldLabel>
-          <input id="p-time" className="field" value={time} onChange={(e) => setTime(e.target.value)} />
-        </div>
-        <div className="sm:col-span-2">
-          <FieldLabel htmlFor="p-skills" hint={skillsHint()}>
-            {t('Skills')}
-          </FieldLabel>
-          <textarea id="p-skills" className="field num min-h-[88px] text-[12.5px]" value={skills} onChange={(e) => setSkills(e.target.value)} />
-        </div>
-        {LIST_FIELDS.map((f) => (
-          <div key={f.key}>
-            <FieldLabel htmlFor={`p-${f.key}`}>{f.label}</FieldLabel>
-            <textarea
-              id={`p-${f.key}`}
-              className="field min-h-[88px] text-[12.5px]"
-              value={lists[f.key]}
-              placeholder={f.placeholder}
-              onChange={(e) => setLists({ ...lists, [f.key]: e.target.value })}
-            />
+        <details className="rounded-[2px] border border-line px-3 py-2 sm:col-span-2" open={!fresh}>
+          <summary className="cursor-pointer text-[12.5px] text-ink-2 hover:text-ink">{t('More details')}</summary>
+          <div className="mt-3 grid gap-3.5 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <FieldLabel htmlFor="p-sum" hint="optional">
+                {t('Summary')}
+              </FieldLabel>
+              <input id="p-sum" className="field" value={summary} onChange={(e) => setSummary(e.target.value)} />
+            </div>
+            <div>
+              <FieldLabel htmlFor="p-cap">{t('Capital')}</FieldLabel>
+              <input id="p-cap" className="field" value={capital} onChange={(e) => setCapital(e.target.value)} />
+            </div>
+            <div>
+              <FieldLabel htmlFor="p-time">{t('Time')}</FieldLabel>
+              <input id="p-time" className="field" value={time} onChange={(e) => setTime(e.target.value)} />
+            </div>
+            <div className="sm:col-span-2">
+              <FieldLabel htmlFor="p-skills" hint={skillsHint()}>
+                {t('Skills')}
+              </FieldLabel>
+              <textarea id="p-skills" className="field num min-h-[88px] text-[12.5px]" value={skills} onChange={(e) => setSkills(e.target.value)} />
+            </div>
+            {LIST_FIELDS.map((f) => (
+              <div key={f.key}>
+                <FieldLabel htmlFor={`p-${f.key}`}>{f.label}</FieldLabel>
+                <textarea
+                  id={`p-${f.key}`}
+                  className="field min-h-[88px] text-[12.5px]"
+                  value={lists[f.key]}
+                  placeholder={f.placeholder}
+                  onChange={(e) => setLists({ ...lists, [f.key]: e.target.value })}
+                />
+              </div>
+            ))}
           </div>
-        ))}
+        </details>
       </div>
     </Modal>
   );

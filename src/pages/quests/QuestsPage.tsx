@@ -13,10 +13,13 @@ import { useIsDesktop } from '../../hooks/useMediaQuery';
 import { ArmorPanel } from './ArmorPanel';
 import { NewQuestModal } from './NewQuestModal';
 import { ArsenalPanel } from './ArsenalPanel';
+import { useFocus } from '../../components/shell/Focus';
+import { focusElements, focusLabel } from '../../domain/ask';
+import { bossesAbout, type BossLink } from '../../domain/weave';
 import { cn } from '../../lib/cn';
 import { formatDate, useToday, weekStart } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
-import { toast } from '../../state/uiStore';
+import { toast, useUI } from '../../state/uiStore';
 import { t, tn } from '../../i18n';
 
 const SOURCE_LABEL: Record<XpKind, () => string> = {
@@ -507,6 +510,14 @@ export function QuestsPage() {
               <ArmorPanel boss={boss} className="" />
             </section>
 
+            {/* What you are looking at, in Quests: the same focus as every other lens. */}
+            <FocusBosses
+              onPick={(id) => {
+                setPick(id);
+                document.getElementById('main')?.firstElementChild?.scrollTo?.({ top: 0, behavior: 'smooth' });
+              }}
+            />
+
             {/* Every boss in the plan. */}
             <section className="mt-8">
               <h2 className="label mb-2">{t('Bosses in your plan')}</h2>
@@ -609,5 +620,52 @@ export function QuestsPage() {
       </div>
       {modal}
     </>
+  );
+}
+
+const HOW: Record<BossLink, () => string> = {
+  note: () => t('a note about it finished a step'),
+  named: () => t('a step names it'),
+  armor: () => t('its armor involves it'),
+  plan: () => t('the plan rests on a reason about it'),
+};
+
+/** The bosses that concern the focus, and how; or, plainly, that none does yet. */
+function FocusBosses({ onPick }: { onPick(id: string): void }) {
+  const focus = useFocus();
+  const data = useAtlas((s) => s.data);
+  const today = useToday();
+  const setFocus = useUI((s) => s.setFocus);
+  const found = useMemo(() => (focus ? bossesAbout(data, focusElements(data, focus), today) : []), [data, focus, today]);
+  if (!focus) return null;
+  const name = focusLabel(data, focus);
+  return (
+    <section className="mt-8 rounded-[2px] border border-line bg-surface px-3.5 py-3" aria-label={t('Looking at {name}', { name })}>
+      <div className="flex items-baseline justify-between gap-3">
+        <h2 className="label">{t('Looking at {name}', { name })}</h2>
+        <button type="button" className="text-[12px] text-ink-3 hover:text-ink" onClick={() => setFocus(null)}>
+          {t('Let go')}
+        </button>
+      </div>
+      {found.length === 0 ? (
+        <p className="mt-1.5 text-[12.5px] leading-snug text-ink-3">{t('Nothing in your quests concerns {name} yet.', { name })}</p>
+      ) : (
+        <ul className="mt-1.5 divide-y divide-line">
+          {found.map(({ boss: b, how }) => (
+            <li key={b.id}>
+              <button type="button" onClick={() => onPick(b.id)} className="flex w-full items-baseline gap-3 py-1.5 text-left hover:text-ink">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[13px] text-ink">{b.title}</span>
+                  <span className="block text-[11.5px] text-ink-3">{how.map((h) => HOW[h]()).join(' · ')}</span>
+                </span>
+                <span className="shrink-0 font-mono text-[10.5px] text-ink-3">
+                  HP {b.hp} / {b.maxHp}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }

@@ -602,3 +602,40 @@ export function weaveOf(data: AtlasData, entryId: ID, today?: ISODate): Weave {
   const auto = strands.reduce((n, s) => n + s.threads.filter((x) => x.auto).length, 0);
   return { strands, offers, auto };
 }
+
+/* ---------------- what a focus touches in Quests ---------------- */
+
+export type BossLink = 'note' | 'named' | 'armor' | 'plan';
+
+/**
+ * The bosses that concern what you are looking at, and how: a note about it
+ * finished one of its steps, one of its steps names it, its armor is a
+ * repeat or cycle that involves it, or the plan it belongs to rests on a
+ * reason about it. Read from the records every time, like every lens.
+ */
+export function bossesAbout(data: AtlasData, ids: ID[], today?: ISODate): { boss: Boss; how: BossLink[] }[] {
+  if (!ids.length) return [];
+  const set = new Set(ids);
+  const labels = ids.map((id) => data.nodes[id]?.label).filter((x): x is string => Boolean(x && x.length >= 3));
+  const finishedBy = new Set(Object.values(data.entries).flatMap((e) => (e.nodeIds.some((n) => set.has(n)) ? (e.woven?.parts ?? []) : [])));
+  const nav = data.navigation;
+  const planRests = Boolean(nav && optionsTouching(data, ids).some((p) => p.id === nav.pathId));
+  const armorTouches = (bossId: string) =>
+    (data.quests?.armor?.[bossId] ?? []).some((r) => {
+      if (r.kind === 'pattern') return (data.patterns[r.id]?.nodeIds ?? []).some((n) => set.has(n));
+      return r.id.split('|').some((cid) => {
+        const c = data.claims[cid];
+        return c && (set.has(c.from) || set.has(c.to) || c.with.some((w) => set.has(w)));
+      });
+    });
+  const out: { boss: Boss; how: BossLink[] }[] = [];
+  for (const boss of quests(data, today).bosses) {
+    const how: BossLink[] = [];
+    if (boss.parts.some((p) => finishedBy.has(p.id))) how.push('note');
+    if (boss.parts.some((p) => labels.some((l) => lower(p.title).includes(lower(l))))) how.push('named');
+    if (armorTouches(boss.id)) how.push('armor');
+    if (planRests && boss.source === 'plan') how.push('plan');
+    if (how.length) out.push({ boss, how });
+  }
+  return out;
+}

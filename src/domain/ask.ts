@@ -116,13 +116,16 @@ export function noticeables(data: AtlasData, today: ISODate = todayISO()): Notic
 export function momentsOf(data: AtlasData, ref: EntityRef) {
   const ids = new Set(focusElements(data, ref));
   const area = ref.kind === 'area' ? (ref.id as AreaKey) : undefined;
-  return historyItems(data, { records: true }).filter((h) => {
+  const found = historyItems(data, { records: true }).filter((h) => {
     if (h.about.some((a) => ids.has(a)) || (h.instanceOf && ids.has(h.instanceOf))) return true;
     if (!area) return false;
     if (h.ref.kind === 'entry') return data.entries[h.ref.id]?.areas.includes(area) ?? false;
     if (h.ref.kind === 'decision') return data.decisions[h.ref.id]?.areas.includes(area) ?? false;
     return false;
   });
+  // A note and what was read from it are one moment: the happening says it, and keeps its trail to the note.
+  const readFrom = new Set(found.flatMap((h) => (h.kind !== 'record' && h.source?.kind === 'entry' ? [h.source.id] : [])));
+  return found.filter((h) => !(h.kind === 'record' && readFrom.has(h.ref.id)));
 }
 
 /* ---------------- 2 · why might this be happening ---------------- */

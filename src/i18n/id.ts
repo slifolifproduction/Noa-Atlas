@@ -2236,8 +2236,6 @@ export const ID: Record<string, string> = {
   'said yes, took on': 'mengiyakan, menerima',
   'Phrases that would count against it': 'Frasa yang akan membantahnya',
   'declined, said no': 'menolak, bilang tidak',
-  'The analysis layer uses these phrases to propose evidence from your entries. You review every proposal.':
-    'Lapisan analisis memakai frasa ini untuk mengusulkan bukti dari catatanmu. Kamu meninjau setiap usulan.',
   'Nothing new found.': 'Tidak ada yang baru.',
   'Something like this has happened before: what keeps coming back in your notes and decisions, with every time it happened and the exceptions.':
     'Hal seperti ini pernah terjadi sebelumnya: yang terus kembali dalam catatan dan keputusanmu, dengan setiap kali terjadi dan pengecualiannya.',
@@ -2720,4 +2718,13 @@ export const ID: Record<string, string> = {
   '“{choice}”, {n} days ago. You expected: {expected}': '“{choice}”, {n} hari lalu. Yang kamu harapkan: {expected}',
   '“{choice}”, {n} days ago.': '“{choice}”, {n} hari lalu.',
   'Decided: {title}': 'Diputuskan: {title}',
+  'e.g. Take a full-time role at a studio': 'mis. Ambil kerja tetap di sebuah studio',
+  'Notes that use these phrases are connected to it as they are saved, and you can take any back. With none, the names of its steps are used.':
+    'Catatan yang memakai frasa ini langsung disambungkan saat disimpan, dan kamu bisa membatalkan yang mana pun. Kalau kosong, nama langkah-langkahnya yang dipakai.',
+  'a note about it finished a step': 'sebuah catatan tentangnya menyelesaikan satu langkah',
+  'a step names it': 'sebuah langkah menyebutnya',
+  'its armor involves it': 'armornya melibatkannya',
+  'the plan rests on a reason about it': 'rencananya bersandar pada dugaan tentangnya',
+  'Looking at {name}': 'Melihat {name}',
+  'Nothing in your quests concerns {name} yet.': 'Belum ada misimu yang menyangkut {name}.',
 };

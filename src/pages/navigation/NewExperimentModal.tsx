@@ -30,13 +30,15 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
   const [measures, setMeasures] = useState('');
   const [patternId, setPatternId] = useState('');
   const [pathId, setPathId] = useState('');
-  const valid = title.trim() && hypothesis.trim() && prediction.trim();
+  // Two things make a test: what you change, and what should happen. The rest can wait under More details.
+  const valid = design.trim() && prediction.trim();
+  const claimText = claimId && data.claims[claimId] ? claimSentence(data, data.claims[claimId]!) : '';
 
   const save = () => {
     if (!valid) return;
     const id = add({
-      title: title.trim(),
-      hypothesis: hypothesis.trim(),
+      title: title.trim() || shortTitle(design),
+      hypothesis: hypothesis.trim() || claimText || design.trim(),
       design: design.trim(),
       durationDays: Math.max(1, days),
       status: 'proposed',
@@ -76,16 +78,7 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
           <FieldLabel htmlFor="x-claim" hint="optional">
             {t('The claim it tests')}
           </FieldLabel>
-          <select
-            id="x-claim"
-            className="field"
-            value={claimId}
-            onChange={(e) => {
-              setClaimId(e.target.value);
-              const c = data.claims[e.target.value];
-              if (c && !hypothesis.trim()) setHypothesis(claimSentence(data, c));
-            }}
-          >
+          <select id="x-claim" className="field" value={claimId} onChange={(e) => setClaimId(e.target.value)}>
             <option value="">{t('None')}</option>
             {activeClaims(data)
               .filter((c) => !c.retired)
@@ -97,20 +90,6 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
               ))}
           </select>
         </div>
-        <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
-          <div>
-            <FieldLabel htmlFor="x-title">{t('Title')}</FieldLabel>
-            <input id="x-title" className="field" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('e.g. Commitment cap')} />
-          </div>
-          <div>
-            <FieldLabel htmlFor="x-days">{t('Days')}</FieldLabel>
-            <input id="x-days" type="number" min={1} className="field num" value={days} onChange={(e) => setDays(Number(e.target.value))} />
-          </div>
-        </div>
-        <div>
-          <FieldLabel htmlFor="x-hyp">{t('Hypothesis')}</FieldLabel>
-          <input id="x-hyp" className="field" value={hypothesis} onChange={(e) => setHypothesis(e.target.value)} placeholder={t('I may… / If I…, then…')} />
-        </div>
         <div>
           <FieldLabel htmlFor="x-design">{t('What changes on purpose')}</FieldLabel>
           <textarea
@@ -121,7 +100,7 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
             placeholder={t('One thing you will do differently, and for how long. Keep everything else as it is.')}
           />
         </div>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 sm:grid-cols-[1fr_120px]">
           <div>
             <FieldLabel htmlFor="x-pred">{t('Prediction')}</FieldLabel>
             <textarea
@@ -133,71 +112,113 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
             />
           </div>
           <div>
-            <FieldLabel htmlFor="x-crit" hint="optional">
-              {t('It did not work if')}
-            </FieldLabel>
-            <textarea
-              id="x-crit"
-              className="field min-h-[56px]"
-              value={criteria}
-              onChange={(e) => setCriteria(e.target.value)}
-              placeholder={t('The result that would count against the claim')}
-            />
+            <FieldLabel htmlFor="x-days">{t('Days')}</FieldLabel>
+            <input id="x-days" type="number" min={1} className="field num" value={days} onChange={(e) => setDays(Number(e.target.value))} />
           </div>
         </div>
-        <div>
-          <FieldLabel htmlFor="x-base" hint="optional">
-            {t('How things are now')}
-          </FieldLabel>
-          <input
-            id="x-base"
-            className="field"
-            value={baseline}
-            onChange={(e) => setBaseline(e.target.value)}
-            placeholder={t('The baseline to compare against')}
-          />
-        </div>
-        <div>
-          <FieldLabel htmlFor="x-measures" hint={t('one per line')}>
-            {t('Measures')}
-          </FieldLabel>
-          <textarea
-            id="x-measures"
-            className="field min-h-[64px]"
-            value={measures}
-            onChange={(e) => setMeasures(e.target.value)}
-            placeholder={t('Completion rate\nFocus hours per week\nStress (1–5)')}
-          />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div>
-            <FieldLabel htmlFor="x-pattern" hint="optional">
-              {t('Also bears on pattern')}
-            </FieldLabel>
-            <select id="x-pattern" className="field" value={patternId} onChange={(e) => setPatternId(e.target.value)}>
-              <option value="">{t('None')}</option>
-              {sortedPatterns(data).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {patternCode(p.code)} · {patternTitle(p)}
-                </option>
-              ))}
-            </select>
+        <details className="rounded-[2px] border border-line px-3 py-2">
+          <summary className="cursor-pointer text-[12.5px] text-ink-2 hover:text-ink">{t('More details')}</summary>
+          <div className="mt-3 space-y-3.5">
+            <div>
+              <FieldLabel htmlFor="x-title" hint="optional">
+                {t('Title')}
+              </FieldLabel>
+              <input
+                id="x-title"
+                className="field"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={shortTitle(design) || t('e.g. Commitment cap')}
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="x-hyp" hint="optional">
+                {t('Hypothesis')}
+              </FieldLabel>
+              <input
+                id="x-hyp"
+                className="field"
+                value={hypothesis}
+                onChange={(e) => setHypothesis(e.target.value)}
+                placeholder={claimText || t('I may… / If I…, then…')}
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="x-crit" hint="optional">
+                {t('It did not work if')}
+              </FieldLabel>
+              <textarea
+                id="x-crit"
+                className="field min-h-[56px]"
+                value={criteria}
+                onChange={(e) => setCriteria(e.target.value)}
+                placeholder={t('The result that would count against the claim')}
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="x-base" hint="optional">
+                {t('How things are now')}
+              </FieldLabel>
+              <input
+                id="x-base"
+                className="field"
+                value={baseline}
+                onChange={(e) => setBaseline(e.target.value)}
+                placeholder={t('The baseline to compare against')}
+              />
+            </div>
+            <div>
+              <FieldLabel htmlFor="x-measures" hint={t('one per line')}>
+                {t('Measures')}
+              </FieldLabel>
+              <textarea
+                id="x-measures"
+                className="field min-h-[64px]"
+                value={measures}
+                onChange={(e) => setMeasures(e.target.value)}
+                placeholder={t('Completion rate\nFocus hours per week\nStress (1–5)')}
+              />
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <FieldLabel htmlFor="x-pattern" hint="optional">
+                  {t('Also bears on pattern')}
+                </FieldLabel>
+                <select id="x-pattern" className="field" value={patternId} onChange={(e) => setPatternId(e.target.value)}>
+                  <option value="">{t('None')}</option>
+                  {sortedPatterns(data).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {patternCode(p.code)} · {patternTitle(p)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <FieldLabel htmlFor="x-path" hint="optional">
+                  {t('Informs option')}
+                </FieldLabel>
+                <select id="x-path" className="field" value={pathId} onChange={(e) => setPathId(e.target.value)}>
+                  <option value="">{t('None')}</option>
+                  {Object.values(data.paths).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {pathCode(p.code)} · {p.title}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
-          <div>
-            <FieldLabel htmlFor="x-path" hint="optional">
-              {t('Informs option')}
-            </FieldLabel>
-            <select id="x-path" className="field" value={pathId} onChange={(e) => setPathId(e.target.value)}>
-              <option value="">{t('None')}</option>
-              {Object.values(data.paths).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {pathCode(p.code)} · {p.title}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+        </details>
       </div>
     </Modal>
   );
+}
+
+/** A title from the first words of what changes, when none is given. */
+function shortTitle(design: string): string {
+  const first = design
+    .trim()
+    .split(/[.!?\n]/)[0]
+    .trim();
+  return first.length <= 48 ? first : `${first.slice(0, 47).replace(/\s+\S*$/, '')}…`;
 }

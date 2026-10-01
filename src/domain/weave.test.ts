@@ -5,7 +5,7 @@ import { useAtlas } from '../state/atlasStore';
 import { weaveEntry } from '../state/operations';
 import { danglingReferences } from './integrity';
 import { quests } from './quests';
-import { decisionIn, finishedIn, knownClaim, weaveOf } from './weave';
+import { bossesAbout, decisionIn, finishedIn, knownClaim, weaveOf } from './weave';
 
 const seed = () => createSeedData();
 const note = (content: string, title = '') => ({ title, content });
@@ -185,6 +185,21 @@ describe('the weave', () => {
     expect(d.entries[id].woven).toMatchObject({ decisionDeclined: true });
     expect(Object.values(d.decisions).some((x) => x.context === d.entries[id].content)).toBe(false);
     expect(danglingReferences(d)).toEqual([]);
+  });
+
+  it('shows in Quests what the focus touches: a step a note about it finished, its armor, a step that names it', () => {
+    write('Finished the scene 4 layout pass with Juna this morning.');
+    const d = useAtlas.getState().data;
+    const viaNote = bossesAbout(d, ['n_juna'], '2026-10-01');
+    expect(viaNote.some((x) => x.boss.parts.some((p) => p.id === 'a07') && x.how.includes('note'))).toBe(true);
+    // Nothing ties a stranger to any boss.
+    expect(bossesAbout(d, ['n_ruth'], '2026-10-01').filter((x) => x.how.includes('note'))).toEqual([]);
+    // Armor: a repeat that involves it.
+    const pattern = Object.values(d.patterns).find((p) => p.nodeIds.length)!;
+    const boss = quests(d, '2026-10-01').bosses[0];
+    useAtlas.getState().addArmor(boss.id, { kind: 'pattern', id: pattern.id });
+    const withArmor = bossesAbout(useAtlas.getState().data, [pattern.nodeIds[0]], '2026-10-01');
+    expect(withArmor.find((x) => x.boss.id === boss.id)?.how).toContain('armor');
   });
 
   it('lets go of a finished step when it leaves the plan', () => {
