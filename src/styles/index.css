@@ -1586,6 +1586,11 @@ html body {
   transform-box: fill-box;
   transform-origin: center;
 }
+/* The tear's light split, red and blue, for the moment space breaks (see BossEye). */
+.quest-tear-split {
+  opacity: 0;
+  mix-blend-mode: screen;
+}
 /* As it lands, the space round the eye drained of light for a moment (see BossEye). */
 .quest-drain {
   position: absolute;
@@ -1698,7 +1703,8 @@ html body {
   .quest-burst,
   .quest-crack,
   .quest-shock,
-  .quest-drain {
+  .quest-drain,
+  .quest-tear-split {
     display: none;
   }
   .quest-emerge,

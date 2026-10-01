@@ -186,6 +186,7 @@ export function BossEye({
   const windowPath = useRef<SVGPathElement>(null);
   const tearEdge = useRef<HTMLCanvasElement>(null);
   const tearHalo = useRef<HTMLCanvasElement>(null);
+  const tearSplit = useRef<(HTMLCanvasElement | null)[]>([]);
   const burst = useRef<HTMLDivElement>(null);
   const crack = useRef<HTMLDivElement>(null);
   const eye = useRef<SVGSVGElement>(null);
@@ -244,6 +245,8 @@ export function BossEye({
     // camera still to be given (a push in, sprung back), and the ripples running out through space.
     trauma: 0,
     punch: 0,
+    // When the light last split, as space broke.
+    chromaAt: 0,
     ripples: [] as (Omit<Ripple, 'age'> & { at: number })[],
   });
   Object.assign(live.current, { state, look, alert, urgent, rest, layout, dormant, k: geo.k, w: geo.w, h: geo.h, cx: geo.cx, cy: geo.cy, reduced });
@@ -286,15 +289,20 @@ export function BossEye({
   const hot = urgent && state === 'active';
   useEffect(() => {
     if (!geo.w || !tearEdge.current || !tearHalo.current) return;
-    paintTear(tearEdge.current, tearHalo.current, {
-      w: geo.w + 2 * over,
-      h: geo.h + 2 * over,
-      cx: geo.cx + over,
-      cy: geo.cy + over,
-      k: geo.k,
-      seed,
-      urgent: hot,
-    });
+    paintTear(
+      tearEdge.current,
+      tearHalo.current,
+      {
+        w: geo.w + 2 * over,
+        h: geo.h + 2 * over,
+        cx: geo.cx + over,
+        cy: geo.cy + over,
+        k: geo.k,
+        seed,
+        urgent: hot,
+      },
+      tearSplit.current,
+    );
   }, [geo, seed, hot, over]);
   // The other dimension is painted once per scale and boss, a canvas for each of its depths (they turn and breathe in CSS).
   useEffect(() => {
@@ -633,6 +641,20 @@ export function BossEye({
           // Space itself is struck: a ripple runs out from the tear along its line, the stage shakes hard.
           live.current.ripples.push({ at: now, amp: 26, speed: 1.5, life: 1100, flat: 0.42 });
           quake(0.85, 0.0009);
+          // And its light splits, once, as through a lens: red and blue swell apart from the tear's edge and
+          // close again, smoothly, never a glitch; the stars split too (see drawStars).
+          live.current.chromaAt = now;
+          tearSplit.current.forEach((el, i) => {
+            const [x, y] = i ? [5, 2] : [-5, -2];
+            el?.animate(
+              [
+                { opacity: 0, translate: '0 0', easing: 'cubic-bezier(.2,.8,.3,1)' },
+                { opacity: 0.85, translate: `${x}px ${y}px`, offset: 0.22, easing: 'cubic-bezier(.4,0,.2,1)' },
+                { opacity: 0, translate: '0 0' },
+              ],
+              { duration: 560 },
+            );
+          });
         }
         if (wake >= TORN) torn = true;
       } else if (Math.abs(tearGoal - gap) > 0.0005) {
@@ -787,7 +809,10 @@ export function BossEye({
       const sc = sky.current?.getContext('2d');
       L.ripples = L.ripples.filter((w) => now - w.at < w.life * 4);
       const ripples = L.ripples.map(({ at, ...w }) => ({ ...w, age: now - at }));
-      if (sc) drawStars(sc, field.current.stars, { w: L.w, h: L.h, q: field.current.q, vx: L.cx, vy: L.cy, ox, oy, dt, t: now, ripples });
+      // The split light: up quickly, then closing smoothly.
+      const ca = L.chromaAt ? now - L.chromaAt : Infinity;
+      const chroma = ca < 110 ? Math.sin(((ca / 110) * Math.PI) / 2) : Math.exp(-(ca - 110) / 160);
+      if (sc) drawStars(sc, field.current.stars, { w: L.w, h: L.h, q: field.current.q, vx: L.cx, vy: L.cy, ox, oy, dt, t: now, ripples, chroma });
       // The hands: they sweep to the hour as it opens, then keep the time; the seconds step, with a small recoil.
       const sec = Math.floor(Date.now() / 1000);
       if (sec !== lastSec) {
@@ -994,6 +1019,15 @@ export function BossEye({
           <div ref={frontShape} className="quest-tear-shape" style={{ inset: -over, transformOrigin: `${geo.cx + over}px ${geo.cy + over}px` }}>
             <canvas ref={tearHalo} className="quest-tear-canvas quest-tear-glow" />
             <canvas ref={tearEdge} className="quest-tear-canvas" />
+            {[0, 1].map((i) => (
+              <canvas
+                key={i}
+                ref={(el) => {
+                  tearSplit.current[i] = el;
+                }}
+                className="quest-tear-canvas quest-tear-split"
+              />
+            ))}
           </div>
           <div ref={crack} className="quest-crack" style={{ left: geo.cx, top: geo.cy, width: 2 * TEAR_W * geo.k, marginLeft: -TEAR_W * geo.k }} />
         </div>

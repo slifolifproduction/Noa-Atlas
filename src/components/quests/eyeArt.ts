@@ -286,6 +286,7 @@ export function paintTear(
   edge: HTMLCanvasElement,
   halo: HTMLCanvasElement,
   o: { w: number; h: number; cx: number; cy: number; k: number; seed: number; urgent: boolean },
+  split: (HTMLCanvasElement | null)[] = [],
 ) {
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   const outline = tearOutline(o.seed);
@@ -403,6 +404,23 @@ export function paintTear(
     hx.lineWidth = 3.2 * px;
     hx.stroke();
   }
+  // Its light split, red and blue, for the moment space breaks (moved apart and back in CSS): soft, and
+  // painted at one pixel to the stage's, as they are only ever seen in passing.
+  split.forEach((c, i) => {
+    if (!c) return;
+    c.width = Math.round(o.w);
+    c.height = Math.round(o.h);
+    const ctx = c.getContext('2d');
+    if (!ctx) return;
+    ctx.setTransform(1, 0, 0, 1, o.cx, o.cy);
+    ctx.scale(o.k, o.k);
+    soft(ctx, 1.2, (s) => {
+      trace(s, outline);
+      s.strokeStyle = i ? 'rgb(60,200,255)' : 'rgb(255,58,96)';
+      s.lineWidth = 3 * px;
+      s.stroke();
+    });
+  });
 }
 
 /* ---- The dimension beyond the tear ----------------------------------------- */
@@ -914,12 +932,13 @@ const rippleAt = (w: Ripple, d: number) => {
  * (vx, vy), the eye; (ox, oy) is how far the camera carries the farthest, in
  * pixels. `t` is the time, for the twinkles. Ripples going out through space
  * push the stars aside as they pass and make them flare, and bend the dark
- * along their front.
+ * along their front. `chroma` (0 to 1) splits their light as through a lens:
+ * red out from the eye and blue in, the further out the wider.
  */
 export function drawStars(
   c: CanvasRenderingContext2D,
   stars: Star[],
-  o: { w: number; h: number; q: number; vx: number; vy: number; ox: number; oy: number; dt: number; t: number; ripples?: Ripple[] },
+  o: { w: number; h: number; q: number; vx: number; vy: number; ox: number; oy: number; dt: number; t: number; ripples?: Ripple[]; chroma?: number },
 ) {
   c.setTransform(o.q, 0, 0, o.q, 0, 0);
   c.clearRect(0, 0, o.w, o.h);
@@ -943,6 +962,9 @@ export function drawStars(
   }
   const spread = Math.max(o.w, o.h) * 0.32;
   const flares: [number, number, number, number][] = [];
+  const split: [number, number, number, number][] = [];
+  const chroma = o.chroma ?? 0;
+  const reach = Math.hypot(o.w, o.h) / 2;
   for (const s of stars) {
     s.z -= (o.dt / 1000) * STAR_CRUISE;
     if (s.z < STAR_NEAR) Object.assign(s, newStar(Math.random, 1));
@@ -966,6 +988,7 @@ export function drawStars(
     const size = s.r * (0.6 + near * 1.8) * (1 + 0.8 * lit);
     let a = Math.min(1, s.a * Math.min(1, near / 0.12) * (1 + 1.6 * lit));
     if (s.tw) a *= 1 - s.tw * (0.5 + 0.5 * Math.sin(o.t * 0.001 * s.tf + s.tp));
+    if (chroma > 0.01) split.push([x, y, size, a]);
     c.globalAlpha = a;
     c.fillStyle = s.cool ? '#d6deec' : '#ece8df';
     if (size < 1) c.fillRect(x - size, y - size, size * 2, size * 2);
@@ -975,6 +998,27 @@ export function drawStars(
       c.fill();
       if (size > 1.6) flares.push([x, y, size, a]);
     }
+  }
+  // Their light split, as through a lens: red out from the eye, blue in.
+  if (split.length) {
+    c.globalCompositeOperation = 'lighter';
+    for (const [x, y, size, a] of split) {
+      const [dx, dy] = [x - o.vx, y - o.vy];
+      const d = Math.hypot(dx, dy) || 1;
+      const off = chroma * (1.5 + 7 * Math.min(1, d / reach));
+      const [ux, uy] = [(dx / d) * off, (dy / d) * off];
+      const r = Math.max(0.8, size);
+      c.globalAlpha = a * 0.7 * chroma;
+      c.fillStyle = '#ff3a60';
+      c.beginPath();
+      c.arc(x + ux, y + uy, r, 0, TAU);
+      c.fill();
+      c.fillStyle = '#3cc8ff';
+      c.beginPath();
+      c.arc(x - ux, y - uy, r, 0, TAU);
+      c.fill();
+    }
+    c.globalCompositeOperation = 'source-over';
   }
   // The nearest carry a faint cross of light.
   c.strokeStyle = '#ece8df';
