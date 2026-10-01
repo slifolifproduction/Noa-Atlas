@@ -7,6 +7,7 @@ import {
   arc,
   CONTOUR,
   drawStars,
+  type Ripple,
   DIAL,
   EW,
   FIBRES,
@@ -56,9 +57,12 @@ const NS = 'http://www.w3.org/2000/svg';
  * bursts and fades as space tears open on another dimension (to TORN), which
  * rushes at us. Out of that dimension's depth the eye comes forward,
  * out of focus and dim, growing and pulling into focus (from EMERGES, see
- * .quest-emerge), its lids opening as it comes (OPENS), and it lands, a
- * shock going out from its pupil and the stage shuddering (ARRIVES). Sealed,
- * the tear stands open only this much (SCAR).
+ * .quest-emerge), its lids opening as it comes (OPENS), and it lands with
+ * its weight (ARRIVES): a shock from its pupil, a ripple through space, a
+ * punch of the camera, a shake, and the space round it drained of light for a
+ * moment. Space is struck as it tears too: a ripple runs out along the tear's
+ * line and the stage shakes hard. Sealed, the tear stands open only this much
+ * (SCAR).
  */
 const CRACKED = 480;
 const TORN = 1300;
@@ -126,7 +130,7 @@ const RUSH = [0.9, 0.84, 0.76, 0.66];
  * When you go to strike it narrows and the pupil opens wide; it looks
  * at the spoke of the piece of work you point to, where that spoke is now; a
  * strike is a beam, and it flinches and blinks, a shock going out from its
- * pupil and the stage shuddering. Near
+ * pupil and the stage shaking. Near
  * its date it narrows, burns orange and its light beats. Beaten, it closes,
  * its rings stop and the tear seals to a scar; got away, it half closes and
  * looks aside. Still, with reduced motion.
@@ -209,6 +213,7 @@ export function BossEye({
   const flash = useRef<HTMLDivElement>(null);
   const beams = useRef<SVGSVGElement>(null);
   const shock = useRef<HTMLDivElement>(null);
+  const drain = useRef<HTMLDivElement>(null);
   const [geo, setGeo] = useState({ w: 0, h: 0, cx: 0, cy: 0, k: 1 });
   const layout = useMemo(() => spokes(parts), [parts]);
   const id = `eye${useId().replace(/[^\w]/g, '')}`;
@@ -235,6 +240,11 @@ export function BossEye({
     px: 0,
     py: 0,
     shockUntil: 0,
+    // The weight of what hits the stage: how hard it is shaking (0 to 1, dying away), a punch of the
+    // camera still to be given (a push in, sprung back), and the ripples running out through space.
+    trauma: 0,
+    punch: 0,
+    ripples: [] as (Omit<Ripple, 'age'> & { at: number })[],
   });
   Object.assign(live.current, { state, look, alert, urgent, rest, layout, dormant, k: geo.k, w: geo.w, h: geo.h, cx: geo.cx, cy: geo.cy, reduced });
   // The camera's reach on this stage, and how far past the stage the layers it carries are painted, so no edge shows.
@@ -332,26 +342,20 @@ export function BossEye({
       { duration: 950, easing: 'cubic-bezier(.2,.7,.2,1)' },
     );
   };
-  const shudder = (amp: number) =>
-    body.current?.animate(
-      [
-        { transform: 'translate(0,0)' },
-        { transform: `translate(${-amp}px,${amp * 0.4}px)` },
-        { transform: `translate(${amp * 0.8}px,${-amp * 0.6}px)` },
-        { transform: `translate(${-amp * 0.6}px,${amp * 0.2}px)` },
-        { transform: `translate(${amp * 0.2}px,${-amp * 0.2}px)` },
-        { transform: 'translate(0,0)' },
-      ],
-      { duration: 360, easing: 'ease-out' },
-    );
+  /** Something heavy hits the stage: it shakes (`trauma`, 0 to 1) and the camera is punched in (`punch`). */
+  const quake = (trauma: number, punch = 0) => {
+    const L = live.current;
+    L.trauma = Math.min(1, L.trauma + trauma);
+    L.punch += punch;
+  };
 
-  // A hit: it flinches and blinks, a shock goes out from its pupil, the whole of it shudders.
+  // A hit: it flinches and blinks, a shock goes out from its pupil, the whole of it shakes.
   useEffect(() => {
     if (!hit) return;
     live.current.hitAt = performance.now();
     if (reduced) return;
     shockwave();
-    shudder(5);
+    quake(0.45, 0.0005);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hit, reduced]);
 
@@ -555,6 +559,9 @@ export function BossEye({
     let openV = 0;
     // The pupil's aperture and the iris's lens, each on a servo: quick, a little past, and back.
     const ap = { x: 0.55, v: 0 };
+    // The camera's punch, on a spring that rings once: in, a little back past rest, and still.
+    const punch = { x: 0, v: 0 };
+    let shaking = false;
     const lens = { x: 1, v: 0 };
     const servo = (s: { x: number; v: number }, goal: number, k: number, c: number, dt: number) => {
       for (let left = dt; left > 0; left -= 16) {
@@ -587,7 +594,7 @@ export function BossEye({
       const dt = Math.min(64, now - lastFrame);
       lastFrame = now;
       // The tear: a crack runs out along its line, flickering; then space tears open on the other
-      // dimension, with a burst and a shudder. Once open it stays; beaten, it seals to a scar.
+      // dimension, with a burst and a ripple and a shake. Once open it stays; beaten, it seals to a scar.
       const tearGoal = L.dormant || L.state === 'defeated' ? SCAR : 1;
       if (!torn) {
         const reveal = easeInOut(clamp01(wake / CRACKED));
@@ -623,19 +630,27 @@ export function BossEye({
           dimLayers.current.forEach((el, i) =>
             el?.animate([{ scale: String(RUSH[i]) }, { scale: '1' }], { duration: 2400, easing: 'cubic-bezier(.16,.8,.2,1)' }),
           );
-          shudder(7);
+          // Space itself is struck: a ripple runs out from the tear along its line, the stage shakes hard.
+          live.current.ripples.push({ at: now, amp: 26, speed: 1.5, life: 1100, flat: 0.42 });
+          quake(0.85, 0.0009);
         }
         if (wake >= TORN) torn = true;
       } else if (Math.abs(tearGoal - gap) > 0.0005) {
         gap += (tearGoal - gap) * (1 - Math.exp(-dt / 450));
         setTear(1, gap);
       }
-      // It lands: a shock from its pupil, the stage shudders, the tear flares behind it.
+      // It lands: a shock from its pupil, the stage struck, the tear flares behind it.
       if (!arrived && wake >= ARRIVES) {
         arrived = true;
         el?.setAttribute('data-arrived', '');
         shockwave(4.4);
-        shudder(4);
+        // It lands with its weight: a ripple out from the eye, a punch of the camera, a shake, and the
+        // space round it drained of light for a moment, as if the eye drew it in.
+        live.current.ripples.push({ at: now, amp: 16, speed: 1.1, life: 900, flat: 0.85 });
+        quake(0.6, 0.00165);
+        const drained = [{ opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 0 }];
+        drain.current?.animate(drained, { duration: 3200, easing: 'ease-out' });
+        sky.current?.animate([{ opacity: 1 }, { opacity: 0.3, offset: 0.08 }, { opacity: 1 }], { duration: 3200, easing: 'ease-out' });
       }
       // The iris turns slowly on itself (once in three minutes), until it is beaten.
       if (!L.dormant && L.state !== 'defeated') turned -= dt * 0.002;
@@ -727,6 +742,34 @@ export function BossEye({
       if (now < L.shockUntil && shock.current) shock.current.style.translate = `calc(-50% + ${L.px.toFixed(1)}px) calc(-50% + ${L.py.toFixed(1)}px)`;
       // The camera, eased; each layer carried by its depth. The tear and its window move as one, and what is
       // inside the window is carried relative to it.
+      // The shake: weighty (a slow sway under a quicker tremor, and a little roll), dying away as its
+      // trauma does, and the camera's punch; the whole stage takes them, the text over it does not.
+      L.trauma = Math.max(0, L.trauma - dt / 850);
+      if (L.punch) {
+        punch.v += L.punch;
+        L.punch = 0;
+      }
+      for (let left = dt; left > 0; left -= 16) {
+        const h = Math.min(16, left);
+        punch.v += (-0.0009 * punch.x - 0.021 * punch.v) * h;
+        punch.x += punch.v * h;
+      }
+      const tr = L.trauma * L.trauma;
+      if (tr > 0.0004 || Math.abs(punch.x) > 0.0003 || Math.abs(punch.v) > 0.00001) {
+        const ts = now / 1000;
+        const sx = 18 * tr * (0.65 * Math.sin(ts * 37 + 1.1) + 0.35 * Math.sin(ts * 71 + 4.2));
+        const sy = 14 * tr * (0.65 * Math.sin(ts * 43 + 2.7) + 0.35 * Math.sin(ts * 67 + 0.3));
+        const roll = 0.5 * tr * Math.sin(ts * 29 + 5.1);
+        const tf = `translate(${sx.toFixed(1)}px,${sy.toFixed(1)}px) rotate(${roll.toFixed(3)}deg) scale(${(1 + punch.x).toFixed(4)})`;
+        if (body.current) body.current.style.transform = tf;
+        if (sky.current) sky.current.style.transform = tf;
+        shaking = true;
+      } else if (shaking) {
+        shaking = false;
+        punch.x = punch.v = 0;
+        if (body.current) body.current.style.transform = '';
+        if (sky.current) sky.current.style.transform = '';
+      }
       const ce = 1 - Math.exp(-dt / 380);
       cam.x += (cam.tx - cam.x) * ce;
       cam.y += (cam.ty - cam.y) * ce;
@@ -742,7 +785,9 @@ export function BossEye({
       DIM_DEPTH.forEach((d, i) => put(dimLayers.current[i], d - DEPTH.tear));
       put(emerge, -DEPTH.tear);
       const sc = sky.current?.getContext('2d');
-      if (sc) drawStars(sc, field.current.stars, { w: L.w, h: L.h, q: field.current.q, vx: L.cx, vy: L.cy, ox, oy, dt, t: now });
+      L.ripples = L.ripples.filter((w) => now - w.at < w.life * 4);
+      const ripples = L.ripples.map(({ at, ...w }) => ({ ...w, age: now - at }));
+      if (sc) drawStars(sc, field.current.stars, { w: L.w, h: L.h, q: field.current.q, vx: L.cx, vy: L.cy, ox, oy, dt, t: now, ripples });
       // The hands: they sweep to the hour as it opens, then keep the time; the seconds step, with a small recoil.
       const sec = Math.floor(Date.now() / 1000);
       if (sec !== lastSec) {
@@ -802,9 +847,9 @@ export function BossEye({
       aria-label={label}
       style={{ '--cx': `${geo.cx}px`, '--cy': `${geo.cy}px` } as CSSProperties}
     >
-      <canvas ref={sky} className="quest-stars" />
+      <canvas ref={sky} className="quest-stars" style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }} />
 
-      <div ref={body} className="quest-body">
+      <div ref={body} className="quest-body" style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }}>
         {/* The eye's dimension, seen only through the tear. Not space: a haze with light at its end, lines
             drifting in it, and a tunnel of torn membrane round the eye, ring behind ring, turning; then the eye. */}
         <div ref={portal} className="quest-portal" style={{ clipPath: `url(#${id}-window)` }}>
@@ -963,6 +1008,14 @@ export function BossEye({
         <div ref={burst} className="quest-burst" style={{ left: geo.cx, top: geo.cy, width: 2 * TEAR_W * geo.k, height: 360 * geo.k }} />
         <div ref={flash} className="quest-flash" style={{ left: geo.cx, top: geo.cy, width: 2 * EW * 1.3 * geo.k, height: 2 * EW * 0.8 * geo.k }} />
       </div>
+      {/* As it lands, the space round it is drained of light for a moment, and only the eye holds it. */}
+      <div
+        ref={drain}
+        className="quest-drain"
+        style={{
+          background: `radial-gradient(ellipse ${Math.round(EW * 1.25 * geo.k)}px ${Math.round(EW * 0.9 * geo.k)}px at ${geo.cx}px ${geo.cy}px, transparent 70%, rgb(2 3 4 / 0.5) 100%, rgb(2 3 4 / 0.85) 160%)`,
+        }}
+      />
       {grain && <div className="quest-grain" style={{ backgroundImage: `url(${grain})` }} />}
       <svg ref={beams} className="quest-beams" />
     </div>

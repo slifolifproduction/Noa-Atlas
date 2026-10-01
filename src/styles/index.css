@@ -1586,6 +1586,13 @@ html body {
   transform-box: fill-box;
   transform-origin: center;
 }
+/* As it lands, the space round the eye drained of light for a moment (see BossEye). */
+.quest-drain {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+}
 /* A shock going out from its pupil as it lands and when it is hit (kept on the pupil as the eye turns). */
 .quest-shock {
   position: absolute;
@@ -1690,7 +1697,8 @@ html body {
   .quest-flash,
   .quest-burst,
   .quest-crack,
-  .quest-shock {
+  .quest-shock,
+  .quest-drain {
     display: none;
   }
   .quest-emerge,

@@ -889,29 +889,82 @@ export function makeStars(w: number, h: number) {
   return Array.from({ length: Math.min(900, Math.round((w * h) / 1500)) }, () => newStar(r, STAR_NEAR + r() * (1 - STAR_NEAR)));
 }
 /**
+ * A ripple through space, going out from the eye: how long ago it started
+ * (ms), how far it pushes the stars it passes (px), how fast it runs (px a
+ * ms), how long it lasts (ms), and `flat`, how much faster it runs along the
+ * tear's line than across it (1 = a circle; less, it runs out further
+ * sideways, as from a line).
+ */
+export interface Ripple {
+  age: number;
+  amp: number;
+  speed: number;
+  life: number;
+  flat: number;
+}
+/** How hard a ripple bears at a distance `d` (in its own measure) from its centre: 0 to 1. */
+const rippleAt = (w: Ripple, d: number) => {
+  const front = w.speed * w.age;
+  const fade = Math.exp(-w.age / w.life) * Math.min(1, w.age / 60);
+  return Math.exp(-(((d - front) / 70) ** 2)) * fade;
+};
+
+/**
  * Draw the stars, having moved them on by `dt` ms: round the vanishing point
  * (vx, vy), the eye; (ox, oy) is how far the camera carries the farthest, in
- * pixels. `t` is the time, for the twinkles.
+ * pixels. `t` is the time, for the twinkles. Ripples going out through space
+ * push the stars aside as they pass and make them flare, and bend the dark
+ * along their front.
  */
 export function drawStars(
   c: CanvasRenderingContext2D,
   stars: Star[],
-  o: { w: number; h: number; q: number; vx: number; vy: number; ox: number; oy: number; dt: number; t: number },
+  o: { w: number; h: number; q: number; vx: number; vy: number; ox: number; oy: number; dt: number; t: number; ripples?: Ripple[] },
 ) {
   c.setTransform(o.q, 0, 0, o.q, 0, 0);
   c.clearRect(0, 0, o.w, o.h);
+  const ripples = o.ripples ?? [];
+  // The front of each ripple: a faint band where space bends.
+  for (const w of ripples) {
+    const fade = Math.exp(-w.age / w.life) * Math.min(1, w.age / 60);
+    if (fade < 0.02) continue;
+    c.save();
+    c.translate(o.vx, o.vy);
+    c.scale(1 / w.flat, 1);
+    c.beginPath();
+    c.arc(0, 0, w.speed * w.age, 0, TAU);
+    c.restore();
+    c.strokeStyle = `rgba(236,232,223,${(0.05 * fade).toFixed(3)})`;
+    c.lineWidth = 46;
+    c.stroke();
+    c.strokeStyle = `rgba(236,232,223,${(0.08 * fade).toFixed(3)})`;
+    c.lineWidth = 1.2;
+    c.stroke();
+  }
   const spread = Math.max(o.w, o.h) * 0.32;
   const flares: [number, number, number, number][] = [];
   for (const s of stars) {
     s.z -= (o.dt / 1000) * STAR_CRUISE;
     if (s.z < STAR_NEAR) Object.assign(s, newStar(Math.random, 1));
     const f = 0.7 + 0.3 * s.z;
-    const x = o.vx + (s.x / s.z) * spread + o.ox * f;
-    const y = o.vy + (s.y / s.z) * spread + o.oy * f;
+    let x = o.vx + (s.x / s.z) * spread + o.ox * f;
+    let y = o.vy + (s.y / s.z) * spread + o.oy * f;
+    // Each ripple pushes it out from the eye as it passes, and it flares.
+    let lit = 0;
+    for (const w of ripples) {
+      const [dx, dy] = [x - o.vx, y - o.vy];
+      const d = Math.hypot(dx * w.flat, dy) || 1;
+      const g = rippleAt(w, d);
+      if (g < 0.01) continue;
+      const len = Math.hypot(dx, dy) || 1;
+      x += (dx / len) * w.amp * g;
+      y += (dy / len) * w.amp * g;
+      lit = Math.max(lit, g);
+    }
     if (x < -8 || x > o.w + 8 || y < -8 || y > o.h + 8) continue;
     const near = 1 - s.z;
-    const size = s.r * (0.6 + near * 1.8);
-    let a = s.a * Math.min(1, near / 0.12);
+    const size = s.r * (0.6 + near * 1.8) * (1 + 0.8 * lit);
+    let a = Math.min(1, s.a * Math.min(1, near / 0.12) * (1 + 1.6 * lit));
     if (s.tw) a *= 1 - s.tw * (0.5 + 0.5 * Math.sin(o.t * 0.001 * s.tf + s.tp));
     c.globalAlpha = a;
     c.fillStyle = s.cool ? '#d6deec' : '#ece8df';
