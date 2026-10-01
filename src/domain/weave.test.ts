@@ -5,7 +5,7 @@ import { useAtlas } from '../state/atlasStore';
 import { weaveEntry } from '../state/operations';
 import { danglingReferences } from './integrity';
 import { quests } from './quests';
-import { finishedIn, knownClaim, weaveOf } from './weave';
+import { decisionIn, finishedIn, knownClaim, weaveOf } from './weave';
 
 const seed = () => createSeedData();
 const note = (content: string, title = '') => ({ title, content });
@@ -31,6 +31,33 @@ describe('steps a note says are finished', () => {
     // Already done, or taken back before.
     expect(finishedIn(d, note('Invoiced Brightline milestone 2, done.'))).toEqual([]);
     expect(finishedIn(d, note('Finished the scene 4 layout pass.'), ['a07'])).toEqual([]);
+  });
+});
+
+describe('a decision a note says was made', () => {
+  it('reads what was chosen, what was passed over, why and what for, in English or Indonesian', () => {
+    const en = decisionIn(
+      note('Today I decided to take the Brightline retainer instead of the festival edit, so that the runway holds, because the money is steady.'),
+    )!;
+    expect(en.chosen).toBe('Take the Brightline retainer');
+    expect(en.others).toEqual(['The festival edit']);
+    expect(en.expected).toBe('The runway holds');
+    expect(en.because).toBe('the money is steady');
+    expect(en.optimizingFor).toEqual(expect.arrayContaining(['Income', 'Security']));
+    const id = decisionIn(note('Akhirnya aku memutuskan ambil proyek dokumenter daripada podcast, biar ada waktu istirahat.'))!;
+    expect(id.chosen).toBe('Ambil proyek dokumenter');
+    expect(id.others).toEqual(['Podcast']);
+    expect(id.expected).toBe('Ada waktu istirahat');
+    expect(id.optimizingFor).toContain('Wellbeing');
+    // Turning something down is the choice itself.
+    expect(decisionIn(note('I turned down the Northlight role.'))!.chosen).toBe('Turned down the Northlight role');
+  });
+
+  it('leaves alone a choice not made yet, and reads the first sentence only when asked to', () => {
+    expect(decisionIn(note('I still need to decide between the retainer and the film.'))).toBeUndefined();
+    expect(decisionIn(note('Aku belum memutuskan mau ambil yang mana.'))).toBeUndefined();
+    expect(decisionIn(note('Quiet day at the studio.'))).toBeUndefined();
+    expect(decisionIn(note('Pause the podcast until spring. Marta knows.'), true)!.chosen).toBe('Pause the podcast until spring');
   });
 });
 
@@ -139,6 +166,25 @@ describe('the weave', () => {
     const m = useAtlas.getState().data;
     const areas = new Set(m.entries[mixed].nodeIds.map((n) => m.nodes[n].area));
     if (areas.size > 1) expect(m.entries[mixed].areas).toEqual([]);
+  });
+
+  it('logs the decision a note says was made, with what it is about, and takes it back for good', () => {
+    const id = write('Decided to pause the podcast instead of the Lowlight video, so Night Ferry gets my mornings.');
+    let d = useAtlas.getState().data;
+    const decisionId = d.entries[id].woven!.decision!;
+    expect(d.decisions[decisionId]).toMatchObject({ chosenAction: 'Pause the podcast', date: '2026-10-01', expectedOutcome: 'Night Ferry gets my mornings' });
+    expect(d.decisions[decisionId].options.map((o) => o.label)).toEqual(['Pause the podcast', 'The Lowlight video']);
+    expect(weaveOf(d, id).strands.find((s) => s.lens === 'time')!.threads[0]).toMatchObject({
+      ref: { kind: 'decision', id: decisionId },
+      untie: { kind: 'decision' },
+    });
+    useAtlas.getState().untie(id, { kind: 'decision' });
+    weaveEntry(id);
+    d = useAtlas.getState().data;
+    expect(d.decisions[decisionId]).toBeUndefined();
+    expect(d.entries[id].woven).toMatchObject({ decisionDeclined: true });
+    expect(Object.values(d.decisions).some((x) => x.context === d.entries[id].content)).toBe(false);
+    expect(danglingReferences(d)).toEqual([]);
   });
 
   it('lets go of a finished step when it leaves the plan', () => {

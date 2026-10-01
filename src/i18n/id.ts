@@ -137,9 +137,7 @@ export const ID: Record<string, string> = {
   'Save changes': 'Simpan perubahan',
   'Log decision': 'Catat keputusan',
   'Save note': 'Simpan catatan',
-  'What are you capturing?': 'Apa yang ingin kamu catat?',
   'A note': 'Catatan',
-  'A decision': 'Keputusan',
   'What are you deciding?': 'Apa yang sedang kamu putuskan?',
   'e.g. Take the agency retainer or keep two days for my own film': 'mis. Ambil kontrak agensi atau sisakan dua hari untuk film sendiri',
   'What is the situation?': 'Bagaimana situasinya?',
@@ -1801,15 +1799,6 @@ export const ID: Record<string, string> = {
   '“{title}” has run its {n} days. Compare what happened with what you predicted.':
     '“{title}” sudah berjalan {n} hari. Bandingkan apa yang terjadi dengan prediksimu.',
   'Record the result': 'Catat hasilnya',
-  'Review {n} suggestion': 'Tinjau {n} saran',
-  'Review {n} suggestions': 'Tinjau {n} saran',
-  'The Atlas found notes that might be another time something happened, or an exception to it. Say yes to what fits.':
-    'Atlas menemukan catatan yang mungkin satu kali lagi sesuatu terjadi, atau pengecualiannya. Iyakan yang cocok.',
-  'Look in Repeats': 'Lihat di Pengulangan',
-  'Check {n} suggestion': 'Cek {n} saran',
-  'Check {n} suggestions': 'Cek {n} saran',
-  'From “{title}”: what happened, what it is about, and any cause you named. Say yes to what fits.':
-    'Dari “{title}”: apa yang terjadi, tentang apa, dan sebab yang kamu sebut. Setujui yang cocok.',
   'Open the note': 'Buka catatannya',
   'Write about this week': 'Tulis tentang minggu ini',
   'Your last note was {n} days ago. What happened since then?': 'Catatan terakhirmu {n} hari yang lalu. Apa yang terjadi sejak itu?',
@@ -2719,4 +2708,16 @@ export const ID: Record<string, string> = {
   'Touches the option “{title}”': 'Menyentuh opsi “{title}”',
   'The plan moved on: {done} of {n} step done': 'Rencana maju: {done} dari {n} langkah selesai',
   'The plan moved on: {done} of {n} steps done': 'Rencana maju: {done} dari {n} langkah selesai',
+  'A choice you made, in a sentence or two. The Atlas logs it as a decision and asks later how it turned out.':
+    'Pilihan yang kamu buat, dalam satu atau dua kalimat. Atlas mencatatnya sebagai keputusan dan nanti menanyakan hasilnya.',
+  'What did you decide?': 'Apa yang kamu putuskan?',
+  'In your own words, e.g. “I decided to take the retainer instead of keeping two days for my film, so the runway holds.”':
+    'Dengan kata-katamu sendiri, misalnya “Aku memutuskan ambil kontrak retainer daripada menyisakan dua hari untuk filmku, biar tabungan aman.”',
+  'Kept with the decision. It counts toward what you learn from your choices.':
+    'Disimpan bersama keputusannya. Ini ikut dihitung dalam apa yang kamu pelajari dari pilihan-pilihanmu.',
+  'Add what happened': 'Tambahkan yang terjadi',
+  'How did it turn out?': 'Bagaimana hasilnya?',
+  '“{choice}”, {n} days ago. You expected: {expected}': '“{choice}”, {n} hari lalu. Yang kamu harapkan: {expected}',
+  '“{choice}”, {n} days ago.': '“{choice}”, {n} hari lalu.',
+  'Decided: {title}': 'Diputuskan: {title}',
 };

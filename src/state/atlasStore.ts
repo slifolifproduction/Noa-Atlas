@@ -59,7 +59,7 @@ import type {
 } from '../domain/types';
 import { addDays, formatDate, todayISO, weekStart } from '../lib/dates';
 import { arsenal, canUpgrade, quests } from '../domain/quests';
-import type { Untie } from '../domain/weave';
+import type { ReadDecision, Untie } from '../domain/weave';
 import { createId } from '../lib/ids';
 import { DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
 import { t } from '../i18n';
@@ -159,6 +159,8 @@ interface AtlasActions {
   untie(entryId: ID, untie: Untie): void;
   /** Tick off steps and targets a note says are finished, on the note's date. */
   finishFromNote(entryId: ID, parts: { kind: 'action' | 'target'; id: ID }[]): void;
+  /** Log the decision a note says was made (see domain/weave), from its own words. */
+  decideFromNote(entryId: ID, read: ReadDecision): ID | undefined;
   /** Your explanation in a note, made a claim: it starts as a hunch, and the note is not its evidence. */
   claimFromNote(entryId: ID, suggestionId: ID): ID | undefined;
   addDecision(input: NewDecision): Decision;
@@ -1029,6 +1031,16 @@ export const useAtlas = create<AtlasState>()(
               areas: entry.areas.filter((a) => a !== what.area),
               woven: entry.woven ? { ...entry.woven, area: undefined } : undefined,
             });
+          if (what.kind === 'decision') {
+            const id = entry.woven?.decision;
+            if (id && get().data.decisions[id]) get().deleteDecision(id);
+            set((s) => {
+              const e = s.data.entries[entryId];
+              // Never logged again from this note.
+              if (e) e.woven = { parts: [], ...e.woven, decision: undefined, decisionDeclined: true };
+            });
+            return;
+          }
           if (what.kind === 'part') {
             set((s) => {
               const d = s.data;
@@ -1098,6 +1110,35 @@ export const useAtlas = create<AtlasState>()(
               e.woven = { ...e.woven, parts: [...new Set([...(e.woven?.parts ?? []), part.id])] };
             }
           });
+        },
+
+        decideFromNote(entryId, read) {
+          const e = get().data.entries[entryId];
+          if (!e || e.woven?.decision || e.woven?.decisionDeclined) return undefined;
+          const options = [read.chosen, ...read.others].map((label, i) => ({
+            id: createId('opt'),
+            label,
+            rationale: i === 0 ? (read.because ?? '') : '',
+          }));
+          const decision = get().addDecision({
+            title: read.title,
+            date: e.date,
+            context: e.content,
+            options,
+            chosenOptionId: options[0].id,
+            chosenAction: read.chosen,
+            expectedOutcome: read.expected ?? '',
+            optimizingFor: read.optimizingFor,
+            claimIds: [],
+            areas: e.areas,
+            tags: [],
+            nodeIds: e.nodeIds.filter((n) => get().data.nodes[n]),
+          });
+          set((s) => {
+            const x = s.data.entries[entryId];
+            if (x) x.woven = { parts: [], ...x.woven, decision: decision.id };
+          });
+          return decision.id;
         },
 
         claimFromNote(entryId, suggestionId) {

@@ -21,7 +21,7 @@ import { toast, useUI } from '../../state/uiStore';
 import { CAPTURE_ICONS } from '../icons';
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
-import { FieldLabel, Kbd, Segmented, ToggleChip } from '../ui/primitives';
+import { FieldLabel, Kbd, ToggleChip } from '../ui/primitives';
 import { t, tn } from '../../i18n';
 
 interface Draft {
@@ -133,8 +133,10 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           addToMap: false,
         };
     }
-    return emptyDraft(request.kind);
+    // A new decision is written like a note: the Atlas reads the choice from it.
+    return emptyDraft(request.kind === 'decision' ? 'journal' : request.kind);
   });
+  const asDecision = !editing && request.kind === 'decision';
   const [showContext, setShowContext] = useState(Boolean(draft.energy !== undefined || draft.mood !== undefined || draft.emotions.length));
   // Simple by default: one box. Everything else (type, title, date, areas, tags, context) is one click away.
   const [details, setDetails] = useState(Boolean(editing) || (request.kind !== 'journal' && request.kind !== 'decision'));
@@ -212,7 +214,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
             context: hasContext ? context : undefined,
             nodeIds: [],
           },
-          { addToMap: draft.addToMap },
+          { addToMap: draft.addToMap, asDecision },
         );
         return;
       }
@@ -250,7 +252,9 @@ function CaptureForm({ onClose }: { onClose(): void }) {
       description={
         isDecision
           ? t('A choice you are making: the options, and what you expect.')
-          : t('Anything that happened or crossed your mind. The atlas does the sorting.')
+          : asDecision
+            ? t('A choice you made, in a sentence or two. The Atlas logs it as a decision and asks later how it turned out.')
+            : t('Anything that happened or crossed your mind. The atlas does the sorting.')
       }
       width="max-w-[640px]"
       initialFocus={isDecision ? '#cap-title' : '#cap-content'}
@@ -264,7 +268,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
             {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={save} disabled={!valid} loading={saving}>
-            {editing ? t('Save changes') : isDecision ? t('Log decision') : t('Save note')}
+            {editing ? t('Save changes') : isDecision || asDecision ? t('Log decision') : t('Save note')}
           </Button>
         </>
       }
@@ -276,18 +280,6 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           void save();
         }}
       >
-        {!editing && (
-          <Segmented<'note' | 'decision'>
-            label={t('What are you capturing?')}
-            value={isDecision ? 'decision' : 'note'}
-            onChange={(v) => set('kind', v === 'decision' ? 'decision' : 'journal')}
-            options={[
-              { value: 'note', label: t('A note') },
-              { value: 'decision', label: t('A decision') },
-            ]}
-          />
-        )}
-
         {isDecision ? (
           <>
             <div>
@@ -316,13 +308,17 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           </>
         ) : (
           <div>
-            <FieldLabel htmlFor="cap-content">{t('What happened?')}</FieldLabel>
+            <FieldLabel htmlFor="cap-content">{asDecision ? t('What did you decide?') : t('What happened?')}</FieldLabel>
             <textarea
               id="cap-content"
               className="field min-h-[150px] resize-y leading-relaxed"
               value={draft.content}
               onChange={(e) => set('content', e.target.value)}
-              placeholder={t('Write it like a note to yourself: what happened, what you noticed, how it felt. A few lines is enough.')}
+              placeholder={
+                asDecision
+                  ? t('In your own words, e.g. “I decided to take the retainer instead of keeping two days for my film, so the runway holds.”')
+                  : t('Write it like a note to yourself: what happened, what you noticed, how it felt. A few lines is enough.')
+              }
             />
           </div>
         )}

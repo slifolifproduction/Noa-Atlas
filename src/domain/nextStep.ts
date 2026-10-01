@@ -5,9 +5,11 @@
 import { daysBetween, todayISO } from '../lib/dates';
 import { claimSentence } from './claims';
 import { inquiries, type InquiryKind } from './inquiry';
-import { currentAction, experimentCode, experimentProgress, pendingSuggestions, thinSpots } from './selectors';
-import type { AtlasData, CaptureKind, EntityRef, ID } from './types';
-import { t, tn } from '../i18n';
+import { OUTCOME_RATING_LABEL } from './constants';
+import { currentAction, experimentCode, experimentProgress, thinSpots } from './selectors';
+import { offerFor } from './weave';
+import type { AtlasData, CaptureKind, EntityRef, ID, OutcomeRating } from './types';
+import { t } from '../i18n';
 
 export type NextStepAction =
   | { kind: 'capture'; capture: CaptureKind }
@@ -15,7 +17,11 @@ export type NextStepAction =
   | { kind: 'route'; route: 'patterns' | 'paths' | 'navigation' }
   | { kind: 'done'; actionId: ID }
   /** "Not now" to something the Atlas asked to find out. */
-  | { kind: 'decline'; key: string; inquiryKind?: InquiryKind };
+  | { kind: 'decline'; key: string; inquiryKind?: InquiryKind }
+  /** Yes or no to what only you can say about a note (see domain/weave). */
+  | { kind: 'offer'; entryId: ID; suggestionId: ID; take: boolean }
+  /** How a decision turned out, against what you expected. */
+  | { kind: 'outcome'; decisionId: ID; rating: OutcomeRating };
 
 export interface NextStep {
   key: string;
@@ -25,7 +31,12 @@ export interface NextStep {
   action: NextStepAction;
   /** A second, quieter way in (e.g. "Open the plan"). */
   also?: { label: string; action: NextStepAction };
+  /** One question with a few answers, each one tap, in place of the main button. */
+  choices?: { label: string; action: NextStepAction }[];
 }
+
+/** How long after a decision to ask how it turned out, and how long "not now" lasts. */
+const LOOK_BACK_DAYS = 14;
 
 export function nextStep(data: AtlasData, today = todayISO()): NextStep {
   const entries = Object.values(data.entries);
@@ -57,26 +68,53 @@ export function nextStep(data: AtlasData, today = todayISO()): NextStep {
     };
   }
 
-  // Suggestions from the analysis wait for a yes or no.
-  const pending = pendingSuggestions(data);
-  if (pending.length) {
-    const evidence = pending.filter((p) => p.suggestion.type === 'pattern_evidence').length;
-    const latest = [...pending].sort((a, b) => b.entry.date.localeCompare(a.entry.date))[0].entry;
-    return evidence
-      ? {
-          key: 'review-evidence',
-          title: tn(evidence, 'Review {n} suggestion', 'Review {n} suggestions'),
-          detail: t('The Atlas found notes that might be another time something happened, or an exception to it. Say yes to what fits.'),
-          cta: t('Look in Repeats'),
-          action: { kind: 'route', route: 'patterns' },
-        }
-      : {
-          key: `review-links:${latest.id}`,
-          title: tn(pending.length, 'Check {n} suggestion', 'Check {n} suggestions'),
-          detail: t('From “{title}”: what happened, what it is about, and any cause you named. Say yes to what fits.', { title: latest.title }),
-          cta: t('Open the note'),
-          action: { kind: 'open', ref: { kind: 'entry', id: latest.id } },
-        };
+  // Only what you can say about a note: one question, the latest first, answered in place.
+  for (const e of [...entries].sort((a, b) => b.date.localeCompare(a.date) || b.seq - a.seq)) {
+    const offer = (e.analysis?.suggestions ?? []).map((x) => offerFor(data, x)).find(Boolean);
+    if (!offer) continue;
+    const ask = { entryId: e.id, suggestionId: offer.suggestion };
+    if (offer.kind === 'explain')
+      return {
+        key: `offer:${offer.suggestion}`,
+        title: t('Your note explains a cause in its own words'),
+        detail: `“${offer.excerpt}”`,
+        cta: t('Add as a reason'),
+        action: { kind: 'open', ref: { kind: 'entry', id: e.id } },
+        also: { label: t('Not this'), action: { kind: 'offer', ...ask, take: false } },
+      };
+    return {
+      key: `offer:${offer.suggestion}`,
+      title: offer.kind === 'claim' ? t('A possible reason: {claim}?', { claim: offer.label }) : `${offer.label}?`,
+      detail: `“${offer.excerpt}”`,
+      cta: offer.kind === 'claim' ? t('Yes, keep it as a hunch') : t('Yes, it did not happen this time'),
+      action: { kind: 'offer', ...ask, take: true },
+      also: { label: t('Not this'), action: { kind: 'offer', ...ask, take: false } },
+    };
+  }
+
+  // A decision made a while ago: how it turned out, with one tap.
+  const declined = data.inquiry?.declined ?? {};
+  const lookBack = Object.values(data.decisions)
+    .filter((d) => !d.outcomeRating && daysBetween(d.date, today) >= LOOK_BACK_DAYS)
+    .filter((d) => !declined[`outcome:${d.id}`] || daysBetween(declined[`outcome:${d.id}`], today) >= LOOK_BACK_DAYS)
+    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  if (lookBack) {
+    const rate = (rating: OutcomeRating) => ({ label: OUTCOME_RATING_LABEL[rating], action: { kind: 'outcome' as const, decisionId: lookBack.id, rating } });
+    return {
+      key: `outcome:${lookBack.id}`,
+      title: t('How did it turn out?'),
+      detail: lookBack.expectedOutcome
+        ? t('“{choice}”, {n} days ago. You expected: {expected}', {
+            choice: lookBack.chosenAction || lookBack.title,
+            n: daysBetween(lookBack.date, today),
+            expected: lookBack.expectedOutcome,
+          })
+        : t('“{choice}”, {n} days ago.', { choice: lookBack.chosenAction || lookBack.title, n: daysBetween(lookBack.date, today) }),
+      cta: '',
+      action: { kind: 'open', ref: { kind: 'decision', id: lookBack.id } },
+      choices: [rate('better'), rate('as_expected'), rate('mixed'), rate('worse')],
+      also: { label: t('Not now'), action: { kind: 'decline', key: `outcome:${lookBack.id}` } },
+    };
   }
 
   // Nothing written for a week: the map only knows what you tell it.

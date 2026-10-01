@@ -196,6 +196,9 @@ export interface Woven {
   declined?: ID[];
   /** The area it was put in, from what it is about. */
   area?: AreaKey;
+  /** The decision it said was made, logged from it; or that you took that back, so it is not logged again. */
+  decision?: ID;
+  decisionDeclined?: boolean;
 }
 
 export interface DecisionOption {

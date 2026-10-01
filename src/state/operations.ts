@@ -10,7 +10,7 @@ import type { ExperimentDraft, ModelUpdateProposal } from '../ai/types';
 import { CAPTURE_TARGET } from '../domain/constants';
 import { player } from '../domain/quests';
 import { decisionCode, experimentCode, pathCode } from '../domain/selectors';
-import { areaToTake, finishedIn, knownClaim, takenOnItsOwn } from '../domain/weave';
+import { areaToTake, decisionIn, finishedIn, knownClaim, takenOnItsOwn } from '../domain/weave';
 import type { CaptureKind, Entry, EntryAnalysis, Experiment, ExperimentResult, ID } from '../domain/types';
 import { useAtlas, type NewDecision, type NewEntry } from './atlasStore';
 import { toast, useUI } from './uiStore';
@@ -56,7 +56,7 @@ export async function analyzeEntry(id: ID): Promise<EntryAnalysis | undefined> {
  * commitment, a behaviour) or in history (a formative experience), then read
  * it and connect it. The note itself always stays the record.
  */
-export async function captureEntry(input: NewEntry, opts: { addToMap?: boolean } = {}): Promise<Entry> {
+export async function captureEntry(input: NewEntry, opts: { addToMap?: boolean; asDecision?: boolean } = {}): Promise<Entry> {
   const atlas = useAtlas.getState();
   const before = player(atlas.data);
   const target = CAPTURE_TARGET[input.kind as CaptureKind];
@@ -82,7 +82,7 @@ export async function captureEntry(input: NewEntry, opts: { addToMap?: boolean }
       excerpt: input.content,
     });
   }
-  await readAndWeave(entry.id);
+  await readAndWeave(entry.id, { asDecision: opts.asDecision });
   // What the note connected to, lens by lens, with what it was worth in Quests.
   const after = player(useAtlas.getState().data);
   useUI.getState().showWoven({ entryId: entry.id, xp: after.xp - before.xp, level: after.level > before.level ? after.level : undefined });
@@ -94,7 +94,7 @@ export async function captureEntry(input: NewEntry, opts: { addToMap?: boolean }
  * says what the note says, then tick off the steps and targets it says are
  * finished. What only you can say stays offered.
  */
-export function weaveEntry(id: ID) {
+export function weaveEntry(id: ID, opts: { asDecision?: boolean } = {}) {
   const atlas = useAtlas.getState;
   const entry = atlas().data.entries[id];
   if (!entry) return;
@@ -108,6 +108,12 @@ export function weaveEntry(id: ID) {
   const now = atlas().data.entries[id];
   const done = finishedIn(atlas().data, now, [...(now.woven?.parts ?? []), ...(now.woven?.declined ?? [])]);
   if (done.length) atlas().finishFromNote(id, done);
+  // A decision it says was made (or, written as one, its first sentence), with what the note is about and its area.
+  const last = atlas().data.entries[id];
+  if (!last.woven?.decision && !last.woven?.decisionDeclined) {
+    const decided = decisionIn(last, opts.asDecision);
+    if (decided) atlas().decideFromNote(id, decided);
+  }
 }
 
 /** After a note is changed: read it again, connect what it now says, and show what it is connected to. */
@@ -119,9 +125,9 @@ export async function reconnectEntry(id: ID) {
 }
 
 /** Read a note (again) and connect what it says. */
-export async function readAndWeave(id: ID) {
+export async function readAndWeave(id: ID, opts: { asDecision?: boolean } = {}) {
   const analysis = await analyzeEntry(id);
-  weaveEntry(id);
+  weaveEntry(id, opts);
   return analysis;
 }
 

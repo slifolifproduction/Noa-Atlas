@@ -10,6 +10,7 @@ import { EmptyState, Segmented } from '../../components/ui/primitives';
 import { momentsOf } from '../../domain/ask';
 import { AREA_META, AREAS, MODE_LABEL, OCCURRENCE_KIND_LABEL } from '../../domain/constants';
 import { historyItems, recordGaps, type HistoryItem } from '../../domain/history';
+import { offerFor } from '../../domain/weave';
 import type { AreaKey, AtlasData } from '../../domain/types';
 import { formatDate, formatMonth, useToday } from '../../lib/dates';
 import { cn } from '../../lib/cn';
@@ -28,8 +29,9 @@ const SHOWS: Record<Show, (h: HistoryItem) => boolean> = {
   happenings: (h) => h.kind === 'event' || h.kind === 'action' || h.kind === 'experience' || h.kind === 'test' || h.kind === 'deadline' || h.kind === 'levelup',
 };
 
+/** What only you can say about a note (see domain/weave): the rest is connected on its own. */
 const pendingIn = (data: AtlasData, h: HistoryItem) =>
-  h.kind === 'record' ? (data.entries[h.ref.id]?.analysis?.suggestions.filter((s) => s.state === 'pending').length ?? 0) : 0;
+  h.kind === 'record' ? (data.entries[h.ref.id]?.analysis?.suggestions.filter((s) => offerFor(data, s)).length ?? 0) : 0;
 
 function areasOf(data: AtlasData, h: HistoryItem): AreaKey[] {
   if (h.ref.kind === 'entry') return data.entries[h.ref.id]?.areas ?? [];

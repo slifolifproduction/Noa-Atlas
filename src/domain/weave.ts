@@ -20,7 +20,7 @@
 import { optionsTouching } from './ask';
 import { caseRows, liveClaims } from './compare';
 import { claimSentence } from './claims';
-import { AREA_META, effectPhrase, expectSentence, stateSentence } from './constants';
+import { AREA_META, DRIVERS, effectPhrase, expectSentence, stateSentence } from './constants';
 import { allWork, quests, type Boss } from './quests';
 import { patternTitle, sameRef, usagesOfSource } from './selectors';
 import type { AnalysisSuggestion, AreaKey, AtlasData, Claim, Effect, EntityRef, Entry, ID, ISODate, SourceRef } from './types';
@@ -210,13 +210,153 @@ export function finishedIn(data: AtlasData, entry: Pick<Entry, 'title' | 'conten
   return out;
 }
 
+/* ---------------- a decision a note says was made ---------------- */
+
+/** Words that say a choice was made, and the words before what was chosen. */
+const DECIDED = [
+  'decided to',
+  'decided on',
+  'i decided',
+  'chose to',
+  'i chose',
+  'going with',
+  "i'll go with",
+  "i'll take",
+  "i'm taking",
+  'said yes to',
+  'said no to',
+  'turned down',
+  'declined',
+  'accepted the',
+  'memutuskan untuk',
+  'memutuskan',
+  'putuskan untuk',
+  'putuskan',
+  'memilih untuk',
+  'memilih',
+  'akhirnya pilih',
+  'akhirnya ambil',
+  'akhirnya terima',
+  'akhirnya tolak',
+  'jadi ambil',
+  'jadi pilih',
+  'menolak',
+  'menerima tawaran',
+  'bilang ya ke',
+  'bilang tidak ke',
+];
+/** …and words that say it is not made yet. */
+const UNDECIDED = [
+  'not yet',
+  "haven't",
+  'have not',
+  'still deciding',
+  'need to decide',
+  'will decide',
+  'should i',
+  'not sure',
+  'belum',
+  'masih',
+  'mau memutuskan',
+  'akan memutuskan',
+  'perlu memutuskan',
+  'harus memutuskan',
+  'bingung',
+  'ragu',
+];
+/** What was passed over: "X over Y", "X daripada Y". */
+const OVER = /\s+(?:over|instead of|rather than|not|daripada|ketimbang|alih-alih|dibanding|bukan)\s+/i;
+/** What it was for, in its own words: "so that…", "biar…". */
+const FOR = /,?\s+(?:so that|so i can|so i could|hoping|in the hope|biar|supaya|agar|semoga|demi)\s+|\s*,\s*so\s+/i;
+/** Why, in its own words: "because…", "karena…". */
+const BECAUSE = /\s+(?:because|since|karena|soalnya|sebab)\s+/i;
+
+/** What a choice was for, by the words it uses (the reasons you state, never inferred from the outcome). */
+const DRIVER_WORDS: Record<(typeof DRIVERS)[number], string[]> = {
+  Income: ['money', 'income', 'pay', 'paid', 'fee', 'rate', 'cash', 'uang', 'duit', 'gaji', 'bayaran', 'penghasilan', 'honor'],
+  Opportunity: ['opportunity', 'chance', 'opening', 'kesempatan', 'peluang'],
+  Visibility: ['visibility', 'exposure', 'portfolio', 'recognition', 'seen', 'eksposur', 'dikenal', 'portofolio'],
+  Security: ['security', 'stable', 'stability', 'safe', 'runway', 'aman', 'stabil', 'tabungan'],
+  Relationships: ['friend', 'family', 'team', 'relationship', 'teman', 'keluarga', 'hubungan'],
+  Learning: ['learn', 'learning', 'skill', 'belajar', 'ilmu'],
+  Wellbeing: ['rest', 'health', 'sleep', 'energy', 'burnout', 'istirahat', 'sehat', 'tidur', 'capek', 'lelah'],
+  Focus: ['focus', 'deep work', 'fokus'],
+  Craft: ['craft', 'quality', 'kualitas', 'karya'],
+  Autonomy: ['freedom', 'autonomy', 'own terms', 'bebas', 'mandiri'],
+  'Long-term growth': ['long-term', 'long term', 'future', 'jangka panjang', 'masa depan'],
+};
+
+export interface ReadDecision {
+  title: string;
+  /** What was chosen, and what was passed over. */
+  chosen: string;
+  others: string[];
+  /** Why, and what it was for, in the note's words. */
+  because?: string;
+  expected?: string;
+  optimizingFor: string[];
+  excerpt: string;
+}
+
+const tidy = (x: string) => x.trim().replace(/^[,;:\s]+|[,;:.!?\s]+$/g, '');
+const capital = (x: string) => (x ? x[0].toUpperCase() + x.slice(1) : x);
+const clip = (x: string, max = 90) => (x.length <= max ? x : `${x.slice(0, max - 1).replace(/\s+\S*$/, '')}…`);
+
+/**
+ * The decision a note says was made: the first sentence that says so, with
+ * no "not yet" or "still deciding" in it; what was chosen is what follows
+ * the words that say so, and what was passed over follows "over" or
+ * "daripada". Asked for one (`force`), the first sentence is the decision.
+ */
+export function decisionIn(entry: Pick<Entry, 'title' | 'content'>, force = false): ReadDecision | undefined {
+  const sentences = entry.content
+    .split(/(?<=[.!?\n])\s*/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  for (const sentence of sentences) {
+    const text = lower(sentence);
+    if (UNDECIDED.some((c) => has(text, c))) continue;
+    const cue = DECIDED.find((c) => has(text, c));
+    if (!cue) continue;
+    const at = text.search(new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRe(cue)}([^\\p{L}\\p{N}]|$)`, 'u'));
+    const verb = sentence.slice(at).trimStart();
+    // "Turned down the role", "menolak tawaran itu": the choice is the act itself; "decided to X", "memilih X": the choice is X.
+    const keepsVerb = /^(said yes|said no|turned down|declined|accepted|menolak|menerima|bilang|akhirnya (terima|tolak))/i.test(verb);
+    return read(sentence, keepsVerb ? verb : verb.slice(cue.length));
+  }
+  if (!force || !sentences.length) return undefined;
+  return read(sentences[0], sentences[0]);
+}
+
+function read(sentence: string, rest: string): ReadDecision {
+  let chosen = rest;
+  let because: string | undefined;
+  let expected: string | undefined;
+  const why = chosen.split(BECAUSE);
+  if (why.length > 1) [chosen, because] = [why[0], why.slice(1).join(' ')];
+  const forWhat = chosen.split(FOR);
+  if (forWhat.length > 1) [chosen, expected] = [forWhat[0], forWhat.slice(1).join(' ')];
+  const [first, ...passed] = chosen.split(OVER);
+  const said = lower(sentence);
+  return {
+    title: clip(capital(tidy(sentence))),
+    chosen: clip(capital(tidy(first)) || capital(tidy(sentence))),
+    others: passed.map((x) => clip(capital(tidy(x)))).filter(Boolean),
+    because: because ? tidy(because) : undefined,
+    expected: expected ? capital(tidy(expected)) : undefined,
+    optimizingFor: DRIVERS.filter((d) => DRIVER_WORDS[d].some((w) => has(said, w))),
+    excerpt: sentence,
+  };
+}
+
 /* ---------------- everything a note is connected to ---------------- */
 
 export type Lens = 'map' | 'time' | 'causes' | 'repeats' | 'ahead' | 'quests';
 export const LENSES: Lens[] = ['map', 'time', 'causes', 'repeats', 'ahead', 'quests'];
 
 /** How a thread is taken back. */
-export type Untie = { kind: 'suggestion'; id: ID } | { kind: 'part'; id: ID } | { kind: 'unlink'; node: ID } | { kind: 'area'; area: AreaKey };
+export type Untie =
+  { kind: 'suggestion'; id: ID } | { kind: 'part'; id: ID } | { kind: 'unlink'; node: ID } | { kind: 'area'; area: AreaKey } | { kind: 'decision' };
 
 export interface Thread {
   key: string;
@@ -343,6 +483,15 @@ export function weaveOf(data: AtlasData, entryId: ID, today?: ISODate): Weave {
       auto: Boolean(s),
     });
   }
+  const decision = entry.woven?.decision ? data.decisions[entry.woven.decision] : undefined;
+  if (decision)
+    threads.time.unshift({
+      key: `d:${decision.id}`,
+      label: t('Decided: {title}', { title: decision.chosenAction || decision.title }),
+      ref: { kind: 'decision', id: decision.id },
+      untie: { kind: 'decision' },
+      auto: true,
+    });
   if (!threads.time.length)
     threads.time.push({ key: 'note', label: t('This note, {date}', { date: formatDate(entry.date) }), ref: { kind: 'entry', id: entryId } });
 

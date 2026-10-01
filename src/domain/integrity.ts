@@ -92,6 +92,7 @@ export function danglingReferences(d: AtlasData): string[] {
     }
     const work = workIds(d);
     e.woven?.parts.forEach((p) => !work.has(p) && out.push(`note ${e.id}.woven → step ${p}`));
+    if (e.woven?.decision && !(e.woven.decision in d.decisions)) out.push(`note ${e.id}.woven → decision ${e.woven.decision}`);
   }
   for (const x of Object.values(d.decisions)) {
     x.nodeIds.forEach((n) => node(n, `decision ${x.id}`));
@@ -267,6 +268,12 @@ export function repairReferences(d: AtlasData): number {
       if (e.woven) {
         const parts = keep(e.woven.parts, (p) => work.has(p));
         if (parts !== e.woven.parts) e.woven.parts = parts;
+        // A decision logged from it that you deleted stays deleted: it is not logged again.
+        if (e.woven.decision && !(e.woven.decision in d.decisions)) {
+          e.woven.decision = undefined;
+          e.woven.decisionDeclined = true;
+          fixed++;
+        }
       }
       const a = e.analysis;
       if (a) {
