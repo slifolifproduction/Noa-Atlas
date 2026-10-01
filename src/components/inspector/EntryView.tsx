@@ -1,13 +1,12 @@
 import { Check, Pencil, Plus, RefreshCw, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { sortSuggestions } from '../../domain/learning';
-import { claimSentence } from '../../domain/claims';
 import { AREA_META, CAPTURE_KIND_LABEL, ENERGY_LABELS, MOOD_LABELS, OCCURRENCE_KIND_LABEL, expectSentence, stateSentence } from '../../domain/constants';
-import { entryCode, mapElements, patternTitle, usagesOfSource } from '../../domain/selectors';
+import { entryCode, mapElements, patternTitle } from '../../domain/selectors';
 import type { AnalysisSuggestion, ID } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
-import { analyzeEntry } from '../../state/operations';
+import { readAndWeave } from '../../state/operations';
 import { useUI } from '../../state/uiStore';
 import { StanceMark } from '../evidence/EvidenceRow';
 import { CAPTURE_ICONS } from '../icons';
@@ -15,10 +14,10 @@ import { Button, IconButton } from '../ui/Button';
 import { ConfirmButton } from '../ui/ConfirmButton';
 import { Chip } from '../ui/primitives';
 import { ClaimComposer } from './ClaimComposer';
-import { HistoryRow, Muted, NodeChip, PanelSection } from './parts';
+import { Muted, PanelSection } from './parts';
+import { OfferList, useWeave, WeaveList } from '../weave/Weave';
 import { KnowledgeTag } from '../evidence/Status';
-import { historyItems } from '../../domain/history';
-import { t } from '../../i18n';
+import { t, tn } from '../../i18n';
 import { Trans } from '../../i18n/Trans';
 
 export function EntryView({ id }: { id: ID }) {
@@ -31,16 +30,17 @@ export function EntryView({ id }: { id: ID }) {
   const open = useUI((s) => s.openEntity);
   const busy = useUI((s) => s.busy[`entry:${id}`]);
   const highlight = useUI((s) => s.highlight);
+  const resolve = useAtlas((s) => s.resolveSuggestion);
   const [linking, setLinking] = useState(false);
+  const [explaining, setExplaining] = useState<ID | null>(null);
+  const weave = useWeave(id);
   if (!entry) return null;
   const Icon = CAPTURE_ICONS[entry.kind];
-  const usages = usagesOfSource(data, { kind: 'entry', id });
   const ctx = entry.context;
   const analysis = entry.analysis;
-  // Kinds of suggestion you usually take come first (see domain/learning).
-  const pending = sortSuggestions(data, analysis?.suggestions.filter((s) => s.state === 'pending') ?? []);
-  const resolved = analysis?.suggestions.filter((s) => s.state !== 'pending') ?? [];
-  const happenings = historyItems(data).filter((h) => h.source?.kind === 'entry' && h.source.id === id);
+  // What is still waiting and is not one of the offers above, kinds you usually take first (see domain/learning).
+  const offered = new Set(weave.offers.map((o) => o.suggestion));
+  const rest = sortSuggestions(data, analysis?.suggestions.filter((s) => s.state === 'pending' && !offered.has(s.id)) ?? []);
 
   return (
     <div>
@@ -115,8 +115,7 @@ export function EntryView({ id }: { id: ID }) {
       </div>
 
       <PanelSection
-        title={t('On the map')}
-        count={entry.nodeIds.length}
+        title={t('Connected to')}
         aside={
           <IconButton
             icon={linking ? X : Plus}
@@ -148,69 +147,37 @@ export function EntryView({ id }: { id: ID }) {
               ))}
           </select>
         )}
-        {entry.nodeIds.length ? (
-          <div className="flex flex-wrap gap-1.5">
-            {entry.nodeIds.map((n) => (
-              <span key={n} className="group inline-flex items-center">
-                <NodeChip id={n} />
-                <button
-                  type="button"
-                  className="ml-0.5 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
-                  aria-label={t('Unlink')}
-                  title={t('Unlink')}
-                  onClick={() => updateEntry(id, { nodeIds: entry.nodeIds.filter((x) => x !== n) })}
-                >
-                  <X size={11} aria-hidden />
-                </button>
-              </span>
-            ))}
-          </div>
-        ) : (
-          <Muted>{t('Not linked to anything on the map yet. Linking says what the note is about, so it can count as a moment for it.')}</Muted>
+        <WeaveList entryId={id} />
+        {weave.auto > 0 && (
+          <p className="mt-1.5 text-[11.5px] leading-snug text-ink-3">
+            {t('The Atlas connected what your note says on its own. Anything wrong: × takes it back.')}
+          </p>
         )}
       </PanelSection>
 
-      {happenings.length > 0 && (
-        <PanelSection title={t('What happened, as read from it')} count={happenings.length}>
-          <ul className="-mx-1.5">
-            {happenings.map((h) => (
-              <HistoryRow key={h.key} item={h} />
-            ))}
-          </ul>
+      {weave.offers.length > 0 && (
+        <PanelSection title={t('Only you can say')} count={weave.offers.length}>
+          <OfferList entryId={id} offers={weave.offers} onExplain={(o) => setExplaining(o.suggestion)} />
+          {explaining && (
+            <div className="mt-2">
+              <ClaimComposer
+                hint={t('Your explanation, as a possible reason. It starts as a hunch: one note saying so is your guess, not yet something seen again.')}
+                onCreated={(cid) => {
+                  resolve(id, explaining, true);
+                  setExplaining(null);
+                  open({ kind: 'claim', id: cid });
+                }}
+                onCancel={() => setExplaining(null)}
+              />
+            </div>
+          )}
         </PanelSection>
       )}
-
-      <PanelSection title={t('Where it counts')} count={usages.length}>
-        {usages.length ? (
-          <ul className="space-y-1.5">
-            {usages.map(({ pattern, claim, evidence }) => (
-              <li key={evidence.id}>
-                <button
-                  type="button"
-                  onClick={() => open(pattern ? { kind: 'pattern', id: pattern.id } : { kind: 'claim', id: claim!.id })}
-                  className="flex w-full items-start gap-2 rounded-[2px] px-1 py-1 text-left hover:bg-ink/[0.035]"
-                >
-                  <StanceMark stance={evidence.stance} />
-                  <span className="min-w-0">
-                    <span className="block text-[11.5px] text-ink-3">
-                      {pattern ? t('Something that repeats') : t('A possible reason')} ·{' '}
-                      {evidence.stance === 'supports' ? t('backs it up') : t('goes against it')}
-                    </span>
-                    <span className="block text-[13px] text-ink-2">{pattern ? patternTitle(pattern) : claimSentence(data, claim!)}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Muted>{t('Not counted toward any reason or repeat yet.')}</Muted>
-        )}
-      </PanelSection>
 
       <PanelSection
         title={t('What the Atlas noticed')}
         aside={
-          <Button size="sm" variant="ghost" icon={RefreshCw} loading={busy} onClick={() => analyzeEntry(id)}>
+          <Button size="sm" variant="ghost" icon={RefreshCw} loading={busy} onClick={() => readAndWeave(id)}>
             {analysis ? t('Read it again') : t('Read it')}
           </Button>
         }
@@ -236,23 +203,17 @@ export function EntryView({ id }: { id: ID }) {
                 <Muted>{t('Nothing specific enough to note.')}</Muted>
               )}
             </div>
-            {pending.length > 0 && (
-              <div>
-                <div className="mb-1 text-[11.5px] text-ink-3">{t('For you to confirm')}</div>
-                <ul className="divide-y divide-line rounded-[2px] border border-line">
-                  {pending.map((s) => (
+            {rest.length > 0 && (
+              <details>
+                <summary className="cursor-pointer text-[11.5px] text-ink-3 hover:text-ink">
+                  {tn(rest.length, 'Also possible: {n} more', 'Also possible: {n} more')}
+                </summary>
+                <ul className="mt-1.5 divide-y divide-line rounded-[2px] border border-line">
+                  {rest.map((s) => (
                     <SuggestionRow key={s.id} entryId={id} suggestion={s} />
                   ))}
                 </ul>
-              </div>
-            )}
-            {resolved.length > 0 && (
-              <p className="text-[11.5px] text-ink-3">
-                {t('{a} accepted · {d} dismissed', {
-                  a: resolved.filter((s) => s.state === 'accepted').length,
-                  d: resolved.filter((s) => s.state === 'dismissed').length,
-                })}
-              </p>
+              </details>
             )}
           </div>
         )}

@@ -54,6 +54,14 @@ export interface NetworkView {
 
 export type CausesShape = 'helix' | 'globe';
 
+/** A note just saved, and what it connected to (see domain/weave). */
+export interface WovenCard {
+  entryId: ID;
+  /** Experience it brought in Quests, and the level reached when it brought one. */
+  xp: number;
+  level?: number;
+}
+
 export interface Toast {
   id: string;
   message: string;
@@ -102,6 +110,7 @@ export interface UIState {
   networkView: NetworkView;
   focusRequest: FocusRequest | null;
   toasts: Toast[];
+  woven: WovenCard | null;
   settings: ProviderSettings;
   spaceMode: SpaceMode;
   /** The welcome guide has been seen (it opens by itself once). */
@@ -147,6 +156,7 @@ export interface UIState {
   requestFocus(layer: GraphLayer, id: ID): void;
   toast(message: string, opts?: Partial<Omit<Toast, 'id' | 'message'>>): void;
   dismissToast(id: string): void;
+  showWoven(card: WovenCard | null): void;
   setSettings(patch: Partial<ProviderSettings>): void;
   setSpaceMode(mode: SpaceMode): void;
   setGuideOpen(open: boolean): void;
@@ -179,6 +189,7 @@ export const useUI = create<UIState>()(
       networkView: { hiddenStatuses: ['retired'], hiddenAreas: [], showSuggested: true, focusDepth: 0 },
       focusRequest: null,
       toasts: [],
+      woven: null,
       settings: DEFAULT_PROVIDER_SETTINGS,
       spaceMode: 'auto',
       guideSeen: false,
@@ -233,6 +244,7 @@ export const useUI = create<UIState>()(
         setTimeout(() => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })), opts?.action ? 7000 : 4000);
       },
       dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+      showWoven: (woven) => set({ woven }),
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
       setSpaceMode: (spaceMode) => set({ spaceMode }),
       setGuideOpen: (guideOpen) => set((s) => ({ guideOpen, guideSeen: s.guideSeen || !guideOpen })),

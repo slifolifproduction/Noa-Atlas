@@ -2587,3 +2587,181 @@ html body {
     font-size: 15px;
   }
 }
+
+/* ---------------------------------------------------------------- the weave */
+/* One note's threads through the six lenses: a line through each lens mark, in the top bar's order. */
+.weave-list {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+.weave-list::before {
+  content: '';
+  position: absolute;
+  left: 6.5px;
+  top: 12px;
+  bottom: 12px;
+  width: 1px;
+  background: var(--color-line-strong);
+}
+.weave-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 0;
+}
+.weave-lens {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  width: 116px;
+  padding-top: 2px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+.weave-lens svg {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  color: var(--color-ink-2);
+  /* Each mark sits on the line, cut out of whatever is behind it. */
+  background: var(--weave-bg, var(--color-overlay));
+  box-shadow: 0 0 0 2px var(--weave-bg, var(--color-overlay));
+}
+.weave-list.is-panel {
+  --weave-bg: var(--color-surface);
+}
+.weave-lens:hover,
+.weave-lens:hover svg {
+  color: var(--color-ink);
+}
+.weave-threads {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+/* The names on the map read as one line; everything else, one thing a line. */
+.weave-threads.is-inline {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+.weave-threads.is-inline > li + li::before {
+  content: '·';
+  margin: 0 6px;
+  color: var(--color-ink-3);
+}
+.weave-thread {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-ink-2);
+}
+.weave-thread-label {
+  min-width: 0;
+  text-align: left;
+}
+.is-compact .weave-thread-label {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.weave-thread-label:not(:disabled):hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-decoration-color: var(--color-line-strong);
+  text-underline-offset: 3px;
+}
+/* What just moved (a step finished, experience gained): the signal colour. */
+.weave-thread.is-live,
+.weave-thread.is-live .weave-thread-label {
+  color: var(--color-accent);
+}
+.weave-more {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--color-ink-3);
+}
+.weave-untie {
+  flex-shrink: 0;
+  margin-top: 1px;
+  padding: 3px;
+  border-radius: 2px;
+  color: var(--color-ink-3);
+  opacity: 0;
+}
+.weave-thread:hover .weave-untie,
+.weave-untie:focus-visible,
+.weave-untie.is-row {
+  opacity: 1;
+}
+.weave-untie:hover {
+  color: var(--color-ink);
+  background: rgb(236 232 223 / 0.06);
+}
+@media (hover: none) {
+  .weave-untie {
+    opacity: 1;
+  }
+}
+/* What only you can say is a possibility until you say it: drawn dashed, like every possibility. */
+.weave-offers {
+  display: flex;
+  flex-direction: column;
+}
+.weave-offer {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 0;
+  border-top: 1px dashed var(--color-line-strong);
+}
+.weave-offer:first-child {
+  border-top: none;
+  padding-top: 2px;
+}
+.weave-card {
+  width: min(440px, 100%);
+  padding: 9px 12px 8px;
+  text-align: left;
+  background: var(--color-overlay);
+  border: 1px solid var(--color-line-strong);
+  border-radius: 2px;
+  box-shadow: 0 20px 60px -24px rgb(0 0 0 / 0.9);
+}
+.weave-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.weave-card-offers,
+.weave-card-foot {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-line);
+}
+.weave-card-foot {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* On a phone the card shows each lens by its mark alone, as the tab bar below names them. */
+@media (max-width: 520px) {
+  .weave-card .weave-lens {
+    width: auto;
+  }
+  .weave-card .weave-lens span,
+  .weave-card .weave-count {
+    display: none;
+  }
+}

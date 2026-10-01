@@ -184,8 +184,18 @@ export interface Entry {
   /** Elements this note is about. */
   nodeIds: ID[];
   analysis?: EntryAnalysis;
+  /** What the Atlas connected on its own when the note was saved (see domain/weave), so each part can be undone. */
+  woven?: Woven;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
+}
+
+/** Steps and targets a note said were finished, ticked off from it; and the ones you took back, never ticked again from it. */
+export interface Woven {
+  parts: ID[];
+  declined?: ID[];
+  /** The area it was put in, from what it is about. */
+  area?: AreaKey;
 }
 
 export interface DecisionOption {
@@ -689,7 +699,16 @@ export interface NavigationPlan {
 
 export type SuggestionState = 'pending' | 'accepted' | 'dismissed';
 
-export type AnalysisSuggestion =
+/** What taking a suggestion made, so it can be taken back exactly. */
+export interface SuggestionMade {
+  occurrence?: ID;
+  /** The happening a change was added to (rather than one made for it). */
+  host?: ID;
+  evidence?: ID;
+  claim?: ID;
+}
+
+export type AnalysisSuggestion = (
   | { id: ID; type: 'link_node'; nodeId: ID; reason: string; state: SuggestionState }
   | {
       id: ID;
@@ -720,6 +739,8 @@ export type AnalysisSuggestion =
       type: 'attribution';
       excerpt: string;
       reason: string;
+      /** The explanation as a claim, when an element is named on each side: offered, never taken on its own. */
+      claim?: { from: ID; to: ID; effect: Effect };
       state: SuggestionState;
     }
   | {
@@ -743,7 +764,12 @@ export type AnalysisSuggestion =
       excerpt: string;
       reason: string;
       state: SuggestionState;
-    };
+    }
+) & {
+  /** Taken by the Atlas on its own when the note was saved, not by you. */
+  auto?: boolean;
+  made?: SuggestionMade;
+};
 
 /** The persisted output of reading one note. */
 export interface EntryAnalysis {

@@ -1,0 +1,151 @@
+import { beforeEach, describe, expect, it } from 'vitest';
+import { analyzeEntryLocally } from '../ai/localAnalysis';
+import { createSeedData } from '../data/seed';
+import { useAtlas } from '../state/atlasStore';
+import { weaveEntry } from '../state/operations';
+import { danglingReferences } from './integrity';
+import { quests } from './quests';
+import { finishedIn, knownClaim, weaveOf } from './weave';
+
+const seed = () => createSeedData();
+const note = (content: string, title = '') => ({ title, content });
+
+describe('steps a note says are finished', () => {
+  it('finds the open step a sentence says is done, in English or Indonesian', () => {
+    const d = seed();
+    expect(finishedIn(d, note('Finished the scene 4 layout pass with Juna this morning.')).map((f) => f.id)).toEqual(['a07']);
+    expect(finishedIn(d, note('Akhirnya selesai juga potong workshop deck jadi 20 slides.')).map((f) => f.id)).toEqual(['a10']);
+    expect(finishedIn(d, note('Did the Sunday review after dinner.')).map((f) => f.id)).toEqual(['a11']);
+    // A short sentence that only says so finishes the one before it.
+    expect(finishedIn(d, note('Scene 4 layout pass. Done!')).map((f) => f.id)).toEqual(['a07']);
+  });
+
+  it('leaves alone what is not done yet, still to come, or only half named', () => {
+    const d = seed();
+    expect(finishedIn(d, note('Scene 5 rough boards are not done yet.'))).toEqual([]);
+    expect(finishedIn(d, note('I will do the Sunday review tomorrow.'))).toEqual([]);
+    expect(finishedIn(d, note('Belum selesai scene 4 layout pass.'))).toEqual([]);
+    expect(finishedIn(d, note('Finished a scene today.'))).toEqual([]);
+    // A number in the title has to match: scene 4 is not scene 5.
+    expect(finishedIn(d, note('Finished the scene 6 layout pass.'))).toEqual([]);
+    // Already done, or taken back before.
+    expect(finishedIn(d, note('Invoiced Brightline milestone 2, done.'))).toEqual([]);
+    expect(finishedIn(d, note('Finished the scene 4 layout pass.'), ['a07'])).toEqual([]);
+  });
+});
+
+describe('the weave', () => {
+  const content =
+    'Finished the scene 4 layout pass with Juna this morning. Energy dropped in the afternoon because of the late deadline sprint. Deep work in the morning, phone in another room.';
+
+  beforeEach(() => useAtlas.getState().replaceData(seed()));
+
+  const write = (text: string) => {
+    const atlas = useAtlas.getState();
+    const entry = atlas.addEntry({ kind: 'journal', title: 'Thursday', content: text, date: '2026-10-01', areas: [], tags: [], nodeIds: [] });
+    useAtlas.getState().setEntryAnalysis(entry.id, analyzeEntryLocally(useAtlas.getState().data.entries[entry.id], useAtlas.getState().data));
+    weaveEntry(entry.id);
+    return entry.id;
+  };
+
+  it('takes on its own what the note says, and offers only what you have to say', () => {
+    const id = write(content);
+    const d = useAtlas.getState().data;
+    const e = d.entries[id];
+    const sugs = e.analysis!.suggestions;
+    for (const s of sugs) {
+      // An explanation is only connected on its own when it says again a reason you already hold.
+      if (s.type === 'attribution') expect(s.state).toBe(knownClaim(d, s) ? 'accepted' : 'pending');
+      else if (s.type === 'pattern_evidence' && s.stance === 'counters') expect(s.state).toBe('pending');
+      else if (s.type !== 'area') expect([s.type, s.state, s.auto]).toEqual([s.type, 'accepted', true]);
+    }
+    // What it made is on record, with its trail back to the note.
+    expect(e.nodeIds).toEqual(expect.arrayContaining(['n_juna', 'n_energy', 'n_deepwork', 'n_sprint']));
+    expect(Object.values(d.occurrences).filter((o) => o.source?.kind === 'entry' && o.source.id === id).length).toBeGreaterThan(0);
+    expect(d.patterns.pat_09.evidence.some((x) => x.source.kind === 'entry' && x.source.id === id)).toBe(true);
+    // The step it finished, on the note's day, and the boss it hit.
+    const step = d.navigation!.actions.find((a) => a.id === 'a07')!;
+    expect([step.status, step.doneAt]).toEqual(['done', '2026-10-01']);
+    expect(e.woven?.parts).toEqual(['a07']);
+    expect(danglingReferences(d)).toEqual([]);
+
+    const w = weaveOf(d, id, '2026-10-01');
+    expect(w.strands.map((s) => s.lens)).toEqual(['map', 'time', 'causes', 'repeats', 'ahead', 'quests']);
+    expect(w.strands.find((s) => s.lens === 'quests')!.threads[0].untie).toEqual({ kind: 'part', id: 'a07' });
+    const boss = quests(d, '2026-10-01').bosses.find((b) => b.parts.some((p) => p.id === 'a07'))!;
+    expect(w.strands.find((s) => s.lens === 'quests')!.threads[1].label).toContain(`${boss.hp}`);
+  });
+
+  it('takes every thread back exactly, and never ties a taken-back step again', () => {
+    const before = useAtlas.getState().data;
+    const id = write(content);
+    for (const s of weaveOf(useAtlas.getState().data, id).strands)
+      for (const thread of s.threads) if (thread.auto && thread.untie) useAtlas.getState().untie(id, thread.untie);
+    let d = useAtlas.getState().data;
+    const e = d.entries[id];
+    expect(e.nodeIds).toEqual([]);
+    expect(e.areas).toEqual([]);
+    expect(Object.values(d.occurrences).filter((o) => o.source?.kind === 'entry' && o.source.id === id)).toEqual([]);
+    expect(d.patterns.pat_09.evidence).toEqual(before.patterns.pat_09.evidence);
+    expect(d.navigation!.actions.find((a) => a.id === 'a07')!.status).toBe('todo');
+    expect(e.woven).toMatchObject({ parts: [], declined: ['a07'] });
+
+    // Reading it again keeps what you took back.
+    useAtlas.getState().setEntryAnalysis(id, analyzeEntryLocally(d.entries[id], d));
+    weaveEntry(id);
+    d = useAtlas.getState().data;
+    expect(d.navigation!.actions.find((a) => a.id === 'a07')!.status).toBe('todo');
+    expect(d.entries[id].analysis!.suggestions.filter((s) => s.state === 'accepted')).toEqual([]);
+    expect(danglingReferences(d)).toEqual([]);
+  });
+
+  it('connects an explanation you already hold to that reason, without counting it as evidence', () => {
+    const id = write(content);
+    const d = useAtlas.getState().data;
+    const sug = d.entries[id].analysis!.suggestions.find((s) => s.type === 'attribution')!;
+    expect([sug.state, sug.made]).toEqual(['accepted', undefined]);
+    const thread = weaveOf(d, id)
+      .strands.find((s) => s.lens === 'causes')!
+      .threads.find((x) => x.key.startsWith('h:'))!;
+    expect(d.claims[thread.ref!.id]).toMatchObject({ from: 'n_sprint', to: 'n_energy' });
+    expect(d.claims[thread.ref!.id].evidence.some((e) => e.source.id === id)).toBe(false);
+    // Taking it back leaves the reason as it was.
+    useAtlas.getState().untie(id, thread.untie!);
+    expect(useAtlas.getState().data.claims[thread.ref!.id]).toEqual(d.claims[thread.ref!.id]);
+  });
+
+  it('makes a new explanation a hunch with one tap, with no evidence from the note, and takes it back', () => {
+    const id = write('Morning deep work is gone because of the afternoon interruptions.');
+    const sug = useAtlas.getState().data.entries[id].analysis!.suggestions.find((s) => s.type === 'attribution')!;
+    const claimId = useAtlas.getState().claimFromNote(id, sug.id)!;
+    let d = useAtlas.getState().data;
+    expect(d.claims[claimId]).toMatchObject({ from: 'n_afternoons', to: 'n_deepwork', evidence: [] });
+    const thread = weaveOf(d, id)
+      .strands.find((s) => s.lens === 'causes')!
+      .threads.find((x) => x.ref?.id === claimId)!;
+    useAtlas.getState().untie(id, thread.untie!);
+    d = useAtlas.getState().data;
+    expect(d.claims[claimId]).toBeUndefined();
+    expect(danglingReferences(d)).toEqual([]);
+  });
+
+  it('puts a note in an area only when most of what it is about sits there', () => {
+    const one = write('Juna and Ruth came by the studio.');
+    const d = useAtlas.getState().data;
+    const linked = d.entries[one].nodeIds.map((n) => d.nodes[n].area);
+    const top = linked.filter((a) => a === linked[0]).length;
+    if (top >= 2 && linked.every((a) => a === linked[0])) expect(d.entries[one].areas).toEqual([linked[0]]);
+    const mixed = write('Energy dropped and Juna called.');
+    const m = useAtlas.getState().data;
+    const areas = new Set(m.entries[mixed].nodeIds.map((n) => m.nodes[n].area));
+    if (areas.size > 1) expect(m.entries[mixed].areas).toEqual([]);
+  });
+
+  it('lets go of a finished step when it leaves the plan', () => {
+    const id = write(content);
+    useAtlas.getState().deleteAction('a07');
+    const d = useAtlas.getState().data;
+    expect(d.entries[id].woven?.parts).toEqual([]);
+    expect(danglingReferences(d)).toEqual([]);
+  });
+});

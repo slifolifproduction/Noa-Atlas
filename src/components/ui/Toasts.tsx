@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import { useUI } from '../../state/uiStore';
 import { cn } from '../../lib/cn';
 import { t } from '../../i18n';
+import { WeaveCard } from '../weave/Weave';
 
 export function Toasts() {
   const toasts = useUI((s) => s.toasts);
@@ -41,6 +42,7 @@ export function Toasts() {
           </button>
         </div>
       ))}
+      <WeaveCard />
     </div>
   );
 }

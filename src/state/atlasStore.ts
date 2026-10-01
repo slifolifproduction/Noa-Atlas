@@ -43,6 +43,7 @@ import type {
   FactorReading,
   ID,
   Investigation,
+  LearningMemory,
   LinkType,
   ModelUpdate,
   NavActionStatus,
@@ -53,11 +54,12 @@ import type {
   SourceRef,
   Stance,
   StrategicPath,
+  SuggestionMade,
   View,
-  LearningMemory,
 } from '../domain/types';
 import { addDays, formatDate, todayISO, weekStart } from '../lib/dates';
 import { arsenal, canUpgrade, quests } from '../domain/quests';
+import type { Untie } from '../domain/weave';
 import { createId } from '../lib/ids';
 import { DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
 import { t } from '../i18n';
@@ -151,7 +153,14 @@ interface AtlasActions {
   updateEntry(id: ID, patch: Partial<NewEntry>): void;
   deleteEntry(id: ID): void;
   setEntryAnalysis(id: ID, analysis: EntryAnalysis): void;
-  resolveSuggestion(entryId: ID, suggestionId: ID, accept: boolean): void;
+  /** Say yes or no to what was read from a note; `auto` when the Atlas takes it on its own (see domain/weave). */
+  resolveSuggestion(entryId: ID, suggestionId: ID, accept: boolean, opts?: { auto?: boolean }): void;
+  /** Take back one thread a note tied: what a suggestion made, a step it finished, a link or an area. */
+  untie(entryId: ID, untie: Untie): void;
+  /** Tick off steps and targets a note says are finished, on the note's date. */
+  finishFromNote(entryId: ID, parts: { kind: 'action' | 'target'; id: ID }[]): void;
+  /** Your explanation in a note, made a claim: it starts as a hunch, and the note is not its evidence. */
+  claimFromNote(entryId: ID, suggestionId: ID): ID | undefined;
   addDecision(input: NewDecision): Decision;
   updateDecision(id: ID, patch: Partial<NewDecision>): void;
   deleteDecision(id: ID): void;
@@ -924,25 +933,32 @@ export const useAtlas = create<AtlasState>()(
           set((s) => {
             const e = s.data.entries[id];
             if (!e) return;
-            // Keep decisions the person already made on equivalent suggestions.
-            const prior = new Map((e.analysis?.suggestions ?? []).filter((x) => x.state !== 'pending').map((x) => [suggestionKey(x), x.state]));
+            // Keep decisions already made on equivalent suggestions, and what taking them made, so they can still be taken back.
+            const prior = new Map((e.analysis?.suggestions ?? []).filter((x) => x.state !== 'pending').map((x) => [suggestionKey(x), x]));
             for (const sug of analysis.suggestions) {
-              const state = prior.get(suggestionKey(sug));
-              if (state && sug.state === 'pending') sug.state = state;
+              const was = prior.get(suggestionKey(sug));
+              if (!was || sug.state !== 'pending') continue;
+              sug.state = was.state;
+              if (was.auto) sug.auto = true;
+              if (was.made) sug.made = was.made;
             }
             e.analysis = analysis;
           });
         },
 
-        resolveSuggestion(entryId, suggestionId, accept) {
+        resolveSuggestion(entryId, suggestionId, accept, opts = {}) {
           const entry = get().data.entries[entryId];
           const sug = entry?.analysis?.suggestions.find((x) => x.id === suggestionId);
-          if (!entry || !sug) return;
+          if (!entry || !sug || sug.state !== 'pending') return;
+          // What taking it makes, kept with it so it can be taken back exactly.
+          const made: SuggestionMade = {};
           if (accept && sug.type === 'pattern_evidence') {
-            get().addPatternEvidence(sug.patternId, { source: { kind: 'entry', id: entryId }, stance: sug.stance, excerpt: sug.excerpt, addedBy: 'user' });
+            const source: SourceRef = { kind: 'entry', id: entryId };
+            get().addPatternEvidence(sug.patternId, { source, stance: sug.stance, excerpt: sug.excerpt, addedBy: opts.auto ? 'inferred' : 'user' });
+            made.evidence = get().data.patterns[sug.patternId]?.evidence.find((e) => sameRef(e.source, source))?.id;
           }
           if (accept && sug.type === 'occurrence') {
-            get().addOccurrence({
+            made.occurrence = get().addOccurrence({
               kind: sug.kind,
               label: sug.label,
               date: entry.date,
@@ -958,10 +974,12 @@ export const useAtlas = create<AtlasState>()(
             const fromNote = Object.values(d.occurrences).filter((o) => o.mode === 'actual' && o.source?.kind === 'entry' && o.source.id === entryId);
             const host = fromNote.find((o) => o.about.includes(sug.factor) || o.instanceOf === sug.factor);
             const change = { factor: sug.factor, reads: sug.reads };
-            if (host) get().setOccurrenceChanges(host.id, [...(host.changes ?? []).filter((c) => c.factor !== sug.factor), change]);
-            else {
+            if (host) {
+              get().setOccurrenceChanges(host.id, [...(host.changes ?? []).filter((c) => c.factor !== sug.factor), change]);
+              made.host = host.id;
+            } else {
               const behaviour = d.nodes[sug.factor]?.kind === 'behaviour';
-              get().addOccurrence({
+              made.occurrence = get().addOccurrence({
                 kind: behaviour && sug.reads === 'present' ? 'action' : 'event',
                 label: sug.excerpt.length > 72 ? `${sug.excerpt.slice(0, 70).trimEnd()}…` : sug.excerpt.replace(/[.!]$/, ''),
                 date: entry.date,
@@ -974,7 +992,7 @@ export const useAtlas = create<AtlasState>()(
             }
           }
           if (accept && sug.type === 'expectation') {
-            get().addExpectation({
+            made.occurrence = get().addExpectation({
               factor: sug.factor,
               reads: sug.reads,
               from: entry.date,
@@ -991,11 +1009,113 @@ export const useAtlas = create<AtlasState>()(
             if (!e || !x) return;
             x.state = accept ? 'accepted' : 'dismissed';
             if (!accept) return;
+            if (opts.auto) x.auto = true;
+            if (Object.keys(made).length) x.made = made;
             if (x.type === 'link_node' && !e.nodeIds.includes(x.nodeId)) e.nodeIds.push(x.nodeId);
             if (x.type === 'area' && !e.areas.includes(x.area)) e.areas.push(x.area);
           });
+          // Only what you decide teaches the Atlas what you take; what it took on its own does not.
+          if (opts.auto) return;
           learn((mem) => noteSuggestion(mem, sug.type, accept));
           if (accept && sug.type === 'link_node') learnLinks(entryId, [sug.nodeId]);
+        },
+
+        untie(entryId, what) {
+          const entry = get().data.entries[entryId];
+          if (!entry) return;
+          if (what.kind === 'unlink') return get().updateEntry(entryId, { nodeIds: entry.nodeIds.filter((n) => n !== what.node) });
+          if (what.kind === 'area')
+            return get().updateEntry(entryId, {
+              areas: entry.areas.filter((a) => a !== what.area),
+              woven: entry.woven ? { ...entry.woven, area: undefined } : undefined,
+            });
+          if (what.kind === 'part') {
+            set((s) => {
+              const d = s.data;
+              const e = d.entries[entryId];
+              const nav = d.navigation;
+              const action = nav?.actions.find((a) => a.id === what.id) ?? d.quests?.own?.actions.find((a) => a.id === what.id);
+              const target = nav?.targets.find((x) => x.id === what.id) ?? d.quests?.own?.targets.find((x) => x.id === what.id);
+              if (action) {
+                action.status = 'todo';
+                action.doneAt = undefined;
+              }
+              if (target) {
+                target.done = false;
+                target.doneAt = undefined;
+              }
+              // Never ticked again from this note.
+              if (e?.woven) e.woven = { parts: e.woven.parts.filter((p) => p !== what.id), declined: [...new Set([...(e.woven.declined ?? []), what.id])] };
+            });
+            return;
+          }
+          const sug = entry.analysis?.suggestions.find((x) => x.id === what.id);
+          if (!sug || sug.state !== 'accepted') return;
+          const made = sug.made ?? {};
+          const d = get().data;
+          if (sug.type === 'link_node') get().updateEntry(entryId, { nodeIds: entry.nodeIds.filter((n) => n !== sug.nodeId) });
+          if (sug.type === 'area') get().updateEntry(entryId, { areas: entry.areas.filter((a) => a !== sug.area) });
+          if (sug.type === 'pattern_evidence' && made.evidence) get().removePatternEvidence(sug.patternId, made.evidence);
+          if (made.occurrence && d.occurrences[made.occurrence]) get().deleteOccurrence(made.occurrence);
+          if (sug.type === 'change' && made.host && d.occurrences[made.host])
+            get().setOccurrenceChanges(
+              made.host,
+              (d.occurrences[made.host].changes ?? []).filter((c) => c.factor !== sug.factor),
+            );
+          if (made.claim && d.claims[made.claim]) get().deleteClaim(made.claim);
+          set((s) => {
+            const x = s.data.entries[entryId]?.analysis?.suggestions.find((y) => y.id === what.id);
+            if (!x) return;
+            x.state = 'dismissed';
+            x.made = undefined;
+          });
+          learn((mem) => noteSuggestion(mem, sug.type, false));
+        },
+
+        finishFromNote(entryId, parts) {
+          set((s) => {
+            const d = s.data;
+            const e = d.entries[entryId];
+            if (!e || !parts.length) return;
+            // Finished on the day the note is about, never later than today.
+            const on = e.date < todayISO() ? e.date : todayISO();
+            const nav = d.navigation;
+            for (const part of parts) {
+              if (part.kind === 'action') {
+                const a = nav?.actions.find((x) => x.id === part.id) ?? d.quests?.own?.actions.find((x) => x.id === part.id);
+                if (!a || a.status !== 'todo') continue;
+                a.status = 'done';
+                a.doneAt = on;
+                if (nav && nav.currentActionId === a.id)
+                  nav.currentActionId =
+                    nav.actions.find((x) => x.status === 'todo' && x.week >= a.week)?.id ?? nav.actions.find((x) => x.status === 'todo')?.id;
+              } else {
+                const x = nav?.targets.find((y) => y.id === part.id) ?? d.quests?.own?.targets.find((y) => y.id === part.id);
+                if (!x || x.done) continue;
+                x.done = true;
+                x.doneAt = on;
+              }
+              e.woven = { ...e.woven, parts: [...new Set([...(e.woven?.parts ?? []), part.id])] };
+            }
+          });
+        },
+
+        claimFromNote(entryId, suggestionId) {
+          const sug = get().data.entries[entryId]?.analysis?.suggestions.find((x) => x.id === suggestionId);
+          if (!sug || sug.type !== 'attribution' || sug.state !== 'pending' || !sug.claim) return undefined;
+          const { from, to, effect } = sug.claim;
+          if (!get().data.nodes[from] || !get().data.nodes[to]) return undefined;
+          // A reason you already have is connected to, never made twice (and never taken away with the note's).
+          const known = Object.values(get().data.claims).some((c) => c.from === from && c.to === to && c.effect === effect && c.state !== 'set_aside');
+          const id = get().addClaim({ from, to, effect, author: 'user', state: 'adopted' });
+          set((s) => {
+            const x = s.data.entries[entryId]?.analysis?.suggestions.find((y) => y.id === suggestionId);
+            if (!x) return;
+            x.state = 'accepted';
+            if (!known) x.made = { claim: id };
+          });
+          learn((mem) => noteSuggestion(mem, 'attribution', true));
+          return id;
         },
 
         /* ---------------- decisions ---------------- */

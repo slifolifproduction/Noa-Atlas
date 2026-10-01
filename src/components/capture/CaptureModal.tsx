@@ -16,7 +16,7 @@ import { formatDate, todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { createId } from '../../lib/ids';
 import { useAtlas } from '../../state/atlasStore';
-import { captureDecision, captureEntry } from '../../state/operations';
+import { captureDecision, captureEntry, reconnectEntry } from '../../state/operations';
 import { toast, useUI } from '../../state/uiStore';
 import { CAPTURE_ICONS } from '../icons';
 import { Button } from '../ui/Button';
@@ -185,6 +185,8 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           captureDecision({ ...payload, nodeIds: [], claimIds: [] });
         }
       } else if (editing) {
+        const was = data.entries[editing.id];
+        const reread = was && (was.content !== draft.content.trim() || was.title !== title || was.date !== draft.date);
         updateEntry(editing.id, {
           kind: draft.kind as EntryKind,
           title,
@@ -194,7 +196,9 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           tags: parseTags(draft.tags),
           context: hasContext ? context : undefined,
         });
-        toast(t('Entry updated. Re-run analysis from its panel if the content changed.'), { tone: 'success' });
+        // What it says changed: read it again and connect it, so every lens shows what it says now.
+        if (reread) void reconnectEntry(editing.id);
+        else toast(t('Entry updated.'), { tone: 'success' });
       } else {
         onClose();
         await captureEntry(

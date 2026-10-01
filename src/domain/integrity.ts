@@ -25,6 +25,15 @@ const sourceExists = (d: AtlasData, ref: SourceRef) =>
         ? ref.id in d.experiments
         : ref.id in d.occurrences;
 
+/** Every step and target, in the plan and in your own quests. */
+const workIds = (d: AtlasData) =>
+  new Set<ID>([
+    ...(d.navigation?.actions ?? []).map((a) => a.id),
+    ...(d.navigation?.targets ?? []).map((x) => x.id),
+    ...(d.quests?.own?.actions ?? []).map((a) => a.id),
+    ...(d.quests?.own?.targets ?? []).map((x) => x.id),
+  ]);
+
 /** Loop names are keyed by their member claim ids. */
 const loopClaimIds = (key: string) => key.split('|');
 
@@ -79,7 +88,10 @@ export function danglingReferences(d: AtlasData): string[] {
         node(s.instanceOf, `note ${e.id}.suggestion`);
       }
       if (s.type === 'change' || s.type === 'expectation') node(s.factor, `note ${e.id}.suggestion`);
+      if (s.type === 'attribution' && s.claim) [s.claim.from, s.claim.to].forEach((n) => node(n, `note ${e.id}.suggestion`));
     }
+    const work = workIds(d);
+    e.woven?.parts.forEach((p) => !work.has(p) && out.push(`note ${e.id}.woven → step ${p}`));
   }
   for (const x of Object.values(d.decisions)) {
     x.nodeIds.forEach((n) => node(n, `decision ${x.id}`));
@@ -247,9 +259,15 @@ export function repairReferences(d: AtlasData): number {
         fixed++;
       }
     }
+    const work = workIds(d);
     for (const e of Object.values(d.entries)) {
       const ids = keep(e.nodeIds, hasNode);
       if (ids !== e.nodeIds) e.nodeIds = ids;
+      // A step the note finished that is no longer in any plan or quest.
+      if (e.woven) {
+        const parts = keep(e.woven.parts, (p) => work.has(p));
+        if (parts !== e.woven.parts) e.woven.parts = parts;
+      }
       const a = e.analysis;
       if (a) {
         // A suggestion about something that is gone can no longer be answered.
@@ -264,6 +282,10 @@ export function repairReferences(d: AtlasData): number {
         );
         if (sug !== a.suggestions) a.suggestions = sug;
         for (const s of a.suggestions) {
+          if (s.type === 'attribution' && s.claim && (!hasNode(s.claim.from) || !hasNode(s.claim.to))) {
+            s.claim = undefined;
+            fixed++;
+          }
           if (s.type !== 'occurrence') continue;
           const about = keep(s.about, hasNode);
           if (about !== s.about) s.about = about;

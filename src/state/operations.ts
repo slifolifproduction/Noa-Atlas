@@ -8,11 +8,13 @@ import { AnalysisError } from '../ai/errors';
 import { analyzeEntryLocally } from '../ai/localAnalysis';
 import type { ExperimentDraft, ModelUpdateProposal } from '../ai/types';
 import { CAPTURE_TARGET } from '../domain/constants';
-import { decisionCode, entryCode, experimentCode, pathCode } from '../domain/selectors';
+import { player } from '../domain/quests';
+import { decisionCode, experimentCode, pathCode } from '../domain/selectors';
+import { areaToTake, finishedIn, knownClaim, takenOnItsOwn } from '../domain/weave';
 import type { CaptureKind, Entry, EntryAnalysis, Experiment, ExperimentResult, ID } from '../domain/types';
 import { useAtlas, type NewDecision, type NewEntry } from './atlasStore';
 import { toast, useUI } from './uiStore';
-import { t, tn } from '../i18n';
+import { t } from '../i18n';
 
 let warnedFallback = false;
 
@@ -51,11 +53,12 @@ export async function analyzeEntry(id: ID): Promise<EntryAnalysis | undefined> {
 
 /**
  * Create a note, optionally place what it describes on the map (a goal, a
- * commitment, a behaviour) or in history (a formative experience), then read it.
- * The note itself always stays the record.
+ * commitment, a behaviour) or in history (a formative experience), then read
+ * it and connect it. The note itself always stays the record.
  */
 export async function captureEntry(input: NewEntry, opts: { addToMap?: boolean } = {}): Promise<Entry> {
   const atlas = useAtlas.getState();
+  const before = player(atlas.data);
   const target = CAPTURE_TARGET[input.kind as CaptureKind];
   const entry = atlas.addEntry(input);
   if (opts.addToMap && target?.element) {
@@ -79,17 +82,47 @@ export async function captureEntry(input: NewEntry, opts: { addToMap?: boolean }
       excerpt: input.content,
     });
   }
-  const ui = useUI.getState();
-  const analysis = await analyzeEntry(entry.id);
-  const pending = analysis ? countPending(analysis) : 0;
-  ui.toast(
-    `${t('Saved {code}.', { code: entryCode(entry.seq) })}${pending ? ` ${tn(pending, 'Analysis has {n} suggestion to review.', 'Analysis has {n} suggestions to review.')}` : ''}`,
-    {
-      tone: 'success',
-      action: { label: t('Review'), run: () => useUI.getState().openEntity({ kind: 'entry', id: entry.id }) },
-    },
-  );
+  await readAndWeave(entry.id);
+  // What the note connected to, lens by lens, with what it was worth in Quests.
+  const after = player(useAtlas.getState().data);
+  useUI.getState().showWoven({ entryId: entry.id, xp: after.xp - before.xp, level: after.level > before.level ? after.level : undefined });
   return useAtlas.getState().data.entries[entry.id];
+}
+
+/**
+ * Connect a note to every lens (see domain/weave): take on its own what only
+ * says what the note says, then tick off the steps and targets it says are
+ * finished. What only you can say stays offered.
+ */
+export function weaveEntry(id: ID) {
+  const atlas = useAtlas.getState;
+  const entry = atlas().data.entries[id];
+  if (!entry) return;
+  // In the order they were read: a happening before what changed in it.
+  for (const s of entry.analysis?.suggestions ?? [])
+    if (s.state === 'pending' && (takenOnItsOwn(s) || knownClaim(atlas().data, s))) atlas().resolveSuggestion(id, s.id, true, { auto: true });
+  const area = areaToTake(atlas().data, atlas().data.entries[id]);
+  const worded = atlas().data.entries[id].analysis?.suggestions.find((s) => s.type === 'area' && s.area === area && s.state === 'pending');
+  if (worded) atlas().resolveSuggestion(id, worded.id, true, { auto: true });
+  else if (area) atlas().updateEntry(id, { areas: [area], woven: { parts: [], ...atlas().data.entries[id].woven, area } });
+  const now = atlas().data.entries[id];
+  const done = finishedIn(atlas().data, now, [...(now.woven?.parts ?? []), ...(now.woven?.declined ?? [])]);
+  if (done.length) atlas().finishFromNote(id, done);
+}
+
+/** After a note is changed: read it again, connect what it now says, and show what it is connected to. */
+export async function reconnectEntry(id: ID) {
+  const before = player(useAtlas.getState().data);
+  await readAndWeave(id);
+  const after = player(useAtlas.getState().data);
+  useUI.getState().showWoven({ entryId: id, xp: after.xp - before.xp, level: after.level > before.level ? after.level : undefined });
+}
+
+/** Read a note (again) and connect what it says. */
+export async function readAndWeave(id: ID) {
+  const analysis = await analyzeEntry(id);
+  weaveEntry(id);
+  return analysis;
 }
 
 /** A decision is a branch point in history; it needs no copy on the map. */

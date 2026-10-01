@@ -23,11 +23,13 @@ import type {
   AtlasNode,
   Claim,
   Decision,
+  Effect,
   Entry,
   EntryAnalysis,
   Experiment,
   ExperimentResult,
   FactorReading,
+  ID,
   ISODateTime,
   NavigationPlan,
   Observation,
@@ -440,6 +442,44 @@ const ATTRIBUTION_CUES = [
   'alasannya',
 ];
 
+/** Cues that name the cause after them ("…because B") and before them ("A led to…"); the rest say no which way. */
+const CAUSE_AFTER = new Set(['because', 'due to', 'karena', 'gara-gara', 'alasannya']);
+const CAUSE_BEFORE = new Set(['made it', 'led to', "that's why", 'as a result', 'sehingga', 'akibatnya', 'makanya', 'membuat saya']);
+
+/**
+ * The explanation in a sentence, as a claim to offer: an element named on
+ * each side of the cue, the cause on the side the cue points to, and which
+ * way the outcome went where the sentence says so. Only offered, never taken
+ * on its own: it is the person's hypothesis, and starts as one.
+ */
+function readAttribution(sentence: string, cue: string, elements: AtlasNode[]): { from: ID; to: ID; effect: Effect } | undefined {
+  const after = CAUSE_AFTER.has(cue);
+  if (!after && !CAUSE_BEFORE.has(cue)) return undefined;
+  const text = norm(sentence);
+  const at = text.search(new RegExp(`(^|[^a-z0-9])${escapeRe(norm(cue))}([^a-z0-9]|$)`));
+  if (at < 0) return undefined;
+  const before = text.slice(0, at);
+  const rest = text.slice(at + cue.length + 1);
+  const [causeText, outcomeText] = after ? [rest, before] : [before, rest];
+  const cause = matchNodes(causeText, elements)[0]?.node;
+  const outcome = matchNodes(outcomeText, elements)[0]?.node;
+  if (!cause || !outcome || cause.id === outcome.id) return undefined;
+  let effect: Effect = 'triggers';
+  // A behaviour that stopped or did not happen because of something: it holds it back.
+  if (outcome.kind === 'behaviour' && CHANGE_CUES.some((c) => c.reads === 'absent' && c.phrases.some((p) => has(outcomeText, p)))) effect = 'constrains';
+  if (outcome.kind === 'state') {
+    const said = (reads: FactorReading[]) => CHANGE_CUES.some((c) => reads.includes(c.reads) && c.phrases.some((p) => has(outcomeText, p)));
+    // Worse or better: which way that is depends on whether more of it is better or worse.
+    const worse = VALENCE_CUES.some((v) => v.phrases.some((p) => has(outcomeText, p)) && !v.better);
+    const better = VALENCE_CUES.some((v) => v.phrases.some((p) => has(outcomeText, p)) && v.better);
+    const higherIsWorse = outcome.scale?.higherIs === 'worse';
+    const lower = said(['down', 'low']) || (higherIsWorse ? better : worse);
+    const higher = said(['up', 'high']) || (higherIsWorse ? worse : better);
+    if (lower !== higher) effect = lower ? 'lowers' : 'raises';
+  }
+  return { from: cause.id, to: outcome.id, effect };
+}
+
 /**
  * What changed: words for a direction near an element's name. A mention alone
  * is never read as a change; only a sentence that says which way it went. A
@@ -473,7 +513,10 @@ const CHANGE_CUES: { reads: FactorReading; phrases: string[] }[] = [
   },
   { reads: 'low', phrases: ['was low', 'low', 'flat', 'drained', 'exhausted', 'depleted', 'rendah', 'lemas', 'lelah', 'capek'] },
   { reads: 'high', phrases: ['was high', 'high', 'full of', 'tinggi', 'penuh'] },
-  { reads: 'absent', phrases: ['no', 'without', 'skipped', "didn't", 'did not', 'tidak ada', 'tanpa', 'belum', 'tidak'] },
+  {
+    reads: 'absent',
+    phrases: ['no', 'without', 'skipped', "didn't", 'did not', 'gone', 'lost', 'stopped', 'tidak ada', 'tanpa', 'belum', 'tidak', 'hilang', 'berhenti'],
+  },
 ];
 /** Better or worse: which way that is depends on whether more of the element is better or worse. */
 const VALENCE_CUES: { better: boolean; phrases: string[] }[] = [
@@ -558,6 +601,25 @@ function matchNodes(text: string, nodes: AtlasNode[]): { node: AtlasNode; hit: s
   const full = nodes
     .filter((n) => n.label.length >= 3 && (n.label.length >= 4 || /^[A-Z]/.test(n.label)) && has(text, n.label))
     .map((node) => ({ node, hit: node.label }));
+  // Every word of a longer name, allowing for endings and prefixes ("late deadline sprint" for "Late deadline sprints").
+  const words = text.split(/[^\p{L}\p{N}'-]+/u).filter(Boolean);
+  for (const node of nodes) {
+    if (full.some((f) => f.node.id === node.id)) continue;
+    const named = norm(node.label)
+      .split(/[^\p{L}\p{N}'-]+/u)
+      .filter((w) => w.length >= 3 && !NAME_FILLER.has(w));
+    if (named.length < 2) continue;
+    const found = named.map((w) =>
+      words.find(
+        (x) =>
+          x === w ||
+          (w.length >= 4 && x.startsWith(w) && x.length - w.length <= 3) ||
+          (x.length >= 4 && w.startsWith(x) && w.length - x.length <= 3) ||
+          (w.length >= 4 && x.length > w.length && x.endsWith(w) && x.length - w.length <= 4),
+      ),
+    );
+    if (found.every(Boolean)) full.push({ node, hit: found.reduce((a, b) => (b!.length > a!.length ? b : a))! });
+  }
   const covered = full.map((f) => norm(f.hit));
   const partial: { node: AtlasNode; hit: string }[] = [];
   for (const node of nodes) {
@@ -578,6 +640,9 @@ function matchNodes(text: string, nodes: AtlasNode[]): { node: AtlasNode; hit: s
   }
   return [...full, ...partial];
 }
+
+/** Words that do not make a name on their own. */
+const NAME_FILLER = new Set('the and for with from into your yang dan untuk dengan dari pada'.split(' '));
 
 const COMMON_CAPITALISED = new Set(
   'what which would saying good being build building missing financial freedom recognition clients client morning sunday running home afternoons afternoon income runway creative independent emerging real-time motion production business ship agency accepted paused declined committed burnout protected stability autonomy craft depth compounding barbell optionality working festival night two-track active incoming energy feeling fragmented quality outside adding late keep focus commitment declining'.split(
@@ -650,18 +715,22 @@ export function analyzeEntryLocally(entry: Entry, data: AtlasData, at: ISODateTi
 
   // Explanations written into the note: the person's own hypotheses.
   const raw = norm(entry.content);
-  const cues = ATTRIBUTION_CUES.filter((c) => has(raw, c));
-  const seen = new Set<string>();
-  for (const cue of cues) {
-    const sentence = sentenceContaining(entry.content, cue);
-    if (!sentence || seen.has(sentence)) continue;
-    seen.add(sentence);
-    if (seen.size > 2) break;
+  // Every sentence that explains something, up to three, each by the first cue it uses.
+  const explained = entry.content
+    .split(/(?<=[.!?])\s+/)
+    .map((x) => x.trim())
+    .flatMap((sentence) => {
+      const cue = ATTRIBUTION_CUES.find((c) => has(norm(sentence), c));
+      return cue && has(raw, cue) ? [{ sentence, cue }] : [];
+    })
+    .slice(0, 3);
+  for (const { sentence, cue } of explained) {
     suggestions.push({
       id: createId('sug'),
       type: 'attribution',
       excerpt: sentence,
       reason: t('Explains something in your own words ({cue}). That is your hypothesis about a cause, not evidence of it.', { cue: quote(cue) }),
+      claim: readAttribution(sentence, cue, elements),
       state: 'pending',
     });
   }
