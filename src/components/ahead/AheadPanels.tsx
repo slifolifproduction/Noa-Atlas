@@ -103,6 +103,7 @@ export const KEY: { kind: AnswerKind; item?: Partial<Answer>; label: () => strin
   { kind: 'unknown', label: () => t('Unknown') },
   { kind: 'assumption', label: () => t('Relies on') },
   { kind: 'test', label: () => t('Test') },
+  { kind: 'idea', label: () => t('Idea for a test') },
   { kind: 'repeat', label: () => t('Repeat in play') },
 ];
 

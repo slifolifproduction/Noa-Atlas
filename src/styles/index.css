@@ -1847,18 +1847,8 @@ html body {
 .tree-block-row.is-sub {
   color: var(--color-ink-2);
 }
-.tree-block-no {
-  color: var(--color-accent);
-  letter-spacing: 0.12em;
-}
-.tree-block-dim {
-  margin-left: auto;
+.tree-block-row.is-dim {
   opacity: 0.7;
-}
-.tree-scale {
-  height: 5px;
-  border: 1px solid rgb(236 232 223 / 0.6);
-  background: repeating-linear-gradient(90deg, rgb(236 232 223 / 0.6) 0 20%, transparent 0 40%);
 }
 .tree-gizmo {
   position: absolute;
@@ -2034,8 +2024,6 @@ html body {
   text-transform: uppercase;
 }
 .tree-card-at {
-  display: flex;
-  gap: 8px;
   padding-top: 4px;
   border-top: 1px solid rgb(236 232 223 / 0.1);
   opacity: 0.8;
@@ -2100,8 +2088,7 @@ html body {
   color: var(--color-ink);
   background: rgb(236 232 223 / 0.06);
 }
-.ahead-option-letter,
-.ahead-option-bearing {
+.ahead-option-letter {
   font-family: var(--font-mono);
   font-size: 10.5px;
   color: var(--color-ink-3);
@@ -2122,7 +2109,7 @@ html body {
   }
   .ahead-option {
     display: grid;
-    grid-template-columns: 18px 1fr auto;
+    grid-template-columns: 18px 1fr;
     border-width: 1px 0 0;
     border-style: solid;
     border-color: var(--color-line);

@@ -2176,8 +2176,6 @@ export const ID: Record<string, string> = {
   'Plate · Ahead': 'Lembar · Ke depan',
   'What could grow from here · a section': 'Yang bisa tumbuh dari sini · potongan',
   '{n} options · {m} answers · not ranked': '{n} pilihan · {m} jawaban · tidak diperingkat',
-  'Bearing {deg}°': 'Arah {deg}°',
-  'Bearing {deg}° · looking down {pitch}°': 'Arah {deg}° · menunduk {pitch}°',
   'Drag to turn it': 'Seret untuk memutarnya',
   'You are here': 'Kamu di sini',
   'Holds you': 'Menahanmu',

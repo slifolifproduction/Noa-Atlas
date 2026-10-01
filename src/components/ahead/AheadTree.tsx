@@ -1,7 +1,7 @@
 import { ArrowRight, Pencil } from 'lucide-react';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '../../app/router';
-import { currentAction, pathCode } from '../../domain/selectors';
+import { currentAction, experimentCode, pathCode } from '../../domain/selectors';
 import type { StrategicPath } from '../../domain/types';
 import { useIsDesktop, useMediaQuery } from '../../hooks/useMediaQuery';
 import { t } from '../../i18n';
@@ -26,10 +26,8 @@ const MARGIN = 112;
 const PITCH = 8;
 /** Once round in this many seconds, when nothing is held. */
 const TURN = 150;
-/** The tree grows in, up and down at once, over this long; and light runs down its roots every so often. */
+/** The tree grows in, up and down at once, over this long, as the page opens. */
 const BUILD_MS = 3200;
-const PASS_EVERY = 9000;
-const PASS_MS = 2600;
 const ROMAN = ['I', 'II', 'III', 'IV'];
 /** The close-ups on the cards: drawn this much sharper than their size, and this much nearer than the plate. */
 const CROP_DPR = typeof window === 'undefined' ? 1 : Math.min(2, window.devicePixelRatio || 1);
@@ -42,11 +40,9 @@ const NONE = 65535;
 const binWidth = (b: number) => W0 * 2 ** (b / 2.2);
 const widthBin = (w: number) => Math.max(0, Math.min(WB - 1, Math.round(Math.log2(Math.max(W0, w) / W0) * 2.2)));
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s);
-const bearingOf = (deg: number) => Math.round((((deg + 90) % 360) + 360) % 360);
 const ease = (x: number) => 1 - (1 - x) ** 3;
 /** The shortest way round from one angle to another, in degrees. */
 const turnTo = (from: number, to: number) => ((((to - from) % 360) + 540) % 360) - 180;
-const level = (y: number) => (Math.abs(y) < 0.05 ? '±0.0' : `${y < 0 ? '−' : '+'}${Math.abs(y).toFixed(1)}`);
 
 /** The case's walls: each one's outward normal, and its two corners along it (at a given height). */
 const WALLS: { n: V3; a: (y: number) => V3; b: (y: number) => V3 }[] = [
@@ -72,6 +68,8 @@ interface Card {
   warm?: boolean;
   /** What a click on it opens. */
   pick: Pick;
+  /** Where what it reads is kept, and when it last changed: how the plate knows it. */
+  from?: string;
 }
 
 /**
@@ -100,8 +98,6 @@ export function AheadTree({
   const canvas = useRef<HTMLCanvasElement>(null);
   const budsRef = useRef<SVGSVGElement>(null);
   const gizmo = useRef<SVGGElement>(null);
-  const readout = useRef<HTMLSpanElement>(null);
-  const scaleBar = useRef<HTMLDivElement>(null);
   const levelEls = useRef<(HTMLButtonElement | null)[]>([]);
   const blockRef = useRef<HTMLDivElement>(null);
   const cardEls = useRef(new Map<string, HTMLDivElement>());
@@ -154,9 +150,23 @@ export function AheadTree({
   const cards = useMemo(() => {
     const out: Card[] = [];
     const put = (c: Card) => !out.some((o) => o.key === c.key) && out.push(c);
+    const updated = (at: string) => t('Updated {date}', { date: formatDate(at) });
+    // Where an answer is kept: the reason in Causes, the test, the repeat it opens; or else the option it belongs to.
+    const fromOf = (a: TreeAnswer) => {
+      const ref = a.ref;
+      const claim = ref?.kind === 'claim' ? data.claims[ref.id] : undefined;
+      const test = ref?.kind === 'experiment' ? data.experiments[ref.id] : undefined;
+      const repeat = ref?.kind === 'pattern' ? data.patterns[ref.id] : undefined;
+      if (claim) return `${t('Causes')} · ${updated(claim.updatedAt)}`;
+      if (test) return `${experimentCode(test.code)} · ${updated(test.updatedAt)}`;
+      if (repeat) return `${t('Repeats')} · ${updated(repeat.updatedAt)}`;
+      const p = pathById.get(a.pathId);
+      return p ? `${pathCode(p.code)} · ${updated(p.updatedAt)}` : undefined;
+    };
     const answerCard = (a: TreeAnswer): Card => ({
       key: a.key,
       at: a.at,
+      from: fromOf(a)?.toUpperCase(),
       meta: `${a.index} · ${ROMAN[BANDS.indexOf(a.band)]} ${BAND_LABEL[a.band]()}`.toUpperCase(),
       title: clip(a.text, 64),
       sub: [KIND_LABEL[a.kind](), a.status].filter(Boolean).join(' · ').toUpperCase(),
@@ -172,11 +182,12 @@ export function AheadTree({
       return {
         key: `root:${id}`,
         at: l.tip,
-        meta: `${pathCode(p.code).toUpperCase()}${chosen ? ` · ${t('What you chose').toUpperCase()}` : ''} · ${t('Bearing {deg}°', { deg: bearingOf(l.bearing) }).toUpperCase()}`,
+        meta: pathCode(p.code).toUpperCase(),
         title: p.title,
         sub: step ? `${t('Next step')}: ${clip(step.title, 48)}` : BANDS.map((b, i) => `${ROMAN[i]} ${counts(id, b)}`).join(' · '),
         warm: chosen,
         pick: { kind: 'path', id },
+        from: (chosen && nav ? `${t('What you chose')} · ${formatDate(nav.committedAt)}` : updated(p.updatedAt)).toUpperCase(),
       };
     };
     if (show?.kind === 'item' && byKey.get(show.key)) put(answerCard(byKey.get(show.key)!));
@@ -192,6 +203,7 @@ export function AheadTree({
         meta: (b.side === 'constraint' ? t('Holds you') : t('Carries you')).toUpperCase(),
         title: clip(b.text, 64),
         pick: { kind: 'bough', key: b.key },
+        from: `${t('You are here')} · ${updated(state.updatedAt)}`.toUpperCase(),
       });
     }
     if (nav && rootById.has(nav.pathId)) {
@@ -228,7 +240,7 @@ export function AheadTree({
     const area = { left: compact ? 0 : MARGIN, right: size.w - (wide ? ROOM : 0) };
     const cx = (area.left + area.right) / 2;
     const span = area.right - area.left;
-    // Fitted to the plate: the case, and the compass in front of it, from straight on and from its corner.
+    // Fitted to the plate: the case, and the turntable in front of it, from straight on and from its corner.
     const R = HALF * 1.58;
     const fit = { top: Infinity, bottom: -Infinity, side: 0 };
     {
@@ -237,7 +249,7 @@ export function AheadTree({
         [x, TOP, z],
         [x, FLOOR, z],
       ]);
-      const compass: V3[] = Array.from({ length: 24 }, (_, i): V3 => [Math.cos(i / 3.82) * (R + 4), FLOOR, Math.sin(i / 3.82) * (R + 4)]);
+      const compass: V3[] = Array.from({ length: 24 }, (_, i): V3 => [Math.cos(i / 3.82) * (R + 2), FLOOR, Math.sin(i / 3.82) * (R + 2)]);
       for (const yaw of [0, 45]) {
         probe.yaw = yaw;
         for (const p of [...box, ...compass]) {
@@ -365,8 +377,6 @@ export function AheadTree({
       const age = now - started;
       const building = !L.reduced && age < BUILD_MS;
       const reveal = building ? ease(age / BUILD_MS) : 1;
-      const pass = L.reduced ? -1 : (age - BUILD_MS) % PASS_EVERY;
-      const pulse = pass >= 0 && pass < PASS_MS && age > BUILD_MS ? pass / PASS_MS : NaN;
 
       // What is lit.
       const show = L.show;
@@ -384,7 +394,8 @@ export function AheadTree({
       ctx.lineJoin = 'round';
       ctx.lineWidth = 1;
 
-      // The floor the case stands on: its tiles, a pool of light under the roots, and its compass.
+      // The floor the case stands on: its tiles, a pool of light under the roots, and the turntable it stands on,
+      // graduated so you can see it turn, with no numbers on it, for the way a root runs means nothing.
       ctx.strokeStyle = 'rgba(214,226,220,0.05)';
       ctx.beginPath();
       for (let u = -42; u <= 42; u += 6) {
@@ -411,26 +422,17 @@ export function AheadTree({
       ctx.strokeStyle = 'rgba(236,232,223,0.2)';
       ring(R, FLOOR, 3);
       ctx.stroke();
-      ctx.font = '500 9px "IBM Plex Mono", ui-monospace, monospace';
-      ctx.textAlign = 'center';
       for (let d = 0; d < 360; d += 5) {
-        const rad = ((d - 90) * Math.PI) / 180;
+        const rad = (d * Math.PI) / 180;
         const major = d % 30 === 0;
         const at = (rr: number): V3 => [Math.cos(rad) * rr, FLOOR, Math.sin(rad) * rr];
         const [ax, ay] = P(at(R));
         const [bx, by, bz] = P(at(R + (major ? 1.6 : 0.7)));
-        const near = bz < 0;
-        ctx.strokeStyle = `rgba(236,232,223,${near ? 0.4 : 0.16})`;
+        ctx.strokeStyle = `rgba(236,232,223,${bz < 0 ? 0.4 : 0.16})`;
         ctx.beginPath();
         ctx.moveTo(ax, ay);
         ctx.lineTo(bx, by);
         ctx.stroke();
-        if (major) {
-          const [qx, qy] = P(at(R + 3.6));
-          const name = { 0: 'N', 90: 'E', 180: 'S', 270: 'W' }[d] ?? String(d).padStart(3, '0');
-          ctx.fillStyle = name.length === 1 ? `rgba(236,232,223,${near ? 0.8 : 0.36})` : `rgba(236,232,223,${near ? 0.42 : 0.18})`;
-          ctx.fillText(name, qx, qy + 3);
-        }
       }
 
       // The case's far side: its floor, its walls (lit and misty above the earth, dark below), its ceiling.
@@ -500,28 +502,29 @@ export function AheadTree({
       ctx.fill();
       ctx.restore();
 
-      // What the far walls carry: circuits under the earth, marks on the light above it.
+      // What the far walls carry: circuits under the earth, marks on the light above it. Texture only, so never in
+      // the signal colour.
       ctx.globalCompositeOperation = 'lighter';
+      const tone = '214,230,222';
       for (const cc of tree.circuits) {
         if (wallFront[cc.wall] || cc.kind === 'mark') continue;
-        const tone = cc.warm ? '255,128,70' : '214,230,222';
         if (cc.kind === 'chip') {
           shape(cc.pts, true);
-          ctx.fillStyle = `rgba(${tone},${cc.warm ? 0.13 : 0.05})`;
+          ctx.fillStyle = `rgba(${tone},0.05)`;
           ctx.fill();
-          ctx.strokeStyle = `rgba(${tone},${cc.warm ? 0.42 : 0.2})`;
+          ctx.strokeStyle = `rgba(${tone},0.22)`;
           ctx.stroke();
         } else if (cc.kind === 'bar') {
-          ctx.strokeStyle = `rgba(${tone},0.28)`;
+          ctx.strokeStyle = `rgba(${tone},0.24)`;
           ctx.beginPath();
           for (let i = 0; i < cc.pts.length; i += 2) lineAt(cc.pts[i], cc.pts[i + 1]);
           ctx.stroke();
         } else if (cc.kind === 'via') {
           const [px, py] = P(cc.pts[0]);
-          ctx.fillStyle = `rgba(${tone},0.5)`;
+          ctx.fillStyle = `rgba(${tone},0.4)`;
           ctx.fillRect(px - 1.5, py - 1.5, 3, 3);
         } else {
-          ctx.strokeStyle = `rgba(${tone},${cc.warm ? 0.36 : 0.13})`;
+          ctx.strokeStyle = `rgba(${tone},0.13)`;
           shape(cc.pts, false);
           ctx.stroke();
         }
@@ -529,12 +532,12 @@ export function AheadTree({
       ctx.globalCompositeOperation = 'source-over';
       for (const cc of tree.circuits) {
         if (wallFront[cc.wall] || cc.kind !== 'mark') continue;
-        ctx.strokeStyle = cc.warm ? 'rgba(255,110,50,0.7)' : 'rgba(18,22,20,0.55)';
+        ctx.strokeStyle = 'rgba(18,22,20,0.55)';
         shape(cc.pts, false);
         ctx.stroke();
       }
       // The strata: a line round the case at each, on its far walls here and its near walls later; lit when you
-      // compare on it. And the light that runs down the case now and then.
+      // compare on it.
       const strata = (front: boolean) => {
         LEVELS.forEach((y, b) => {
           ctx.setLineDash([4, 5]);
@@ -546,15 +549,6 @@ export function AheadTree({
           ctx.stroke();
           ctx.setLineDash([]);
         });
-        if (!Number.isNaN(pulse)) {
-          const y = -SOIL - (-SOIL - FLOOR) * pulse;
-          ctx.strokeStyle = `rgba(214,236,226,${(0.26 * Math.sin(Math.PI * pulse)).toFixed(3)})`;
-          ctx.beginPath();
-          WALLS.forEach((w, i) => {
-            if (wallFront[i] === front) lineAt(w.a(y), w.b(y));
-          });
-          ctx.stroke();
-        }
       };
       strata(false);
 
@@ -565,7 +559,6 @@ export function AheadTree({
 
       // The roots, lit: in bins, a wide faint glow, the line itself, white or warm, and a hot core in the thickest.
       projectAll(camera, tree.verts, vx, vy, vz);
-      const pulseG = Number.isNaN(pulse) ? -9 : pulse;
       for (let s = 0; s < S; s++) {
         binOf[s] = NONE;
         if (tree.kind[s] !== 0 || tree.grow[s] > reveal) continue;
@@ -584,7 +577,6 @@ export function AheadTree({
           } else a *= 0.6;
         }
         const grow = tree.grow[s];
-        if (Math.abs(grow - pulseG) < 0.035) a *= 2;
         if (building && reveal - grow < 0.025) a *= 2.2;
         a = Math.min(1, a);
         const wb = widthBin(tree.width[s] * scale * (DISTANCE / (DISTANCE + z)));
@@ -726,7 +718,8 @@ export function AheadTree({
       }
       strata(true);
 
-      // Each root's letter below its tip; each bough's end: what holds you a cross, what carries you a ring.
+      // Each root's letter below its tip; each bough's end: what holds you a bar across it (the atlas's mark for
+      // what limits), what carries you a ring.
       const seenRoots = seen.current.roots;
       ctx.textAlign = 'center';
       ctx.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
@@ -762,10 +755,11 @@ export function AheadTree({
         ctx.strokeStyle = lit ? 'rgba(255,90,31,0.95)' : 'rgba(12,15,13,0.85)';
         ctx.beginPath();
         if (b.side === 'constraint') {
-          ctx.moveTo(px - 3.5, py - 3.5);
-          ctx.lineTo(px + 3.5, py + 3.5);
-          ctx.moveTo(px + 3.5, py - 3.5);
-          ctx.lineTo(px - 3.5, py + 3.5);
+          const [qx, qy] = P(b.curve[b.curve.length - 2]);
+          const l = Math.hypot(px - qx, py - qy) || 1;
+          const [nx, ny] = [-(py - qy) / l, (px - qx) / l];
+          ctx.moveTo(px - nx * 5, py - ny * 5);
+          ctx.lineTo(px + nx * 5, py + ny * 5);
         } else ctx.arc(px, py, 3.6, 0, Math.PI * 2);
         ctx.stroke();
       }
@@ -805,7 +799,7 @@ export function AheadTree({
       LEVELS.forEach((y, b) => datum(y, levelEls.current[b], litBand === b));
       datum(0, levelEls.current[4], false);
 
-      // The axis mark, turning with the camera; and the readout.
+      // The axis mark, turning with the camera.
       const g = gizmo.current;
       if (g) {
         const axes: [string, V3][] = [
@@ -826,16 +820,6 @@ export function AheadTree({
           label?.setAttribute('x', (x1 * 23).toFixed(1));
           label?.setAttribute('y', (-y2 * 23 + 3).toFixed(1));
         }
-      }
-      if (readout.current && frame % 6 === 0) {
-        readout.current.textContent = t('Bearing {deg}° · looking down {pitch}°', {
-          deg: bearingOf(-camera.yaw - 90),
-          pitch: Math.round(camera.pitch),
-        }).toUpperCase();
-      }
-      if (scaleBar.current && frame % 30 === 1) {
-        const [, , , k] = P([0, LEVELS[0], 0]);
-        scaleBar.current.style.width = `${(10 * camera.scale * k).toFixed(1)}px`;
       }
 
       // The cards: each in a column beside the case, as near level with what it reads as they allow, and a trace
@@ -1047,25 +1031,15 @@ export function AheadTree({
           ))}
         </svg>
 
-        {/* The plate's title block, as on a drawing: what it is, what is on it, the view and the scale. */}
+        {/* The plate's title block, as on a drawing: what it is and what is on it. No measurements: nothing here is one. */}
         <div ref={blockRef} className="tree-block" aria-hidden>
           <div className="tree-block-main">
-            <div className="tree-block-row is-head">
-              <span>{t('Plate · Ahead').toUpperCase()}</span>
-              <span className="tree-block-no">A—02</span>
-            </div>
+            <div className="tree-block-row is-head">{t('Plate · Ahead').toUpperCase()}</div>
             <div className="tree-block-row is-sub">{t('What could grow from here · a section').toUpperCase()}</div>
             {wide && (
               <>
                 <div className="tree-block-row">{t('{n} options · {m} answers · not ranked', { n: paths.length, m: total }).toUpperCase()}</div>
-                <div className="tree-block-row">
-                  <span ref={readout} />
-                </div>
-                <div className="tree-block-row tree-block-scale">
-                  <div ref={scaleBar} className="tree-scale" />
-                  <span>10 M</span>
-                  <span className="tree-block-dim">{t('Drag to turn it').toUpperCase()}</span>
-                </div>
+                <div className="tree-block-row is-dim">{t('Drag to turn it').toUpperCase()}</div>
               </>
             )}
           </div>
@@ -1110,9 +1084,8 @@ export function AheadTree({
               <svg width={10} height={8} viewBox="0 0 10 8" aria-hidden>
                 <path d="M0 0H10L5 8Z" />
               </svg>
-              <span className="tree-level-num">{level(band ? LEVELS[i] : 0)}</span>
-              {!compact && <span className="tree-level-name">{band ? `${ROMAN[i]} · ${BAND_LABEL[band]()}` : t('You are here')}</span>}
-              {compact && <span className="tree-level-name">{band ? ROMAN[i] : '±'}</span>}
+              <span className="tree-level-num">{band ? ROMAN[i] : '—'}</span>
+              {!compact && <span className="tree-level-name">{band ? BAND_LABEL[band]() : t('You are here')}</span>}
             </button>
           ))}
         </div>
@@ -1142,11 +1115,7 @@ export function AheadTree({
             <div className="tree-card-meta">{c.meta}</div>
             <div className="tree-card-title">{c.title}</div>
             {c.sub && <div className="tree-card-sub">{c.sub}</div>}
-            <div className="tree-card-at">
-              <span>X {c.at[0].toFixed(1)}</span>
-              <span>Y {c.at[1].toFixed(1)}</span>
-              <span>Z {c.at[2].toFixed(1)}</span>
-            </div>
+            {c.from && <div className="tree-card-at">{c.from}</div>}
           </div>
         ))}
       </div>
@@ -1176,7 +1145,6 @@ export function AheadTree({
             >
               <span className="ahead-option-letter">{p.code}</span>
               <span className="truncate">{p.title}</span>
-              {rootById.get(p.id) && <span className="ahead-option-bearing">{bearingOf(rootById.get(p.id)!.bearing)}°</span>}
             </button>
           ))}
         </div>

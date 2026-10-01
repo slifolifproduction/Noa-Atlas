@@ -9,15 +9,16 @@ import { BANDS, type Answer, type Band } from './answers';
  * The tree above the ground is where you are now: what carries you (assets)
  * are its boughs in leaf, to one side, and what holds you (constraints) its
  * bare boughs, to the other. Under the ground its taproot divides into a root
- * for every option, each running out and down toward its own bearing, as on
- * a compass, and all as deep and as far as each other, for nothing here is
- * ranked. Every option is asked the same four questions, at four depths, cut
- * as strata (what it needs nearest the surface, then the skills it takes,
- * what it costs, and what is not known yet deepest of all); where a root
- * passes a stratum its answers branch off it as rootlets, each ending in a
- * node. Reading down a root reads one option; reading across a stratum
- * compares them. The walls of the case below the ground carry circuits, as
- * if the earth were wired.
+ * for every option, each running out and down its own way, spaced evenly
+ * round it, and all as deep and as far as each other, for nothing here is
+ * ranked; drawn in dashes, as the atlas draws what has not happened. Every
+ * option is asked the same four questions, at four depths, cut as strata
+ * (what it needs nearest the surface, then the skills it takes, what it
+ * costs, and what is not known yet deepest of all); where a root passes a
+ * stratum its answers branch off it as rootlets, each ending in a node.
+ * Reading down a root reads one option; reading across a stratum compares
+ * them. Everything else (the lesser roots, the circuits on the walls below
+ * the ground) is texture, drawn so it never reads as data.
  *
  * Units are metres of the drawing: the surface of the earth is at 0, y is up.
  */
@@ -50,7 +51,7 @@ export interface TreeAnswer extends Answer {
 export interface OptionRoot {
   pathId: string;
   code: string;
-  /** The way it runs out, in degrees (0 = east, 90 = south, as the plate's compass reads). */
+  /** The way it runs out, in degrees round the trunk: only where it is drawn, so never shown as a number. */
   bearing: number;
   curve: V3[];
   tip: V3;
@@ -64,12 +65,14 @@ export interface Bough {
   curve: V3[];
   end: V3;
 }
-/** What the walls of the case carry: a trace, a chip, a bar of stripes, a via; or, above the ground, a mark. */
+/**
+ * What the walls of the case carry: a trace, a chip, a bar of stripes, a via; or, above the ground, a mark. Only
+ * texture, so never in the signal colour and never counted from anything.
+ */
 export interface Circuit {
   wall: number;
   kind: 'trace' | 'chip' | 'bar' | 'via' | 'mark';
   pts: V3[];
-  warm: boolean;
 }
 export interface Tree {
   taproot: V3[];
@@ -151,6 +154,13 @@ function atHeight(curve: V3[], y: number): V3 {
   return curve[curve.length - 1];
 }
 
+/**
+ * How a line is drawn, as the atlas draws what kind of knowledge it is: whole for what is (the tree, the taproot
+ * that is you); in long dashes for an option, which has not happened; in short dashes for an answer's rootlet;
+ * in dots for what is only texture (the lesser roots and hairs), so it never reads as an answer.
+ */
+type Stroke = 'whole' | 'dashes' | 'dots';
+
 /** All of it, gathered as it grows. */
 class Growth {
   verts: number[] = [];
@@ -167,13 +177,24 @@ class Growth {
     this.verts.push(p[0], p[1], p[2]);
     return this.verts.length / 3 - 1;
   }
-  /** A line through these points: its width from `w0` to `w1`, growing in from `g0` to `g1`. */
-  line(pts: V3[], w0: number, w1: number, group: number, g0: number, g1: number, kind: number) {
+  /**
+   * A line through these points: its width from `w0` to `w1`, growing in from `g0` to `g1`, and drawn whole, in
+   * short dashes (each step's middle) or in dots (less of it still).
+   */
+  line(pts: V3[], w0: number, w1: number, group: number, g0: number, g1: number, kind: number, stroke: Stroke = 'whole') {
+    const keep = stroke === 'dashes' ? 0.6 : stroke === 'dots' ? 0.3 : 1;
     let prev = this.vert(pts[0]);
     for (let i = 1; i < pts.length; i++) {
-      const v = this.vert(pts[i]);
+      let a = prev;
+      let v: number;
+      if (keep < 1) {
+        const [p, q] = [pts[i - 1], pts[i]];
+        const m = (1 - keep) / 2;
+        a = this.vert(add(p, mul(sub(q, p), m)));
+        v = this.vert(add(p, mul(sub(q, p), 1 - m)));
+      } else v = this.vert(pts[i]);
       const f = i / (pts.length - 1);
-      this.seg.push(prev, v);
+      this.seg.push(a, v);
       this.width.push(w0 + (w1 - w0) * (f - 0.5 / (pts.length - 1)));
       this.group.push(group);
       this.grow.push(g0 + (g1 - g0) * f);
@@ -211,7 +232,7 @@ class Growth {
     const to = inside(add(from, mul(norm(dir), length)), false);
     const pts = this.jag(from, to, Math.max(3, Math.round(length / 0.9)), 0.55);
     const g1 = g0 + length / grow;
-    this.line(pts, width, width * 0.25, group, g0, g1, 0);
+    this.line(pts, width, width * 0.25, group, g0, g1, 0, 'dots');
     if (depth <= 0) return;
     const children = depth >= 2 ? 3 + Math.floor(r() * 2) : 2 + Math.floor(r() * 2);
     for (let k = 0; k < children; k++) {
@@ -287,13 +308,15 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       const a = curve[k - 1];
       const b = curve[k];
       const seg = len(sub(b, a));
-      G.line([a, b], 0.62 - 0.52 * ((k - 1) / (curve.length - 1)), 0.62 - 0.52 * (k / (curve.length - 1)), g, run / DOWN, (run + seg) / DOWN, 0);
+      // In long dashes: two steps drawn, the third left out, for none of it has happened.
+      if (k % 3 !== 0)
+        G.line([a, b], 0.62 - 0.52 * ((k - 1) / (curve.length - 1)), 0.62 - 0.52 * (k / (curve.length - 1)), g, run / DOWN, (run + seg) / DOWN, 0);
       run += seg;
       // Fine hairs off it, as a root has.
       for (let m = 0; m < 2; m++) {
         if (r() < 0.35) continue;
         const hair = inside(add(b, add(mul(flat(r() * 360), 0.8 + r() * 1.6), [0, -(0.3 + r() * 1.2), 0])), false);
-        G.line(G.jag(b, hair, 3, 0.5), 0.05, 0.02, g, run / DOWN, (run + 1.6) / DOWN, 0);
+        G.line(G.jag(b, hair, 3, 0.5), 0.05, 0.02, g, run / DOWN, (run + 1.6) / DOWN, 0, 'dots');
       }
     }
     // Its lesser roots, unnamed: the spread that makes it a root and not a line.
@@ -324,11 +347,11 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
         groups.twig.set(a.key, g);
         rootOf.set(g, groups.root.get(root.pathId)!);
         const g0 = (SPLIT + 45 * ((-root.levels[b][1] - SPLIT) / (DEPTH - SPLIT))) / DOWN;
-        G.line(G.jag(from, at, 6, 0.4), 0.13, 0.05, g, g0, g0 + reach / DOWN, 0);
+        G.line(G.jag(from, at, 6, 0.4), 0.13, 0.05, g, g0, g0 + reach / DOWN, 0, 'dashes');
         // A hair or two off it.
         for (let k = 0; k < 2; k++) {
           const hair = add(at, [(r() - 0.5) * 1.8, -(0.4 + r()), (r() - 0.5) * 1.8]);
-          G.line(G.jag(at, inside(hair, false), 3, 0.5), 0.04, 0.02, g, g0 + reach / DOWN, g0 + (reach + 1.4) / DOWN, 0);
+          G.line(G.jag(at, inside(hair, false), 3, 0.5), 0.04, 0.02, g, g0 + reach / DOWN, g0 + (reach + 1.4) / DOWN, 0, 'dots');
         }
         placed.push({ ...a, index: `${root.code}.${++count}`, at, from });
       });
@@ -375,15 +398,10 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       const g = next++;
       groups.bough.set(key, g);
       G.line(curve, 0.14, 0.04, g, from[1] / UP, (from[1] + 4) / UP, 1);
+      // What carries you is in leaf; what holds you is only bare: a fact about where you are, not a judgement.
       if (kind === 'asset') {
         G.leafCloud(end, 1.5, 60, g, (from[1] + 4) / UP);
         G.leafCloud(curve[3], 0.9, 18, g, (from[1] + 3) / UP);
-      } else {
-        // Bare and forked, as dead wood is.
-        for (const turn of [-40, 35]) {
-          const tip = inside(add(curve[4], add(mul(flat(bearing + turn), 1 + r() * 0.6), [0, 0.5 + r() * 0.6, 0])), true);
-          G.line([curve[4], tip], 0.03, 0.02, g, (from[1] + 3.5) / UP, (from[1] + 4.5) / UP, 1);
-        }
       }
       boughs.push({ key, side: kind, text, curve, end });
     });
@@ -463,9 +481,8 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
         else y = Math.max(LOW, Math.min(HIGH, y + (r() - 0.5) * 14));
         pts.push(onWall(wall, u, y));
       }
-      const warm = r() < 0.3;
-      circuits.push({ wall, kind: 'trace', pts, warm });
-      circuits.push({ wall, kind: 'via', pts: [pts[pts.length - 1]], warm });
+      circuits.push({ wall, kind: 'trace', pts });
+      circuits.push({ wall, kind: 'via', pts: [pts[pts.length - 1]] });
     }
     for (let k = 0; k < 5; k++) {
       const u = (r() * 2 - 1) * (span - 3);
@@ -476,7 +493,6 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
         wall,
         kind: 'chip',
         pts: [onWall(wall, u, y), onWall(wall, u + w, y), onWall(wall, u + w, y + h), onWall(wall, u, y + h)],
-        warm: r() < 0.7,
       });
     }
     for (let k = 0; k < 2; k++) {
@@ -485,7 +501,7 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       const w = 3 + r() * 4;
       const pts: V3[] = [];
       for (let s = 0; s < w; s += 0.28) pts.push(onWall(wall, u + s, y), onWall(wall, u + s, y + 0.55));
-      circuits.push({ wall, kind: 'bar', pts, warm: r() < 0.5 });
+      circuits.push({ wall, kind: 'bar', pts });
     }
     for (let k = 0; k < 7; k++) {
       const u = (r() * 2 - 1) * span;
@@ -494,7 +510,7 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       const along = r() < 0.5;
       const pts: V3[] = along ? [onWall(wall, u, y), onWall(wall, u + l, y)] : [onWall(wall, u, y), onWall(wall, u, y + l * 0.6)];
       if (r() < 0.35) pts.push(onWall(wall, along ? u + l : u + 0.8, along ? y - 0.8 : y + l * 0.6));
-      circuits.push({ wall, kind: 'mark', pts, warm: r() < 0.18 });
+      circuits.push({ wall, kind: 'mark', pts });
     }
   }
 
