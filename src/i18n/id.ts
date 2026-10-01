@@ -2249,11 +2249,6 @@ export const ID: Record<string, string> = {
   'Keeps coming back': 'Terus kembali',
   // The Repeats almanac: the year as a wheel that turns under a reading needle.
   'Plate · Repeats': 'Lembar · Pengulangan',
-  'The year, turning · every time it happened': 'Tahun yang berputar · tiap kali terjadi',
-  'Point at the wheel to stop it · at a ring to read it · at a mark to open the note':
-    'Arahkan ke roda untuk menghentikannya · ke cincin untuk membacanya · ke tanda untuk membuka catatannya',
-  'Every time each repeat happened, on a year that turns': 'Tiap kali setiap pengulangan terjadi, pada tahun yang berputar',
-  Today: 'Hari ini',
   'Not said yet': 'Belum kamu nilai',
   'Happened {times} in {weeks}, first on {first} and last on {last}.': 'Terjadi {times} dalam {weeks}, pertama pada {first} dan terakhir pada {last}.',
   'Happened once, on {date}.': 'Terjadi sekali, pada {date}.',
@@ -2727,4 +2722,15 @@ export const ID: Record<string, string> = {
   'the plan rests on a reason about it': 'rencananya bersandar pada dugaan tentangnya',
   'Looking at {name}': 'Melihat {name}',
   'Nothing in your quests concerns {name} yet.': 'Belum ada misimu yang menyangkut {name}.',
+  'Pathways · what each repeat runs through': 'Jalur · yang dilalui tiap pengulangan',
+  'A time it did not': 'Saat ia tidak terjadi',
+  'Other repeats': 'Pengulangan lain',
+  'Larger: took part more often': 'Lebih besar: lebih sering terlibat',
+  'Point at a dot or a strand to read it · choose a repeat to follow its pathways':
+    'Arahkan ke titik atau untaian untuk membacanya · pilih pengulangan untuk mengikuti jalurnya',
+  'Where each repeat runs through the areas of your life, every time it happened':
+    'Ke mana tiap pengulangan menjalar di area-area hidupmu, setiap kali ia terjadi',
+  '{n} element took part': '{n} elemen terlibat',
+  '{n} elements took part': '{n} elemen terlibat',
+  'Each repeat on its own': 'Tiap pengulangan sendiri-sendiri',
 };

@@ -3,6 +3,7 @@ import { createSeedData } from '../../data/seed';
 import { patternStats, sortedPatterns } from '../../domain/selectors';
 import { addDays } from '../../lib/dates';
 import { almanacOf, angleOf, dateAt, monthsOf, windowOf } from './almanac';
+import { pathwaysOf, sourceElements } from './pathways';
 
 const today = '2026-10-01';
 
@@ -58,5 +59,41 @@ describe('the Repeats almanac', () => {
       expect(r.span![1]).toBe(angleOf(s.lastObserved!, al.window));
       expect(Boolean(r.since)).toBe(s.regularity === 'fading');
     }
+  });
+});
+
+describe('the Repeats pathways', () => {
+  const data = createSeedData();
+  const patterns = sortedPatterns(data);
+  const al = almanacOf(data, patterns, today);
+  const pw = pathwaysOf(data, al, patterns);
+
+  it('starts every strand of a repeat from what sets it off, one fan for each time, read from the record', () => {
+    for (const p of patterns) {
+      const anchor = pw.anchors[p.id];
+      expect(anchor).toBe(p.steps.find((s) => s.elementId)?.elementId ?? p.nodeIds[0]);
+      const own = pw.strands.filter((s) => s.patternId === p.id);
+      expect(own.every((s) => s.from === anchor && s.to !== anchor)).toBe(true);
+      const marks = new Set(al.rings.find((r) => r.patternId === p.id)!.marks.map((m) => m.key));
+      expect(own.every((s) => marks.has(s.mark.key))).toBe(true);
+      // An exception never runs through the repeat's own steps: it did not happen.
+      const steps = new Set(p.steps.map((s) => s.elementId));
+      for (const s of own.filter((x) => x.exception)) expect(s.exception && s.mark.stance === 'counters').toBe(true);
+      for (const s of own.filter((x) => x.exception)) expect(steps.has(s.to) ? sourceElements(data, s.mark.source).includes(s.to) : true).toBe(true);
+    }
+  });
+
+  it('puts every element in its area round the ring, larger the more strands end at it, the areas apart', () => {
+    for (const d of pw.dots) {
+      expect(d.area).toBe(data.nodes[d.id].area);
+      expect(d.count).toBe(pw.strands.filter((s) => s.from === d.id || s.to === d.id).length);
+      const s = pw.sectors.find((x) => x.area === d.area)!;
+      expect(d.angle).toBeGreaterThan(s.from);
+      expect(d.angle).toBeLessThan(s.to);
+    }
+    for (let i = 1; i < pw.sectors.length; i++) expect(pw.sectors[i].from).toBeGreaterThan(pw.sectors[i - 1].to);
+    expect(pw.sectors.at(-1)!.to).toBeLessThan(360);
+    const sizes = [...pw.dots].sort((a, b) => a.count - b.count);
+    for (let i = 1; i < sizes.length; i++) expect(sizes[i].size).toBeGreaterThanOrEqual(sizes[i - 1].size);
   });
 });

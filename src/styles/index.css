@@ -2222,219 +2222,242 @@ html body {
   height: 100%;
   user-select: none;
 }
-/* The dial's parts. Sizes are in the dial's own units, so they scale with it. */
-.al-main {
+/* The pathways plate's parts. Sizes are in the plate's own units, so they scale with it. */
+.pw-band {
   fill: none;
-  stroke: var(--color-ink);
-  stroke-width: 2.6;
-}
-/* The space in the middle: a backdrop only, never data. */
-.al-space-star {
-  fill: #e8ecf2;
-  pointer-events: none;
-}
-.al-space-glow {
-  fill: rgb(220 228 240 / 0.07);
-  pointer-events: none;
-}
-/* The machine: the toothed rim and the pinion it turns, and the comb's tines. */
-/* The drawing's line work: construction (dashed, faint), leaders and callouts, nodes, hubs, spokes. */
-.al-guide {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.3);
-  stroke-dasharray: 3 7;
-}
-.al-construct {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.18);
-  stroke-dasharray: 4 6;
-}
-.al-node {
-  fill: var(--color-ink);
-}
-.al-hub {
-  fill: var(--color-canvas);
-  stroke: var(--color-ink);
-  stroke-width: 2.4;
-}
-.al-hub.is-axle {
-  stroke-width: 3.2;
-}
-.al-spoke {
-  stroke: rgb(236 232 223 / 0.55);
-  stroke-width: 1.2;
-}
-.al-leader {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.55);
-}
-.al-callout {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  fill: var(--color-ink);
-}
-.al-works .al-gear {
-  fill: rgb(7 8 10 / 0.55);
-  stroke: rgb(236 232 223 / 0.6);
-}
-.al-rule.is-faint {
-  stroke: rgb(236 232 223 / 0.14);
-}
-.al-tick.is-bold {
-  stroke: var(--color-ink);
-  stroke-width: 1.6;
-}
-.al-gear {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.42);
-  stroke-width: 1;
-  stroke-linejoin: round;
-}
-.al-pinion .al-gear {
-  fill: rgb(12 13 16 / 0.96);
-  stroke: rgb(236 232 223 / 0.7);
-}
-.al-tine {
-  stroke: rgb(236 232 223 / 0.7);
-  stroke-width: 1.6;
-  stroke-linecap: round;
-}
-.al-tine.is-selected {
-  stroke: var(--color-accent);
-}
-.al-tine.is-ringing {
-  stroke: var(--color-ink);
-  stroke-width: 2;
-}
-.al-hit {
-  fill: transparent;
-  cursor: pointer;
-}
-.al-rule {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.26);
-  stroke-width: 1;
-}
-.al-tick {
-  stroke: rgb(236 232 223 / 0.38);
-  stroke-width: 1;
-}
-.al-tick.is-fine {
   stroke: rgb(236 232 223 / 0.16);
+  stroke-width: 9;
 }
-.al-month {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.26em;
-  fill: var(--color-ink-2);
+.pw-band.is-home {
+  stroke-width: 16;
+  stroke-linecap: butt;
 }
-.al-today line {
-  stroke: var(--color-accent);
-  stroke-width: 1.6;
-}
-.al-today text {
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
-  fill: var(--color-accent);
-}
-.al-track {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.07);
-}
-.al-ring-hit {
+.pw-band-hit {
   fill: none;
   stroke: transparent;
-  stroke-width: 30;
+  stroke-width: 34;
   pointer-events: stroke;
   cursor: pointer;
 }
-.al-span {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.82);
-  stroke-width: 7;
-  transition: stroke 0.25s;
-}
-/* New: dotted, for it has shown in fewer than three separate weeks; fading: faint, and dotted on since. */
-.al-ring.is-emerging .al-span {
-  stroke-dasharray: 0.1 10;
-  stroke-linecap: round;
-}
-.al-ring.is-fading .al-span {
-  opacity: 0.5;
-}
-.al-since {
-  fill: none;
-  stroke: rgb(236 232 223 / 0.4);
-  stroke-width: 3;
-  stroke-dasharray: 0.1 7;
-  stroke-linecap: round;
-}
-.al-ring.is-selected .al-span {
-  stroke: var(--color-accent);
-  opacity: 1;
-}
-.al-ring.is-lit .al-span {
-  stroke: var(--color-ink);
-  opacity: 1;
-}
-.al-ring-title {
+.pw-area {
   font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.16em;
+  font-size: 13px;
+  letter-spacing: 0.22em;
   fill: var(--color-ink-3);
 }
-.al-ring.is-selected .al-ring-title,
-.al-ring.is-lit .al-ring-title {
-  fill: var(--color-ink);
+.pw-area.is-home {
+  font-size: 15px;
+  font-weight: 500;
 }
-.al-mark {
-  fill: var(--color-ink);
-  stroke: var(--color-canvas);
-  stroke-width: 2.4;
-  pointer-events: none;
+.pw-strand {
+  fill: none;
+  stroke: rgb(236 232 223 / 0.13);
+  stroke-width: 1;
+  transition:
+    stroke-opacity 400ms,
+    stroke-width 400ms;
 }
-.al-mark.is-exception {
-  fill: var(--color-canvas);
-  stroke: var(--color-ink);
+.pw-strand.is-own {
+  stroke-opacity: 0.62;
+  stroke-width: 1.5;
+}
+.pw-strand.is-exception {
+  stroke: rgb(236 232 223 / 0.42);
+  stroke-width: 1.1;
+}
+/* Every time it happened is drawn in from what sets it off as it is chosen. */
+.pw-strands.is-own .pw-strand {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: pw-draw 1100ms var(--ease-out-quint) forwards;
+}
+@keyframes pw-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+/* The time being played back, and what you point at. */
+.pw-strand.is-own.is-playing {
+  stroke-opacity: 1;
+  stroke-width: 3.2;
+}
+.pw-strand.is-touched {
+  stroke: rgb(236 232 223 / 0.55);
   stroke-width: 1.6;
 }
-.al-flash {
+.pw-strand.is-own.is-touched {
+  stroke-opacity: 1;
+  stroke-width: 2.6;
+}
+.pw-strand-hit {
   fill: none;
+  stroke: transparent;
+  stroke-width: 9;
+  pointer-events: stroke;
+  cursor: pointer;
+}
+/* A 2px ring of the canvas round every dot, so dots and the strands under them stay apart. */
+.pw-dot {
+  fill: #3b3c40;
+  stroke: var(--color-canvas);
+  stroke-width: 2;
+  transition: fill 400ms;
+}
+.pw-dot.is-lit {
   stroke: var(--color-ink);
   stroke-width: 1.5;
-  pointer-events: none;
 }
-.al-arrow {
+.pw-anchor {
   fill: none;
-  stroke: var(--color-ink-2);
-  stroke-width: 1.4;
+  stroke-width: 1.5;
 }
-.al-needle line {
-  stroke: rgb(236 232 223 / 0.75);
-  stroke-width: 1.2;
+.pw-hit {
+  fill: transparent;
+  cursor: pointer;
 }
-.al-needle-band {
-  fill: rgb(236 232 223 / 0.06);
+.pw-plate.is-small .pw-strand {
+  stroke: rgb(236 232 223 / 0.08);
+  stroke-width: 1.6;
+  transition: none;
 }
-.al-needle-head {
-  fill: var(--color-accent);
+.pw-plate.is-small .pw-strand.is-own {
+  stroke-opacity: 0.7;
+  stroke-width: 2.2;
 }
-.al-read-date {
+.pw-plate.is-small .pw-strand.is-exception {
+  stroke: rgb(236 232 223 / 0.3);
+}
+.pw-plate.is-small .pw-strands.is-own .pw-strand {
+  animation: none;
+  stroke-dasharray: none;
+  stroke-dashoffset: 0;
+}
+.pw-plate.is-small .pw-band {
+  stroke-width: 14;
+}
+.pw-plate.is-small .pw-band.is-home {
+  stroke-width: 24;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-strands.is-own .pw-strand {
+    animation: none;
+    stroke-dasharray: none;
+    stroke-dashoffset: 0;
+  }
+}
+/* What is being played back, under the ring. */
+.pw-readout {
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px 12px;
+  width: min(560px, 92%);
+  transform: translateX(-50%);
   font-family: var(--font-mono);
-  font-size: 15px;
-  letter-spacing: 0.24em;
-  fill: var(--color-ink);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-3);
+  text-transform: uppercase;
 }
-.al-read {
+.pw-readout-code {
+  font-weight: 500;
+}
+.pw-readout-now {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--color-ink-2);
+  letter-spacing: 0.06em;
+  text-transform: none;
+  font-family: var(--font-sans);
+  font-size: 12px;
+}
+.pw-readout-now:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+/* The key, under the list of repeats. */
+.pw-key {
+  display: grid;
+  gap: 6px;
+  margin-top: 18px;
+  font-size: 11.5px;
+  color: var(--color-ink-3);
+}
+.pw-key li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pw-key-line {
+  width: 22px;
+  height: 2px;
+  border-radius: 1px;
+}
+.pw-key-line.is-exception {
+  background: rgb(236 232 223 / 0.42);
+}
+.pw-key-line.is-other {
+  background: rgb(236 232 223 / 0.16);
+}
+.pw-key-dot {
+  width: 22px;
+  height: 10px;
+  background: radial-gradient(circle at 3px 5px, #6a6b70 2px, transparent 2.5px), radial-gradient(circle at 15px 5px, #6a6b70 4.5px, transparent 5px);
+}
+/* Every repeat on its own, side by side. */
+.pw-multiples {
+  margin-top: 28px;
+}
+.pw-multiples ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+.pw-multiple {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 12px 12px 14px;
+  text-align: left;
+  border: 1px solid var(--color-line);
+  background: var(--color-canvas);
+  transition: border-color 200ms;
+}
+.pw-multiple:hover {
+  border-color: var(--color-line-strong);
+}
+.pw-multiple.is-selected {
+  border-color: rgb(236 232 223 / 0.42);
+}
+.pw-multiple svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+}
+.pw-multiple-code {
+  margin-top: 8px;
   font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  fill: var(--color-ink-3);
+  font-size: 10px;
+  letter-spacing: 0.12em;
 }
-.al-read.is-on {
-  fill: var(--color-ink);
+.pw-multiple-title {
+  margin-top: 3px;
+  font-size: 13.5px;
+  line-height: 1.3;
+  color: var(--color-ink);
+}
+.pw-multiple-meta {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--color-ink-3);
 }
 /* What you point at on the wheel. */
 .almanac-tip {
@@ -2545,14 +2568,18 @@ html body {
     order: 2;
     margin-top: 16px;
   }
-  .almanac-hint {
+  .pw-key {
     order: 3;
   }
-  .almanac-side.is-right {
+  .almanac-hint {
     order: 4;
   }
+  .almanac-side.is-right {
+    order: 5;
+  }
+  /* The plate square, and what is played back under it rather than over the ring. */
   .almanac-plate {
-    aspect-ratio: 1000 / 1062;
+    aspect-ratio: auto;
     border: 1px solid var(--color-line);
     background: var(--color-canvas);
   }
@@ -2564,27 +2591,29 @@ html body {
     padding-top: 0;
   }
 }
+@media (max-width: 1023px) {
+  .almanac-plate .almanac-dial {
+    height: auto;
+    aspect-ratio: 1;
+  }
+  .pw-readout {
+    position: static;
+    width: auto;
+    margin: 0 12px 14px;
+    transform: none;
+  }
+}
 @media (max-width: 639px) {
-  .al-ring-title {
-    display: none;
+  /* The plate is small here, so its labels are set larger in its own units. */
+  .pw-area {
+    font-size: 19px;
+    letter-spacing: 0.16em;
   }
-  .al-callout {
-    font-size: 13px;
-    letter-spacing: 0.1em;
+  .pw-area.is-home {
+    font-size: 21px;
   }
-  /* The wheel is small here, so what must be read is set larger in its own units. */
-  .al-month {
-    font-size: 18px;
-    letter-spacing: 0.18em;
-  }
-  .al-read-date {
-    font-size: 26px;
-  }
-  .al-read {
-    font-size: 17px;
-  }
-  .al-today text {
-    font-size: 15px;
+  .pw-multiples ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
