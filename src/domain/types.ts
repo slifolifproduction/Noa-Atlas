@@ -860,6 +860,8 @@ export interface ModelUpdate {
 export interface Profile {
   name: string;
   since: ISODate;
+  /** Set on an example atlas (data/examples): which one it is. An atlas of the person's own has none. */
+  example?: string;
 }
 
 export interface Counters {

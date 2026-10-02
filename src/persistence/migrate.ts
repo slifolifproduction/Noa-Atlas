@@ -17,7 +17,8 @@
  * An atlas that is still the sample (with or without notes of the person's
  * own) is rebuilt from the new sample and keeps everything the person added.
  */
-import { createSeedData, isExampleAtlas, SEED_PROFILE_NAME } from '../data/seed';
+import { createExample } from '../data/examples';
+import { createSeedData, isNoaExample, SEED_PROFILE_NAME } from '../data/seed';
 import type {
   AnalysisSuggestion,
   AreaKey,
@@ -354,7 +355,7 @@ export function correctSampleCauses(data: AtlasData): AtlasData {
  */
 export function upgradeSampleLogic(data: AtlasData): AtlasData {
   if ((data.causesLogic ?? 0) >= 4) return data;
-  if (!isExampleAtlas(data)) return { ...data, causesLogic: 4 };
+  if (!isNoaExample(data)) return { ...data, causesLogic: 4 };
   const fresh = createSeedData();
   const occurrences = { ...data.occurrences };
   for (const [id, f] of Object.entries(fresh.occurrences)) {
@@ -390,6 +391,20 @@ export function upgradeSampleLogic(data: AtlasData): AtlasData {
     };
   }
   return { ...data, occurrences, edges, experiments, causesLogic: 4 };
+}
+
+/** Noa's example as it was opened, with nothing the person added, becomes the first of the new examples. */
+export function replaceUntouchedNoa(data: AtlasData): AtlasData {
+  if (!isNoaExample(data)) return data;
+  const fresh = createSeedData();
+  const untouched = (mine: Record<string, unknown> | undefined, theirs: Record<string, unknown>) => Object.keys(mine ?? {}).every((id) => id in theirs);
+  const same =
+    untouched(data.entries, fresh.entries) &&
+    untouched(data.decisions, fresh.decisions) &&
+    untouched(data.nodes, fresh.nodes) &&
+    untouched(data.claims, fresh.claims) &&
+    untouched(data.experiments, fresh.experiments);
+  return same ? createExample() : data;
 }
 
 /** Any stored or imported atlas, in the current shape. */

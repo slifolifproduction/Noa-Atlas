@@ -1,6 +1,7 @@
 import { ArrowRight, BookOpen, Sprout } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { navigate } from '../../app/router';
+import { DEFAULT_EXAMPLE, isExampleKey, type ExampleKey } from '../../data/examples';
 import { isExampleAtlas } from '../../data/seed';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
@@ -9,6 +10,7 @@ import { toast, useUI } from '../../state/uiStore';
 import { startFresh, versionStamp } from '../../state/versionOps';
 import { AREA_ICONS, CAPTURE_ICONS, KIND_ICONS } from '../icons';
 import { Button } from '../ui/Button';
+import { ExamplePicker } from './ExamplePicker';
 import { FieldLabel, Segmented } from '../ui/primitives';
 import { Modal } from '../ui/Modal';
 import { LANGUAGES, setLang, t, useLang, type Lang } from '../../i18n';
@@ -19,9 +21,10 @@ const addedToExample = (data: ReturnType<typeof useAtlas.getState>['data']) =>
 
 /**
  * The welcome: three plain statements, then a choice of how to begin. The
- * example (Noa's life around a short film, Night Ferry) is there to learn the
- * whole system on something already filled in, so that an atlas of one's own
- * does not start from confusion; the blank atlas is only yours. It asks once,
+ * examples (seven people at work and one student, each a life already filled
+ * in) are there to learn the whole system on something close to one's own,
+ * so that an atlas of one's own does not start from confusion; the blank
+ * atlas is only yours. It asks once,
  * on the first visit; the ⋯ menu brings it back, with the way to the example
  * or to an atlas of one's own. Switching never loses anything: the atlas
  * being left is saved as a version first.
@@ -35,6 +38,8 @@ export function Guide() {
   const data = useAtlas((s) => s.data);
   const lang = useLang();
   const [choice, setChoice] = useState<'example' | 'blank'>('example');
+  const current = data.profile?.example;
+  const [pick, setPick] = useState<ExampleKey>(isExampleKey(current) ? current : DEFAULT_EXAMPLE);
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const example = isExampleAtlas(data);
@@ -50,17 +55,25 @@ export function Guide() {
 
   const close = () => setOpen(false);
   const begin = async () => {
-    if (choice === 'example') {
+    // The example already open is the one picked: nothing to change.
+    if (choice === 'example' && pick === useAtlas.getState().data.profile?.example) {
       close();
       return;
     }
     setBusy(true);
     try {
       const saved = addedToExample(useAtlas.getState().data);
-      await startFresh({ save: saved, name: t('The example, as I left it · {when}', { when: versionStamp() }), mode: 'empty', profileName: name });
+      const versionName = t('The example, as I left it · {when}', { when: versionStamp() });
+      if (choice === 'example') {
+        await startFresh({ save: saved, name: versionName, mode: 'sample', example: pick });
+        close();
+        navigate('orbit');
+        return;
+      }
+      await startFresh({ save: saved, name: versionName, mode: 'empty', profileName: name });
       close();
       navigate('orbit');
-      toast(t('Your atlas is ready. Write what happened, and it starts to fill in. The example is always one step away in the ⋯ menu.'), { tone: 'success' });
+      toast(t('Your atlas is ready. Write what happened, and it starts to fill in. The examples are always one step away in the ⋯ menu.'), { tone: 'success' });
     } catch {
       toast(t('Could not save a version in this browser, so nothing was changed. Use Export in Settings first.'), { tone: 'warning' });
     } finally {
@@ -153,16 +166,21 @@ export function Guide() {
           {option(
             'example',
             BookOpen,
-            t('Learn with the example first'),
+            t('Learn with an example first'),
             t(
-              'A worked example: Noa’s life around a short film, Night Ferry, already filled in. Explore how notes, causes, repeats and tests fit together, then start your own when you are ready. What you do in it is kept as a version.',
+              'Worked examples: seven people at work and one student, each a life already filled in. Pick the one closest to yours, explore how notes, causes, repeats and tests fit together, then start your own when you are ready. What you do in it is kept as a version.',
             ),
+          )}
+          {choice === 'example' && (
+            <div className="pt-1">
+              <ExamplePicker name="guide-example" value={pick} onChange={setPick} />
+            </div>
           )}
           {option(
             'blank',
             Sprout,
             t('Start from blank'),
-            t('An empty atlas that is only yours. The example stays one step away if you want to look something up.'),
+            t('An empty atlas that is only yours. The examples stay one step away if you want to look something up.'),
           )}
           {choice === 'blank' && (
             <div className="pt-1">
@@ -178,23 +196,34 @@ export function Guide() {
           {example ? (
             <>
               {t(
-                'You are in the example atlas, there to learn how everything works. When you are ready, start an atlas of your own; the example is kept as a version.',
+                'You are in an example atlas, there to learn how everything works. When you are ready, start an atlas of your own; the example is kept as a version.',
               )}
-              <Button
-                size="sm"
-                className="mt-2 block"
-                onClick={() => {
-                  close();
-                  setStartFreshOpen(true, 'empty');
-                }}
-              >
-                {t('Start my own atlas')}
-              </Button>
+              <span className="mt-2 flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    close();
+                    setStartFreshOpen(true, 'empty');
+                  }}
+                >
+                  {t('Start my own atlas')}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    close();
+                    setStartFreshOpen(true, 'sample');
+                  }}
+                >
+                  {t('Other examples')}
+                </Button>
+              </span>
             </>
           ) : (
             <>
               {t(
-                'Not sure how something works? Open the example, a life already filled in, to see it. Your atlas is saved as a version first, and one step brings you back.',
+                'Not sure how something works? Open an example, a life already filled in, to see it. Your atlas is saved as a version first, and one step brings you back.',
               )}
               <Button
                 size="sm"
@@ -204,7 +233,7 @@ export function Guide() {
                   setStartFreshOpen(true, 'sample');
                 }}
               >
-                {t('Open the example')}
+                {t('Open an example')}
               </Button>
             </>
           )}

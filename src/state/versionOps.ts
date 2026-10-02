@@ -3,6 +3,7 @@
  * saved one, start fresh, import. Anything that replaces the atlas saves the
  * current one first, so nothing is ever lost by accident.
  */
+import type { ExampleKey } from '../data/examples';
 import { isExampleAtlas } from '../data/seed';
 import type { AtlasData } from '../domain/types';
 import { formatDate, formatTime, todayISO } from '../lib/dates';
@@ -48,15 +49,15 @@ export async function restoreVersion(id: string, opts: { backup?: boolean } = {}
 }
 
 /**
- * Begin a new atlas (empty or the example), optionally saving the current one
+ * Begin a new atlas (empty or one of the examples), optionally saving the current one
  * first. Opening the example from the person's own atlas remembers that
  * saved version as the way back; leaving the example for an atlas of their
  * own lets go of it.
  */
-export async function startFresh(opts: { save: boolean; name: string; mode: 'empty' | 'sample'; profileName?: string }) {
+export async function startFresh(opts: { save: boolean; name: string; mode: 'empty' | 'sample'; profileName?: string; example?: ExampleKey }) {
   const wasExample = isExampleAtlas(useAtlas.getState().data);
   const saved = opts.save ? await saveCurrentVersion(opts.name, 'restart') : undefined;
-  if (opts.mode === 'sample') useAtlas.getState().resetToSample();
+  if (opts.mode === 'sample') useAtlas.getState().resetToSample(opts.example);
   else useAtlas.getState().clearAll(opts.profileName?.trim() ?? '');
   afterSwap();
   if (opts.mode === 'sample' && !wasExample && saved) useUI.getState().setReturnVersion(saved.id);

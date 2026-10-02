@@ -15,7 +15,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import type { ModelUpdateProposal, PatternCandidate } from '../ai/types';
 import { createEmptyData } from '../data/empty';
-import { createSeedData } from '../data/seed';
+import { createExample, type ExampleKey } from '../data/examples';
 import { beliefUpdates, currentLedger, sameLedger } from '../domain/beliefs';
 import { canBeEvidence, claimCode, claimSentence, claimStatus, DEFAULT_SUPPORTED_EPISODES, LOGIC_VERSION, supportedEpisodes } from '../domain/claims';
 import type { InquiryKind } from '../domain/inquiry';
@@ -217,7 +217,8 @@ interface AtlasActions {
   setCurrentAction(id: ID): void;
   deleteAction(id: ID): void;
   // data management
-  resetToSample(): void;
+  /** Open one of the example atlases (the first when none is named). */
+  resetToSample(key?: ExampleKey): void;
   clearAll(name?: string): void;
   replaceData(data: AtlasData): void;
   /**
@@ -442,7 +443,7 @@ export const useAtlas = create<AtlasState>()(
         });
       };
       return {
-        data: createSeedData(),
+        data: createExample(),
 
         /* ---------------- map ---------------- */
 
@@ -1766,9 +1767,9 @@ export const useAtlas = create<AtlasState>()(
 
         /* ---------------- data management ---------------- */
 
-        resetToSample() {
+        resetToSample(key) {
           set((s) => {
-            s.data = createSeedData();
+            s.data = createExample(key);
           });
         },
 

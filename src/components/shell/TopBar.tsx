@@ -130,20 +130,25 @@ function MoreMenu() {
         {t('Guide')}
       </MenuItem>
       {example ? (
-        <MenuItem
-          icon={Sprout}
-          hint={t('Leave the example for an atlas of your own; the example is kept as a version')}
-          onSelect={() => ui().setStartFreshOpen(true, 'empty')}
-        >
-          {t('Start my own atlas')}
-        </MenuItem>
+        <>
+          <MenuItem
+            icon={Sprout}
+            hint={t('Leave the example for an atlas of your own; the example is kept as a version')}
+            onSelect={() => ui().setStartFreshOpen(true, 'empty')}
+          >
+            {t('Start my own atlas')}
+          </MenuItem>
+          <MenuItem icon={BookOpen} hint={t('Seven people at work and one student, to learn from')} onSelect={() => ui().setStartFreshOpen(true, 'sample')}>
+            {t('Other examples')}
+          </MenuItem>
+        </>
       ) : (
         <MenuItem
           icon={BookOpen}
           hint={t('A life already filled in, to learn how things work; your atlas is saved first')}
           onSelect={() => ui().setStartFreshOpen(true, 'sample')}
         >
-          {t('Open the example')}
+          {t('Open an example')}
         </MenuItem>
       )}
       {claude && (

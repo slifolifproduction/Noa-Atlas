@@ -77,7 +77,8 @@ export const PASSAGES: Passage[] = [
       t(
         'Your atlas is kept in this browser, or in your claude.ai account when you open it there signed in. Nothing leaves it unless you ask Claude. In Settings → Your data you can export all of it as a file, import one, and save or go back to versions. The local AI runs on this device.',
       ),
-    words: 'data simpan stored privacy privasi aman safe export ekspor import impor backup cadangan versi version hapus delete akun account',
+    words:
+      'data simpan disimpan tersimpan stored kept privacy privasi aman safe export ekspor import impor backup cadangan versi version hapus delete akun account',
     route: 'settings',
   },
   {
@@ -148,6 +149,95 @@ export const PASSAGES: Passage[] = [
       ),
     words: 'goal tujuan target sasaran rencana plan langkah steps quest misi deadline produktif productive',
     route: 'quests',
+  },
+  {
+    key: 'examples',
+    title: () => t('The example atlases'),
+    text: () =>
+      t(
+        'The examples are eight invented people, each a life already filled in, there to learn how the Atlas works on something close to your own: Nadia (designer), Hendra (accountant), Rizky (manager), Maya (director), Bimo (producer), Kevin (data scientist), Fajar (programmer) and Dinda (student). Each has about five months of notes, reasons with different statuses, repeats, options and a plan. Open one from the ⋯ menu (Open an example, or Other examples); your own atlas is saved as a version first, and one step brings you back.',
+      ),
+    words: 'contoh example sample atlas contoh tokoh persona orang people pekerjaan job profesi profession identitas identity',
+  },
+  {
+    key: 'identity:designer',
+    title: () => t('The Atlas for designers'),
+    text: () =>
+      t(
+        'For a designer, the Atlas is most useful where work loops: briefs, revisions, critiques and side projects. On the Map, put what you hold (craft, being heard early), what you do (writing the brief together, user research, freelancing) and who is around you (the PM, a mentor). Notes about each feature show what comes before many rounds of revision: a reason like “writing the brief together lowers revisions” becomes surer as features with and without a written brief are recorded in separate weeks. Weekend freelancing followed by a tired Monday is a common repeat worth writing down. Nadia’s example (Designer) shows it all filled in.',
+      ),
+    words:
+      'designer desainer desain design ui ux brief revisi revision klien client freelance portofolio portfolio kritik critique figma kreatif creative ilustrasi illustration',
+  },
+  {
+    key: 'identity:accountant',
+    title: () => t('The Atlas for accountants'),
+    text: () =>
+      t(
+        'For an accountant, the month has a rhythm: daily entries, closing, audits, and study for a certification. The Atlas helps you see what makes closing heavy: write each closing week (how many late nights, what was postponed) and a reason like “postponing reconciliation raises overtime” can be checked against months when it was done daily. Study hours for an exam and time with family are worth recording as states, because they are what overtime takes. Hendra’s example (Accountant) shows it filled in.',
+      ),
+    words:
+      'accountant akuntan akuntansi accounting closing tutup buku rekonsiliasi reconciliation audit auditor pajak tax laporan keuangan financial report cpa jurnal journal lembur overtime finance',
+  },
+  {
+    key: 'identity:manager',
+    title: () => t('The Atlas for managers'),
+    text: () =>
+      t(
+        'For a manager, much of what matters happens through other people: whether they stay, whether they decide on their own, whether you still have time to think. Record one-on-ones, meetings, and the times you stepped in yourself; the Atlas can then show, for instance, whether people leave after weeks without one-on-ones, or whether a day full of meetings leaves no time to focus. A bonus or a new rule is a test: write what you expect before it starts, and compare. Rizky’s example (Manager) shows it filled in.',
+      ),
+    words:
+      'manager manajer manajemen management tim team rapat meeting one-on-one delegasi delegate turnover karyawan employee staf staff supervisor bawahan atasan memimpin lead leadership',
+  },
+  {
+    key: 'identity:director',
+    title: () => t('The Atlas for directors and business owners'),
+    text: () =>
+      t(
+        'For a director or business owner, the hardest thing to protect is time for direction. Record where the days went (operational problems that reached you, decisions you delegated), cash and orders, and your own health. A reason like “getting into operational detail lowers time for strategy” becomes surer over separate weeks; a hunch like “big discounts bring orders” can be weakened by the times they did not. Options such as hiring an operations director or entering a new market are described side by side, never ranked. Maya’s example (Director) shows it filled in.',
+      ),
+    words:
+      'director direktur ceo pemilik owner usaha business bisnis perusahaan company strategi strategy kas cash flow pesanan order ekspor export coo keluarga family',
+  },
+  {
+    key: 'identity:producer',
+    title: () => t('The Atlas for producers and event organisers'),
+    text: () =>
+      t(
+        'For a producer or event organiser, each project is an episode: vendors, budget, crew, and the rest between projects. Write each event briefly (who was late, what was agreed in writing, what went over budget) and the Atlas can check a reason like “written contracts lower vendor delays” against the events without them. Back-to-back projects and your energy make a common repeat; setting a budget reserve aside is a test worth running. Bimo’s example (Producer) shows it filled in.',
+      ),
+    words:
+      'producer produser event acara konser concert eo organizer organiser vendor sponsor panggung stage kru crew anggaran budget festival produksi production',
+  },
+  {
+    key: 'identity:data',
+    title: () => t('The Atlas for data scientists and analysts'),
+    text: () =>
+      t(
+        'For a data scientist or analyst, the question is often less whether a model is accurate than whether it is used. Record when the people who use it were involved, the ad-hoc requests, documentation, and late nights tuning; the Atlas can then compare models built with and without their users, or weeks with and without set hours for requests. A belief like “more tuning raises accuracy” is a reason to check like any other. Kevin’s example (Data scientist) shows it filled in.',
+      ),
+    words:
+      'scientist analis analyst model machine learning ml dasbor dashboard query sql akurasi accuracy statistik statistics churn prediksi prediction notebook',
+  },
+  {
+    key: 'identity:programmer',
+    title: () => t('The Atlas for programmers'),
+    text: () =>
+      t(
+        'For a programmer, incidents, sprints and focus leave clear traces worth writing down: when you deployed, whether tests ran, how late you coded, how much old code slowed a change. A reason like “Friday deploys raise weekend bugs” can be checked against the weeks you released on Thursday; tech debt and sprint speed are states you can record each sprint. Fajar’s example (Programmer) shows it filled in.',
+      ),
+    words:
+      'programmer developer engineer software coding ngoding kode code bug deploy rilis release tes test sprint backend frontend utang teknis tech debt on-call insiden incident',
+  },
+  {
+    key: 'identity:student',
+    title: () => t('The Atlas for students'),
+    text: () =>
+      t(
+        'For a student, the Atlas helps with the balance between classes, work, organisations and sleep. Record quiz and exam results, sleep, work shifts, study groups and meetings; then a reason like “late nights lower energy the next day” or “group study raises quiz scores” can be checked across separate weeks. A choice like an internship now or later goes into Ahead as options, described without a ranking. Dinda’s example (Student) shows it filled in.',
+      ),
+    words:
+      'student mahasiswa siswa pelajar kuliah college university universitas kampus campus ujian exam kuis quiz nilai grade ipk gpa skripsi thesis magang internship organisasi bem dosen lecturer belajar study',
   },
 ];
 

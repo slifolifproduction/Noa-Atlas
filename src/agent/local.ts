@@ -151,14 +151,31 @@ const KIND_WORDS: [RegExp, ElementKind][] = [
 ];
 const kindOf = (word: string) => KIND_WORDS.find(([r]) => r.test(fold(word)))?.[1];
 
+// Everyday words, and those of the kinds of work in the examples (design, accounting, management, running a business,
+// events, data, programming, studying), so what such a person writes lands in the right area.
 const AREA_WORDS: [RegExp, AreaKey][] = [
-  [/\b(uang|duit|gaji|tabungan|utang|hutang|money|salary|savings|debt|budget|invest|bayar|pay|income|penghasilan|runway)\b/, 'money'],
-  [/\b(tidur|sleep|olahraga|exercise|lari|run|makan|diet|sehat|health|energi|energy|capek|tired|sakit|sick|gym|stres|stress)\b/, 'health'],
-  [/\b(kerja|work|kantor|office|klien|client|bos|boss|karier|career|job|pekerjaan|rapat|meeting)\b/, 'work'],
+  [
+    /\b(uang|duit|gaji|tabungan|utang|hutang|money|salary|savings|debt|budget|anggaran|invest|bayar|pay|income|penghasilan|runway|kas|cash|bonus|diskon|discount|sponsor|tagihan|invoice|beasiswa|scholarship|ukt)\b/,
+    'money',
+  ],
+  [
+    /\b(tidur|sleep|olahraga|exercise|lari|run|makan|diet|sehat|health|energi|energy|capek|tired|sakit|sick|gym|stres|stress|begadang|kopi|coffee|tensi)\b/,
+    'health',
+  ],
+  [
+    /\b(kerja|work|kantor|office|klien|client|bos|boss|karier|career|job|pekerjaan|rapat|meeting|lembur|overtime|shift|tim|team|supervisor|closing|audit|rekonsiliasi|reconciliation|brief|revisi|revision|deploy|rilis|release|bug|sprint|kode|code|vendor|gudang|warehouse|pabrik|factory|pelanggan|customer|direksi|stakeholder|dasbor|dashboard)\b/,
+    'work',
+  ],
   [/\b(teman|friend|keluarga|family|pasangan|partner|ibu|ayah|mom|dad|anak|child|pacar|istri|suami|wife|husband)\b/, 'people'],
-  [/\b(belajar|learn|kursus|course|bahasa|language|skill|baca|read|buku|book|latihan|practice)\b/, 'growth'],
+  [
+    /\b(belajar|learn|kursus|course|bahasa|language|skill|baca|read|buku|book|latihan|practice|kuliah|kuis|quiz|ujian|exam|skripsi|thesis|dosen|lecturer|sertifikasi|certification|cpa|magang|internship|mentor|portofolio|portfolio)\b/,
+    'growth',
+  ],
   [/\b(rumah|home|kota|city|pindah|move|kos|apartemen|apartment|studio)\b/, 'place'],
-  [/\b(proyek|project|film|buku saya|startup|bisnis|business|aplikasi|app)\b/, 'projects'],
+  [
+    /\b(proyek|project|film|buku saya|startup|bisnis|business|aplikasi|app|acara|event|konser|concert|festival|pameran|exhibition|lomba|competition|organisasi|bem)\b/,
+    'projects',
+  ],
 ];
 const KIND_AREA: Record<ElementKind, AreaKey> = {
   value: 'self',

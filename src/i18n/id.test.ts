@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import ts from 'typescript';
 import { describe, expect, it } from 'vitest';
+import { EXAMPLES } from '../data/examples';
 import { DRIVERS, EMOTION_OPTIONS } from '../domain/constants';
 import { TIME_ZONES } from '../lib/dates';
 import { ID } from './id';
@@ -45,7 +46,15 @@ function usedKeys(): Set<string> {
 }
 
 /** Values stored in English and translated where they are shown. */
-const DYNAMIC = [...DRIVERS, ...EMOTION_OPTIONS, ...TIME_ZONES.flatMap((z) => [z.city, z.country]), 'Local heuristics', 'Claude', 'Local AI'];
+const DYNAMIC = [
+  ...DRIVERS,
+  ...EMOTION_OPTIONS,
+  ...TIME_ZONES.flatMap((z) => [z.city, z.country]),
+  ...EXAMPLES.flatMap((e) => [e.identity, e.blurb]),
+  'Local heuristics',
+  'Claude',
+  'Local AI',
+];
 
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 

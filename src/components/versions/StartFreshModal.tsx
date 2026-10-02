@@ -2,6 +2,7 @@ import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { navigate } from '../../app/router';
 import { cn } from '../../lib/cn';
+import { DEFAULT_EXAMPLE, exampleInfo, isExampleKey, type ExampleKey } from '../../data/examples';
 import { isExampleAtlas } from '../../data/seed';
 import { useAtlas } from '../../state/atlasStore';
 import { toast, useUI } from '../../state/uiStore';
@@ -9,6 +10,7 @@ import { restoreVersion, startFresh, versionStamp } from '../../state/versionOps
 import { Button } from '../ui/Button';
 import { Modal } from '../ui/Modal';
 import { FieldLabel } from '../ui/primitives';
+import { ExamplePicker } from '../shell/ExamplePicker';
 import { t } from '../../i18n';
 
 /**
@@ -23,29 +25,33 @@ export function StartFreshModal() {
   const [name, setName] = useState('');
   const [mode, setMode] = useState<'empty' | 'sample'>('empty');
   const [profile, setProfile] = useState('');
+  const [pick, setPick] = useState<ExampleKey>(DEFAULT_EXAMPLE);
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (open) {
-      const example = isExampleAtlas(useAtlas.getState().data);
+      const data = useAtlas.getState().data;
+      const example = isExampleAtlas(data);
       setSave(true);
       setName(example ? t('The example, as I left it · {when}', { when: versionStamp() }) : t('Before restart · {when}', { when: versionStamp() }));
       setMode(preset);
       setProfile('');
+      setPick(isExampleKey(data.profile?.example) ? data.profile.example : DEFAULT_EXAMPLE);
     }
   }, [open, preset]);
 
   const go = async () => {
     setBusy(true);
     try {
-      const saved = await startFresh({ save, name, mode, profileName: profile });
+      const saved = await startFresh({ save, name, mode, profileName: profile, example: pick });
       setOpen(false);
       navigate('orbit');
+      const who = exampleInfo(pick)?.name ?? '';
       toast(
         mode === 'sample'
           ? saved
-            ? t('The example is open. Your atlas is saved: “Back to my atlas” is at the top.')
-            : t('The example is open.')
+            ? t('{name}’s example is open. Your atlas is saved: “Back to my atlas” is at the top.', { name: who })
+            : t('{name}’s example is open.', { name: who })
           : saved
             ? t('Started fresh. Your previous atlas is saved in Versions.')
             : t('Started fresh.'),
@@ -110,12 +116,10 @@ export function StartFreshModal() {
         <div className="space-y-2" role="radiogroup" aria-label={t('Start with')}>
           <div className="label">{t('Start with')}</div>
           {option('empty', t('An empty atlas'), t('Just the areas of life, ready for your own notes and points.'))}
-          {option(
-            'sample',
-            t('The example atlas'),
-            t('Noa’s fictional life around a short film, Night Ferry: a worked example to learn how everything works.'),
-          )}
+          {option('sample', t('An example atlas'), t('A life already filled in, to learn how everything works: seven people at work and one student.'))}
         </div>
+
+        {mode === 'sample' && <ExamplePicker name="fresh-example" value={pick} onChange={setPick} />}
 
         {mode === 'empty' && (
           <div>

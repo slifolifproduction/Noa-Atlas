@@ -1086,8 +1086,6 @@ export const ID: Record<string, string> = {
   'Only {name}': 'Hanya {name}',
   'Let go': 'Lepaskan',
   'The example, as I left it · {when}': 'Contoh, seperti yang kutinggalkan · {when}',
-  'Your atlas is ready. Write what happened, and it starts to fill in. The example is always one step away in the ⋯ menu.':
-    'Atlasmu siap. Tulis apa yang terjadi, dan atlas mulai terisi. Contohnya selalu tersedia di menu ⋯.',
   'Could not save a version in this browser, so nothing was changed. Use Export in Settings first.':
     'Tidak bisa menyimpan versi di browser ini, jadi tidak ada yang diubah. Gunakan Ekspor di Pengaturan terlebih dahulu.',
   'This is your life, drawn as a map.': 'Ini hidupmu, digambar sebagai peta.',
@@ -1103,18 +1101,8 @@ export const ID: Record<string, string> = {
   'Write a note first': 'Tulis catatan dulu',
   'Explore the atlas': 'Jelajahi atlas',
   'How would you like to begin?': 'Mau mulai dari mana?',
-  'Learn with the example first': 'Pelajari dulu lewat contoh',
-  'A worked example: Noa’s life around a short film, Night Ferry, already filled in. Explore how notes, causes, repeats and tests fit together, then start your own when you are ready. What you do in it is kept as a version.':
-    'Studi kasus yang sudah terisi: kehidupan Noa seputar film pendek, Night Ferry. Jelajahi bagaimana catatan, sebab, pengulangan, dan tes saling terhubung, lalu mulai atlasmu sendiri saat siap. Apa yang kamu lakukan di dalamnya disimpan sebagai versi.',
   'Start from blank': 'Mulai dari kosong',
-  'An empty atlas that is only yours. The example stays one step away if you want to look something up.':
-    'Atlas kosong yang hanya milikmu. Contohnya tetap tersedia kalau kamu ingin melihat sesuatu.',
   'How the atlas addresses you': 'Cara atlas menyapamu',
-  'You are in the example atlas, there to learn how everything works. When you are ready, start an atlas of your own; the example is kept as a version.':
-    'Kamu sedang di atlas contoh, untuk mempelajari cara kerja semuanya. Saat siap, mulai atlasmu sendiri; contohnya disimpan sebagai versi.',
-  'Not sure how something works? Open the example, a life already filled in, to see it. Your atlas is saved as a version first, and one step brings you back.':
-    'Belum yakin cara kerja sesuatu? Buka contoh, kehidupan yang sudah terisi, untuk melihatnya. Atlasmu disimpan dulu sebagai versi, dan satu langkah membawamu kembali.',
-  'Open the example': 'Buka contoh',
   'Everything stays in this browser.': 'Semuanya tetap di browser ini.',
   Language: 'Bahasa',
   'Elements a note is about': 'Elemen yang dibahas sebuah catatan',
@@ -1243,8 +1231,6 @@ export const ID: Record<string, string> = {
   'Edit {name}': 'Ubah {name}',
   'Add…': 'Tambah…',
   'Before restart · {when}': 'Sebelum mulai ulang · {when}',
-  'The example is open. Your atlas is saved: “Back to my atlas” is at the top.': 'Contoh sudah terbuka. Atlasmu tersimpan: “Kembali ke atlasku” ada di atas.',
-  'The example is open.': 'Contoh sudah terbuka.',
   'Started fresh. Your previous atlas is saved in Versions.': 'Sudah mulai baru. Atlas sebelumnya tersimpan di Versi.',
   'Started fresh.': 'Sudah mulai baru.',
   Undo: 'Urungkan',
@@ -1257,8 +1243,6 @@ export const ID: Record<string, string> = {
   'Start with': 'Mulai dengan',
   'An empty atlas': 'Atlas kosong',
   'Just the areas of life, ready for your own notes and points.': 'Hanya area-area kehidupan, siap untuk catatan dan poinmu sendiri.',
-  'Noa’s fictional life around a short film, Night Ferry: a worked example to learn how everything works.':
-    'Kehidupan fiktif Noa seputar film pendek, Night Ferry: studi kasus untuk mempelajari cara kerja semuanya.',
   'Saved automatically before starting fresh': 'Tersimpan otomatis sebelum mulai baru',
   'Saved automatically before an import': 'Tersimpan otomatis sebelum impor',
   'Saved automatically before going back to another version': 'Tersimpan otomatis sebelum kembali ke versi lain',
@@ -2979,4 +2963,70 @@ export const ID: Record<string, string> = {
     'Khusus tentang atlasmu. Ia bisa keliru: periksa susunannya sebelum kamu menerapkannya.',
   Agent: 'Agen',
   'Saved automatically before the agent’s changes were applied': 'Disimpan otomatis sebelum perubahan dari agen diterapkan',
+  'Your atlas is ready. Write what happened, and it starts to fill in. The examples are always one step away in the ⋯ menu.':
+    'Atlasmu siap. Tulis apa yang terjadi, dan atlas mulai terisi. Contoh-contohnya selalu tersedia di menu ⋯.',
+  'Learn with an example first': 'Pelajari dulu lewat contoh',
+  'Worked examples: seven people at work and one student, each a life already filled in. Pick the one closest to yours, explore how notes, causes, repeats and tests fit together, then start your own when you are ready. What you do in it is kept as a version.':
+    'Contoh yang sudah terisi: tujuh orang dengan pekerjaannya dan satu mahasiswa. Pilih yang paling dekat dengan hidupmu, jelajahi bagaimana catatan, sebab, pengulangan, dan tes saling terhubung, lalu mulai atlasmu sendiri saat siap. Apa yang kamu lakukan di dalamnya disimpan sebagai versi.',
+  'An empty atlas that is only yours. The examples stay one step away if you want to look something up.':
+    'Atlas kosong yang hanya milikmu. Contoh-contohnya tetap tersedia kalau kamu ingin melihat sesuatu.',
+  'You are in an example atlas, there to learn how everything works. When you are ready, start an atlas of your own; the example is kept as a version.':
+    'Kamu sedang di atlas contoh, untuk mempelajari cara kerja semuanya. Saat siap, mulai atlasmu sendiri; contohnya disimpan sebagai versi.',
+  'Not sure how something works? Open an example, a life already filled in, to see it. Your atlas is saved as a version first, and one step brings you back.':
+    'Belum yakin cara kerja sesuatu? Buka contoh, kehidupan yang sudah terisi, untuk melihatnya. Atlasmu disimpan dulu sebagai versi, dan satu langkah membawamu kembali.',
+  'Open an example': 'Buka contoh',
+  'Other examples': 'Contoh lain',
+  'Which example?': 'Contoh yang mana?',
+  'Seven people at work and one student, to learn from': 'Tujuh orang dengan pekerjaannya dan satu mahasiswa, untuk dipelajari',
+  '{name}, someone invented, there to learn how everything works. Nothing here is yours.':
+    '{name}, tokoh rekaan, untuk mempelajari cara kerja semuanya. Tidak ada di sini yang milikmu.',
+  '{name}’s example is open. Your atlas is saved: “Back to my atlas” is at the top.':
+    'Contoh {name} sudah terbuka. Atlasmu tersimpan: “Kembali ke atlasku” ada di atas.',
+  '{name}’s example is open.': 'Contoh {name} sudah terbuka.',
+  'An example atlas': 'Atlas contoh',
+  'A life already filled in, to learn how everything works: seven people at work and one student.':
+    'Kehidupan yang sudah terisi, untuk mempelajari cara kerja semuanya: tujuh orang dengan pekerjaannya dan satu mahasiswa.',
+  Designer: 'Desainer',
+  Accountant: 'Akuntan',
+  Manager: 'Manajer',
+  Director: 'Direktur',
+  Producer: 'Produser',
+  'Data scientist': 'Data scientist',
+  Programmer: 'Programmer',
+  Student: 'Mahasiswa',
+  'UI/UX designer at a fintech in Jakarta, freelancing on weekends.': 'Desainer UI/UX di fintech Jakarta, freelance di akhir pekan.',
+  'Senior accountant in Surabaya, studying for the CPA exam.': 'Akuntan senior di Surabaya, sedang menyiapkan ujian CPA.',
+  'Warehouse operations manager in Cikarang, leading 40 people.': 'Manajer operasional gudang di Cikarang, memimpin 40 orang.',
+  'Managing director of a family furniture exporter in Jepara.': 'Direktur utama perusahaan mebel ekspor milik keluarga di Jepara.',
+  'Concert and event producer at an event organiser in Jakarta.': 'Produser konser dan acara di sebuah event organizer di Jakarta.',
+  'Data scientist at an e-commerce company, building a churn model.': 'Data scientist di perusahaan e-commerce, membangun model prediksi churn.',
+  'Backend developer at a logistics startup in Bandung.': 'Backend developer di startup logistik di Bandung.',
+  'Informatics student in Yogyakarta, working part-time as a barista.': 'Mahasiswa Informatika di Yogyakarta, kerja paruh waktu sebagai barista.',
+  'The example atlases': 'Atlas-atlas contoh',
+  'The examples are eight invented people, each a life already filled in, there to learn how the Atlas works on something close to your own: Nadia (designer), Hendra (accountant), Rizky (manager), Maya (director), Bimo (producer), Kevin (data scientist), Fajar (programmer) and Dinda (student). Each has about five months of notes, reasons with different statuses, repeats, options and a plan. Open one from the ⋯ menu (Open an example, or Other examples); your own atlas is saved as a version first, and one step brings you back.':
+    'Contohnya adalah delapan tokoh rekaan, masing-masing kehidupan yang sudah terisi, untuk mempelajari cara kerja Atlas pada sesuatu yang dekat dengan hidupmu: Nadia (desainer), Hendra (akuntan), Rizky (manajer), Maya (direktur), Bimo (produser), Kevin (data scientist), Fajar (programmer), dan Dinda (mahasiswa). Masing-masing punya sekitar lima bulan catatan, alasan dengan status yang berbeda-beda, pengulangan, opsi, dan rencana. Buka dari menu ⋯ (Buka contoh, atau Contoh lain); atlasmu sendiri disimpan dulu sebagai versi, dan satu langkah membawamu kembali.',
+  'The Atlas for designers': 'Atlas untuk desainer',
+  'For a designer, the Atlas is most useful where work loops: briefs, revisions, critiques and side projects. On the Map, put what you hold (craft, being heard early), what you do (writing the brief together, user research, freelancing) and who is around you (the PM, a mentor). Notes about each feature show what comes before many rounds of revision: a reason like “writing the brief together lowers revisions” becomes surer as features with and without a written brief are recorded in separate weeks. Weekend freelancing followed by a tired Monday is a common repeat worth writing down. Nadia’s example (Designer) shows it all filled in.':
+    'Bagi desainer, Atlas paling berguna di bagian kerja yang berputar: brief, revisi, kritik desain, dan proyek sampingan. Di Peta, taruh apa yang kamu pegang (mutu karya, didengar sejak awal), apa yang kamu lakukan (menulis brief bersama, riset pengguna, freelance), dan siapa di sekitarmu (PM, mentor). Catatan tentang setiap fitur menunjukkan apa yang datang sebelum revisi berputar-putar: alasan seperti “menulis brief bersama menurunkan revisi” makin kuat saat fitur dengan dan tanpa brief tertulis dicatat di minggu-minggu yang berbeda. Freelance di akhir pekan lalu Senin yang lelah adalah pengulangan yang layak dicatat. Contoh Nadia (Desainer) menunjukkan semuanya sudah terisi.',
+  'The Atlas for accountants': 'Atlas untuk akuntan',
+  'For an accountant, the month has a rhythm: daily entries, closing, audits, and study for a certification. The Atlas helps you see what makes closing heavy: write each closing week (how many late nights, what was postponed) and a reason like “postponing reconciliation raises overtime” can be checked against months when it was done daily. Study hours for an exam and time with family are worth recording as states, because they are what overtime takes. Hendra’s example (Accountant) shows it filled in.':
+    'Bagi akuntan, setiap bulan punya ritme: pencatatan harian, closing, audit, dan belajar untuk sertifikasi. Atlas membantumu melihat apa yang membuat closing berat: tulis setiap minggu closing (berapa malam lembur, apa yang ditunda) dan alasan seperti “menunda rekonsiliasi menaikkan lembur” bisa dicek terhadap bulan-bulan saat rekonsiliasi dikerjakan harian. Jam belajar untuk ujian dan waktu bersama keluarga layak dicatat sebagai keadaan, karena itulah yang diambil oleh lembur. Contoh Hendra (Akuntan) menunjukkannya sudah terisi.',
+  'The Atlas for managers': 'Atlas untuk manajer',
+  'For a manager, much of what matters happens through other people: whether they stay, whether they decide on their own, whether you still have time to think. Record one-on-ones, meetings, and the times you stepped in yourself; the Atlas can then show, for instance, whether people leave after weeks without one-on-ones, or whether a day full of meetings leaves no time to focus. A bonus or a new rule is a test: write what you expect before it starts, and compare. Rizky’s example (Manager) shows it filled in.':
+    'Bagi manajer, banyak hal penting terjadi lewat orang lain: apakah mereka bertahan, apakah mereka berani memutuskan sendiri, dan apakah kamu masih punya waktu untuk berpikir. Catat obrolan satu-satu, rapat, dan saat-saat kamu turun tangan sendiri; Atlas lalu bisa menunjukkan, misalnya, apakah orang keluar setelah minggu-minggu tanpa satu-satu, atau apakah hari penuh rapat menyisakan nol waktu fokus. Bonus atau aturan baru adalah sebuah tes: tulis apa yang kamu harapkan sebelum dimulai, lalu bandingkan. Contoh Rizky (Manajer) menunjukkannya sudah terisi.',
+  'The Atlas for directors and business owners': 'Atlas untuk direktur dan pemilik usaha',
+  'For a director or business owner, the hardest thing to protect is time for direction. Record where the days went (operational problems that reached you, decisions you delegated), cash and orders, and your own health. A reason like “getting into operational detail lowers time for strategy” becomes surer over separate weeks; a hunch like “big discounts bring orders” can be weakened by the times they did not. Options such as hiring an operations director or entering a new market are described side by side, never ranked. Maya’s example (Director) shows it filled in.':
+    'Bagi direktur atau pemilik usaha, hal yang paling sulit dijaga adalah waktu untuk arah. Catat ke mana hari-harimu pergi (masalah operasional yang sampai ke mejamu, keputusan yang kamu delegasikan), kas dan pesanan, serta kesehatanmu sendiri. Alasan seperti “ikut campur detail operasional menurunkan waktu untuk strategi” makin kuat di minggu-minggu yang berbeda; dugaan seperti “diskon besar mendatangkan pesanan” bisa melemah oleh saat-saat ketika itu tidak terjadi. Opsi seperti merekrut direktur operasional atau masuk ke pasar baru dijabarkan berdampingan, tidak pernah diperingkat. Contoh Maya (Direktur) menunjukkannya sudah terisi.',
+  'The Atlas for producers and event organisers': 'Atlas untuk produser dan penyelenggara acara',
+  'For a producer or event organiser, each project is an episode: vendors, budget, crew, and the rest between projects. Write each event briefly (who was late, what was agreed in writing, what went over budget) and the Atlas can check a reason like “written contracts lower vendor delays” against the events without them. Back-to-back projects and your energy make a common repeat; setting a budget reserve aside is a test worth running. Bimo’s example (Producer) shows it filled in.':
+    'Bagi produser atau penyelenggara acara, setiap proyek adalah satu episode: vendor, anggaran, kru, dan jeda di antara proyek. Tulis setiap acara secara singkat (siapa yang terlambat, apa yang disepakati tertulis, apa yang melebihi anggaran) dan Atlas bisa mengecek alasan seperti “kontrak tertulis menurunkan keterlambatan vendor” terhadap acara-acara tanpa kontrak. Proyek beruntun dan energimu sering menjadi pengulangan; menyisihkan cadangan anggaran adalah tes yang layak dicoba. Contoh Bimo (Produser) menunjukkannya sudah terisi.',
+  'The Atlas for data scientists and analysts': 'Atlas untuk data scientist dan analis',
+  'For a data scientist or analyst, the question is often less whether a model is accurate than whether it is used. Record when the people who use it were involved, the ad-hoc requests, documentation, and late nights tuning; the Atlas can then compare models built with and without their users, or weeks with and without set hours for requests. A belief like “more tuning raises accuracy” is a reason to check like any other. Kevin’s example (Data scientist) shows it filled in.':
+    'Bagi data scientist atau analis, pertanyaannya sering bukan seberapa akurat sebuah model, tapi apakah model itu dipakai. Catat kapan orang yang akan memakainya dilibatkan, permintaan dadakan, dokumentasi, dan malam-malam tuning; Atlas lalu bisa membandingkan model yang dibangun dengan dan tanpa penggunanya, atau minggu dengan dan tanpa jam khusus untuk permintaan. Keyakinan seperti “tuning lebih lama menaikkan akurasi” adalah alasan yang dicek seperti alasan lain. Contoh Kevin (Data scientist) menunjukkannya sudah terisi.',
+  'The Atlas for programmers': 'Atlas untuk programmer',
+  'For a programmer, incidents, sprints and focus leave clear traces worth writing down: when you deployed, whether tests ran, how late you coded, how much old code slowed a change. A reason like “Friday deploys raise weekend bugs” can be checked against the weeks you released on Thursday; tech debt and sprint speed are states you can record each sprint. Fajar’s example (Programmer) shows it filled in.':
+    'Bagi programmer, insiden, sprint, dan fokus meninggalkan jejak jelas yang layak ditulis: kapan kamu deploy, apakah tes berjalan, sampai jam berapa kamu ngoding, seberapa banyak kode lama memperlambat perubahan. Alasan seperti “rilis hari Jumat menaikkan bug di akhir pekan” bisa dicek terhadap minggu-minggu saat kamu rilis hari Kamis; utang teknis dan kecepatan sprint adalah keadaan yang bisa kamu catat setiap sprint. Contoh Fajar (Programmer) menunjukkannya sudah terisi.',
+  'The Atlas for students': 'Atlas untuk mahasiswa',
+  'For a student, the Atlas helps with the balance between classes, work, organisations and sleep. Record quiz and exam results, sleep, work shifts, study groups and meetings; then a reason like “late nights lower energy the next day” or “group study raises quiz scores” can be checked across separate weeks. A choice like an internship now or later goes into Ahead as options, described without a ranking. Dinda’s example (Student) shows it filled in.':
+    'Bagi mahasiswa, Atlas membantu menjaga keseimbangan antara kuliah, kerja, organisasi, dan tidur. Catat hasil kuis dan ujian, jam tidur, shift kerja, belajar kelompok, dan rapat; lalu alasan seperti “begadang menurunkan energi keesokan harinya” atau “belajar kelompok menaikkan nilai kuis” bisa dicek di minggu-minggu yang berbeda. Pilihan seperti magang sekarang atau nanti masuk ke Ahead sebagai opsi, dijabarkan tanpa peringkat. Contoh Dinda (Mahasiswa) menunjukkannya sudah terisi.',
 };

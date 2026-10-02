@@ -13,6 +13,7 @@
  * Nothing it drafts is applied by it. Its answer is cleaned before it is shown (scope.ts).
  */
 import { SHARED_RULES, LANGUAGE_RULE } from '../ai/schemas';
+import { exampleInfo } from '../data/examples';
 import { claimSentence, claimStatus } from '../domain/claims';
 import { AREA_META, KIND_META, LINK_META, EFFECT_META } from '../domain/constants';
 import { allWork } from '../domain/quests';
@@ -68,10 +69,13 @@ export function atlasPicture(data: AtlasData, today: ISODate, budget = 24000): s
     .slice(0, 8)
     .map((d) => `[D${d.seq}] ${d.date} ${d.title}`);
   const section = (title: string, lines: string[]) => (lines.length ? `${title}:\n${lines.join('\n')}` : `${title}: none yet`);
+  const example = exampleInfo(data.profile.example);
   let out = '';
   for (let n = notes.length; n >= 0; n = n > 4 ? Math.floor(n * 0.7) : n - 1) {
     out = [
-      `Today: ${today}. The person: ${data.profile.name || 'not named'}.`,
+      example
+        ? `Today: ${today}. This atlas is an example: ${data.profile.name}, an invented ${example.identity.toLowerCase()} (${example.blurb}), written in Indonesian. The person reading it is exploring it to learn how the Atlas works; it is not their life.`
+        : `Today: ${today}. The person: ${data.profile.name || 'not named'}.`,
       section('Elements on their Map (name, kind, area)', elements),
       section('Possible reasons (with how sure each is)', reasons),
       section('Repeats', repeats),
