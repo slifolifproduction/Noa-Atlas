@@ -45,7 +45,7 @@ function usedKeys(): Set<string> {
 }
 
 /** Values stored in English and translated where they are shown. */
-const DYNAMIC = [...DRIVERS, ...EMOTION_OPTIONS, ...TIME_ZONES.flatMap((z) => [z.city, z.country]), 'Local heuristics', 'Claude'];
+const DYNAMIC = [...DRIVERS, ...EMOTION_OPTIONS, ...TIME_ZONES.flatMap((z) => [z.city, z.country]), 'Local heuristics', 'Claude', 'Local AI'];
 
 const placeholders = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort();
 

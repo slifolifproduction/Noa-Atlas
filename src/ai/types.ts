@@ -24,7 +24,7 @@ import type {
   StrategicPath,
 } from '../domain/types';
 
-export type ProviderId = 'local' | 'claude' | 'account';
+export type ProviderId = 'local' | 'local-ai' | 'claude' | 'account';
 
 /** A regularity the analysis proposes. It becomes a Pattern only if the person adopts it. */
 export interface PatternCandidate {

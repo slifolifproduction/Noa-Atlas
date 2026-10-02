@@ -36,6 +36,8 @@ import { t, tn } from '../i18n';
  * Explanations and exceptions are a reading, and are offered instead.
  */
 export function takenOnItsOwn(s: AnalysisSuggestion): boolean {
+  // What the local AI read by meaning is a reading: a link is taken (and taken back teaches it), the rest offered.
+  if (s.inferred && s.type !== 'link_node') return false;
   switch (s.type) {
     case 'link_node':
     case 'occurrence':

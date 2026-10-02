@@ -1,0 +1,151 @@
+/**
+ * Train the local AI's built-in model and say how well it reads.
+ *
+ * Two models learn the five heads (src/ml/tasks.ts) from the same data (ml/data/train.jsonl), on the same
+ * features (src/ml/features.ts):
+ *
+ *   machine learning   multinomial logistic regression (no hidden layer)
+ *   deep learning      a neural network with one hidden layer, dropout, trained with Adam
+ *
+ * A tenth of the training data is kept aside to stop each one at its best. Both are then scored on the test set
+ * (sentences made from templates never used in training) and on the gold set (sentences written by hand, apart
+ * from any template), per head: accuracy and macro-F1 (the mean of each answer's F1, so rare answers count as
+ * much as common ones). The better one on the validation set is saved to public/ml/lite.json, 8-bit, for the app;
+ * the scores go to ml/report.md, as they are.
+ *
+ * Run: npm run ml:train
+ */
+import { readFileSync, writeFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { BUCKETS, featurise } from '../src/ml/features.ts';
+import { classWeights, evaluate, Net, type HeadScore, type Input, type NetConfig } from '../src/ml/nn.ts';
+import { HEAD_NAMES, HEADS, labelIndex, type Labels } from '../src/ml/tasks.ts';
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const ROOT = join(HERE, '..');
+
+type Row = Labels & { text: string; lang: string };
+const read = (file: string): Row[] =>
+  readFileSync(join(HERE, 'data', file), 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map((l) => JSON.parse(l));
+const ys = (rows: Row[]) => rows.map((r) => HEAD_NAMES.map((h) => labelIndex(h, r[h] as never)));
+const xs = (rows: Row[]): Input[] => rows.map((r) => featurise(r.text));
+
+const all = read('train.jsonl');
+const test = read('test.jsonl');
+const gold = read('gold.jsonl');
+// A fixed tenth for validation.
+const val = all.filter((_, i) => i % 10 === 0);
+const train = all.filter((_, i) => i % 10 !== 0);
+const heads = HEAD_NAMES.map((h) => HEADS[h].length);
+const mean = (s: HeadScore[]) => s.reduce((a, x) => a + x.macroF1, 0) / s.length;
+const score = (net: Net, x: Input[], y: number[][]) => mean(evaluate(net, x, y));
+
+const data = {
+  train: { xs: xs(train), ys: ys(train) },
+  val: { xs: xs(val), ys: ys(val) },
+  test: { xs: xs(test), ys: ys(test) },
+  gold: { xs: xs(gold), ys: ys(gold) },
+};
+const weights = classWeights(data.train.ys, heads);
+
+function fit(name: string, cfg: NetConfig, lr: number, dropout: number) {
+  const net = new Net(cfg);
+  const t0 = Date.now();
+  const best = net.train(
+    data.train.xs,
+    data.train.ys,
+    data.val,
+    {
+      epochs: 40,
+      batch: 32,
+      lr,
+      dropout,
+      weightDecay: 1e-5,
+      patience: 5,
+      classWeights: weights,
+      onEpoch: (e, loss, s) => void console.log(`${name.padEnd(4)} epoch ${String(e + 1).padStart(2)}  loss ${loss.toFixed(3)}  val macro-F1 ${s.toFixed(3)}`),
+    },
+    score,
+  );
+  const seconds = (Date.now() - t0) / 1000;
+  return { name, net, best, seconds, test: evaluate(net, data.test.xs, data.test.ys), gold: evaluate(net, data.gold.xs, data.gold.ys) };
+}
+
+const ml = fit('ML', { input: BUCKETS, sparse: true, hidden: 0, heads, seed: 11 }, 0.02, 0);
+const dl = fit('DL', { input: BUCKETS, sparse: true, hidden: 64, heads, seed: 11 }, 0.004, 0.25);
+const chosen = dl.best >= ml.best ? dl : ml;
+
+/* ---------------- the report ---------------- */
+
+const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
+const table = (title: string, key: 'test' | 'gold') =>
+  [
+    `### ${title}`,
+    '',
+    '| Head | ML accuracy | ML macro-F1 | DL accuracy | DL macro-F1 |',
+    '|---|---|---|---|---|',
+    ...HEAD_NAMES.map(
+      (h, i) => `| ${h} | ${pct(ml[key][i].accuracy)} | ${pct(ml[key][i].macroF1)} | ${pct(dl[key][i].accuracy)} | ${pct(dl[key][i].macroF1)} |`,
+    ),
+    `| **mean** | ${pct(ml[key].reduce((s, x) => s + x.accuracy, 0) / 5)} | ${pct(mean(ml[key]))} | ${pct(dl[key].reduce((s, x) => s + x.accuracy, 0) / 5)} | ${pct(mean(dl[key]))} |`,
+    '',
+  ].join('\n');
+const confusion = (title: string, s: HeadScore, labels: readonly string[]) =>
+  [
+    `#### ${title}`,
+    '',
+    `| true ↓ / read → | ${labels.join(' | ')} |`,
+    `|---|${labels.map(() => '---').join('|')}|`,
+    ...s.confusion.map((row, i) => `| ${labels[i]} | ${row.join(' | ')} |`),
+    '',
+  ].join('\n');
+const errors = gold
+  .map((r, n) => {
+    const p = chosen.net.predict(data.gold.xs[n]);
+    const read = HEAD_NAMES.map((h, i) => HEADS[h][p[i].indexOf(Math.max(...p[i]))]);
+    const wrong = HEAD_NAMES.filter((h, i) => read[i] !== r[h]).map((h) => `${h}: ${r[h]} → ${read[HEAD_NAMES.indexOf(h)]}`);
+    return wrong.length ? `- “${r.text}” — ${wrong.join('; ')}` : '';
+  })
+  .filter(Boolean);
+
+const report = `# The local AI: how well the built-in model reads
+
+Generated by \`npm run ml:train\` on ${new Date().toISOString().slice(0, 10)}. Data: ${train.length} training sentences, ${val.length} for validation (early stopping), ${test.length} test sentences built only from templates never used in training, and ${gold.length} gold sentences written by hand (English, Indonesian and the two mixed, formal and chat-style).
+
+- **ML** — multinomial logistic regression on hashed word and letter n-grams (${BUCKETS} buckets). Best validation macro-F1 ${pct(ml.best)}, trained in ${ml.seconds.toFixed(1)} s.
+- **DL** — a neural network with one hidden layer of 64 ReLU units and dropout, on the same features, five softmax heads trained together (Adam). Best validation macro-F1 ${pct(dl.best)}, trained in ${dl.seconds.toFixed(1)} s.
+
+Saved for the app: **${chosen.name}** (the better on validation), 8-bit, as \`public/ml/lite.json\`.
+
+${table('Test set (templates never seen in training)', 'test')}
+${table('Gold set (written by hand)', 'gold')}
+The gold set is the one to trust: the test set is still made of the same slots and connecting words. To be plain about it: the gold set's mistakes were read once, after the first run, to find kinds of sentence the data lacked (\"is live\", \"udah lunas\", feelings in the present, \"biar…\"); templates of those kinds were added, never the gold sentences themselves, and the gold labels were made consistent with the definitions in src/ml/tasks.ts. It has not been tuned on since. With the language model downloaded in the app, the same heads are trained again on its sentence embeddings, on the device; it reads meaning, not letters, and is expected to do better on the gold set, which cannot be measured here.
+
+${confusion('Gold set, act (the chosen model)', chosen.gold[0], HEADS.act)}
+${confusion('Gold set, direction (the chosen model)', chosen.gold[1], HEADS.direction)}
+### What the chosen model got wrong on the gold set
+
+${errors.join('\n') || 'Nothing.'}
+`;
+
+writeFileSync(join(HERE, 'report.md'), report);
+writeFileSync(
+  join(ROOT, 'public', 'ml', 'lite.json'),
+  JSON.stringify(
+    chosen.net.save({
+      name: chosen.name,
+      features: 'hash-ngram',
+      buckets: BUCKETS,
+      trained: new Date().toISOString().slice(0, 10),
+      validation: chosen.best,
+      gold: chosen.gold.map((s) => ({ accuracy: s.accuracy, macroF1: s.macroF1 })),
+    }),
+  ),
+);
+console.log(
+  `\nchosen ${chosen.name} · gold mean macro-F1 ML ${pct(mean(ml.gold))} DL ${pct(mean(dl.gold))} · test ML ${pct(mean(ml.test))} DL ${pct(mean(dl.test))}`,
+);

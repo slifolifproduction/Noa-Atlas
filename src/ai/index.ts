@@ -1,3 +1,4 @@
+import { localAIProvider } from './localAIProvider';
 import { localProvider } from './localProvider';
 import type { AnalysisProvider, ProviderId } from './types';
 import { t } from '../i18n';
@@ -5,6 +6,10 @@ import { t } from '../i18n';
 export interface ProviderSettings {
   provider: ProviderId;
   endpoint: string;
+  /** The local AI may use its language model (downloaded once, with your say-so). */
+  localModel?: boolean;
+  /** Where to download the language model from, when not Hugging Face (a mirror, or your own copy). */
+  modelHost?: string;
 }
 
 export const DEFAULT_PROVIDER_SETTINGS: ProviderSettings = { provider: 'local', endpoint: '/api/analysis' };
@@ -18,6 +23,7 @@ let claudeModule: Promise<typeof import('./claudeProvider')> | null = null;
 const loadClaude = () => (claudeModule ??= import('./claudeProvider'));
 
 export function resolveProvider(settings: ProviderSettings, onFallback?: (error: unknown) => void): AnalysisProvider {
+  if (settings.provider === 'local-ai') return localAIProvider;
   if (settings.provider !== 'claude' && settings.provider !== 'account') return localProvider;
   const account = settings.provider === 'account';
   const withFallback = <K extends keyof AnalysisProvider>(key: K) =>

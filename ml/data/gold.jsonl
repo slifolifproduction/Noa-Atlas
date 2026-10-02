@@ -1,0 +1,140 @@
+{"text": "Finally sent the revised budget to Marta this afternoon.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Akhirnya revisi anggaran udah kukirim ke Marta tadi sore.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Shipped the landing page, it's live now!", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Landing page udah live, lega banget.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "high", "lang": "id"}
+{"text": "Wrapped the color grade for the trailer.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Color grading trailer udah beres.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Got through all the emails before noon.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Semua email kelar dibalas sebelum siang.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "The thesis draft is submitted, finally.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Draf skripsi akhirnya sudah dikumpulin.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Locked scene 3 with the temp score.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Scene 3 udah dikunci pakai musik sementara.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Paid off the last credit card bill.", "act": "done", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Tagihan kartu kredit terakhir udah lunas.", "act": "done", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Did the Sunday review after dinner.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Review mingguan hari Minggu udah kulakukan habis makan malam.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "I still haven't replied to Budi.", "act": "planned", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "en"}
+{"text": "Aku masih belum balas chat Budi.", "act": "planned", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "id"}
+{"text": "Need to call the bank tomorrow about the loan.", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "en"}
+{"text": "Besok harus telepon bank soal pinjaman.", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "id"}
+{"text": "I'll finish the storyboard over the weekend.", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "en"}
+{"text": "Weekend ini mau kuselesaikan storyboard-nya.", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "id"}
+{"text": "Next week I want to start running again.", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "en"}
+{"text": "Minggu depan pengen mulai lari lagi.", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "id"}
+{"text": "The invoice for September is still pending.", "act": "planned", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "en"}
+{"text": "Invoice bulan September masih belum dibayar.", "act": "planned", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "id"}
+{"text": "Have to prepare the pitch for Thursday.", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "en"}
+{"text": "Harus siapin pitch buat hari Kamis.", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "id"}
+{"text": "Decided to take the Brightline retainer after all.", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Akhirnya aku ambil retainer Brightline juga.", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "I turned down the festival job so I can keep my mornings free.", "act": "decided", "direction": "none", "cause": "yes", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Aku tolak kerjaan festival biar pagi tetap kosong.", "act": "decided", "direction": "none", "cause": "yes", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "We chose the cheaper flat over the one near the studio.", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Kami pilih kos yang lebih murah daripada yang dekat studio.", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Said yes to the workshop even though I'm already full.", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Aku iyain workshop-nya padahal jadwal udah penuh.", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "I'm pausing the podcast until spring.", "act": "decided", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "en"}
+{"text": "Podcast aku stop dulu sampai awal tahun.", "act": "decided", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "id"}
+{"text": "Made the call to drop the second camera.", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Udah kuputuskan nggak pakai kamera kedua.", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Met Juna at the studio to go through the cut.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Ketemu Juna di studio buat bahas editan.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Long call with the client about the new scope.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Telepon lama sama klien soal scope baru.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Worked late again on the grant application.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Lembur lagi ngerjain aplikasi hibah.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Stayed up until 2am editing.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Begadang sampai jam 2 buat ngedit.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "My sister visited for the weekend.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Adikku nginep di rumah pas akhir pekan.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "The client asked for a third round of changes.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Klien minta revisi ketiga.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Spent the whole morning in meetings.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Seharian pagi habis buat rapat.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Went for a long walk by the river.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Jalan-jalan sore di pinggir sungai.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "My energy dropped hard after lunch.", "act": "none", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Energiku anjlok habis makan siang.", "act": "none", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Focus was much better this week.", "act": "none", "direction": "up", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Fokus minggu ini jauh lebih baik.", "act": "none", "direction": "up", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Savings went up for the first time in months.", "act": "none", "direction": "up", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Tabungan naik untuk pertama kalinya setelah berbulan-bulan.", "act": "none", "direction": "up", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Stress has been creeping up all week.", "act": "none", "direction": "up", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Stres pelan-pelan naik terus seminggu ini.", "act": "none", "direction": "up", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "The workload got lighter once the deadline passed.", "act": "none", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Beban kerja jadi ringan setelah deadline lewat.", "act": "none", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Income fell short again this month.", "act": "none", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Pemasukan bulan ini kurang lagi.", "act": "none", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Sleep has been getting worse.", "act": "none", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Tidurku makin berantakan.", "act": "none", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Screen time crept up again.", "act": "none", "direction": "up", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Screen time naik lagi.", "act": "none", "direction": "up", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "I'm completely drained.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "low", "lang": "en"}
+{"text": "Rasanya capek banget, habis tenaga.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "low", "lang": "id"}
+{"text": "Feeling really good about where the film is going.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "high", "lang": "en"}
+{"text": "Seneng banget lihat arah filmnya sekarang.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "high", "lang": "id"}
+{"text": "A bit anxious about the presentation.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "low", "lang": "en"}
+{"text": "Agak deg-degan soal presentasi.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "low", "lang": "id"}
+{"text": "Calm day, nothing special.", "act": "none", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Hari yang tenang, nggak ada yang spesial.", "act": "none", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "So proud of the team today.", "act": "none", "direction": "none", "cause": "no", "time": "past", "mood": "high", "lang": "en"}
+{"text": "Bangga sama tim hari ini.", "act": "none", "direction": "none", "cause": "no", "time": "past", "mood": "high", "lang": "id"}
+{"text": "Kind of flat today, couldn't get started.", "act": "none", "direction": "none", "cause": "no", "time": "past", "mood": "low", "lang": "en"}
+{"text": "Lemes hari ini, susah mulai kerja.", "act": "none", "direction": "none", "cause": "no", "time": "past", "mood": "low", "lang": "id"}
+{"text": "Excited for the screening next week!", "act": "none", "direction": "none", "cause": "no", "time": "future", "mood": "high", "lang": "en"}
+{"text": "Nggak sabar nunggu pemutaran minggu depan!", "act": "none", "direction": "none", "cause": "no", "time": "future", "mood": "high", "lang": "id"}
+{"text": "I keep wondering if freelancing is right for me.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "en"}
+{"text": "Masih mikir apakah freelance cocok buatku.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "id"}
+{"text": "There's a lot going on at home.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "en"}
+{"text": "Lagi banyak urusan di rumah.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "id"}
+{"text": "Energy dipped because I slept badly.", "act": "none", "direction": "down", "cause": "yes", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Energi turun karena tidurku jelek.", "act": "none", "direction": "down", "cause": "yes", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "I felt exhausted because of the late deadline sprint.", "act": "none", "direction": "none", "cause": "yes", "time": "past", "mood": "low", "lang": "en"}
+{"text": "Capek banget gara-gara ngejar deadline sampai malam.", "act": "happened", "direction": "none", "cause": "yes", "time": "past", "mood": "low", "lang": "id"}
+{"text": "Morning deep work is gone because of the afternoon interruptions.", "act": "none", "direction": "down", "cause": "yes", "time": "now", "mood": "neutral", "lang": "en"}
+{"text": "Deep work pagi hilang gara-gara gangguan siang.", "act": "none", "direction": "down", "cause": "yes", "time": "now", "mood": "neutral", "lang": "id"}
+{"text": "We missed the deadline, so the client is unhappy.", "act": "happened", "direction": "none", "cause": "yes", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Kita telat deadline, makanya klien kecewa.", "act": "happened", "direction": "none", "cause": "yes", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "I said yes too quickly, which is why the week is so full.", "act": "decided", "direction": "none", "cause": "yes", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Aku terlalu cepat bilang iya, makanya minggu ini penuh banget.", "act": "decided", "direction": "none", "cause": "yes", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "Focus improved since I put my phone in another room.", "act": "happened", "direction": "up", "cause": "yes", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Fokus membaik sejak HP kutaruh di ruangan lain.", "act": "happened", "direction": "up", "cause": "yes", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "The budget is tight because the payment came late.", "act": "happened", "direction": "none", "cause": "yes", "time": "now", "mood": "neutral", "lang": "en"}
+{"text": "Anggaran mepet karena pembayarannya telat.", "act": "happened", "direction": "none", "cause": "yes", "time": "now", "mood": "low", "lang": "id"}
+{"text": "Finished the edit, so now I can rest.", "act": "done", "direction": "none", "cause": "yes", "time": "past", "mood": "high", "lang": "en"}
+{"text": "Editan selesai, jadi sekarang bisa istirahat.", "act": "done", "direction": "none", "cause": "yes", "time": "past", "mood": "high", "lang": "id"}
+{"text": "I'll skip the gym tomorrow since my knee hurts.", "act": "planned", "direction": "none", "cause": "yes", "time": "future", "mood": "low", "lang": "en"}
+{"text": "Besok gak ke gym dulu soalnya lutut sakit.", "act": "planned", "direction": "none", "cause": "yes", "time": "future", "mood": "low", "lang": "id"}
+{"text": "Energy should pick up once the project ends.", "act": "none", "direction": "up", "cause": "no", "time": "future", "mood": "neutral", "lang": "en"}
+{"text": "Energi harusnya naik lagi setelah proyek selesai.", "act": "none", "direction": "up", "cause": "no", "time": "future", "mood": "neutral", "lang": "id"}
+{"text": "Hoping the income will be steadier next month.", "act": "none", "direction": "up", "cause": "no", "time": "future", "mood": "neutral", "lang": "en"}
+{"text": "Semoga bulan depan pemasukan lebih stabil.", "act": "none", "direction": "up", "cause": "no", "time": "future", "mood": "neutral", "lang": "id"}
+{"text": "I expect stress to go down after the launch.", "act": "none", "direction": "down", "cause": "no", "time": "future", "mood": "neutral", "lang": "en"}
+{"text": "Kayaknya stres bakal turun setelah launching.", "act": "none", "direction": "down", "cause": "no", "time": "future", "mood": "neutral", "lang": "id"}
+{"text": "udah kelar slide buat besok", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "blm sempet ngerjain laporan pajak", "act": "planned", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "id"}
+{"text": "td ketemu sari di kafe ngobrolin proyek", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "capek bgt hari ini", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "low", "lang": "id"}
+{"text": "sent the deck, feeling relieved", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "high", "lang": "en"}
+{"text": "gonna redo the budget tomorrow", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "en"}
+{"text": "fixed the bug in the website finally", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "gak jadi ambil proyek tambahan", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "mood naik setelah olahraga", "act": "none", "direction": "up", "cause": "no", "time": "past", "mood": "high", "lang": "id"}
+{"text": "tabungan makin tipis", "act": "none", "direction": "down", "cause": "no", "time": "now", "mood": "low", "lang": "id"}
+{"text": "Udah submit proposal-nya ke klien, tinggal nunggu kabar.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "mix"}
+{"text": "Besok deadline-nya, masih belum mulai sama sekali.", "act": "planned", "direction": "none", "cause": "no", "time": "now", "mood": "low", "lang": "mix"}
+{"text": "Aku decide buat stop ambil klien baru dulu.", "act": "decided", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "mix"}
+{"text": "Meeting sama Juna lancar, scene 4 approved.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "high", "lang": "mix"}
+{"text": "Workload naik terus gara-gara banyak request.", "act": "none", "direction": "up", "cause": "yes", "time": "now", "mood": "low", "lang": "mix"}
+{"text": "Fokusku drop pas banyak notif.", "act": "none", "direction": "down", "cause": "no", "time": "past", "mood": "neutral", "lang": "mix"}
+{"text": "Feeling burnout, butuh libur.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "low", "lang": "mix"}
+{"text": "Weekend ini planning mau beresin portofolio.", "act": "planned", "direction": "none", "cause": "no", "time": "future", "mood": "neutral", "lang": "mix"}
+{"text": "Akhirnya invoice Brightline paid.", "act": "done", "direction": "none", "cause": "no", "time": "past", "mood": "high", "lang": "mix"}
+{"text": "Ternyata scope creep lagi karena klien nambah request.", "act": "happened", "direction": "up", "cause": "yes", "time": "past", "mood": "neutral", "lang": "mix"}
+{"text": "I didn't go to the gym this week.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "en"}
+{"text": "Minggu ini aku nggak ke gym sama sekali.", "act": "happened", "direction": "none", "cause": "no", "time": "past", "mood": "neutral", "lang": "id"}
+{"text": "The meeting got cancelled, so I had the afternoon free.", "act": "happened", "direction": "none", "cause": "yes", "time": "past", "mood": "high", "lang": "en"}
+{"text": "Rapatnya batal, jadi sore aku free.", "act": "happened", "direction": "none", "cause": "yes", "time": "past", "mood": "high", "lang": "id"}
+{"text": "Writing this to clear my head.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "en"}
+{"text": "Nulis ini biar kepala lebih jernih.", "act": "none", "direction": "none", "cause": "no", "time": "now", "mood": "neutral", "lang": "id"}

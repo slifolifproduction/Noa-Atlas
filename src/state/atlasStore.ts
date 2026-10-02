@@ -19,7 +19,8 @@ import { createSeedData } from '../data/seed';
 import { beliefUpdates, currentLedger, sameLedger } from '../domain/beliefs';
 import { canBeEvidence, claimCode, claimSentence, claimStatus, DEFAULT_SUPPORTED_EPISODES, LOGIC_VERSION, supportedEpisodes } from '../domain/claims';
 import type { InquiryKind } from '../domain/inquiry';
-import { calibration, emptyLearning, learnLink, memory, noteSuggestion } from '../domain/learning';
+import { calibration, emptyLearning, learnLink, memory, noteCorrection, noteLinkExample, noteSuggestion } from '../domain/learning';
+import { HEAD_NAMES, HEADS } from '../ml/tasks';
 import { EFFECT_META, EXPERIMENT_OUTCOME_LABEL, STATUS_META } from '../domain/constants';
 import { repairReferences } from '../domain/integrity';
 import { decisionCode, entryCode, experimentCode, pathCode, patternCode, resolveSource, sameRef } from '../domain/selectors';
@@ -161,6 +162,10 @@ interface AtlasActions {
   finishFromNote(entryId: ID, parts: { kind: 'action' | 'target'; id: ID }[]): void;
   /** Log the decision a note says was made (see domain/weave), from its own words. */
   decideFromNote(entryId: ID, read: ReadDecision): ID | undefined;
+  /** Correct what the local AI read in a sentence (head and answer as indices in src/ml/tasks.ts): it learns from it. */
+  teachReading(text: string, head: number, answer: number): void;
+  /** Forget everything the local AI learned from you. */
+  forgetLocalAI(): void;
   /** Your explanation in a note, made a claim: it starts as a hunch, and the note is not its evidence. */
   claimFromNote(entryId: ID, suggestionId: ID): ID | undefined;
   addDecision(input: NewDecision): Decision;
@@ -906,11 +911,13 @@ export const useAtlas = create<AtlasState>()(
             },
             { kind: 'entry', id },
           );
-          if (patch.nodeIds)
-            learnLinks(
-              id,
-              patch.nodeIds.filter((n) => !before.includes(n)),
-            );
+          if (patch.nodeIds) {
+            const added = patch.nodeIds.filter((n) => !before.includes(n));
+            learnLinks(id, added);
+            // A link you make yourself is an example, for the local AI, of what this note is about.
+            const e = get().data.entries[id];
+            if (e && added.length) learn((mem) => added.forEach((n) => noteLinkExample(mem, n, `${e.title}. ${e.content}`, true)));
+          }
         },
 
         deleteEntry(id) {
@@ -1019,6 +1026,7 @@ export const useAtlas = create<AtlasState>()(
           // Only what you decide teaches the Atlas what you take; what it took on its own does not.
           if (opts.auto) return;
           learn((mem) => noteSuggestion(mem, sug.type, accept));
+          if (sug.type === 'link_node' && !accept) learn((mem) => noteLinkExample(mem, sug.nodeId, sug.excerpt ?? `${entry.title}. ${entry.content}`, false));
           if (accept && sug.type === 'link_node') learnLinks(entryId, [sug.nodeId]);
         },
 
@@ -1082,6 +1090,28 @@ export const useAtlas = create<AtlasState>()(
             x.made = undefined;
           });
           learn((mem) => noteSuggestion(mem, sug.type, false));
+          if (sug.type === 'link_node') learn((mem) => noteLinkExample(mem, sug.nodeId, sug.excerpt ?? `${entry.title}. ${entry.content}`, false));
+        },
+
+        teachReading(text, head, answer) {
+          const h = HEAD_NAMES[head];
+          const label = (HEADS[h] as readonly string[])[answer];
+          if (!h || label === undefined) return;
+          learn((mem, d) => {
+            noteCorrection(mem, text, head, answer);
+            // Every note with this sentence reads it as you said, from now on.
+            for (const e of Object.values(d.entries))
+              for (const r of e.analysis?.readings ?? [])
+                if (r.text === text) {
+                  r.labels[h] = label;
+                  r.sure[h] = 1;
+                  r.taught = [...new Set([...(r.taught ?? []), h])];
+                }
+          });
+        },
+
+        forgetLocalAI() {
+          learn((mem) => void (mem.ml = { corrections: [], links: {} }));
         },
 
         finishFromNote(entryId, parts) {

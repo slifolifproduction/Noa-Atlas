@@ -8,6 +8,7 @@ import { useIsDesktop, useMediaQuery } from '../../hooks/useMediaQuery';
 import { t, tn } from '../../i18n';
 import { cn } from '../../lib/cn';
 import { formatDate, useToday } from '../../lib/dates';
+import { forecastRepeat } from '../../ml/forecast';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { almanacOf, polar } from './almanac';
@@ -214,6 +215,17 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
   const happened = ring?.marks.filter((m) => m.stance === 'supports').length ?? 0;
   const exceptions = ring?.marks.filter((m) => m.stance === 'counters').length ?? 0;
   const label = (id: ID) => data.nodes[id]?.label ?? '';
+  // When it may come next, from the gaps between every time it happened (a forecast: drawn dashed, never a time).
+  const forecast = useMemo(() => {
+    if (!selected) return undefined;
+    const dates = selected.evidence.filter((e) => e.stance === 'supports').flatMap((e) => resolveSource(data, e.source).date ?? []);
+    return forecastRepeat(dates, today);
+  }, [data, selected, today]);
+  const gap = !forecast
+    ? ''
+    : forecast.usual[0] === forecast.usual[1]
+      ? tn(forecast.usual[0], '{n} day', '{n} days')
+      : t('{a}–{b} days', { a: forecast.usual[0], b: forecast.usual[1] });
 
   return (
     <>
@@ -326,6 +338,24 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
               <h3 className="almanac-note-head">{t('What keeps happening')}</h3>
               <p>{clip(selected.observation, wide ? 260 : 400)}</p>
             </section>
+            {forecast && (
+              <section className="almanac-note is-forecast">
+                <h3 className="almanac-note-head">{t('When it may come next')}</h3>
+                <p>
+                  {forecast.state === 'irregular'
+                    ? t('Its gaps so far vary too much ({gap}) to say when it may come next.', { gap })
+                    : forecast.state === 'ahead'
+                      ? t('Between {from} and {to}, if it keeps its usual gap of {gap}.', { from: formatDate(forecast.from), to: formatDate(forecast.to), gap })
+                      : forecast.state === 'due'
+                        ? t('About now: its usual gap of {gap} since {last} has come round.', { gap, last: formatDate(forecast.last) })
+                        : t('It has gone longer than its usual gap of {gap} since {last}: it may be fading, or not written down.', {
+                            gap,
+                            last: formatDate(forecast.last),
+                          })}
+                </p>
+                <span className="almanac-note-meta">{t('A forecast from {n} gaps between times, not a time it happened', { n: forecast.gaps })}</span>
+              </section>
+            )}
             <section className="almanac-note">
               <h3 className="almanac-note-head">{t('Why it may happen')}</h3>
               {claims.length ? (

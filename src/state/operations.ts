@@ -8,7 +8,7 @@ import { AnalysisError } from '../ai/errors';
 import { analyzeEntryLocally } from '../ai/localAnalysis';
 import type { ExperimentDraft, ModelUpdateProposal } from '../ai/types';
 import { CAPTURE_TARGET } from '../domain/constants';
-import { player } from '../domain/quests';
+import { allWork, player } from '../domain/quests';
 import { decisionCode, experimentCode, pathCode } from '../domain/selectors';
 import { areaToTake, decisionIn, finishedIn, knownClaim, takenOnItsOwn } from '../domain/weave';
 import type { CaptureKind, Entry, EntryAnalysis, Experiment, ExperimentResult, ID } from '../domain/types';
@@ -106,12 +106,24 @@ export function weaveEntry(id: ID, opts: { asDecision?: boolean } = {}) {
   if (worded) atlas().resolveSuggestion(id, worded.id, true, { auto: true });
   else if (area) atlas().updateEntry(id, { areas: [area], woven: { parts: [], ...atlas().data.entries[id].woven, area } });
   const now = atlas().data.entries[id];
-  const done = finishedIn(atlas().data, now, [...(now.woven?.parts ?? []), ...(now.woven?.declined ?? [])]);
+  const skip = [...(now.woven?.parts ?? []), ...(now.woven?.declined ?? [])];
+  const done = finishedIn(atlas().data, now, skip);
+  // Steps the local AI read as finished, in other words than their titles.
+  const { actions, targets } = allWork(atlas().data);
+  for (const { id: step, excerpt } of now.analysis?.hints?.finished ?? []) {
+    if (skip.includes(step) || done.some((d) => d.id === step)) continue;
+    const a = actions.find((x) => x.id === step && x.status === 'todo');
+    const x = targets.find((y) => y.id === step && !y.done);
+    if (a) done.push({ kind: 'action', id: a.id, title: a.title, excerpt });
+    else if (x) done.push({ kind: 'target', id: x.id, title: x.title, excerpt });
+  }
   if (done.length) atlas().finishFromNote(id, done);
   // A decision it says was made (or, written as one, its first sentence), with what the note is about and its area.
   const last = atlas().data.entries[id];
   if (!last.woven?.decision && !last.woven?.decisionDeclined) {
-    const decided = decisionIn(last, opts.asDecision);
+    // The rules' reading first; else a sentence the local AI read as a choice, read as one.
+    const hinted = last.analysis?.hints?.decided;
+    const decided = decisionIn(last, opts.asDecision) ?? (hinted ? decisionIn({ title: '', content: hinted }, true) : undefined);
     if (decided) atlas().decideFromNote(id, decided);
   }
 }

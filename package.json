@@ -12,12 +12,15 @@
     "test": "vitest run",
     "proxy": "node --experimental-strip-types server/claude-proxy.ts",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\""
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\"",
+    "ml:data": "node --experimental-strip-types ml/data/generate.ts",
+    "ml:train": "node --experimental-strip-types ml/train.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
     "@fontsource-variable/instrument-sans": "^5.3.0",
     "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@huggingface/transformers": "^4.3.0",
     "@xyflow/react": "^12.12.0",
     "d3-force": "^3.0.0",
     "immer": "^11.1.18",

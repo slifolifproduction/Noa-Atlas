@@ -15,6 +15,7 @@ import { ConfirmButton } from '../ui/ConfirmButton';
 import { Chip } from '../ui/primitives';
 import { ClaimComposer } from './ClaimComposer';
 import { Muted, PanelSection } from './parts';
+import { Readings } from './Readings';
 import { OfferList, useWeave, WeaveList } from '../weave/Weave';
 import { KnowledgeTag } from '../evidence/Status';
 import { t, tn } from '../../i18n';
@@ -203,6 +204,7 @@ export function EntryView({ id }: { id: ID }) {
                 <Muted>{t('Nothing specific enough to note.')}</Muted>
               )}
             </div>
+            {analysis.readings && analysis.readings.length > 0 && <Readings readings={analysis.readings} />}
             {rest.length > 0 && (
               <details>
                 <summary className="cursor-pointer text-[11.5px] text-ink-3 hover:text-ink">

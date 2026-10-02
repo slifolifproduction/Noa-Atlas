@@ -60,7 +60,9 @@ export function LearnedPanel() {
   const rule = mem?.rules?.supportedEpisodes;
   const declined = Object.entries(mem?.declined ?? {}).filter(([, n]) => (n ?? 0) > 0) as [keyof typeof INQUIRY_KIND_LABEL, number][];
   const friction = [...(mem?.friction ?? [])].reverse().slice(0, 8);
-  const nothing = !kinds.length && !words.length && !cal.length && !declined.length && !rule && !friction.length;
+  const corrected = mem?.ml?.corrections.length ?? 0;
+  const examples = Object.values(mem?.ml?.links ?? {}).filter((x) => x.yes.length + x.no.length > 0).length;
+  const nothing = !kinds.length && !words.length && !cal.length && !declined.length && !rule && !friction.length && !corrected && !examples;
 
   return (
     <div className="text-[12.5px] leading-snug">
@@ -163,6 +165,18 @@ export function LearnedPanel() {
               </li>
             ))}
           </ul>
+        </Part>
+      )}
+
+      {corrected + examples > 0 && (
+        <Part title={t('The local AI')}>
+          <p className="text-ink-2">
+            {[
+              tn(corrected, 'one reading you corrected', '{n} readings you corrected'),
+              tn(examples, 'sentences about one element', 'sentences about {n} elements'),
+            ].join(' · ')}
+          </p>
+          <p className="mt-1 text-ink-3">{t('The models on this device read the way you corrected them, and link by meaning the way you linked.')}</p>
         </Part>
       )}
 

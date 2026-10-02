@@ -2516,6 +2516,10 @@ html body {
   margin-bottom: 7px;
   background: var(--color-ink);
 }
+/* A forecast is a possibility: its mark is dashed. */
+.almanac-note.is-forecast .almanac-note-head::before {
+  background: repeating-linear-gradient(90deg, var(--color-ink) 0 5px, transparent 5px 8px);
+}
 .almanac-note ul {
   display: grid;
   gap: 8px;

@@ -16,6 +16,7 @@ import { t, LANGUAGES, setLang, type Lang, useLang } from '../../i18n';
 import { ZonePicker } from '../../components/shell/LocaleControls';
 import { AccountPanel } from '../../components/shell/AccountControls';
 import { LearnedPanel } from '../../components/shell/LearnedPanel';
+import { LocalAIPanel } from '../../components/shell/LocalAIPanel';
 import { useAccount } from '../../state/accountStore';
 import { Trans } from '../../i18n/Trans';
 
@@ -166,6 +167,13 @@ export function SettingsPage() {
                   body: t('Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.'),
                 },
                 {
+                  id: 'local-ai',
+                  title: t('Local AI on this device'),
+                  body: t(
+                    'The local heuristics, and machine learning models that run in this browser: a built-in one that reads every sentence straight away, and a language model that reads meaning once you download it. Nothing you write leaves the device.',
+                  ),
+                },
+                {
                   id: 'account',
                   title: t('Claude, with your claude.ai account'),
                   body: t(
@@ -210,6 +218,7 @@ export function SettingsPage() {
               </label>
             ))}
           </div>
+          {settings.provider === 'local-ai' && <LocalAIPanel />}
           {settings.provider === 'claude' && (
             <div className="mt-3.5 space-y-2">
               <FieldLabel htmlFor="s-endpoint" hint={t('dev server forwards /api/analysis to localhost:8787')}>

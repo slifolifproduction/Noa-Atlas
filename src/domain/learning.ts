@@ -192,3 +192,33 @@ export function ruleProposal(data: AtlasData, today: ISODate = todayISO()): Rule
 }
 
 /* ---------------- questions put away ---------------- */
+
+/* ---------------- what the local AI learns from you (src/ml) ---------------- */
+
+const ML_LINK_EXAMPLES = 12;
+const ML_CORRECTIONS = 300;
+const mlMemory = (mem: LearningMemory) => (mem.ml ??= { corrections: [], links: {} });
+
+/**
+ * A sentence you linked to an element (yes) or took a link back from (no): an example of what it is, or is not,
+ * about. The most recent few are kept per element, and a sentence is never on both sides.
+ */
+export function noteLinkExample(mem: LearningMemory, nodeId: ID, text: string, yes: boolean) {
+  const s = text.trim().slice(0, 240);
+  if (!s) return;
+  const ex = (mlMemory(mem).links[nodeId] ??= { yes: [], no: [] });
+  const [into, from] = yes ? [ex.yes, ex.no] : [ex.no, ex.yes];
+  const drop = (list: string[]) => list.splice(0, list.length, ...list.filter((x) => x !== s));
+  drop(from);
+  drop(into);
+  into.push(s);
+  if (into.length > ML_LINK_EXAMPLES) into.splice(0, into.length - ML_LINK_EXAMPLES);
+}
+
+/** What a sentence really reports, as you corrected it: the latest answer per sentence and head is kept. */
+export function noteCorrection(mem: LearningMemory, text: string, head: number, answer: number) {
+  const list = mlMemory(mem).corrections;
+  const kept = list.filter(([t, h]) => !(t === text && h === head));
+  kept.push([text, head, answer]);
+  list.splice(0, list.length, ...kept.slice(-ML_CORRECTIONS));
+}

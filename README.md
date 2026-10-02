@@ -191,6 +191,7 @@ server/
 `src/ai/types.ts` defines `AnalysisProvider` (local rules, Claude via your proxy, or Claude on the viewer's claude.ai account): `analyzeEntry`, `detectDecisionPatterns`, `proposeExperiments`, `evaluateExperiment`, `draftNavigationPlan`. Every method returns structured objects the UI renders directly.
 
 - `localProvider` — deterministic, transparent heuristics (default, offline).
+- `localAIProvider` — the same heuristics, then the machine learning models on the device (see below).
 - `createClaudeProvider` — posts compact context to `server/claude-proxy.ts`, which calls the Messages API with the task's Zod schema as the structured output format (`src/ai/schemas.ts`, shared by browser and server). Responses are validated again in the browser, and any id the model returns that does not exist in the atlas is dropped. If the proxy is unreachable, calls fall back to local heuristics with a notice.
 
 To use Claude:
@@ -201,6 +202,15 @@ npm run dev                           # Vite forwards /api/analysis to the proxy
 ```
 
 Then choose **Claude, via your proxy** in Settings. The API key stays on the server. The proxy defaults to `claude-opus-5` (override with `ATLAS_MODEL`).
+
+### The local AI (machine learning on the device)
+
+**Local AI on this device** (Settings → Analysis provider) adds machine learning to the local rules without sending anything anywhere (`src/ml`; data, models and scores in [`ml/README.md`](ml/README.md)). The rules read first; the models add to what they found and never remove it.
+
+- **Reading every sentence.** A built-in neural network (under a megabyte, trained by `npm run ml:train` on a generated bilingual dataset and checked on 140 hand-written sentences) reads what each sentence reports: something done, a choice made, something still to do, an explanation, a feeling, and what went up or down. A choice it reads is logged as a decision by the weave, and an explanation is offered as your hypothesis.
+- **Connecting by meaning.** With the language model downloaded (about 118 MB once, with your say-so; its 14 MB WebAssembly runtime comes with the app), notes are linked to elements they never name, steps are read as finished though said in other words, and a note can be offered as another time a repeat happened. What counts as close is measured on your own links. Links by meaning are taken on their own, and taking one back teaches it; what would count as a record (a change, an expectation, a repeat's time) is only offered (`inferred: true`).
+- **Learning from you.** Correct how a sentence was read in a note's panel, link notes yourself, or take a link back, and it learns from that (`learning.ml`, forgettable in Settings).
+- **Forecasts.** The Repeats notes say when a repeat may come next, from the usual gap between the times it happened, labelled as a forecast.
 
 ## Responsive behaviour
 

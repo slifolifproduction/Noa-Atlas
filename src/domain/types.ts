@@ -712,7 +712,15 @@ export interface SuggestionMade {
 }
 
 export type AnalysisSuggestion = (
-  | { id: ID; type: 'link_node'; nodeId: ID; reason: string; state: SuggestionState }
+  | {
+      id: ID;
+      type: 'link_node';
+      nodeId: ID;
+      reason: string;
+      /** The sentence that means it, when the local AI found it by meaning rather than by name. */
+      excerpt?: string;
+      state: SuggestionState;
+    }
   | {
       id: ID;
       type: 'pattern_evidence';
@@ -771,6 +779,11 @@ export type AnalysisSuggestion = (
 ) & {
   /** Taken by the Atlas on its own when the note was saved, not by you. */
   auto?: boolean;
+  /**
+   * Read by meaning (the local AI's language model), not from the note's own words. Offered, never taken on its own,
+   * except a link: it only says what the note is about, and taking it back teaches the model.
+   */
+  inferred?: boolean;
   made?: SuggestionMade;
 };
 
@@ -780,6 +793,20 @@ export interface EntryAnalysis {
   provider: string;
   observations: Observation[];
   suggestions: AnalysisSuggestion[];
+  /** What the local AI read in each sentence (src/ml), when it read the note. */
+  readings?: SentenceReading[];
+  /** What it read that the weave acts on directly: steps it says are finished, a sentence that makes a choice. */
+  hints?: { finished?: { id: ID; excerpt: string }[]; decided?: string };
+}
+
+/** One sentence as the local AI read it: an answer per head, and how sure it was (0–1). */
+export interface SentenceReading {
+  text: string;
+  labels: { act: string; direction: string; cause: string; time: string; mood: string };
+  sure: { act: number; direction: number; cause: number; time: number; mood: number };
+  by: 'lite' | 'model';
+  /** The questions you corrected it on (it reads them as you said). */
+  taught?: string[];
 }
 
 export type ModelUpdateKind =
@@ -928,6 +955,12 @@ export interface LearningMemory {
   declined: Partial<Record<'reread' | 'ask' | 'compare' | 'track' | 'test', number>>;
   /** Searches that found nothing, most recent last. */
   friction: { q: string; where: string; n: number; last: ISODate }[];
+  /** What the local AI learned from you (src/ml): readings you corrected, and sentences you linked to an element or took a link back from. */
+  ml?: {
+    /** [sentence, head index, answer index] */
+    corrections: [string, number, number][];
+    links: Record<ID, { yes: string[]; no: string[] }>;
+  };
 }
 
 export interface BeliefLedger {

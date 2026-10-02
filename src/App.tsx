@@ -15,6 +15,7 @@ import { ReviewDialog } from './components/review/ReviewDialog';
 import { VersionsModal } from './components/versions/VersionsModal';
 import { VIEWS } from './domain/constants';
 import { useInspectorWidth } from './hooks/useMediaQuery';
+import { useLocalAIBoot } from './ml/boot';
 import { useToday } from './lib/dates';
 import { cn } from './lib/cn';
 import { OrbitPage } from './pages/orbit/OrbitPage';
@@ -58,6 +59,7 @@ export function App() {
   const inspectorOpen = useUI((s) => s.inspector.length > 0);
   const panelWidth = useInspectorWidth();
   useGlobalShortcuts();
+  useLocalAIBoot();
 
   useEffect(() => {
     document.title = `${VIEWS[route.key].label} · Cognitive Atlas`;
