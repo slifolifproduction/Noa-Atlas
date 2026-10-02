@@ -71,6 +71,28 @@ function geometry(m: StrandModel, width: number) {
       .join('');
   const ey = (v: number) => E_TOP + (1 - (v - 1) / 4) * E_H;
   const weekAt = (px: number) => Math.max(0, Math.min(m.weeks.length - 1, Math.floor(((px - PAD_L) / inner) * ((t1 - t0) / WEEK))));
+  // What a week holds as drawn: its energy readings, its decisions and its notes, each where its day is. The cursor
+  // stands on them (the week's last reading, else its last decision, else its last note), so it meets what it reads;
+  // a week with nothing in it is read at its middle.
+  const inWeek = (i: number) => {
+    const from = m.weeks[i].week;
+    const to = m.weeks[i + 1]?.week ?? '9999-12-31';
+    return (d: string) => d >= from && d < to;
+  };
+  const held = (i: number) => {
+    const at = inWeek(i);
+    return {
+      readings: m.energy.filter((r) => at(r.date)),
+      decisions: m.decisions.filter((d) => at(d.date)),
+      notes: m.notes.filter(at),
+    };
+  };
+  const anchor = (i: number) => {
+    const h = held(i);
+    const last = (days: string[]) => days.reduce((a, d) => (d > a ? d : a), '');
+    const day = last(h.readings.map((r) => r.date)) || last(h.decisions.map((d) => d.date)) || last(h.notes);
+    return day ? Math.min(now, x(day)) : centre(i);
+  };
 
   // Decisions branch off the strand: one dashed branch per option not taken, fading as it goes.
   const branches: Branch[] = [];
@@ -106,7 +128,7 @@ function geometry(m: StrandModel, width: number) {
   }
 
   const busiest = m.weeks.reduce((b, w, i) => (w.load > m.weeks[b].load ? i : b), 0);
-  return { x, weekW, now, centre, spread, envelope, filament, ey, weekAt, branches, months, busiest };
+  return { x, weekW, now, centre, spread, envelope, filament, ey, weekAt, held, anchor, branches, months, busiest };
 }
 
 /**
@@ -159,7 +181,10 @@ export function TimeStrand({ onJump }: { onJump(month: string): void }) {
   const n = model.weeks.length;
   const shown = Math.min(cursor ?? n - 1, n - 1);
   const week = model.weeks[shown];
-  const cx = geo.centre(shown);
+  // The cursor stands on what the week holds; the band behind it spans the whole week.
+  const cx = geo.anchor(shown);
+  const bandX = geo.x(week.week);
+  const readings = geo.held(shown).readings;
   const busiest = model.weeks[geo.busiest];
 
   const toX = (e: { clientX: number; currentTarget: Element }) => e.clientX - e.currentTarget.getBoundingClientRect().left;
@@ -275,14 +300,7 @@ export function TimeStrand({ onJump }: { onJump(month: string): void }) {
           ))}
 
           {/* The week under the cursor. */}
-          <rect
-            x={cx - Math.max(3, geo.weekW) / 2}
-            y={8}
-            width={Math.max(3, geo.weekW)}
-            height={AXIS - 8}
-            className="strand-week"
-            opacity={cursor === null ? 0 : 1}
-          />
+          <rect x={bandX} y={8} width={Math.max(3, geo.weekW)} height={AXIS - 8} className="strand-week" opacity={cursor === null ? 0 : 1} />
 
           <text x={PAD_L} y={CY - SPREAD - 24} className="strand-caption">
             {t('COMMITMENTS ACTIVE')}
@@ -382,7 +400,9 @@ export function TimeStrand({ onJump }: { onJump(month: string): void }) {
             <g className="strand-cursor">
               <line x1={cx} x2={cx} y1={10} y2={AXIS} />
               <path d={`M${cx - 7} ${CY - geo.spread(cx) - 6}h14M${cx - 7} ${CY + geo.spread(cx) + 6}h14`} />
-              {week.energy !== undefined && <circle cx={cx} cy={geo.ey(week.energy)} r={5.5} className="strand-cursor-ring" />}
+              {readings.map((r, i) => (
+                <circle key={`${r.date}${i}`} cx={geo.x(r.date)} cy={geo.ey(r.value)} r={5.5} className="strand-cursor-ring" />
+              ))}
             </g>
           )}
 

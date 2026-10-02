@@ -570,12 +570,11 @@ export function AheadTree({
       ctx.fill();
       ctx.restore();
 
-      // What the far walls carry: circuits under the earth, marks on the light above it. Texture only, so never in
-      // the signal colour.
+      // What the far walls carry: circuits under the earth. Texture only, so never in the signal colour.
       ctx.globalCompositeOperation = 'lighter';
       const tone = '214,230,222';
       for (const cc of tree.circuits) {
-        if (wallFront[cc.wall] || cc.kind === 'mark') continue;
+        if (wallFront[cc.wall]) continue;
         if (cc.kind === 'chip') {
           shape(cc.pts, true);
           ctx.fillStyle = `rgba(${tone},0.05)`;
@@ -598,12 +597,6 @@ export function AheadTree({
         }
       }
       ctx.globalCompositeOperation = 'source-over';
-      for (const cc of tree.circuits) {
-        if (wallFront[cc.wall] || cc.kind !== 'mark') continue;
-        ctx.strokeStyle = 'rgba(18,22,20,0.55)';
-        shape(cc.pts, false);
-        ctx.stroke();
-      }
       // The strata: a line round the case at each, on its far walls here and its near walls later; lit when you
       // compare on it.
       const strata = (front: boolean) => {
@@ -791,8 +784,8 @@ export function AheadTree({
       }
       strata(true);
 
-      // Each root's letter below its tip; each bough's end: what holds you a bar across it (the atlas's mark for
-      // what limits), what carries you a ring.
+      // Each root's letter below its tip; the end of the bough you point at or open: what holds you a bar across it
+      // (the atlas's mark for what limits), what carries you a ring.
       const seenRoots = seen.current.roots;
       ctx.textAlign = 'center';
       ctx.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
@@ -824,9 +817,10 @@ export function AheadTree({
       for (const b of tree.boughs) {
         const [px, py] = P(lift(b.end));
         seenBoughs.set(b.key, [px, py]);
-        if (reveal < 0.9) continue;
+        // Its mark only on the bough you point at or open: at rest the tree is only a tree in leaf.
         const lit = litBough === tree.groups.bough.get(b.key);
-        ctx.strokeStyle = lit ? 'rgba(255,90,31,0.95)' : 'rgba(12,15,13,0.85)';
+        if (reveal < 0.9 || !lit) continue;
+        ctx.strokeStyle = 'rgba(255,90,31,0.95)';
         ctx.beginPath();
         if (b.side === 'constraint') {
           const [qx, qy] = P(lift(b.curve[b.curve.length - 2]));

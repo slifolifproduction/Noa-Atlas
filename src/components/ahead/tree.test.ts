@@ -97,7 +97,7 @@ describe('the Ahead tree in its case', () => {
     expect(LEVELS.at(-1)!).toBeGreaterThan(-DEPTH);
   });
 
-  it('carries what holds you bare to one side of the tree and what carries you in leaf to the other', () => {
+  it('carries what holds you to one side of the tree and what carries you to the other, every bough in leaf', () => {
     const holds = tree.boughs.filter((b) => b.side === 'constraint');
     const carries = tree.boughs.filter((b) => b.side === 'asset');
     expect(holds).toHaveLength(data.currentState.constraints.length);
@@ -105,9 +105,12 @@ describe('the Ahead tree in its case', () => {
     for (const b of holds) expect(b.end[0]).toBeLessThan(b.curve[0][0]);
     for (const b of carries) expect(b.end[0]).toBeGreaterThan(b.curve[0][0]);
     for (const b of tree.boughs) expect(b.end[1]).toBeGreaterThan(0);
-    const leafy = new Set(tree.leafGroup);
-    for (const b of carries) expect(leafy.has(tree.groups.bough.get(b.key)!)).toBe(true);
-    for (const b of holds) expect(leafy.has(tree.groups.bough.get(b.key)!)).toBe(false);
+    // In leaf, all of them: what carries you more fully than what holds you.
+    const leaves = (key: string) => Array.from(tree.leafGroup).filter((g) => g === tree.groups.bough.get(key)).length;
+    for (const b of tree.boughs) expect(leaves(b.key)).toBeGreaterThan(0);
+    for (const c of carries) for (const h of holds) expect(leaves(c.key)).toBeGreaterThan(leaves(h.key));
+    // Nothing on the walls above the earth: only the tree stands against the light.
+    for (const c of tree.circuits) for (const p of c.pts) expect(p[1]).toBeLessThan(0);
   });
 
   it('keeps all of it inside the glass, the roots under the earth and the tree above it', () => {

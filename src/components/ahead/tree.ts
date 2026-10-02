@@ -93,12 +93,12 @@ export interface Bough {
   end: V3;
 }
 /**
- * What the walls of the case carry: a trace, a chip, a bar of stripes, a via; or, above the ground, a mark. Only
+ * What the walls of the case carry: a trace, a chip, a bar of stripes, a via, all under the ground. Only
  * texture, so never in the signal colour and never counted from anything.
  */
 export interface Circuit {
   wall: number;
-  kind: 'trace' | 'chip' | 'bar' | 'via' | 'mark';
+  kind: 'trace' | 'chip' | 'bar' | 'via';
   pts: V3[];
 }
 export interface Tree {
@@ -457,11 +457,11 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       const g = next++;
       groups.bough.set(key, g);
       G.line(curve, 0.14, 0.04, g, from[1] / UP, (from[1] + 4) / UP, 1);
-      // What carries you is in leaf; what holds you is only bare: a fact about where you are, not a judgement.
-      if (kind === 'asset') {
-        G.leafCloud(end, 1.5, 60, g, (from[1] + 4) / UP);
-        G.leafCloud(curve[3], 0.9, 18, g, (from[1] + 3) / UP);
-      }
+      // Every bough is in leaf, so the tree reads as one tree in leaf: what carries you thickly, what holds you more
+      // thinly. Told apart by how full they are, a fact about where you are, not a judgement.
+      const full = kind === 'asset';
+      G.leafCloud(end, full ? 1.5 : 1.2, full ? 60 : 32, g, (from[1] + 4) / UP);
+      G.leafCloud(curve[3], full ? 0.9 : 0.8, full ? 18 : 12, g, (from[1] + 3) / UP);
       boughs.push({ key, side: kind, text, curve, end });
     });
   side(constraints, 'constraint', 180);
@@ -522,7 +522,7 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
     crumbs.push(Math.max(-HALF + 1, Math.min(HALF - 1, Math.cos(a) * d)), FLOOR + 0.05, Math.max(-HALF + 1, Math.min(HALF - 1, Math.sin(a) * d)));
   }
 
-  // The walls' circuits, under the ground; and, above it, a few dark marks on the light.
+  // The walls' circuits, under the ground. Above it the walls are left clear: only the tree stands against the light.
   stream('walls');
   const circuits: Circuit[] = [];
   const onWall = (wall: number, u: number, y: number): V3 => {
@@ -564,15 +564,6 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       const pts: V3[] = [];
       for (let s = 0; s < w; s += 0.28) pts.push(onWall(wall, u + s, y), onWall(wall, u + s, y + 0.55));
       circuits.push({ wall, kind: 'bar', pts });
-    }
-    for (let k = 0; k < 7; k++) {
-      const u = (r() * 2 - 1) * span;
-      const y = 2 + r() * (TOP - 6);
-      const l = 1.5 + r() * 6;
-      const along = r() < 0.5;
-      const pts: V3[] = along ? [onWall(wall, u, y), onWall(wall, u + l, y)] : [onWall(wall, u, y), onWall(wall, u, y + l * 0.6)];
-      if (r() < 0.35) pts.push(onWall(wall, along ? u + l : u + 0.8, along ? y - 0.8 : y + l * 0.6));
-      circuits.push({ wall, kind: 'mark', pts });
     }
   }
 
