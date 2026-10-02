@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { breath, cableOf, HUB_DRIFT, NEAR_DRIFT, OWN_DRIFT, sway, type Ctrl } from './sway';
+import { bundle } from './pathways';
+import { breath, cableOf, cablePoints, course, HUB_DRIFT, NEAR_DRIFT, OWN_DRIFT, smooth, sway, WAVE, type Ctrl } from './sway';
 
 const pts: [number, number][] = [
   [0, -320],
@@ -47,5 +48,34 @@ describe('the strands as living cables', () => {
 
   it('breathes the bundling about the drawing’s own', () => {
     for (const t of [0, 4000, 9000]) expect(Math.abs(breath(t) - 0.86)).toBeLessThanOrEqual(0.025 + 1e-9);
+  });
+
+  it('draws the same course the plate draws, from dot to dot', () => {
+    const line = course(pts, 0.86);
+    const nums = bundle(pts, 0.86)
+      .match(/-?\d+\.?\d*/g)!
+      .map(Number);
+    expect(line[0]).toEqual(pts[0]);
+    expect(line.at(-1)).toEqual(pts.at(-1));
+    expect(line[0][0]).toBeCloseTo(nums[0], 1);
+    expect(line.at(-1)![1]).toBeCloseTo(nums.at(-1)!, 1);
+  });
+
+  it('ripples the cable itself, clearly, and lets it go nowhere at its ends', () => {
+    const c = cableOf('m1>b', pts, ctrl);
+    let most = 0;
+    for (let t = 0; t < 20000; t += 700) {
+      const p = cablePoints(c, t);
+      expect(p[0]).toEqual(pts[0]);
+      expect(p.at(-1)).toEqual(pts.at(-1));
+      const base = course(sway(c, t), breath(t));
+      p.forEach(([x, y], i) => expect(Math.hypot(x - base[i][0], y - base[i][1])).toBeLessThanOrEqual(WAVE * 1.2 + 1e-9));
+      const mid = Math.floor(p.length / 2);
+      const later = cablePoints(c, t + 2000)[mid];
+      most = Math.max(most, Math.hypot(later[0] - p[mid][0], later[1] - p[mid][1]));
+    }
+    // Plainly moving: its middle travels more than a dot's width in two seconds.
+    expect(most).toBeGreaterThan(12);
+    expect(smooth(cablePoints(c, 1000)).startsWith(`M${pts[0][0].toFixed(1)} ${pts[0][1].toFixed(1)}`)).toBe(true);
   });
 });

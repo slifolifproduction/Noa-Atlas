@@ -2392,14 +2392,17 @@ html body {
   stroke-width: 24;
 }
 /*
- * Living cables: light runs along every strand, out from what sets it off, without end; on this repeat's strands it
- * is bright and glows, on the others' faint and slow. On an exception (a time it did not happen) it dies before it
- * arrives. The dots that took part answer in turn, and what sets it off keeps sending.
+ * Living cables: the strands themselves move (see sway.ts). Now and then a faint light runs along a strand of the
+ * repeat being read, out from what sets it off; on an exception (a time it did not happen) it dies before it
+ * arrives. The dots that took part answer softly, and what sets it off sends, quietly.
  */
 .pw-pulse {
   fill: none;
+  stroke: color-mix(in srgb, var(--pw-color) 60%, white);
+  stroke-opacity: 0.55;
+  stroke-width: 1.6;
   stroke-linecap: round;
-  stroke-dasharray: 0.035 0.965;
+  stroke-dasharray: 0.025 0.975;
   stroke-dashoffset: 1;
   pointer-events: none;
   animation-name: pw-flow;
@@ -2407,24 +2410,15 @@ html body {
   animation-iteration-count: infinite;
   animation-fill-mode: backwards;
 }
-.pw-pulses.is-others .pw-pulse {
-  stroke: rgb(236 232 223 / 0.3);
-  stroke-width: 1.4;
-  stroke-dasharray: 0.022 0.978;
+.pw-pulses {
+  filter: drop-shadow(0 0 2px var(--pw-color));
 }
-.pw-pulses.is-own {
-  filter: drop-shadow(0 0 3px var(--pw-color));
+.pw-pulse.is-playing {
+  stroke-opacity: 0.8;
+  stroke-width: 2.2;
 }
-.pw-pulses.is-own .pw-pulse {
-  stroke: color-mix(in srgb, var(--pw-color) 45%, white);
-  stroke-width: 2.6;
-}
-.pw-pulses.is-own .pw-pulse.is-playing {
-  stroke-width: 4;
-  stroke-dasharray: 0.06 0.94;
-}
-.pw-pulses .pw-pulse.is-exception {
-  stroke: rgb(236 232 223 / 0.75);
+.pw-pulse.is-exception {
+  stroke: rgb(236 232 223 / 0.6);
   animation-name: pw-flow-fade;
 }
 @keyframes pw-flow {
@@ -2452,18 +2446,18 @@ html body {
   }
 }
 .pw-plate.is-live .pw-dot {
-  animation: pw-breathe 4.6s ease-in-out infinite;
+  animation: pw-breathe 5.2s ease-in-out infinite;
 }
 .pw-plate.is-live .pw-dot:nth-of-type(3n) {
-  animation-delay: -1.5s;
+  animation-delay: -1.7s;
 }
 .pw-plate.is-live .pw-dot:nth-of-type(3n + 1) {
-  animation-delay: -3.1s;
+  animation-delay: -3.5s;
 }
 @keyframes pw-breathe {
   0%,
   100% {
-    opacity: 0.78;
+    opacity: 0.85;
   }
   50% {
     opacity: 1;
@@ -2478,33 +2472,33 @@ html body {
   opacity: 0;
 }
 .pw-halo {
-  stroke-width: 1.2;
-  animation: pw-answer 3.8s ease-out infinite backwards;
+  stroke-width: 1;
+  animation: pw-answer 5.2s ease-out infinite backwards;
 }
 .pw-beacon {
-  stroke-width: 1.4;
-  animation: pw-send 2.6s ease-out infinite;
+  stroke-width: 1;
+  animation: pw-send 3.6s ease-out infinite;
 }
 @keyframes pw-answer {
   0% {
     transform: scale(1);
-    opacity: 0.75;
+    opacity: 0.4;
   }
-  65% {
+  60% {
     opacity: 0;
   }
   100% {
-    transform: scale(2.6);
+    transform: scale(2);
     opacity: 0;
   }
 }
 @keyframes pw-send {
   0% {
     transform: scale(1);
-    opacity: 0.9;
+    opacity: 0.5;
   }
   100% {
-    transform: scale(2.2);
+    transform: scale(1.9);
     opacity: 0;
   }
 }

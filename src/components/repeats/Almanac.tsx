@@ -13,8 +13,8 @@ import { forecastRepeat } from '../../ml/forecast';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { almanacOf, polar } from './almanac';
-import { bundle, pathwaysOf, R, repeatColor, type Dot, type Pathways, type Sector, type Strand } from './pathways';
-import { breath, cableOf, sway } from './sway';
+import { pathwaysOf, R, repeatColor, type Dot, type Pathways, type Sector, type Strand } from './pathways';
+import { cableOf, cablePoints, smooth } from './sway';
 
 /** How long each time the repeat being read happened stays lit as they are played back, in order. */
 const PLAY_MS = 2400;
@@ -49,8 +49,9 @@ type Hover = { kind: 'dot'; dot: Dot } | { kind: 'strand'; strand: Strand } | { 
  * One plate of pathways (see pathways.ts) for the repeat being read: the areas round the ring, a dot for every
  * element that took part, a strand for every time. The repeat being read is in its colour and the rest in gray;
  * its strands are drawn in as it is chosen, and each time it happened is played back in turn. Small, the same plate
- * is one of the multiples below, one per repeat. Live, its strands are living cables: they sway (see sway.ts) and
- * light runs along each, out from what sets it off; on an exception it dies before it arrives.
+ * is one of the multiples below, one per repeat. Live, its strands are living cables: the lines themselves move,
+ * swaying and rippling (see sway.ts); and now and then a faint light runs along one of the repeat being read, out from
+ * what sets it off (on an exception it dies before it arrives).
  */
 function Plate({
   pw,
@@ -72,7 +73,7 @@ function Plate({
   onHover?(h: Hover, e?: React.PointerEvent): void;
   /** The size area names are set at, in the plate's units (larger on a phone, where the plate is small). */
   labels?: number;
-  /** In motion: light along the strands, the dots that took part answering, what sets it off sending. */
+  /** In motion: the strands as living cables, with a faint light now and then, and the dots that took part answering. */
   live?: boolean;
 }) {
   const data = useAtlas((s) => s.data);
@@ -148,26 +149,27 @@ function Plate({
           ))}
       </g>
 
-      {/* Light running along every strand, from what sets it off: brighter on this repeat's, faint on the others'. */}
-      {live &&
-        ([others, own] as const).map((list, o) => (
-          <g key={o} className={cn('pw-pulses', o ? 'is-own' : 'is-others')} style={o ? ({ '--pw-color': color } as CSSProperties) : undefined}>
-            {list.map((s, i) => {
+      {/* Now and then a faint light along a strand of this repeat, out from what sets it off. */}
+      {live && (
+        <g className="pw-pulses" style={{ '--pw-color': color } as CSSProperties}>
+          {own
+            .filter((_, i) => i % 2 === 0)
+            .map((s, i) => {
               const k = (i * 0.618034) % 1;
-              const dur = o ? 2.6 + k * 1.6 : 4.8 + k * 2.6;
+              const dur = 4.2 + k * 2.4;
               return (
                 <path
                   key={`p${s.key}`}
                   data-strand={s.key}
                   d={s.d}
                   pathLength={1}
-                  className={cn('pw-pulse', s.exception && 'is-exception', o === 1 && s.mark.key === playing && 'is-playing')}
-                  style={{ animationDuration: `${dur.toFixed(2)}s`, animationDelay: `${((o ? 1.2 : 0) + k * dur).toFixed(2)}s` }}
+                  className={cn('pw-pulse', s.exception && 'is-exception', s.mark.key === playing && 'is-playing')}
+                  style={{ animationDuration: `${dur.toFixed(2)}s`, animationDelay: `${(1.6 + k * dur).toFixed(2)}s` }}
                 />
               );
             })}
-          </g>
-        ))}
+        </g>
+      )}
 
       {/* The dots: every element that took part, larger the more often; in colour when it is part of this repeat. */}
       {pw.dots.map((d, i) => {
@@ -228,7 +230,7 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
   }, [reduced, times.length, hover]);
   const playing = !reduced && times.length ? times[beat % times.length] : undefined;
 
-  // The strands sway as living cables (see sway.ts), never still, while the plate is on screen; the light along them
+  // The strands move as living cables (see sway.ts), never still, while the plate is on screen; the light along them
   // runs in CSS. Every drawing of a strand (its line, the light on it, where it is pointed at) moves together.
   useEffect(() => {
     const svg = dial.current;
@@ -244,17 +246,20 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
     io.observe(svg);
     let raf = 0;
     let last = 0;
+    // Every frame where there is time for it; on a slow device, every other one, so the page stays quick to answer.
+    let cost = 0;
     const step = (now: number) => {
       raf = requestAnimationFrame(step);
-      if (!visible || document.hidden || now - last < 33) return;
+      if (!visible || document.hidden || (cost > 6 && now - last < 32)) return;
       last = now;
-      const beta = breath(now);
+      const began = performance.now();
       for (const [key, list] of els) {
         const c = cables.get(key);
         if (!c) continue;
-        const d = bundle(sway(c, now), beta);
+        const d = smooth(cablePoints(c, now));
         for (const el of list) el.setAttribute('d', d);
       }
+      cost = cost * 0.9 + (performance.now() - began) * 0.1;
     };
     raf = requestAnimationFrame(step);
     return () => {
