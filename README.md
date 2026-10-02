@@ -27,6 +27,8 @@ npm test           # domain + analysis tests
 npm run build      # type-check and production build (static, works from any path)
 ```
 
+**Published on GitHub Pages** at https://slifolifproduction.github.io/slifolif-lab-03/, rebuilt on every push by `.github/workflows/pages.yml` (install, tests, build; a build whose tests fail is not published). It needs one setting, once: Settings → Pages → Build and deployment → Source: **GitHub Actions**. Free for a public repository. Outside claude.ai the app has no `window.claude`, so it keeps everything in the browser it is opened in and reads notes with its own rules: no sync between devices and no Claude on the viewer's account, everything else the same. Moving an atlas from the claude.ai version: Settings → Your data → **Export JSON** there, then **Import JSON** on the new address (any saved version can also be downloaded from **⋯ → Versions**).
+
 The app opens on an example atlas (Emma, an invented UI/UX designer) so every screen has something to show. There are eight examples, each an invented person with a globally common name and about five months of records, written in English and in Indonesian: seven kinds of work and one student (see *The examples* below). Settings lets you export, import, open an example, or start empty. Data lives in `localStorage` in your browser.
 
 ## Using it

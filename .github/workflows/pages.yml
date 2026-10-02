@@ -1,0 +1,49 @@
+# Publishes Noa Atlas to GitHub Pages on every push to the repository's default branch (named below).
+# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# The site is then at https://<owner>.github.io/<repo>/ (the build uses a relative base, so any path works).
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [claude/cognitive-atlas-app-thvd4g]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push waits for the one in progress instead of cutting it off.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      # --ignore-scripts: onnxruntime-node (pulled in by the transformers library, for Node only) would otherwise
+      # download GPU binaries the browser app never uses. The app runs its model in the browser (WebAssembly).
+      - run: npm ci --ignore-scripts
+      # A broken build is never published.
+      - run: npm test
+      - run: npm run build
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
