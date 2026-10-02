@@ -102,7 +102,7 @@ export function ClaimComposer({
       )}
       <div className="flex gap-2">
         <Button size="sm" variant="primary" type="submit" icon={Plus} disabled={!ok}>
-          {t('Add claim')}
+          {t('Add a reason')}
         </Button>
         <Button size="sm" variant="ghost" onClick={onCancel}>
           {t('Cancel')}
@@ -126,7 +126,7 @@ export function ConnectForm({ id, onDone }: { id: ID; onDone(): void }) {
         value={mode}
         onChange={setMode}
         options={[
-          { value: 'claim', label: t('A claim'), title: t('How this changes something else: a hypothesis to check') },
+          { value: 'claim', label: t('A reason'), title: t('How this changes something else: a hunch to check') },
           { value: 'link', label: t('A link'), title: t('How they relate, in your terms: needs no evidence') },
         ]}
       />

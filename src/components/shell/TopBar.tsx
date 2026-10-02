@@ -5,6 +5,8 @@ import {
   History,
   Keyboard,
   LifeBuoy,
+  ListMinus,
+  ListPlus,
   MessageSquareText,
   Plus,
   Search,
@@ -29,6 +31,7 @@ import { SyncIndicator } from './AccountControls';
 import { FocusChip } from './Focus';
 import { LanguageItems, LanguageMenu, WorldClock } from './LocaleControls';
 import { LogoMark, Wordmark } from './Logo';
+import { useSimple } from '../ui/Detail';
 import { t } from '../../i18n';
 
 export const GROUP_ICONS: Record<GroupKey, LucideIcon> = PLACE_ICONS;
@@ -43,9 +46,11 @@ export function TopBar({ active }: { active: RouteKey }) {
   const agentOpen = useAgent((s) => s.open);
   const toggleAgent = useAgent((s) => s.toggle);
   const current = groupOf(active)?.key;
+  const simple = useSimple();
 
+  // Above the phone panel sheet (z-40), so its menus open over it; below the agent panel and dialogs.
   return (
-    <header className="relative z-30 flex h-[52px] shrink-0 items-center gap-2 border-b border-line bg-canvas px-3 md:px-5">
+    <header className="relative z-[44] flex h-[52px] shrink-0 items-center gap-2 border-b border-line bg-canvas px-3 md:px-5">
       <a href={hrefFor('orbit')} className="mr-1 flex items-center gap-2.5 rounded-[2px] py-1 pr-1 xl:mr-4" aria-label={t('Noa Atlas, home')}>
         <LogoMark />
         <Wordmark className="hidden xl:inline" />
@@ -79,9 +84,9 @@ export function TopBar({ active }: { active: RouteKey }) {
       <FocusChip className="ml-3 hidden lg:flex" />
 
       <div className="ml-auto flex items-center gap-1.5">
-        <WorldClock />
+        {!simple && <WorldClock />}
         <SyncIndicator />
-        <LanguageMenu className="hidden sm:inline-flex" />
+        <LanguageMenu className="max-sm:hidden" />
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
@@ -89,14 +94,14 @@ export function TopBar({ active }: { active: RouteKey }) {
         >
           <Search size={13} aria-hidden />
           <span className="pr-4">{t('Search')}</span>
-          <Kbd className="border-line bg-transparent">⌘K</Kbd>
+          {!simple && <Kbd className="border-line bg-transparent">⌘K</Kbd>}
         </button>
         <IconButton icon={Search} label={t('Search')} className="sm:hidden" onClick={() => setPaletteOpen(true)} />
         <span className="hidden sm:inline-flex">
           <Button
             icon={MessageSquareText}
             onClick={toggleAgent}
-            kbd="A"
+            kbd={simple ? undefined : 'A'}
             aria-pressed={agentOpen}
             className={agentOpen ? 'border-ink/45 bg-ink/[0.06]' : undefined}
           >
@@ -105,7 +110,7 @@ export function TopBar({ active }: { active: RouteKey }) {
         </span>
         <IconButton icon={MessageSquareText} label={t('Agent')} className="sm:hidden" active={agentOpen} onClick={toggleAgent} />
         <span className="hidden sm:inline-flex">
-          <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')} kbd="N">
+          <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')} kbd={simple ? undefined : 'N'}>
             {t('Capture')}
           </Button>
         </span>
@@ -121,6 +126,7 @@ function MoreMenu() {
   const ui = useUI.getState;
   const example = useAtlas((s) => isExampleAtlas(s.data));
   const claude = useAccount((s) => s.claude === 'available');
+  const simple = useSimple();
   return (
     <Menu label={t('More: versions, guide, settings')} icon={Ellipsis} iconOnly className="border-transparent bg-transparent" width="w-64">
       <MenuItem icon={History} hint={t('Save your atlas, go back to an earlier one, or start fresh')} onSelect={() => ui().setVersionsOpen(true)}>
@@ -156,9 +162,18 @@ function MoreMenu() {
           {t('Weekly review with Claude')}
         </MenuItem>
       )}
-      <MenuItem icon={Keyboard} kbd="?" onSelect={() => ui().setShortcutsOpen(true)}>
-        {t('Keyboard shortcuts')}
+      <MenuItem
+        icon={simple ? ListPlus : ListMinus}
+        hint={simple ? t('Show every field, setting and the finer workings of reasons') : t('Fold away what most people do not need at first')}
+        onSelect={() => ui().setDetail(simple ? 'full' : 'simple')}
+      >
+        {simple ? t('Show everything') : t('Simple view')}
       </MenuItem>
+      {!simple && (
+        <MenuItem icon={Keyboard} kbd="?" onSelect={() => ui().setShortcutsOpen(true)}>
+          {t('Keyboard shortcuts')}
+        </MenuItem>
+      )}
       <MenuSeparator />
       <div className="sm:hidden">
         <MenuLabel>{t('Language')}</MenuLabel>

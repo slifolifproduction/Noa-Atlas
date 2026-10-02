@@ -33,9 +33,9 @@ import { t } from '../i18n';
 
 export const entryCode = (seq: number) => t('Entry #{n}', { n: pad2(seq) });
 export const decisionCode = (seq: number) => t('Decision #{n}', { n: pad2(seq) });
-export const patternCode = (code: number) => t('Pattern {code}', { code: pad2(code) });
+export const patternCode = (code: number) => t('Repeat {code}', { code: pad2(code) });
 export const experimentCode = (code: number) => `EXP-${pad2(code)}`;
-export const pathCode = (code: string) => t('Path {code}', { code });
+export const pathCode = (code: string) => t('Option {code}', { code });
 
 /* ---------------- sources ---------------- */
 

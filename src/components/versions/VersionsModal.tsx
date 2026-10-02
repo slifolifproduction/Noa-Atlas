@@ -39,7 +39,7 @@ const reasonText = (reason: VersionMeta['reason']): string | null =>
   })[reason];
 
 const counts = (c: VersionMeta['counts']) =>
-  [tn(c.records, '{n} note', '{n} notes'), tn(c.points, '{n} point', '{n} points'), tn(c.patterns, '{n} pattern', '{n} patterns')].join(' · ');
+  [tn(c.records, '{n} note', '{n} notes'), tn(c.points, '{n} point', '{n} points'), tn(c.patterns, '{n} repeat', '{n} repeats')].join(' · ');
 const time = formatMoment;
 
 /**

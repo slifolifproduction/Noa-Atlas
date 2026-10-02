@@ -1,6 +1,7 @@
 import { useReactFlow, type FitViewOptions } from '@xyflow/react';
 import { Maximize2, Minus, Plus, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
+import { FullOnly } from '../ui/Detail';
 import { Menu, MenuSeparator } from '../ui/Menu';
 import { t } from '../../i18n';
 
@@ -97,7 +98,9 @@ export function ViewMenu({ padding = 0.12, children }: { padding?: FitViewOption
         <button type="button" role="menuitem" tabIndex={-1} className={`${zoomBtn} flex-1`} onClick={fit}>
           <Maximize2 size={13} aria-hidden />
           {t('Fit to screen')}
-          <kbd className="num text-[10.5px] opacity-60">F</kbd>
+          <FullOnly>
+            <kbd className="num text-[10.5px] opacity-60">F</kbd>
+          </FullOnly>
         </button>
       </div>
       <MenuSeparator />

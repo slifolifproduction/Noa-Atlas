@@ -105,7 +105,7 @@ export const HubNodeView = memo(function HubNodeView({ id, data, selected }: Nod
       {data.patternCount > 0 && (
         <span
           className="num absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-line-strong bg-raised px-1 text-[11px] text-ink"
-          title={tn(data.patternCount, '{n} active pattern involves this area', '{n} active patterns involve this area')}
+          title={tn(data.patternCount, '{n} active repeat involves this area', '{n} active repeats involve this area')}
         >
           {data.patternCount}
         </span>

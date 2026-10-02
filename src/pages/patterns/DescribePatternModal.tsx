@@ -54,7 +54,7 @@ export function DescribePatternModal({ onClose }: { onClose(): void }) {
     <Modal
       open
       onClose={onClose}
-      title={t('Describe a pattern')}
+      title={t('Describe a repeat')}
       description={t(
         'Something you suspect keeps happening. It starts with no instances; it becomes a regularity only as you attach the notes and decisions where it happened.',
       )}
@@ -65,7 +65,7 @@ export function DescribePatternModal({ onClose }: { onClose(): void }) {
             {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={save} disabled={!valid}>
-            {t('Add pattern')}
+            {t('Add repeat')}
           </Button>
         </>
       }

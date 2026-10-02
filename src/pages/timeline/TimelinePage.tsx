@@ -16,6 +16,7 @@ import { formatDate, formatMonth, useToday } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
+import { useSimple } from '../../components/ui/Detail';
 import { t, tn } from '../../i18n';
 import { useFrictionNote } from '../../hooks/useFriction';
 import { TimeStrand } from './TimeStrand';
@@ -71,6 +72,7 @@ export function TimelinePage({ preset }: { preset?: string }) {
   const [area, setArea] = useState<AreaKey | 'all'>('all');
   const [review, setReview] = useState(false);
   const [landmarks, setLandmarks] = useState(false);
+  const simple = useSimple();
   const [flash, setFlash] = useState<string | null>(null);
   // From the strand: bring that month into view, and mark it for a moment.
   const jumpTo = (month: string) => {
@@ -125,7 +127,7 @@ export function TimelinePage({ preset }: { preset?: string }) {
         help="timeline"
         actions={
           <>
-            <Button icon={Plus} onClick={() => openCapture('journal')} kbd="N">
+            <Button icon={Plus} onClick={() => openCapture('journal')} kbd={simple ? undefined : 'N'}>
               {t('Write a note')}
             </Button>
             <Button variant="ghost" icon={HISTORY_ICONS.decision} onClick={() => openCapture('decision')}>
@@ -202,29 +204,38 @@ export function TimelinePage({ preset }: { preset?: string }) {
                 {t('To confirm')} <span className="num ml-1 text-ink-3">{toReview}</span>
               </button>
             )}
-            <button
-              type="button"
-              aria-pressed={landmarks}
-              onClick={() => setLandmarks(!landmarks)}
-              className={cn(
-                'inline-flex h-8 items-center gap-1.5 rounded-[2px] border px-2.5 text-[12.5px]',
-                landmarks ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-2 hover:border-line-strong',
-              )}
-            >
-              <Star size={12} aria-hidden />
-              {t('Landmarks')}
-            </button>
-            <select className="field h-8 w-auto py-0" value={area} onChange={(e) => setArea(e.target.value as AreaKey | 'all')} aria-label={t('Area of life')}>
-              <option value="all">{t('All areas')}</option>
-              {AREAS.map((a) => (
-                <option key={a.key} value={a.key}>
-                  {a.label}
-                </option>
-              ))}
-            </select>
+            {!simple && (
+              <>
+                <button
+                  type="button"
+                  aria-pressed={landmarks}
+                  onClick={() => setLandmarks(!landmarks)}
+                  className={cn(
+                    'inline-flex h-8 items-center gap-1.5 rounded-[2px] border px-2.5 text-[12.5px]',
+                    landmarks ? 'border-accent/45 bg-accent-dim text-ink' : 'border-line text-ink-2 hover:border-line-strong',
+                  )}
+                >
+                  <Star size={12} aria-hidden />
+                  {t('Landmarks')}
+                </button>
+                <select
+                  className="field h-8 w-auto py-0"
+                  value={area}
+                  onChange={(e) => setArea(e.target.value as AreaKey | 'all')}
+                  aria-label={t('Area of life')}
+                >
+                  <option value="all">{t('All areas')}</option>
+                  {AREAS.map((a) => (
+                    <option key={a.key} value={a.key}>
+                      {a.label}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
           </div>
 
-          {quiet && gaps.quietWeeks > 0 && (
+          {!simple && quiet && gaps.quietWeeks > 0 && (
             <p className="mt-3 text-[12px] text-ink-3">
               {tn(
                 gaps.quietWeeks,

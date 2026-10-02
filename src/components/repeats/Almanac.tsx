@@ -5,6 +5,7 @@ import { AREA_META, REGULARITY_LABEL, STATUS_META } from '../../domain/constants
 import { pathCode, patternCode, resolveSource } from '../../domain/selectors';
 import type { ID, Pattern } from '../../domain/types';
 import { useIsDesktop, useMediaQuery } from '../../hooks/useMediaQuery';
+import { useSimple } from '../ui/Detail';
 import { t, tn } from '../../i18n';
 import { cn } from '../../lib/cn';
 import { formatDate, useToday } from '../../lib/dates';
@@ -215,6 +216,7 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
   const happened = ring?.marks.filter((m) => m.stance === 'supports').length ?? 0;
   const exceptions = ring?.marks.filter((m) => m.stance === 'counters').length ?? 0;
   const label = (id: ID) => data.nodes[id]?.label ?? '';
+  const simple = useSimple();
   // When it may come next, from the gaps between every time it happened (a forecast: drawn dashed, never a time).
   const forecast = useMemo(() => {
     if (!selected) return undefined;
@@ -338,7 +340,7 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
               <h3 className="almanac-note-head">{t('What keeps happening')}</h3>
               <p>{clip(selected.observation, wide ? 260 : 400)}</p>
             </section>
-            {forecast && (
+            {forecast && !simple && (
               <section className="almanac-note is-forecast">
                 <h3 className="almanac-note-head">{t('When it may come next')}</h3>
                 <p>
@@ -373,28 +375,30 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
                 <p className="is-dim">{t('No explanation attached yet.')}</p>
               )}
             </section>
-            <section className="almanac-note">
-              <h3 className="almanac-note-head">{t('What it might mean for your options')}</h3>
-              {selected.implications.length ? (
-                <ul>
-                  {selected.implications.slice(0, 2).map((im) => (
-                    <li key={im.id}>
-                      <span>{clip(im.statement, 120)}</span>
-                      {im.pathIds.length > 0 && (
-                        <span className="almanac-note-meta">
-                          {im.pathIds
-                            .map((pid) => (data.paths[pid] ? pathCode(data.paths[pid].code) : ''))
-                            .filter(Boolean)
-                            .join(' · ')}
-                        </span>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="is-dim">{t('No implications recorded.')}</p>
-              )}
-            </section>
+            {!simple && (
+              <section className="almanac-note">
+                <h3 className="almanac-note-head">{t('What it might mean for your options')}</h3>
+                {selected.implications.length ? (
+                  <ul>
+                    {selected.implications.slice(0, 2).map((im) => (
+                      <li key={im.id}>
+                        <span>{clip(im.statement, 120)}</span>
+                        {im.pathIds.length > 0 && (
+                          <span className="almanac-note-meta">
+                            {im.pathIds
+                              .map((pid) => (data.paths[pid] ? pathCode(data.paths[pid].code) : ''))
+                              .filter(Boolean)
+                              .join(' · ')}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="is-dim">{t('No implications recorded.')}</p>
+                )}
+              </section>
+            )}
             <section className="almanac-note">
               <h3 className="almanac-note-head">{t('Does this ring true?')}</h3>
               <p className={cn(!selected.userAssessment && 'is-dim')}>

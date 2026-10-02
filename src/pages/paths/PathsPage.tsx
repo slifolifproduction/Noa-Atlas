@@ -407,7 +407,7 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
                 </button>
               </div>
               <h2 className="display mt-2 text-[20px] leading-[1.2] text-ink">
-                <EditableLine value={p.title} onSave={(title) => update(p.id, { title: title || t('Untitled path') })} label={t('Title')} />
+                <EditableLine value={p.title} onSave={(title) => update(p.id, { title: title || t('Untitled option') })} label={t('Title')} />
               </h2>
               <EditableLine
                 multiline
@@ -432,9 +432,7 @@ function PathMatrix({ paths, onEdit, onEditState }: { paths: StrategicPath[]; on
                 ) : confirm === p.id ? (
                   <div className="space-y-2">
                     <p className="text-[12px] text-ink-2">
-                      {nav
-                        ? t('This replaces your current navigation plan with a draft for this path.')
-                        : t('A draft navigation plan will be created for you to edit.')}
+                      {nav ? t('This replaces your current plan with a draft for this option.') : t('A draft plan will be created for you to edit.')}
                     </p>
                     <div className="flex gap-1.5">
                       <Button

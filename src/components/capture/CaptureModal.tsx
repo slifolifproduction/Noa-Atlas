@@ -17,6 +17,7 @@ import { cn } from '../../lib/cn';
 import { createId } from '../../lib/ids';
 import { useAtlas } from '../../state/atlasStore';
 import { captureDecision, captureEntry, reconnectEntry } from '../../state/operations';
+import { FullOnly, useSimple } from '../ui/Detail';
 import { toast, useUI } from '../../state/uiStore';
 import { CAPTURE_ICONS } from '../icons';
 import { Button } from '../ui/Button';
@@ -140,6 +141,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
   const [showContext, setShowContext] = useState(Boolean(draft.energy !== undefined || draft.mood !== undefined || draft.emotions.length));
   // Simple by default: one box. Everything else (type, title, date, areas, tags, context) is one click away.
   const [details, setDetails] = useState(Boolean(editing) || (request.kind !== 'journal' && request.kind !== 'decision'));
+  const simple = useSimple();
   const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setDraft((d) => ({ ...d, [k]: v }));
   const isDecision = draft.kind === 'decision';
   const target = CAPTURE_TARGET[draft.kind];
@@ -260,7 +262,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
       initialFocus={isDecision ? '#cap-title' : '#cap-content'}
       footer={
         <>
-          <span className="mr-auto hidden items-center gap-1 text-[11.5px] text-ink-3 sm:flex">
+          <span className={cn('mr-auto hidden items-center gap-1 text-[11.5px] text-ink-3', !simple && 'sm:flex')}>
             <Kbd>⌘</Kbd>
             <Kbd>↵</Kbd> {t('to save')}
           </span>
@@ -332,13 +334,13 @@ function CaptureForm({ onClose }: { onClose(): void }) {
           >
             <span className="flex min-w-0 items-baseline gap-2">
               <span className="text-[12.5px] text-ink-2">{t('More details')}</span>
-              <span className="truncate text-[11.5px] text-ink-3">{details ? 'optional' : summary}</span>
+              <span className="truncate text-[11.5px] text-ink-3">{details ? t('optional') : summary}</span>
             </span>
             <ChevronDown size={14} className={cn('shrink-0 text-ink-3 transition-transform', !details && '-rotate-90')} aria-hidden />
           </button>
           {details && (
             <div className="space-y-4 border-t border-line px-3 pt-3 pb-3.5">
-              {!isDecision && (
+              {!isDecision && !simple && (
                 <div>
                   <FieldLabel hint={kindMeta.hint}>{t('Type')}</FieldLabel>
                   <div role="radiogroup" aria-label={t('Type')} className="flex flex-wrap gap-1.5">
@@ -366,8 +368,8 @@ function CaptureForm({ onClose }: { onClose(): void }) {
                 </div>
               )}
 
-              <div className={cn('grid gap-3', !isDecision && 'sm:grid-cols-[1fr_150px]')}>
-                {!isDecision && (
+              <div className={cn('grid gap-3', !isDecision && !simple && 'sm:grid-cols-[1fr_150px]')}>
+                {!isDecision && !simple && (
                   <div>
                     <FieldLabel htmlFor="cap-title" hint={t('optional: the first line is used')}>
                       {t('Title')}
@@ -381,7 +383,7 @@ function CaptureForm({ onClose }: { onClose(): void }) {
                     />
                   </div>
                 )}
-                <div className={isDecision ? 'max-w-[180px]' : undefined}>
+                <div className={isDecision || simple ? 'max-w-[180px]' : undefined}>
                   <FieldLabel htmlFor="cap-date">{t('Date')}</FieldLabel>
                   <input id="cap-date" type="date" className="field num" value={draft.date} onChange={(e) => set('date', e.target.value)} />
                 </div>
@@ -407,18 +409,20 @@ function CaptureForm({ onClose }: { onClose(): void }) {
                 </div>
               </div>
 
-              <div>
-                <FieldLabel htmlFor="cap-tags" hint={t('comma separated')}>
-                  {t('Tags')}
-                </FieldLabel>
-                <input
-                  id="cap-tags"
-                  className="field"
-                  value={draft.tags}
-                  onChange={(e) => set('tags', e.target.value)}
-                  placeholder={t('focus, client, night-ferry')}
-                />
-              </div>
+              <FullOnly>
+                <div>
+                  <FieldLabel htmlFor="cap-tags" hint={t('comma separated')}>
+                    {t('Tags')}
+                  </FieldLabel>
+                  <input
+                    id="cap-tags"
+                    className="field"
+                    value={draft.tags}
+                    onChange={(e) => set('tags', e.target.value)}
+                    placeholder={t('focus, client, night-ferry')}
+                  />
+                </div>
+              </FullOnly>
 
               {!isDecision && (
                 <div className="rounded-[2px] border border-line">
@@ -435,29 +439,35 @@ function CaptureForm({ onClose }: { onClose(): void }) {
                     <div className="space-y-3 border-t border-line px-3 pt-3 pb-3.5">
                       <ScaleRow label={t('Energy')} values={[1, 2, 3, 4, 5]} labels={ENERGY_LABELS} value={draft.energy} onChange={(v) => set('energy', v)} />
                       <ScaleRow label={t('Mood')} values={[-2, -1, 0, 1, 2]} labels={MOOD_LABELS} value={draft.mood} onChange={(v) => set('mood', v)} />
-                      <div>
-                        <div className="label mb-1.5">{t('Felt')}</div>
-                        <div className="flex flex-wrap gap-1.5">
-                          {EMOTION_OPTIONS.map((e) => {
-                            const on = draft.emotions.includes(e);
-                            return (
-                              <ToggleChip key={e} on={on} onClick={() => set('emotions', on ? draft.emotions.filter((x) => x !== e) : [...draft.emotions, e])}>
-                                {t(e)}
-                              </ToggleChip>
-                            );
-                          })}
+                      <FullOnly>
+                        <div>
+                          <div className="label mb-1.5">{t('Felt')}</div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {EMOTION_OPTIONS.map((e) => {
+                              const on = draft.emotions.includes(e);
+                              return (
+                                <ToggleChip
+                                  key={e}
+                                  on={on}
+                                  onClick={() => set('emotions', on ? draft.emotions.filter((x) => x !== e) : [...draft.emotions, e])}
+                                >
+                                  {t(e)}
+                                </ToggleChip>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                      <div>
-                        <FieldLabel htmlFor="cap-setting">{t('Setting')}</FieldLabel>
-                        <input
-                          id="cap-setting"
-                          className="field"
-                          value={draft.setting}
-                          onChange={(e) => set('setting', e.target.value)}
-                          placeholder={t('Where, when, with whom')}
-                        />
-                      </div>
+                        <div>
+                          <FieldLabel htmlFor="cap-setting">{t('Setting')}</FieldLabel>
+                          <input
+                            id="cap-setting"
+                            className="field"
+                            value={draft.setting}
+                            onChange={(e) => set('setting', e.target.value)}
+                            placeholder={t('Where, when, with whom')}
+                          />
+                        </div>
+                      </FullOnly>
                     </div>
                   )}
                 </div>
@@ -609,7 +619,7 @@ function DecisionFields({ draft, set, editing }: { draft: Draft; set: <K extends
         </div>
       </div>
       <div>
-        <FieldLabel hint={t('used to find decision patterns')}>{t('Optimising for')}</FieldLabel>
+        <FieldLabel hint={t('used to find repeated decisions')}>{t('Optimising for')}</FieldLabel>
         <div className="flex flex-wrap gap-1.5">
           {DRIVERS.map((d) => {
             const on = draft.optimizingFor.includes(d);

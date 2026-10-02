@@ -4,6 +4,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { formatDate, parseISODate, useToday } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
+import { FullOnly } from '../../components/ui/Detail';
 import { locale, t, tn } from '../../i18n';
 import { strandModel, type StrandDecision, type StrandModel } from './strand';
 
@@ -187,7 +188,9 @@ export function TimeStrand({ onJump }: { onJump(month: string): void }) {
             <span className="tree-block-row is-sub">{t('Load and energy, week by week').toUpperCase()}</span>
           </span>
         </h2>
-        <span className="text-[11px] text-ink-3">{t('Counted from lifespans and from what you recorded with each note. Side by side, not a finding.')}</span>
+        <FullOnly>
+          <span className="text-[11px] text-ink-3">{t('Counted from lifespans and from what you recorded with each note. Side by side, not a finding.')}</span>
+        </FullOnly>
       </div>
 
       {/* The readout: the week under the cursor, or this week. */}

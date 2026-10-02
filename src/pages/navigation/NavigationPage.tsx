@@ -17,11 +17,15 @@ import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { NewExperimentModal } from './NewExperimentModal';
 import { OwnQuests } from './OwnQuests';
+import { useSimple } from '../../components/ui/Detail';
 import { t } from '../../i18n';
 
 export function NavigationPage() {
   const nav = useAtlas((s) => s.data.navigation);
+  const hasTests = useAtlas((s) => Object.keys(s.data.experiments).length > 0);
   const [creating, setCreating] = useState(false);
+  // In simple view the tests column waits until there is a test to show (one is designed from a reason).
+  const tests = !useSimple() || hasTests;
   return (
     <div className={PAGE_FRAME}>
       <PageHeader
@@ -36,7 +40,7 @@ export function NavigationPage() {
           )
         }
       />
-      <div className="mt-6 grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div className={cn('mt-6 grid gap-8', tests ? 'lg:grid-cols-[minmax(0,1fr)_380px]' : 'max-w-[900px]')}>
         <div className="min-w-0">
           {nav ? (
             <Route />
@@ -58,9 +62,11 @@ export function NavigationPage() {
           )}
           <OwnQuests />
         </div>
-        <aside aria-label={t('Experiments')}>
-          <ExperimentsColumn onCreate={() => setCreating(true)} />
-        </aside>
+        {tests && (
+          <aside aria-label={t('Experiments')}>
+            <ExperimentsColumn onCreate={() => setCreating(true)} />
+          </aside>
+        )}
       </div>
       {creating && <NewExperimentModal onClose={() => setCreating(false)} />}
     </div>
@@ -114,6 +120,7 @@ function Route() {
   const progress = navigationProgress(nav);
   const path = data.paths[nav.pathId];
   const exp = nav.experimentId ? data.experiments[nav.experimentId] : undefined;
+  const simple = useSimple();
   const expProgress = exp ? experimentProgress(exp) : undefined;
   const action = currentAction(nav);
   const [newTarget, setNewTarget] = useState('');
@@ -156,30 +163,32 @@ function Route() {
         </div>
       </Waypoint>
 
-      <Waypoint label={t('90-day strategic experiment')} progress={expProgress?.ratio}>
-        {exp && expProgress ? (
-          <button
-            type="button"
-            onClick={() => open({ kind: 'experiment', id: exp.id })}
-            className="block w-full rounded-[2px] border border-line bg-surface px-3.5 py-3 text-left hover:border-line-strong"
-          >
-            <div className="flex items-center gap-2">
-              <span className="num text-[11.5px] text-ink-3">{experimentCode(exp.code)}</span>
-              <span className="text-[13px] font-medium text-ink">{exp.title}</span>
-              <span className="ml-auto text-[11px] text-ink-3">{EXPERIMENT_STATUS_LABEL[exp.status]}</span>
-            </div>
-            <p className="mt-1 text-[13px] text-ink-2">{exp.hypothesis}</p>
-            {exp.status === 'running' && (
-              <div className="mt-2 flex items-center gap-3">
-                <Progress value={expProgress.ratio} color="var(--color-ink)" />
-                <span className="num shrink-0 text-[11.5px] text-ink-3">{t('day {d} of {total}', { d: expProgress.day, total: expProgress.total })}</span>
+      {(!simple || exp) && (
+        <Waypoint label={t('90-day strategic experiment')} progress={expProgress?.ratio}>
+          {exp && expProgress ? (
+            <button
+              type="button"
+              onClick={() => open({ kind: 'experiment', id: exp.id })}
+              className="block w-full rounded-[2px] border border-line bg-surface px-3.5 py-3 text-left hover:border-line-strong"
+            >
+              <div className="flex items-center gap-2">
+                <span className="num text-[11.5px] text-ink-3">{experimentCode(exp.code)}</span>
+                <span className="text-[13px] font-medium text-ink">{exp.title}</span>
+                <span className="ml-auto text-[11px] text-ink-3">{EXPERIMENT_STATUS_LABEL[exp.status]}</span>
               </div>
-            )}
-          </button>
-        ) : (
-          <SelectExperiment />
-        )}
-      </Waypoint>
+              <p className="mt-1 text-[13px] text-ink-2">{exp.hypothesis}</p>
+              {exp.status === 'running' && (
+                <div className="mt-2 flex items-center gap-3">
+                  <Progress value={expProgress.ratio} color="var(--color-ink)" />
+                  <span className="num shrink-0 text-[11.5px] text-ink-3">{t('day {d} of {total}', { d: expProgress.day, total: expProgress.total })}</span>
+                </div>
+              )}
+            </button>
+          ) : (
+            <SelectExperiment />
+          )}
+        </Waypoint>
+      )}
 
       <Waypoint label={t('Next milestone')} progress={Math.max(0, 1 - progress.daysToMilestone / 60)}>
         <EditableLine value={nav.milestone.title} onSave={(title) => update({ milestone: { ...nav.milestone, title } })} className="text-[14px] text-ink" />
@@ -408,7 +417,7 @@ function SelectExperiment() {
 /* ------------------------------------------------------------ experiments */
 
 function LoopStrip() {
-  const steps = [t('Claim'), t('Predict'), t('Test'), t('Compare'), t('Revise')];
+  const steps = [t('Reason'), t('Predict'), t('Test'), t('Compare'), t('Revise')];
   return (
     <ol className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11.5px] text-ink-3" aria-label={t('Feedback loop')}>
       {steps.map((s, i) => (
@@ -438,14 +447,14 @@ function ExperimentsColumn({ onCreate }: { onCreate(): void }) {
         </Button>
       </div>
       <p className="mt-1.5 text-[12.5px] text-ink-2">
-        {t('Test instead of guessing. A recorded result becomes evidence on the claim it tests, and can move its status either way.')}
+        {t('Test instead of guessing. A recorded result becomes evidence on the reason it tests, and can move its status either way.')}
       </p>
       <div className="mt-2.5">
         <LoopStrip />
       </div>
       {all.length === 0 ? (
         <EmptyState icon={ExperimentIcon} title={t('No tests yet')} className="mt-4">
-          {t('Design one from any claim: open it and choose “Design a test”.')}
+          {t('Design one from any reason: open it and choose “Design a test”.')}
         </EmptyState>
       ) : (
         groups.map((g) => {

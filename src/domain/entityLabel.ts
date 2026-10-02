@@ -22,7 +22,7 @@ export function entityLabel(data: AtlasData, ref: EntityRef): string {
     }
     case 'pattern': {
       const p = data.patterns[ref.id];
-      return p ? patternCode(p.code) : t('Pattern');
+      return p ? patternCode(p.code) : t('Repeat');
     }
     case 'experiment': {
       const x = data.experiments[ref.id];
@@ -30,11 +30,11 @@ export function entityLabel(data: AtlasData, ref: EntityRef): string {
     }
     case 'path': {
       const p = data.paths[ref.id];
-      return p ? pathCode(p.code) : t('Path');
+      return p ? pathCode(p.code) : t('Option');
     }
     case 'claim': {
       const c = data.claims[ref.id];
-      return c ? claimCode(c.code) : t('Claim');
+      return c ? claimCode(c.code) : t('Reason');
     }
     case 'occurrence':
       return data.occurrences[ref.id]?.label ?? t('Event');

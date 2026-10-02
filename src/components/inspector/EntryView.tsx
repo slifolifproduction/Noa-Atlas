@@ -18,6 +18,7 @@ import { Muted, PanelSection } from './parts';
 import { Readings } from './Readings';
 import { OfferList, useWeave, WeaveList } from '../weave/Weave';
 import { KnowledgeTag } from '../evidence/Status';
+import { MoreDetail } from '../ui/Detail';
 import { t, tn } from '../../i18n';
 import { Trans } from '../../i18n/Trans';
 
@@ -175,51 +176,53 @@ export function EntryView({ id }: { id: ID }) {
         </PanelSection>
       )}
 
-      <PanelSection
-        title={t('What the Atlas noticed')}
-        aside={
-          <Button size="sm" variant="ghost" icon={RefreshCw} loading={busy} onClick={() => readAndWeave(id)}>
-            {analysis ? t('Read it again') : t('Read it')}
-          </Button>
-        }
-      >
-        {!analysis ? (
-          <Muted>{t('Not read yet.')}</Muted>
-        ) : (
-          <div className="space-y-3">
-            <div>
-              <div className="mb-1 text-[11.5px] text-ink-3">
-                {t('Read by {provider} · {date}', { provider: t(analysis.provider), date: formatDate(analysis.generatedAt) })}
+      <MoreDetail>
+        <PanelSection
+          title={t('What the Atlas noticed')}
+          aside={
+            <Button size="sm" variant="ghost" icon={RefreshCw} loading={busy} onClick={() => readAndWeave(id)}>
+              {analysis ? t('Read it again') : t('Read it')}
+            </Button>
+          }
+        >
+          {!analysis ? (
+            <Muted>{t('Not read yet.')}</Muted>
+          ) : (
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1 text-[11.5px] text-ink-3">
+                  {t('Read by {provider} · {date}', { provider: t(analysis.provider), date: formatDate(analysis.generatedAt) })}
+                </div>
+                {analysis.observations.length ? (
+                  <ul className="space-y-1.5">
+                    {analysis.observations.map((o) => (
+                      <li key={o.id} className="text-[13px] leading-snug text-ink-2">
+                        {o.statement}
+                        <span className="block text-[11.5px] text-ink-3">{o.basis}</span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <Muted>{t('Nothing specific enough to note.')}</Muted>
+                )}
               </div>
-              {analysis.observations.length ? (
-                <ul className="space-y-1.5">
-                  {analysis.observations.map((o) => (
-                    <li key={o.id} className="text-[13px] leading-snug text-ink-2">
-                      {o.statement}
-                      <span className="block text-[11.5px] text-ink-3">{o.basis}</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <Muted>{t('Nothing specific enough to note.')}</Muted>
+              {analysis.readings && analysis.readings.length > 0 && <Readings readings={analysis.readings} />}
+              {rest.length > 0 && (
+                <details>
+                  <summary className="cursor-pointer text-[11.5px] text-ink-3 hover:text-ink">
+                    {tn(rest.length, 'Also possible: {n} more', 'Also possible: {n} more')}
+                  </summary>
+                  <ul className="mt-1.5 divide-y divide-line rounded-[2px] border border-line">
+                    {rest.map((s) => (
+                      <SuggestionRow key={s.id} entryId={id} suggestion={s} />
+                    ))}
+                  </ul>
+                </details>
               )}
             </div>
-            {analysis.readings && analysis.readings.length > 0 && <Readings readings={analysis.readings} />}
-            {rest.length > 0 && (
-              <details>
-                <summary className="cursor-pointer text-[11.5px] text-ink-3 hover:text-ink">
-                  {tn(rest.length, 'Also possible: {n} more', 'Also possible: {n} more')}
-                </summary>
-                <ul className="mt-1.5 divide-y divide-line rounded-[2px] border border-line">
-                  {rest.map((s) => (
-                    <SuggestionRow key={s.id} entryId={id} suggestion={s} />
-                  ))}
-                </ul>
-              </details>
-            )}
-          </div>
-        )}
-      </PanelSection>
+          )}
+        </PanelSection>
+      </MoreDetail>
     </div>
   );
 }

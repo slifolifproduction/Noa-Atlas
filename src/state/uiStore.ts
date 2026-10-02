@@ -113,6 +113,11 @@ export interface UIState {
   woven: WovenCard | null;
   settings: ProviderSettings;
   spaceMode: SpaceMode;
+  /**
+   * How much the interface shows. "simple" (the default) folds what most people do not need at first (the
+   * finer workings of reasons, extra fields, technical settings) behind one "More detail"; "full" shows it all.
+   */
+  detail: 'simple' | 'full';
   /** The welcome guide has been seen (it opens by itself once). */
   guideSeen: boolean;
   guideOpen: boolean;
@@ -159,6 +164,7 @@ export interface UIState {
   showWoven(card: WovenCard | null): void;
   setSettings(patch: Partial<ProviderSettings>): void;
   setSpaceMode(mode: SpaceMode): void;
+  setDetail(detail: 'simple' | 'full'): void;
   setGuideOpen(open: boolean): void;
   setVersionsOpen(open: boolean): void;
   setReviewOpen(open: boolean): void;
@@ -192,6 +198,7 @@ export const useUI = create<UIState>()(
       woven: null,
       settings: DEFAULT_PROVIDER_SETTINGS,
       spaceMode: 'auto',
+      detail: 'simple',
       guideSeen: false,
       guideOpen: false,
       versionsOpen: false,
@@ -247,6 +254,7 @@ export const useUI = create<UIState>()(
       showWoven: (woven) => set({ woven }),
       setSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
       setSpaceMode: (spaceMode) => set({ spaceMode }),
+      setDetail: (detail) => set({ detail }),
       setGuideOpen: (guideOpen) => set((s) => ({ guideOpen, guideSeen: s.guideSeen || !guideOpen })),
       setVersionsOpen: (versionsOpen) => set({ versionsOpen }),
       setReviewOpen: (reviewOpen) => set({ reviewOpen }),
@@ -284,6 +292,7 @@ export const useUI = create<UIState>()(
         networkView: s.networkView,
         settings: s.settings,
         spaceMode: s.spaceMode,
+        detail: s.detail,
         guideSeen: s.guideSeen,
         returnVersionId: s.returnVersionId,
         tipsSeen: s.tipsSeen,

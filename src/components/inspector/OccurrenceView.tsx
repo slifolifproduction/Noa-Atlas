@@ -14,6 +14,7 @@ import { ConfirmButton } from '../ui/ConfirmButton';
 import { ChangeEditor, EpisodeSection, ExpectationPanel } from './Changes';
 import { MomentExplanation } from './Explanation';
 import { HistoryRow, Muted, NodeChip, PanelSection } from './parts';
+import { MoreDetail } from '../ui/Detail';
 import { t } from '../../i18n';
 
 /**
@@ -101,26 +102,28 @@ export function OccurrenceView({ id }: { id: ID }) {
           !o.instanceOf && <Muted>{t('Not linked to anything on the map.')}</Muted>
         )}
       </PanelSection>
-      {o.mode === 'expected' && o.expectation && (
-        <PanelSection title={t('A prediction')}>
-          <ExpectationPanel occurrenceId={id} />
-        </PanelSection>
-      )}
-      {o.mode === 'actual' && (
-        <PanelSection title={t('What changed')} count={o.changes?.length ?? 0}>
-          <ChangeEditor occurrenceId={id} />
-        </PanelSection>
-      )}
-      {o.mode === 'actual' && (o.instanceOf || o.about.length > 0) && (
-        <PanelSection title={t('Why might this have happened?')}>
-          <MomentExplanation item={historyItems(data).find((h) => h.key === `occ:${id}`)!} />
-        </PanelSection>
-      )}
-      {o.mode === 'actual' && (
-        <PanelSection title={t('Episode')}>
-          <EpisodeSection occurrenceId={id} />
-        </PanelSection>
-      )}
+      <MoreDetail>
+        {o.mode === 'expected' && o.expectation && (
+          <PanelSection title={t('A prediction')}>
+            <ExpectationPanel occurrenceId={id} />
+          </PanelSection>
+        )}
+        {o.mode === 'actual' && (
+          <PanelSection title={t('What changed')} count={o.changes?.length ?? 0}>
+            <ChangeEditor occurrenceId={id} />
+          </PanelSection>
+        )}
+        {o.mode === 'actual' && (o.instanceOf || o.about.length > 0) && (
+          <PanelSection title={t('Why might this have happened?')}>
+            <MomentExplanation item={historyItems(data).find((h) => h.key === `occ:${id}`)!} />
+          </PanelSection>
+        )}
+        {o.mode === 'actual' && (
+          <PanelSection title={t('Episode')}>
+            <EpisodeSection occurrenceId={id} />
+          </PanelSection>
+        )}
+      </MoreDetail>
 
       <PanelSection title={t('Just before')} count={before.length}>
         {before.length ? (
@@ -144,7 +147,7 @@ export function OccurrenceView({ id }: { id: ID }) {
           <Muted>{t('Nothing recorded in the four weeks after.')}</Muted>
         )}
         <p className="mt-1.5 text-[11.5px] text-ink-3">
-          {t('What came before and after is context, not cause. Causes are claims, checked against more than one episode.')}
+          {t('What came before and after is context, not cause. Causes are reasons, checked against more than one episode.')}
         </p>
       </PanelSection>
     </div>

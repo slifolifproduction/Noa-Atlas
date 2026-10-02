@@ -28,7 +28,7 @@ function describe(data: AtlasData, id: ID): ProbeInfo | null {
     const r = recordsFor(data, x);
     return tn(r.entries.length + r.decisions.length, '{n} record', '{n} records');
   };
-  const inPatterns = (n: number) => tn(n, '{n} pattern', '{n} patterns');
+  const inPatterns = (n: number) => tn(n, '{n} repeat', '{n} repeats');
 
   if (id === YOU_ID || isAreaHubId(id)) {
     const key = id === YOU_ID ? 'self' : areaHubKey(id);
@@ -47,14 +47,14 @@ function describe(data: AtlasData, id: ID): ProbeInfo | null {
   if (!node) return null;
   const facts = [recordCount(id)];
   const patternCount = patternsForNode(data, id).length;
-  if (patternCount) facts.push(tn(patternCount, 'in {n} pattern', 'in {n} patterns'));
+  if (patternCount) facts.push(tn(patternCount, 'in {n} repeat', 'in {n} repeats'));
   const loops = loopsThrough(data, id).length;
   if (loops) facts.push(tn(loops, 'in {n} loop', 'in {n} loops'));
   if (node.origin === 'inferred') facts.push(t('noticed by the Atlas in your notes'));
   const into = claimsInto(data, id).length;
   const out = claimsOutOf(data, id).length;
   const links: string[] = [];
-  if (into) links.push(tn(into, '{n} claim acts on it', '{n} claims act on it'));
+  if (into) links.push(tn(into, '{n} reason acts on it', '{n} reasons act on it'));
   if (out) links.push(tn(out, 'it acts on {n}', 'it acts on {n}'));
   const kind = `${KIND_META[node.kind].label} · ${AREA_META[node.area].label}${node.area === 'self' ? '' : ` · ${LAYER_META[layerOf(node.kind)].short}`}`;
   return {

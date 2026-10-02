@@ -55,7 +55,7 @@ export async function readWithAI(entry: Entry, data: AtlasData, base: EntryAnaly
         id: createId('sug'),
         type: 'attribution',
         excerpt: r.text,
-        reason: t('Reads as an explanation in your own words. That is your hypothesis about a cause, not evidence of it.'),
+        reason: t('Reads as an explanation in your own words. That is your hunch about a cause, not evidence of it.'),
         state: 'pending',
       });
 

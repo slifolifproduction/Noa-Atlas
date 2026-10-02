@@ -18,7 +18,7 @@ export function CurrentStateEditor({ onClose }: { onClose(): void }) {
       open
       onClose={onClose}
       title={t('Current state')}
-      description={t('Where you are starting from. Every path branches from here.')}
+      description={t('Where you are starting from. Every option branches from here.')}
       width="max-w-[560px]"
       footer={
         <>

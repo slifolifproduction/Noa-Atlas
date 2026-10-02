@@ -212,7 +212,8 @@ function Canvas({
   useEffect(() => {
     space.onDegrade = () => {
       setDegraded(true);
-      toast(t('Depth paused to keep this device smooth. Settings → Space can turn it back on.'));
+      // A technical aside: in simple view the map just carries on, flat.
+      if (useUI.getState().detail === 'full') toast(t('Depth paused to keep this device smooth. Settings → Space can turn it back on.'));
     };
     return () => void (space.onDegrade = null);
   }, [space]);

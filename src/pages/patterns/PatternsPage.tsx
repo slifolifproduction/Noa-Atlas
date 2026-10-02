@@ -124,7 +124,7 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
             patterns={live}
             selected={selected}
             schedule={
-              <nav aria-label={t('Patterns')}>
+              <nav aria-label={t('Repeats')}>
                 <div className="label mb-2">
                   {t('Keeps coming back')} · {live.length}
                 </div>
@@ -249,10 +249,10 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
         {p.setAside && (
           <p className="mt-3 flex flex-wrap items-center gap-2 rounded-[2px] border border-dashed border-line-strong px-3 py-2 text-[12.5px] text-ink-2">
             {p.setAside.note
-              ? t('You set this pattern aside: “{note}” It no longer informs options or the overview, and stays here for reference.', { note: p.setAside.note })
-              : t('You set this pattern aside. It no longer informs options or the overview, and stays here for reference.')}
+              ? t('You set this repeat aside: “{note}” It no longer informs options or the overview, and stays here for reference.', { note: p.setAside.note })
+              : t('You set this repeat aside. It no longer informs options or the overview, and stays here for reference.')}
             <Button size="sm" variant="ghost" onClick={() => setAside(p.id, false)}>
-              {t('Restore pattern')}
+              {t('Restore repeat')}
             </Button>
           </p>
         )}
@@ -630,7 +630,7 @@ function AddEvidence({ pattern }: { pattern: Pattern }) {
         className="field min-h-[56px]"
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder={t('The exact passage that bears on this pattern')}
+        placeholder={t('The exact passage that bears on this repeat')}
         aria-label={t('Excerpt')}
         required
       />
@@ -673,7 +673,7 @@ function PatternExperiments({ pattern }: { pattern: Pattern }) {
         </ul>
       ) : (
         <p className="text-[13px] text-ink-3">
-          {t('Nothing tests this yet. Tests check the claims that explain a pattern: open one of them and choose “Design a test”.')}
+          {t('Nothing tests this yet. Tests check the reasons that explain a repeat: open one of them and choose “Design a test”.')}
         </p>
       )}
     </Section>
@@ -701,7 +701,7 @@ function Assessment({ pattern }: { pattern: Pattern }) {
         ))}
         {pattern.setAside ? (
           <Button size="sm" variant="ghost" onClick={() => setAside(pattern.id, false)}>
-            {t('Restore pattern')}
+            {t('Restore repeat')}
           </Button>
         ) : (
           <Button size="sm" variant="ghost" onClick={() => setAside(pattern.id, true, note.trim() || undefined)}>

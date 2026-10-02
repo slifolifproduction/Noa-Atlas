@@ -55,7 +55,7 @@ export function CausesRail() {
           )}
         </p>
         <p className="mt-1 text-[11.5px] leading-snug text-ink-3">
-          {t('Only possible reasons are drawn here. A line is a claim to check, not a fact; links you drew are not causes.')}
+          {t('Only possible reasons are drawn here. A line is a reason to check, not a fact; links you drew are not causes.')}
         </p>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto pb-3">

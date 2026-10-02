@@ -44,8 +44,8 @@ export const ID: Record<string, string> = {
   'Matched {list}': 'Cocok dengan {list}',
   'Mentions {n} commitments in the same note.': 'Menyebut {n} komitmen dalam catatan yang sama.',
   '{what}: one instance of “{behaviour}”.': '{what}: satu kemunculan dari “{behaviour}”.',
-  'Explains something in your own words ({cue}). That is your hypothesis about a cause, not evidence of it.':
-    'Menjelaskan sesuatu dengan kata-katamu sendiri ({cue}). Itu hipotesismu tentang sebab, bukan bukti atasnya.',
+  'Explains something in your own words ({cue}). That is your hunch about a cause, not evidence of it.':
+    'Menjelaskan sesuatu dengan kata-katamu sendiri ({cue}). Itu dugaanmu tentang sebab, bukan bukti atasnya.',
   'Matched {list}: cues for {code}.': 'Cocok dengan {list}: tanda yang mendukung {code}.',
   'Matched {list}: cues against {code}.': 'Cocok dengan {list}: tanda yang berlawanan dengan {code}.',
   'Mentions {what}.': 'Menyebut {what}.',
@@ -88,26 +88,26 @@ export const ID: Record<string, string> = {
   'Change “{from}” on purpose': 'Ubah “{from}” dengan sengaja',
   'For 30 days, change “{from}” deliberately and keep everything else as it was. Keep recording “{to}” as usual.':
     'Selama 30 hari, ubah “{from}” dengan sengaja dan biarkan yang lain seperti biasa. Tetap catat “{to}” seperti biasa.',
-  'If the claim holds, “{to}” changes in the direction it predicts within the 30 days.':
-    'Jika klaim ini berlaku, “{to}” berubah ke arah yang diprediksi dalam 30 hari.',
-  'If “{to}” does not change, the claim is weakened.': 'Jika “{to}” tidak berubah, klaim ini melemah.',
+  'If the reason holds, “{to}” changes in the direction it predicts within the 30 days.':
+    'Jika sebab ini berlaku, “{to}” berubah ke arah yang diprediksi dalam 30 hari.',
+  'If “{to}” does not change, the reason is weakened.': 'Jika “{to}” tidak berubah, sebab ini melemah.',
   'Look for contrast cases: {to}': 'Cari kasus pembanding: {to}',
   '“{to}” also changes when “{from}” does not.': '“{to}” juga berubah saat “{from}” tidak berubah.',
   'For 14 days, note each time “{to}” changes and whether “{from}” changed first. This looks for other causes rather than trying to change anything.':
     'Selama 14 hari, catat setiap kali “{to}” berubah dan apakah “{from}” berubah lebih dulu. Ini mencari sebab lain, bukan mencoba mengubah apa pun.',
-  'If the claim holds, most changes in “{to}” follow a change in “{from}”.':
-    'Jika klaim ini berlaku, sebagian besar perubahan “{to}” terjadi setelah “{from}” berubah.',
+  'If the reason holds, most changes in “{to}” follow a change in “{from}”.':
+    'Jika sebab ini berlaku, sebagian besar perubahan “{to}” terjadi setelah “{from}” berubah.',
   'If “{to}” changes as often without it, another explanation is likely.': 'Jika “{to}” sama seringnya berubah tanpa itu, kemungkinan ada penjelasan lain.',
   'Changes in “{to}” after “{from}”': 'Perubahan “{to}” setelah “{from}”',
   'Changes in “{to}” without it': 'Perubahan “{to}” tanpa itu',
-  '{title}: hypothesis supported.': '{title}: hipotesis didukung.',
-  '{title}: hypothesis not supported.': '{title}: hipotesis tidak didukung.',
-  'An inconclusive result changes no claim. Consider tightening the measures and running it again.':
-    'Hasil yang tidak meyakinkan tidak mengubah klaim apa pun. Pertimbangkan untuk mempertajam ukurannya lalu jalankan lagi.',
-  'The prediction held. The claim gets a test result as evidence: the strongest kind one person can produce.':
-    'Prediksinya terbukti. Klaim ini mendapat hasil uji sebagai bukti: jenis bukti terkuat yang bisa dihasilkan satu orang.',
-  'The prediction did not hold. The claim gets a failed test as evidence, which weakens it.':
-    'Prediksinya tidak terbukti. Klaim ini mendapat uji yang gagal sebagai bukti, sehingga melemah.',
+  '{title}: hunch supported.': '{title}: dugaan didukung.',
+  '{title}: hunch not supported.': '{title}: dugaan tidak didukung.',
+  'An inconclusive result changes no reason. Consider tightening the measures and running it again.':
+    'Hasil yang tidak meyakinkan tidak mengubah sebab apa pun. Pertimbangkan untuk mempertajam ukurannya lalu jalankan lagi.',
+  'The prediction held. The reason gets a test result as evidence: the strongest kind one person can produce.':
+    'Prediksinya terbukti. Sebab ini mendapat hasil uji sebagai bukti: jenis bukti terkuat yang bisa dihasilkan satu orang.',
+  'The prediction did not hold. The reason gets a failed test as evidence, which weakens it.':
+    'Prediksinya tidak terbukti. Sebab ini mendapat uji yang gagal sebagai bukti, sehingga melemah.',
   'First concrete step toward: {target}': 'Langkah nyata pertama menuju: {target}',
   'First milestone': 'Tonggak pertama',
   'Map, Time, Causes, Repeats, Ahead, Quests': 'Peta, Waktu, Sebab, Pengulangan, Ke depan, Misi',
@@ -178,7 +178,7 @@ export const ID: Record<string, string> = {
   'What you actually did': 'Apa yang benar-benar kamu lakukan',
   'Expected overall': 'Harapan secara keseluruhan',
   'What you expect to happen': 'Apa yang kamu harapkan terjadi',
-  'used to find decision patterns': 'dipakai untuk menemukan pola keputusan',
+  'used to find repeated decisions': 'dipakai untuk menemukan keputusan yang berulang',
   'Optimising for': 'Mengutamakan',
   'What actually happened': 'Yang sebenarnya terjadi',
   'What I learned': 'Yang saya pelajari',
@@ -235,8 +235,8 @@ export const ID: Record<string, string> = {
   'As predicted': 'Sesuai prediksi',
   'Not as predicted': 'Tidak sesuai prediksi',
   Inconclusive: 'Belum jelas',
-  '{code} completed. The claim was updated.': '{code} selesai. Klaimnya diperbarui.',
-  '{code} completed. No claim changed.': '{code} selesai. Tidak ada klaim yang berubah.',
+  '{code} completed. The reason was updated.': '{code} selesai. Sebabnya diperbarui.',
+  '{code} completed. No reason changed.': '{code} selesai. Tidak ada sebab yang berubah.',
   'Record result · {code}': 'Catat hasil · {code}',
   Back: 'Kembali',
   'Apply update': 'Terapkan pembaruan',
@@ -253,11 +253,11 @@ export const ID: Record<string, string> = {
   'What would you do differently, or keep doing?': 'Apa yang akan kamu lakukan secara berbeda, atau tetap lakukan?',
   'What else changed': 'Apa lagi yang berubah',
   'Effects you did not aim for, good or bad': 'Efek yang tidak kamu tuju, baik atau buruk',
-  Claim: 'Klaim',
+  Reason: 'Sebab',
   'Added as a test that went as predicted.': 'Ditambahkan sebagai uji yang sesuai prediksi.',
   'Added as a test that did not go as predicted.': 'Ditambahkan sebagai uji yang tidak sesuai prediksi.',
-  'This test is not linked to a claim, so no status will change. An inconclusive result changes nothing either.':
-    'Uji ini tidak terhubung ke klaim, jadi tidak ada status yang berubah. Hasil yang tidak meyakinkan juga tidak mengubah apa pun.',
+  'This test is not linked to a reason, so no status will change. An inconclusive result changes nothing either.':
+    'Uji ini tidak terhubung ke sebab, jadi tidak ada status yang berubah. Hasil yang tidak meyakinkan juga tidak mengubah apa pun.',
   'e.g. Autonomy': 'mis. Otonomi',
   'e.g. Good work gets noticed on its own': 'mis. Karya yang bagus akan dilihat orang dengan sendirinya',
   'e.g. Running out of money': 'mis. Kehabisan uang',
@@ -288,8 +288,8 @@ export const ID: Record<string, string> = {
   'Possible reasons between two areas': 'Kemungkinan sebab antara dua area',
   'Links you drew between two areas': 'Tautan yang kamu gambar antara dua area',
   'drawn by the Atlas': 'digambar oleh Atlas',
-  'What in one area may contribute to something in the other, gathered in one line. Each is a claim to check: open it to see why.':
-    'Apa yang di satu area mungkin ikut menyebabkan sesuatu di area lain, dikumpulkan dalam satu garis. Masing-masing adalah klaim untuk diperiksa: buka untuk melihat alasannya.',
+  'What in one area may contribute to something in the other, gathered in one line. Each is a reason to check: open it to see why.':
+    'Apa yang di satu area mungkin ikut menyebabkan sesuatu di area lain, dikumpulkan dalam satu garis. Masing-masing adalah alasan untuk diperiksa: buka untuk melihat alasannya.',
   'Links organise the map. They say the two are related, not that one changes the other.':
     'Tautan merapikan peta. Tautan menyatakan keduanya berkaitan, bukan bahwa yang satu mengubah yang lain.',
   'A possible reason': 'Kemungkinan sebab',
@@ -327,18 +327,18 @@ export const ID: Record<string, string> = {
   'Links you drew': 'Tautan yang kamu gambar',
   '{n} record': '{n} catatan',
   '{n} records': '{n} catatan',
-  '{n} pattern': '{n} pola',
-  '{n} patterns': '{n} pola',
+  '{n} repeat': '{n} pengulangan',
+  '{n} repeats': '{n} pengulangan',
   'You · the centre': 'Kamu · pusat',
   '{n} element': '{n} elemen',
   '{n} elements': '{n} elemen',
-  'in {n} pattern': 'dalam {n} pola',
-  'in {n} patterns': 'dalam {n} pola',
+  'in {n} repeat': 'dalam {n} pengulangan',
+  'in {n} repeats': 'dalam {n} pengulangan',
   'in {n} loop': 'dalam {n} lingkaran',
   'in {n} loops': 'dalam {n} lingkaran',
   'noticed by the Atlas in your notes': 'ditemukan Atlas di catatanmu',
-  '{n} claim acts on it': '{n} klaim memengaruhinya',
-  '{n} claims act on it': '{n} klaim memengaruhinya',
+  '{n} reason acts on it': '{n} sebab memengaruhinya',
+  '{n} reasons act on it': '{n} sebab memengaruhinya',
   'it acts on {n}': 'memengaruhi {n}',
   concern: 'perhatian',
   'Added as a hunch. It becomes surer as your notes show it.': 'Ditambahkan sebagai dugaan. Makin yakin seiring catatanmu menunjukkannya.',
@@ -353,8 +353,8 @@ export const ID: Record<string, string> = {
   'Rings around you, one side per area of life': 'Cincin di sekelilingmu, satu sisi untuk tiap area hidup',
   Orbit: 'Orbit',
   'Drag to connect': 'Seret untuk menyambung',
-  '{n} active pattern involves this area': '{n} pola aktif melibatkan area ini',
-  '{n} active patterns involve this area': '{n} pola aktif melibatkan area ini',
+  '{n} active repeat involves this area': '{n} pengulangan aktif melibatkan area ini',
+  '{n} active repeats involve this area': '{n} pengulangan aktif melibatkan area ini',
   '{n} more inside: choose the area to open it': '{n} lagi di dalamnya: pilih areanya untuk membuka',
   'An outcome you want explained or changed': 'Hasil yang ingin kamu jelaskan atau ubah',
   'Nothing on the map here yet.': 'Belum ada apa pun di peta di sini.',
@@ -501,10 +501,10 @@ export const ID: Record<string, string> = {
   'When it holds': 'Kapan berlaku',
   'Optional, e.g. in deadline weeks': 'Opsional, mis. di minggu tenggat',
   'kept as its first instance': 'disimpan sebagai kemunculan pertamanya',
-  'Add claim': 'Tambah klaim',
+  'Add a reason': 'Tambah sebab',
   'What to add': 'Apa yang ditambahkan',
-  'A claim': 'Sebuah klaim',
-  'How this changes something else: a hypothesis to check': 'Bagaimana ini mengubah hal lain: hipotesis untuk dicek',
+  'A reason': 'Sebuah sebab',
+  'How this changes something else: a hunch to check': 'Bagaimana ini mengubah hal lain: dugaan untuk dicek',
   'How they relate, in your terms: needs no evidence': 'Bagaimana keduanya berhubungan, menurut istilahmu: tidak butuh bukti',
   'It starts as proposed. Add the notes that show it, and it climbs.': 'Dimulai sebagai usulan. Tambahkan catatan yang menunjukkannya, dan statusnya naik.',
   Target: 'Target',
@@ -697,19 +697,19 @@ export const ID: Record<string, string> = {
   'Possible, not history: what the things this decision touches may lead to, by the reasons on your map.':
     'Kemungkinan, bukan riwayat: ke mana hal-hal yang disentuh keputusan ini mungkin mengarah, menurut sebab-sebab di petamu.',
   'Cited as evidence': 'Dirujuk sebagai bukti',
-  'Not cited by any claim or pattern yet.': 'Belum dirujuk oleh klaim atau pola mana pun.',
+  'Not cited by any reason or repeat yet.': 'Belum dirujuk oleh sebab atau pengulangan mana pun.',
   'What might have happened?': 'Apa yang mungkin terjadi?',
   'Imagined, not known': 'Dibayangkan, bukan diketahui',
   'Judging the decision': 'Menilai keputusannya',
   'By what you knew and could have known then, not by the result. A good decision can turn out badly, and a poor one well.':
     'Berdasarkan apa yang kamu ketahui dan bisa ketahui saat itu, bukan berdasarkan hasilnya. Keputusan yang baik bisa berakhir buruk, dan yang buruk bisa berakhir baik.',
-  'Was the information enough? Were the options wide enough? Was it rushed?': 'Apakah informasinya cukup? Apakah pilihannya cukup luas? Apakah terburu-buru?',
+  'Was the information enough? Were the options wide enough? Was it rushed?': 'Apakah informasinya cukup? Apakah opsinya cukup luas? Apakah terburu-buru?',
   'Next time': 'Lain kali',
   'If … then I will …': 'Jika … maka aku akan …',
   'What may explain how it turned out': 'Yang mungkin menjelaskan hasilnya',
-  'No explanation attached. Which claims might account for how it went?': 'Belum ada penjelasan terlampir. Klaim mana yang mungkin menjelaskan jalannya?',
-  'Not reviewed yet. Recording what actually happened is what lets decision patterns emerge.':
-    'Belum ditinjau. Mencatat apa yang benar-benar terjadi adalah yang memungkinkan pola keputusan muncul.',
+  'No explanation attached. Which reasons might account for how it went?': 'Belum ada penjelasan terlampir. Sebab mana yang mungkin menjelaskan jalannya?',
+  'Not reviewed yet. Recording what actually happened is what lets repeated decisions emerge.':
+    'Belum ditinjau. Mencatat apa yang benar-benar terjadi adalah yang memungkinkan keputusan yang berulang muncul.',
   'Record outcome': 'Catat hasil',
   'What actually happened?': 'Apa yang benar-benar terjadi?',
   'Compared with what you expected': 'Dibandingkan dengan harapanmu',
@@ -930,11 +930,11 @@ export const ID: Record<string, string> = {
   '{n} thing in the cycle': '{n} hal dalam siklus',
   '{n} things in the cycle': '{n} hal dalam siklus',
   'Something else it might change?': 'Hal lain yang mungkin diubahnya?',
-  'As a claim': 'Sebagai klaim',
-  'A belief is something you hold, and also a claim about how things work that the record can bear out or not.':
-    'Keyakinan adalah sesuatu yang kamu pegang, sekaligus klaim tentang cara kerja sesuatu yang bisa dibuktikan atau tidak oleh catatan.',
+  'As a reason': 'Sebagai sebab',
+  'A belief is something you hold, and also an idea about how things work that the record can bear out or not.':
+    'Keyakinan adalah sesuatu yang kamu pegang, sekaligus gagasan tentang cara kerja sesuatu yang bisa dibuktikan atau tidak oleh catatan.',
   'What does this belief say changes what?': 'Menurut keyakinan ini, apa mengubah apa?',
-  'State it as a claim': 'Nyatakan sebagai klaim',
+  'State it as a reason': 'Nyatakan sebagai sebab',
   'Why?': 'Mengapa?',
   'Explain something that happened, against what you expected instead.': 'Jelaskan sesuatu yang terjadi, dibandingkan dengan apa yang kamu harapkan.',
   'What if?': 'Bagaimana jika?',
@@ -955,7 +955,7 @@ export const ID: Record<string, string> = {
   'Possible consequences': 'Kemungkinan akibat',
   'Remove from this investigation': 'Hapus dari penyelidikan ini',
   'None gathered yet.': 'Belum ada yang dikumpulkan.',
-  'Claims on the map that could belong here:': 'Klaim di peta yang mungkin termasuk di sini:',
+  'Reasons on the map that could belong here:': 'Sebab di peta yang mungkin termasuk di sini:',
   'What you conclude, for now': 'Kesimpulanmu, untuk sementara',
   'A provisional answer, and what would change it.': 'Jawaban sementara, dan apa yang bisa mengubahnya.',
   'Recorded regularly. Its usual level moved over time ({levels}); high and low are read against the usual level of the time, not against anyone else.':
@@ -994,8 +994,8 @@ export const ID: Record<string, string> = {
   'Nothing recorded in the four weeks before.': 'Tidak ada yang tercatat dalam empat minggu sebelumnya.',
   'Just after': 'Tepat sesudahnya',
   'Nothing recorded in the four weeks after.': 'Tidak ada yang tercatat dalam empat minggu sesudahnya.',
-  'What came before and after is context, not cause. Causes are claims, checked against more than one episode.':
-    'Yang terjadi sebelum dan sesudahnya adalah konteks, bukan sebab. Sebab adalah klaim, yang dicek terhadap lebih dari satu episode.',
+  'What came before and after is context, not cause. Causes are reasons, checked against more than one episode.':
+    'Yang terjadi sebelum dan sesudahnya adalah konteks, bukan sebab. Sebab adalah alasan, yang dicek terhadap lebih dari satu episode.',
   'Set aside by you. Kept for reference.': 'Disisihkan olehmu. Disimpan sebagai rujukan.',
   Regularity: 'Keteraturan',
   Instances: 'Kemunculan',
@@ -1005,12 +1005,12 @@ export const ID: Record<string, string> = {
   'Last seen': 'Terakhir terlihat',
   'Open full evidence': 'Buka semua bukti',
   'Why it may happen': 'Mengapa bisa terjadi',
-  'No explanation attached yet. A pattern only says what keeps happening; link the claims that may explain it on the Patterns page.':
-    'Belum ada penjelasan terlampir. Pola hanya menyatakan apa yang terus terjadi; tautkan klaim yang mungkin menjelaskannya di halaman Pola.',
+  'No explanation attached yet. A repeat only says what keeps happening; link the reasons that may explain it on the Repeats page.':
+    'Belum ada penjelasan terlampir. Pengulangan hanya menyatakan apa yang terus terjadi; tautkan sebab yang mungkin menjelaskannya di halaman Pengulangan.',
   Involves: 'Melibatkan',
-  'Compare options': 'Bandingkan pilihan',
+  'Compare options': 'Bandingkan opsi',
   'Relies on': 'Bergantung pada',
-  'No claims attached. What would have to be true for this path to work?': 'Belum ada klaim terlampir. Apa yang harus benar agar jalur ini berhasil?',
+  'No reasons attached. What would have to be true for this option to work?': 'Belum ada sebab terlampir. Apa yang harus benar agar opsi ini berhasil?',
   You: 'Kamu',
   'Weekly review with Claude': 'Tinjauan mingguan dengan Claude',
   'On your own claude.ai account. Claude reads, suggests and asks; nothing changes in your atlas unless you keep it.':
@@ -1174,8 +1174,8 @@ export const ID: Record<string, string> = {
     'Garis adalah tautan yang kamu gambar, atau kemungkinan sebab (putus-putus selama masih dugaan). Untuk menambah sebab, buka sesuatu dan tanyakan “Kenapa ini bisa terjadi?”, atau seret dari satu hal ke hal lain.',
   'A dashed area marker means nothing was written about it lately. The overview on the left suggests something to look at.':
     'Penanda area putus-putus berarti belakangan tidak ada yang ditulis tentangnya. Ringkasan di kiri menyarankan sesuatu untuk dilihat.',
-  'Your possible reasons, as a double helix: a line is a claim that one thing may contribute to another, drawn firmer the surer it is. Read it from top to bottom: each element sits below what may lead to it. Links you drew and things that merely happened together are not drawn here.':
-    'Kemungkinan sebabmu, sebagai heliks ganda: sebuah garis adalah klaim bahwa satu hal mungkin ikut menyebabkan hal lain, digambar makin tegas makin yakin. Baca dari atas ke bawah: setiap elemen berada di bawah apa yang mungkin memicunya. Tautan yang kamu gambar dan hal-hal yang sekadar terjadi bersamaan tidak digambar di sini.',
+  'Your possible reasons, as a double helix: a line is a reason that one thing may contribute to another, drawn firmer the surer it is. Read it from top to bottom: each element sits below what may lead to it. Links you drew and things that merely happened together are not drawn here.':
+    'Kemungkinan sebabmu, sebagai heliks ganda: sebuah garis adalah alasan bahwa satu hal mungkin ikut menyebabkan hal lain, digambar makin tegas makin yakin. Baca dari atas ke bawah: setiap elemen berada di bawah apa yang mungkin memicunya. Tautan yang kamu gambar dan hal-hal yang sekadar terjadi bersamaan tidak digambar di sini.',
   'Tap something to start from it: what may lead to it, by the part each plays, what competes, and what is still unexplained. The list on the left can trace back from it, or on from it.':
     'Ketuk sesuatu untuk memulai darinya: apa yang mungkin mengarah kepadanya, menurut peran masing-masing, apa yang bersaing, dan apa yang masih belum terjelaskan. Daftar di kiri bisa menelusuri mundur darinya, atau maju darinya.',
   'A reason becomes surer only as your notes show it happening in that order, in separate weeks, and once without it; a test is the strongest. Only a time it was there and the outcome did not follow counts against it. A written “how” is an explanation, not evidence.':
@@ -1198,9 +1198,9 @@ export const ID: Record<string, string> = {
     'Masih baru sampai muncul di tiga minggu berbeda, terus terjadi setelah itu, dan memudar ketika pengecualian mendominasi atau berhenti muncul.',
   'Why it happens is a separate question: open it and ask.': 'Kenapa itu terjadi adalah pertanyaan lain: buka dan tanyakan.',
   'Each option is a possible direction, described the same way so you can compare them. They are never ranked, and nothing here has happened yet.':
-    'Setiap pilihan adalah arah yang mungkin, digambarkan dengan cara yang sama supaya bisa dibandingkan. Tidak pernah diperingkat, dan belum ada yang terjadi di sini.',
+    'Setiap opsi adalah arah yang mungkin, digambarkan dengan cara yang sama supaya bisa dibandingkan. Tidak pernah diperingkat, dan belum ada yang terjadi di sini.',
   '“Relies on” lists the reasons an option needs to hold, with how sure each one is: that is how solid the option is.':
-    '“Bergantung pada” mendaftar sebab-sebab yang harus berlaku agar pilihan itu jalan, dengan seberapa yakin masing-masing: itulah sekokoh apa pilihan itu.',
+    '“Bergantung pada” mendaftar sebab-sebab yang harus berlaku agar opsi itu jalan, dengan seberapa yakin masing-masing: itulah sekokoh apa opsi itu.',
   'When you have decided, press “Choose as direction”. It then turns into concrete steps, under What you chose.':
     'Setelah kamu memutuskan, tekan “Pilih sebagai arah”. Lalu itu menjadi langkah-langkah nyata, di Yang kamu pilih.',
   'Your chosen direction, from the big goal down to this week’s steps.': 'Arah yang kamu pilih, dari tujuan besar sampai langkah minggu ini.',
@@ -1320,7 +1320,7 @@ export const ID: Record<string, string> = {
   '{b} is written down mostly when it stands out, so quiet times are missing from the record.':
     '{b} kebanyakan ditulis saat menonjol, jadi masa-masa tenang tidak ada di catatan.',
   'Note {b} with every note for a few weeks, whether or not it stands out.': 'Catat {b} di setiap catatan selama beberapa minggu, menonjol atau tidak.',
-  'If the pattern still shows, it is not only how things were written down.': 'Jika polanya tetap terlihat, itu bukan hanya soal cara mencatatnya.',
+  'If the repeat still shows, it is not only how things were written down.': 'Jika pengulangannya tetap terlihat, itu bukan hanya soal cara mencatatnya.',
   'Part of it may have been what got written down.': 'Sebagian mungkin hanya soal apa yang kebetulan ditulis.',
   'Something happened to you from outside before it moved.': 'Sesuatu dari luar terjadi padamu sebelum ia bergerak.',
   '{n} things happened to you from outside before it moved.': '{n} hal dari luar terjadi padamu sebelum ia bergerak.',
@@ -1486,15 +1486,15 @@ export const ID: Record<string, string> = {
   'Where things happen, and when.': 'Di mana sesuatu terjadi, dan kapan.',
   'aims at': 'menuju',
   'Aims at': 'Menuju',
-  'Declared: A is meant to move B forward. Whether it does is a separate claim.':
-    'Dinyatakan: A dimaksudkan untuk memajukan B. Apakah benar begitu adalah klaim tersendiri.',
+  'Declared: A is meant to move B forward. Whether it does is a separate question.':
+    'Dinyatakan: A dimaksudkan untuk memajukan B. Apakah benar begitu adalah pertanyaan tersendiri.',
   'is a reason you give for': 'adalah alasan yang kamu berikan untuk',
   'A reason you give': 'Alasan yang kamu berikan',
   'Declared: A is a reason you give for B.': 'Dinyatakan: A adalah alasan yang kamu berikan untuk B.',
   'is in tension with': 'bertentangan dengan',
   'In tension': 'Bertentangan',
-  'A and B compete for the same time, money or attention. Declared: whether one changes the other is a separate claim.':
-    'A dan B bersaing untuk waktu, uang, atau perhatian yang sama. Dinyatakan: apakah yang satu mengubah yang lain adalah klaim tersendiri.',
+  'A and B compete for the same time, money or attention. Declared: whether one changes the other is a separate question.':
+    'A dan B bersaing untuk waktu, uang, atau perhatian yang sama. Dinyatakan: apakah yang satu mengubah yang lain adalah pertanyaan tersendiri.',
   'aligns with': 'selaras dengan',
   Aligns: 'Selaras',
   'A and B point the same way.': 'A dan B mengarah ke arah yang sama.',
@@ -1711,9 +1711,8 @@ export const ID: Record<string, string> = {
   'What stands in the way': 'Apa yang menghadang',
   Area: 'Area',
   Entry: 'Catatan',
-  Pattern: 'Pola',
   Experiment: 'Eksperimen',
-  Path: 'Jalur',
+  Option: 'Opsi',
   'Balancing loop': 'Lingkaran yang menyeimbangkan',
   'Reinforcing loop': 'Lingkaran yang memperkuat',
   'Nothing on the map explains it yet: add a possible reason.': 'Belum ada di peta yang menjelaskannya: tambahkan kemungkinan sebab.',
@@ -1796,8 +1795,8 @@ export const ID: Record<string, string> = {
   'It would tell “{a}” from “{b}”.': 'Ini bisa membedakan “{a}” dari “{b}”.',
   'Choose a direction': 'Pilih arah',
   'Compare your options side by side, then pick one to turn into concrete steps.':
-    'Bandingkan pilihanmu berdampingan, lalu pilih satu untuk diubah menjadi langkah nyata.',
-  'See your options': 'Lihat pilihanmu',
+    'Bandingkan opsimu berdampingan, lalu pilih satu untuk diubah menjadi langkah nyata.',
+  'See your options': 'Lihat opsimu',
   'This week’s next step toward “{goal}”.': 'Langkah berikutnya minggu ini menuju “{goal}”.',
   'Mark as done': 'Tandai selesai',
   'Plan this week': 'Rencanakan minggu ini',
@@ -1823,8 +1822,8 @@ export const ID: Record<string, string> = {
   'No delay stated in advance.': 'Tidak ada jeda yang dinyatakan sebelumnya.',
   'Entry #{n}': 'Catatan #{n}',
   'Decision #{n}': 'Keputusan #{n}',
-  'Pattern {code}': 'Pola {code}',
-  'Path {code}': 'Jalur {code}',
+  'Repeat {code}': 'Pengulangan {code}',
+  'Option {code}': 'Opsi {code}',
   'Deleted entry': 'Catatan yang dihapus',
   'Deleted decision': 'Keputusan yang dihapus',
   'Deleted event': 'Peristiwa yang dihapus',
@@ -1912,7 +1911,7 @@ export const ID: Record<string, string> = {
   'Change direction →': 'Ganti arah →',
   'No direction chosen': 'Belum ada arah yang dipilih',
   'Your plan starts from an option you choose. Choosing one drafts a 12-month goal, an experiment, 30-day targets and this week’s steps, all of which you can edit.':
-    'Rencanamu berawal dari pilihan yang kamu tentukan. Memilih satu akan menyusun draf tujuan 12 bulan, satu eksperimen, target 30 hari, dan langkah minggu ini, yang semuanya bisa kamu ubah.',
+    'Rencanamu berawal dari opsi yang kamu tentukan. Memilih satu akan menyusun draf tujuan 12 bulan, satu eksperimen, target 30 hari, dan langkah minggu ini, yang semuanya bisa kamu ubah.',
   Experiments: 'Eksperimen',
   Route: 'Rute',
   'Current position': 'Posisi saat ini',
@@ -1949,42 +1948,41 @@ export const ID: Record<string, string> = {
   Test: 'Uji',
   Compare: 'Bandingkan',
   'Feedback loop': 'Siklus umpan balik',
-  'Test instead of guessing. A recorded result becomes evidence on the claim it tests, and can move its status either way.':
-    'Uji alih-alih menebak. Hasil yang dicatat menjadi bukti bagi klaim yang diuji, dan bisa menggeser statusnya ke dua arah.',
+  'Test instead of guessing. A recorded result becomes evidence on the reason it tests, and can move its status either way.':
+    'Uji alih-alih menebak. Hasil yang dicatat menjadi bukti bagi sebab yang diuji, dan bisa menggeser statusnya ke dua arah.',
   'No tests yet': 'Belum ada uji',
-  'Design one from any claim: open it and choose “Design a test”.': 'Rancang dari klaim mana pun: buka klaimnya dan pilih “Rancang uji”.',
+  'Design one from any reason: open it and choose “Design a test”.': 'Rancang dari sebab mana pun: buka sebabnya dan pilih “Rancang uji”.',
   'result due': 'waktunya hasil',
   'day {d}/{total}': 'hari {d}/{total}',
   'Result:': 'Hasil:',
   'New test': 'Uji baru',
-  'Change one thing on purpose, keep recording, and write down beforehand what should happen if the claim holds.':
-    'Ubah satu hal dengan sengaja, tetap mencatat, dan tulis lebih dulu apa yang seharusnya terjadi jika klaimnya berlaku.',
+  'Change one thing on purpose, keep recording, and write down beforehand what should happen if the reason holds.':
+    'Ubah satu hal dengan sengaja, tetap mencatat, dan tulis lebih dulu apa yang seharusnya terjadi jika sebabnya berlaku.',
   'Add test': 'Tambah uji',
-  'The claim it tests': 'Klaim yang diuji',
   None: 'Tidak ada',
   'e.g. Commitment cap': 'mis. Batas komitmen',
   Days: 'Hari',
-  Hypothesis: 'Hipotesis',
+  Hunch: 'Dugaan',
   'I may… / If I…, then…': 'Saya mungkin… / Jika saya…, maka…',
   'One thing you will do differently, and for how long. Keep everything else as it is.':
     'Satu hal yang akan kamu lakukan secara berbeda, dan selama berapa lama. Biarkan yang lain seperti adanya.',
   Prediction: 'Prediksi',
-  'If the claim holds, what will you see?': 'Jika klaimnya berlaku, apa yang akan kamu lihat?',
-  'The result that would count against the claim': 'Hasil yang akan dihitung menentang klaim ini',
+  'If the reason holds, what will you see?': 'Jika sebabnya berlaku, apa yang akan kamu lihat?',
+  'The result that would count against the reason': 'Hasil yang akan dihitung menentang sebab ini',
   'How things are now': 'Keadaan sekarang',
   'The baseline to compare against': 'Titik awal untuk pembanding',
   'one per line': 'satu per baris',
   'Completion rate\nFocus hours per week\nStress (1–5)': 'Tingkat penyelesaian\nJam fokus per minggu\nStres (1–5)',
-  'Also bears on pattern': 'Juga berkaitan dengan pola',
-  'Informs option': 'Memberi masukan untuk pilihan',
+  'Also bears on repeat': 'Juga berkaitan dengan pengulangan',
+  'Informs option': 'Memberi masukan untuk opsi',
   'Your own quests': 'Quest milikmu',
   'Fight them in Quests': 'Lawan di Misi',
   '{n} possible reason, drawn by how sure it is. Tap anything to ask about it.':
     '{n} kemungkinan sebab, digambar menurut seberapa yakin. Ketuk apa saja untuk bertanya tentangnya.',
   '{n} possible reasons, drawn by how sure they are. Tap anything to ask about it.':
     '{n} kemungkinan sebab, digambar menurut seberapa yakin. Ketuk apa saja untuk bertanya tentangnya.',
-  'Only possible reasons are drawn here. A line is a claim to check, not a fact; links you drew are not causes.':
-    'Hanya kemungkinan sebab yang digambar di sini. Sebuah garis adalah klaim untuk diperiksa, bukan fakta; tautan yang kamu gambar bukan sebab.',
+  'Only possible reasons are drawn here. A line is a reason to check, not a fact; links you drew are not causes.':
+    'Hanya kemungkinan sebab yang digambar di sini. Sebuah garis adalah alasan untuk diperiksa, bukan fakta; tautan yang kamu gambar bukan sebab.',
   Clear: 'Hapus',
   '{n} step': '{n} langkah',
   '{n} steps': '{n} langkah',
@@ -2072,14 +2070,14 @@ export const ID: Record<string, string> = {
   'Or begin with the map itself: what you value, what you are working on, the people around you.':
     'Atau mulai dari petanya: apa yang kamu hargai, apa yang sedang kamu kerjakan, orang-orang di sekitarmu.',
   'Current state': 'Kondisi saat ini',
-  'Where you are starting from. Every path branches from here.': 'Titik awalmu. Setiap jalur bercabang dari sini.',
+  'Where you are starting from. Every option branches from here.': 'Titik awalmu. Setiap opsi bercabang dari sini.',
   'Position, in one line': 'Posisi, dalam satu baris',
   'e.g. Freelance producer, three months into a hybrid test': 'mis. Produser lepas, tiga bulan menjalani uji kerja hibrida',
   Summary: 'Ringkasan',
   Constraints: 'Batasan',
   Assets: 'Modal yang dimiliki',
   Requirements: 'Syarat',
-  'What must be true for this path to work': 'Apa yang harus terpenuhi agar jalur ini berhasil',
+  'What must be true for this option to work': 'Apa yang harus terpenuhi agar opsi ini berhasil',
   Dependencies: 'Ketergantungan',
   'People, money or conditions it relies on': 'Orang, uang, atau kondisi yang diandalkan',
   Risks: 'Risiko',
@@ -2087,17 +2085,17 @@ export const ID: Record<string, string> = {
   'Trade-offs': 'Untung-rugi',
   'What you gain and what you give up': 'Apa yang kamu dapat dan apa yang kamu lepas',
   'Opportunity costs': 'Biaya peluang',
-  'What this path rules out': 'Apa yang tertutup oleh jalur ini',
+  'What this option rules out': 'Apa yang tertutup oleh opsi ini',
   Unknowns: 'Hal yang belum diketahui',
   'Beliefs that have not been tested': 'Keyakinan yang belum diuji',
   'Experiment ideas': 'Ide eksperimen',
   'Cheap ways to reduce an unknown': 'Cara murah untuk mengurangi hal yang belum diketahui',
   'label | {have}, {developing} or {gap}': 'nama | {have}, {developing} atau {gap}',
-  'Untitled path': 'Jalur tanpa judul',
+  'Untitled option': 'Opsi tanpa judul',
   'Edit {code}': 'Ubah {code}',
   'One item per line. Keep the language descriptive rather than persuasive.': 'Satu item per baris. Gunakan bahasa yang menggambarkan, bukan membujuk.',
-  'Delete path': 'Hapus jalur',
-  'Save path': 'Simpan jalur',
+  'Delete option': 'Hapus opsi',
+  'Save option': 'Simpan opsi',
   Objective: 'Tujuan',
   Capital: 'Modal',
   'What must be true': 'Apa yang harus terpenuhi',
@@ -2113,11 +2111,11 @@ export const ID: Record<string, string> = {
   'From your notes': 'Dari catatanmu',
   'Ways to find out': 'Cara mencari tahu',
   'Your options, grown from where you are and asked the same questions. None of it has happened yet, and they are never ranked.':
-    'Pilihan-pilihanmu, tumbuh dari posisimu sekarang dan diberi pertanyaan yang sama. Belum ada yang terjadi, dan tidak pernah diperingkat.',
-  'Add an option': 'Tambahkan pilihan',
+    'Opsi-opsimu, tumbuh dari posisimu sekarang dan diberi pertanyaan yang sama. Belum ada yang terjadi, dan tidak pernah diperingkat.',
+  'Add an option': 'Tambahkan opsi',
   'None of your options counts on this yet. Open an option to say what it relies on.':
-    'Belum ada pilihanmu yang bergantung pada ini. Buka sebuah pilihan untuk menyatakan apa yang diandalkannya.',
-  'No options yet': 'Belum ada pilihan',
+    'Belum ada opsimu yang bergantung pada ini. Buka sebuah opsi untuk menyatakan apa yang diandalkannya.',
+  'No options yet': 'Belum ada opsi',
   'Describe two or three genuinely different directions. The same questions are asked of each (requirements, capital, time, risks, unknowns) so they can be compared without a verdict.':
     'Gambarkan dua atau tiga arah yang benar-benar berbeda. Pertanyaan yang sama diajukan untuk masing-masing (syarat, modal, waktu, risiko, hal yang belum diketahui) agar bisa dibandingkan tanpa vonis.',
   'What you expect': 'Yang kamu perkirakan',
@@ -2126,10 +2124,10 @@ export const ID: Record<string, string> = {
   'Every answer side by side, and editable where it stands': 'Setiap jawaban berdampingan, dan bisa diubah di tempatnya',
   'Compare in detail': 'Bandingkan secara rinci',
   // The Ahead plate: options as the roots of a tree in a glass case, growing out of where you are.
-  'Your options as roots growing from where you are': 'Pilihan-pilihanmu sebagai akar yang tumbuh dari posisimu sekarang',
+  'Your options as roots growing from where you are': 'Opsi-opsimu sebagai akar yang tumbuh dari posisimu sekarang',
   'Plate · Ahead': 'Lembar · Ke depan',
   'What could grow from here · a section': 'Yang bisa tumbuh dari sini · potongan',
-  '{n} options · {m} answers · not ranked': '{n} pilihan · {m} jawaban · tidak diperingkat',
+  '{n} options · {m} answers · not ranked': '{n} opsi · {m} jawaban · tidak diperingkat',
   'Drag to turn it': 'Seret untuk memutarnya',
   'You are here': 'Kamu di sini',
   'Holds you': 'Menahanmu',
@@ -2139,16 +2137,16 @@ export const ID: Record<string, string> = {
   'Edit where you are': 'Ubah posisimu',
   'Where are you starting from?': 'Dari mana kamu memulai?',
   'Drag to turn it · point at a root to read its option · at a level to compare them · click a node to open it':
-    'Seret untuk memutarnya · arahkan ke akar untuk membaca pilihannya · ke sebuah level untuk membandingkannya · klik simpul untuk membukanya',
-  'Edit this option': 'Ubah pilihan ini',
+    'Seret untuk memutarnya · arahkan ke akar untuk membaca opsinya · ke sebuah level untuk membandingkannya · klik simpul untuk membukanya',
+  'Edit this option': 'Ubah opsi ini',
   'One mark wants attention: a gap, or a reason the exceptions outweigh.':
     'Satu tanda perlu perhatian: kekurangan, atau sebab yang kalah oleh pengecualiannya.',
   '{n} marks want attention: gaps, or reasons the exceptions outweigh.': '{n} tanda perlu perhatian: kekurangan, atau sebab yang kalah oleh pengecualiannya.',
   Needs: 'Kebutuhan',
   Costs: 'Biaya',
-  'What each option needs: requirements, what it depends on, capital and time.': 'Yang dibutuhkan tiap pilihan: syarat, apa yang diandalkan, modal, dan waktu.',
-  'The skills each option takes, and where you stand on each.': 'Keterampilan yang dibutuhkan tiap pilihan, dan posisimu pada masing-masing.',
-  'What each option risks, trades away and rules out.': 'Apa yang dipertaruhkan, dilepas, dan ditutup oleh tiap pilihan.',
+  'What each option needs: requirements, what it depends on, capital and time.': 'Yang dibutuhkan tiap opsi: syarat, apa yang diandalkan, modal, dan waktu.',
+  'The skills each option takes, and where you stand on each.': 'Keterampilan yang dibutuhkan tiap opsi, dan posisimu pada masing-masing.',
+  'What each option risks, trades away and rules out.': 'Apa yang dipertaruhkan, dilepas, dan ditutup oleh tiap opsi.',
   'What is not known yet: open questions, the reasons it relies on, tests, and repeats in play.':
     'Yang belum diketahui: pertanyaan terbuka, sebab yang diandalkan, uji, dan pengulangan yang berperan.',
   'More marks is not better or worse: it is how much there is to read.':
@@ -2175,8 +2173,8 @@ export const ID: Record<string, string> = {
   'What you chose · since {date}': 'Yang kamu pilih · sejak {date}',
   'No objective yet.': 'Belum ada tujuan.',
   'Open my plan': 'Buka rencanaku',
-  'This replaces your current navigation plan with a draft for this path.': 'Ini akan mengganti rencana navigasimu saat ini dengan draf untuk jalur ini.',
-  'A draft navigation plan will be created for you to edit.': 'Draf rencana navigasi akan dibuat untuk kamu ubah.',
+  'This replaces your current plan with a draft for this option.': 'Ini akan mengganti rencanamu saat ini dengan draf untuk opsi ini.',
+  'A draft plan will be created for you to edit.': 'Draf rencana navigasi akan dibuat untuk kamu ubah.',
   'Choose {code}': 'Pilih {code}',
   'Choose as direction': 'Pilih sebagai arah',
   'None linked': 'Belum ada yang tertaut',
@@ -2199,10 +2197,10 @@ export const ID: Record<string, string> = {
   'Added to Repeats.': 'Ditambahkan ke Pengulangan.',
   'It rings true': 'Terasa benar',
   'All decisions': 'Semua keputusan',
-  'Describe a pattern': 'Gambarkan sebuah pola',
+  'Describe a repeat': 'Gambarkan sebuah pengulangan',
   'Something you suspect keeps happening. It starts with no instances; it becomes a regularity only as you attach the notes and decisions where it happened.':
     'Sesuatu yang kamu duga terus terjadi. Dimulai tanpa kemunculan; menjadi keteraturan hanya setelah kamu melampirkan catatan dan keputusan tempat hal itu terjadi.',
-  'Add pattern': 'Tambah pola',
+  'Add repeat': 'Tambah pengulangan',
   Kind: 'Jenis',
   'short names': 'nama singkat',
   'Trigger → behaviour → consequence': 'Pemicu → perilaku → akibat',
@@ -2228,7 +2226,6 @@ export const ID: Record<string, string> = {
     'Pengulangan muncul ketika beberapa catatan atau keputusan menunjuk ke arah yang sama: sesuatu memicunya, kamu merespons, dan sesuatu menyusul. Tulis beberapa catatan (fakta sederhana paling baik) dan pengulangan akan muncul di sini, beserta bagian tulisan yang mendasarinya. Tidak ada yang dihitung sampai kamu bilang terasa benar.',
   'Nothing that repeats involves this yet. A repeat shows once something similar happens in separate weeks.':
     'Belum ada pengulangan yang melibatkan ini. Pengulangan muncul setelah hal serupa terjadi di minggu-minggu berbeda.',
-  Patterns: 'Pola',
   'Keeps coming back': 'Terus kembali',
   // The Repeats almanac: the year as a wheel that turns under a reading needle.
   'Plate · Repeats': 'Lembar · Pengulangan',
@@ -2246,11 +2243,11 @@ export const ID: Record<string, string> = {
   '{n} separate week': '{n} minggu berbeda',
   '{n} separate weeks': '{n} minggu berbeda',
   then: 'lalu',
-  'You set this pattern aside: “{note}” It no longer informs options or the overview, and stays here for reference.':
-    'Kamu menyisihkan pola ini: “{note}” Pola ini tidak lagi memengaruhi pilihan atau ringkasan, dan tetap di sini sebagai rujukan.',
-  'You set this pattern aside. It no longer informs options or the overview, and stays here for reference.':
-    'Kamu menyisihkan pola ini. Pola ini tidak lagi memengaruhi pilihan atau ringkasan, dan tetap di sini sebagai rujukan.',
-  'Restore pattern': 'Pulihkan pola',
+  'You set this repeat aside: “{note}” It no longer informs options or the overview, and stays here for reference.':
+    'Kamu menyisihkan pengulangan ini: “{note}” Pengulangan ini tidak lagi memengaruhi opsi atau ringkasan, dan tetap di sini sebagai rujukan.',
+  'You set this repeat aside. It no longer informs options or the overview, and stays here for reference.':
+    'Kamu menyisihkan pengulangan ini. Pengulangan ini tidak lagi memengaruhi opsi atau ringkasan, dan tetap di sini sebagai rujukan.',
+  'Restore repeat': 'Pulihkan pengulangan',
   'it happened': 'terjadi',
   'an exception': 'pengecualian',
   'The moments': 'Momen-momennya',
@@ -2260,7 +2257,7 @@ export const ID: Record<string, string> = {
   'Exceptions {n}': 'Pengecualian {n}',
   'No exceptions recorded yet. That usually means none has been looked for, not that none exists.':
     'Belum ada pengecualian tercatat. Biasanya itu berarti belum dicari, bukan tidak ada.',
-  'What it might mean for your options': 'Artinya bagi pilihan-pilihanmu',
+  'What it might mean for your options': 'Artinya bagi opsi-opsimu',
   'No implications recorded.': 'Belum ada implikasi yang dicatat.',
   'How it changed': 'Bagaimana ini berubah',
   'No recorded changes.': 'Belum ada perubahan yang dicatat.',
@@ -2293,10 +2290,10 @@ export const ID: Record<string, string> = {
   Stance: 'Sikap',
   Instance: 'Kemunculan',
   'Counter-case': 'Kasus tandingan',
-  'The exact passage that bears on this pattern': 'Bagian teks persis yang berkaitan dengan pola ini',
+  'The exact passage that bears on this repeat': 'Bagian teks persis yang berkaitan dengan pengulangan ini',
   Excerpt: 'Kutipan',
-  'Nothing tests this yet. Tests check the claims that explain a pattern: open one of them and choose “Design a test”.':
-    'Belum ada yang menguji ini. Uji mengecek klaim yang menjelaskan sebuah pola: buka salah satunya dan pilih “Rancang uji”.',
+  'Nothing tests this yet. Tests check the reasons that explain a repeat: open one of them and choose “Design a test”.':
+    'Belum ada yang menguji ini. Uji mengecek sebab yang menjelaskan sebuah pengulangan: buka salah satunya dan pilih “Rancang uji”.',
   'Not really': 'Tidak juga',
   'Does this ring true?': 'Apakah ini terasa benar?',
   'Your view is kept beside what your notes show and never changes it. You can also put it aside.':
@@ -2447,8 +2444,8 @@ export const ID: Record<string, string> = {
     'Tidak bisa menyimpan versi terlebih dahulu, jadi impor tidak diterapkan. Ekspor salinannya, lalu coba lagi.',
   'Your atlas is kept in your claude.ai account and on this device. Nothing else leaves it unless you ask Claude.':
     'Atlasmu disimpan di akun claude.ai-mu dan di perangkat ini. Tidak ada hal lain yang keluar kecuali kamu bertanya ke Claude.',
-  'Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude.':
-    'Semuanya tersimpan di browser ini. Tidak ada yang keluar kecuali kamu mengganti penyedia analisis ke Claude.',
+  'Everything is stored in this browser. Nothing leaves it unless you choose Claude to read your notes.':
+    'Semuanya tersimpan di browser ini. Tidak ada yang keluar kecuali kamu memilih Claude untuk membaca catatanmu.',
   'Where your atlas is kept': 'Tempat atlasmu disimpan',
   'What the Atlas has learned': 'Apa yang sudah dipelajari Atlas',
   'Only from you: plain counts it uses to order and suggest, never to decide. Kept with your atlas.':
@@ -2459,8 +2456,8 @@ export const ID: Record<string, string> = {
   'today, note dates, weeks and experiment days follow it': 'hari ini, tanggal catatan, minggu, dan hari eksperimen mengikutinya',
   Profile: 'Profil',
   Space: 'Ruang',
-  'Orbit and Mind are drawn as a 3D space: nodes sit at different depths and the view turns with your pointer (or the tilt of a phone). Reduced-motion settings on your device always keep it still.':
-    'Orbit dan Pikiran digambar sebagai ruang 3D: titik-titik berada di kedalaman yang berbeda dan tampilan berputar mengikuti kursor (atau kemiringan ponsel). Pengaturan kurangi gerakan di perangkatmu selalu membuatnya diam.',
+  'The Map and Causes are drawn as a 3D space: points sit at different depths and the view turns with your pointer (or the tilt of a phone). Reduced-motion settings on your device always keep it still.':
+    'Peta dan Sebab digambar sebagai ruang 3D: titik-titik berada di kedalaman berbeda dan tampilan berputar mengikuti penunjukmu (atau kemiringan ponsel). Pengaturan kurangi gerakan di perangkatmu selalu membuatnya diam.',
   Depth: 'Kedalaman',
   Automatic: 'Otomatis',
   'Depth on; switches to flat if this device cannot keep motion smooth':
@@ -2472,17 +2469,17 @@ export const ID: Record<string, string> = {
   'Flat: stars still drift, the graph itself stays in one plane.': 'Datar: bintang tetap melayang, grafiknya sendiri tetap di satu bidang.',
   'Pan, zoom, move the pointer or select a node to see depth.': 'Geser, zoom, gerakkan kursor, atau pilih titik untuk melihat kedalaman.',
   'Analysis provider': 'Penyedia analisis',
-  'Every provider returns the same structured objects: observations, evidence suggestions, pattern candidates, experiment drafts. Nothing is applied without your review.':
-    'Setiap penyedia mengembalikan objek terstruktur yang sama: pengamatan, saran bukti, kandidat pola, draf eksperimen. Tidak ada yang diterapkan tanpa tinjauanmu.',
+  'Every provider returns the same structured objects: observations, evidence suggestions, repeat candidates, experiment drafts. Nothing is applied without your review.':
+    'Setiap penyedia mengembalikan objek terstruktur yang sama: pengamatan, saran bukti, kandidat pengulangan, draf eksperimen. Tidak ada yang diterapkan tanpa tinjauanmu.',
   'Local heuristics': 'Heuristik lokal',
   'Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.':
     'Pencocokan frasa dan metadata yang pasti dan transparan. Berjalan offline; setiap saran menunjukkan frasa yang memicunya.',
   'Claude, with your claude.ai account': 'Claude, dengan akun claude.ai-mu',
-  'Inside claude.ai, while you are signed in: the note being read, with element and pattern names, goes to Claude on your own account and usage. It asks you first, and falls back to local heuristics when it cannot.':
-    'Di dalam claude.ai, saat kamu masuk: catatan yang sedang dibaca, beserta nama elemen dan pola, dikirim ke Claude dengan akun dan kuota pemakaianmu sendiri. Ia meminta izinmu dulu, dan kembali ke heuristik lokal jika tidak bisa.',
+  'Inside claude.ai, while you are signed in: the note being read, with element and repeat names, goes to Claude on your own account and usage. It asks you first, and falls back to local heuristics when it cannot.':
+    'Di dalam claude.ai, saat kamu masuk: catatan yang sedang dibaca, beserta nama elemen dan pengulangan, dikirim ke Claude dengan akun dan kuota pemakaianmu sendiri. Ia meminta izinmu dulu, dan kembali ke heuristik lokal jika tidak bisa.',
   'Claude, via your proxy': 'Claude, lewat proxy-mu',
-  'Sends the entry being analysed plus node and pattern names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.':
-    'Mengirim catatan yang dianalisis beserta nama titik dan pola ke server yang kamu jalankan (server/claude-proxy.ts), yang memanggil Claude API dengan output terstruktur. Kembali ke heuristik lokal jika tidak terjangkau.',
+  'Sends the entry being analysed plus node and repeat names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.':
+    'Mengirim catatan yang dianalisis beserta nama titik dan pengulangan ke server yang kamu jalankan (server/claude-proxy.ts), yang memanggil Claude API dengan output terstruktur. Kembali ke heuristik lokal jika tidak terjangkau.',
   'Checking whether Claude can be asked from here…': 'Memeriksa apakah Claude bisa ditanya dari sini…',
   'Not available here: open Noa Atlas inside claude.ai while signed in.': 'Tidak tersedia di sini: buka Noa Atlas di dalam claude.ai dalam keadaan masuk.',
   'dev server forwards /api/analysis to localhost:8787': 'server dev meneruskan /api/analysis ke localhost:8787',
@@ -2490,8 +2487,8 @@ export const ID: Record<string, string> = {
   'Test connection': 'Uji koneksi',
   'Start it with {command}. The key stays on the server.': 'Jalankan dengan {command}. Kuncinya tetap di server.',
   'Your data': 'Datamu',
-  'Stored locally ({size} KB). {records} records, {nodes} points, {patterns} patterns.':
-    'Tersimpan lokal ({size} KB). {records} catatan, {nodes} titik, {patterns} pola.',
+  'Stored locally ({size} KB). {records} records, {nodes} points, {patterns} repeats.':
+    'Tersimpan lokal ({size} KB). {records} catatan, {nodes} titik, {patterns} pengulangan.',
   'Export JSON': 'Ekspor JSON',
   'Import JSON': 'Impor JSON',
   'Importing replaces the atlas in this browser; the current one is saved as a version first.':
@@ -2503,15 +2500,15 @@ export const ID: Record<string, string> = {
   'Reset graph layouts': 'Atur ulang tata letak grafik',
   'How the model reasons': 'Cara model bernalar',
   'Four layers are kept apart: what you wrote (the record), what happened (history), what exists (the map), and what is claimed about how it works (understanding). Options and imagined outcomes are possibilities, and never count as evidence.':
-    'Empat lapisan dijaga terpisah: apa yang kamu tulis (rekaman), apa yang terjadi (riwayat), apa yang ada (peta), dan apa yang diklaim tentang cara kerjanya (pemahaman). Pilihan dan hasil yang dibayangkan adalah kemungkinan, dan tidak pernah dihitung sebagai bukti.',
-  'Links you declare are true because you say so. Claims that one thing changes another are hypotheses: each starts as proposed and climbs to plausible, supported and tested only with instances, a mechanism, contrast cases and deliberate tests. Counter-cases weaken it.':
-    'Tautan yang kamu nyatakan benar karena kamu menyatakannya. Klaim bahwa satu hal mengubah hal lain adalah hipotesis: masing-masing dimulai sebagai usulan dan naik menjadi masuk akal, didukung, dan teruji hanya dengan kemunculan, mekanisme, kasus pembanding, dan uji yang disengaja. Kasus tandingan melemahkannya.',
-  'There are no percentages, scores, personality types or diagnoses. Your own view of a claim is kept beside its status and never changes it.':
-    'Tidak ada persentase, skor, tipe kepribadian, atau diagnosis. Pandanganmu tentang sebuah klaim disimpan di samping statusnya dan tidak pernah mengubahnya.',
+    'Empat lapisan dijaga terpisah: apa yang kamu tulis (rekaman), apa yang terjadi (riwayat), apa yang ada (peta), dan apa yang diklaim tentang cara kerjanya (pemahaman). Opsi dan hasil yang dibayangkan adalah kemungkinan, dan tidak pernah dihitung sebagai bukti.',
+  'Links you declare are true because you say so. Reasons that one thing changes another are hunches: each starts as proposed and climbs to plausible, supported and tested only with instances, a mechanism, contrast cases and deliberate tests. Counter-cases weaken it.':
+    'Tautan yang kamu nyatakan benar karena kamu menyatakannya. Kemungkinan bahwa satu hal mengubah hal lain adalah dugaan: masing-masing dimulai sebagai usulan dan naik menjadi masuk akal, didukung, dan teruji hanya dengan kemunculan, mekanisme, kasus pembanding, dan uji yang disengaja. Kasus tandingan melemahkannya.',
+  'There are no percentages, scores, personality types or diagnoses. Your own view of a reason is kept beside its status and never changes it.':
+    'Tidak ada persentase, skor, tipe kepribadian, atau diagnosis. Pandanganmu tentang sebuah sebab disimpan di samping statusnya dan tidak pernah mengubahnya.',
   'The analysis only proposes. Nothing it suggests reaches the map until you adopt it, and inner states (what you felt, wanted or feared) are only ever yours to declare.':
     'Analisis hanya mengusulkan. Tidak ada usulannya yang masuk peta sampai kamu mengadopsinya, dan keadaan batin (apa yang kamu rasakan, inginkan, atau takutkan) hanya boleh kamu yang menyatakan.',
-  'The Atlas must always be able to show how it knows what it shows: every claim lists its evidence, and every piece of evidence points back to a note.':
-    'Atlas harus selalu bisa menunjukkan dari mana ia tahu apa yang ditampilkannya: setiap klaim mencantumkan buktinya, dan setiap bukti merujuk kembali ke sebuah catatan.',
+  'The Atlas must always be able to show how it knows what it shows: every reason lists its evidence, and every piece of evidence points back to a note.':
+    'Atlas harus selalu bisa menunjukkan dari mana ia tahu apa yang ditampilkannya: setiap sebab mencantumkan buktinya, dan setiap bukti merujuk kembali ke sebuah catatan.',
   Keyboard: 'Keyboard',
   'Press {key} anywhere for the full list.': 'Tekan {key} di mana saja untuk daftar lengkapnya.',
   'Show shortcuts': 'Tampilkan pintasan',
@@ -2533,7 +2530,7 @@ export const ID: Record<string, string> = {
   'max {n}': 'maks {n}',
   NOW: 'KINI',
   'Width of the strand: commitments active that week': 'Lebar untaian: komitmen yang aktif minggu itu',
-  'A decision; dashed branches are the options not taken': 'Sebuah keputusan; cabang putus-putus adalah pilihan yang tidak diambil',
+  'A decision; dashed branches are the options not taken': 'Sebuah keputusan; cabang putus-putus adalah opsi yang tidak diambil',
   'Energy you recorded': 'Energi yang kamu catat',
   'Point at a week to read it; choose it to go there below.': 'Arahkan ke sebuah minggu untuk membacanya; pilih untuk menuju ke sana di bawah.',
   'Nothing here yet': 'Belum ada apa-apa di sini',
@@ -2568,7 +2565,7 @@ export const ID: Record<string, string> = {
     'Kamu mengonfirmasi “{label}”, yang diusulkan oleh analisis. Sekarang ada di petamu.',
   'You added {claim}: {sentence}.': 'Kamu menambahkan {claim}: {sentence}.',
   'What changes about {thing}: {aspect}.': 'Yang berubah dari {thing}: {aspect}.',
-  'You adopted {claim} as a hypothesis: {sentence}.': 'Kamu mengadopsi {claim} sebagai hipotesis: {sentence}.',
+  'You adopted {claim} as a hunch: {sentence}.': 'Kamu mengadopsi {claim} sebagai dugaan: {sentence}.',
   'You said {claim} matches your experience.': 'Kamu bilang {claim} cocok dengan pengalamanmu.',
   'You said {claim} does not match your experience.': 'Kamu bilang {claim} tidak cocok dengan pengalamanmu.',
   'You are not sure about {claim}.': 'Kamu belum yakin tentang {claim}.',
@@ -2589,20 +2586,20 @@ export const ID: Record<string, string> = {
   'You said {pattern} partly matches your experience.': 'Kamu menyatakan {pattern} sebagian sesuai dengan pengalamanmu.',
   'You said {pattern} does not match your experience.': 'Kamu bilang {pattern} tidak cocok dengan pengalamanmu.',
   'What the evidence shows is unchanged.': 'Apa yang ditunjukkan bukti tidak berubah.',
-  'You set {pattern} aside. It stays here for reference and no longer informs paths.':
-    'Kamu menyisihkan {pattern}. Pola ini tetap di sini sebagai rujukan dan tidak lagi memengaruhi jalur.',
+  'You set {pattern} aside. It stays here for reference and no longer informs options.':
+    'Kamu menyisihkan {pattern}. Pengulangan ini tetap di sini sebagai rujukan dan tidak lagi memengaruhi opsi.',
   '{pattern} added from {support} decisions that fit it and {counter} that do not.':
     '{pattern} ditambahkan dari {support} keputusan yang cocok dan {counter} yang tidak.',
-  'Untitled pattern': 'Pola tanpa judul',
+  'Untitled repeat': 'Pengulangan tanpa judul',
   'You described {pattern}. It has no instances yet; it becomes recurring once three separate episodes are found.':
-    'Kamu menggambarkan {pattern}. Belum ada kemunculan; pola ini menjadi berulang setelah ditemukan di tiga episode terpisah.',
+    'Kamu menggambarkan {pattern}. Belum ada kemunculan; pengulangan ini menjadi berulang setelah ditemukan di tiga episode terpisah.',
   'You wrote a provisional answer to “{question}”.': 'Kamu menulis jawaban sementara untuk “{question}”.',
   '{exp}: the prediction held. {claim} gets a test result as evidence.': '{exp}: prediksinya terbukti. {claim} mendapat hasil uji sebagai bukti.',
   '{exp}: the prediction did not hold. {claim} gets a failed test as evidence.':
     '{exp}: prediksinya tidak terbukti. {claim} mendapat uji yang gagal sebagai bukti.',
-  '{exp} result recorded ({outcome}); no claim changed.': 'Hasil {exp} dicatat ({outcome}); tidak ada klaim yang berubah.',
+  '{exp} result recorded ({outcome}); no reason changed.': 'Hasil {exp} dicatat ({outcome}); tidak ada sebab yang berubah.',
   'You chose {path} ({title}) as your direction.': 'Kamu memilih {path} ({title}) sebagai arahmu.',
-  'You chose a path as your direction.': 'Kamu memilih sebuah jalur sebagai arahmu.',
+  'You chose an option as your direction.': 'Kamu memilih sebuah opsi sebagai arahmu.',
   '“Supported” asks for {n} separate episodes again, as it did at first.': '“Didukung” kembali meminta {n} episode terpisah, seperti semula.',
   '“Supported” now asks for {n} separate episodes (it asked for {m}): predictions from supported reasons held {held} times and did not hold {failed} times.':
     '“Didukung” kini meminta {n} episode terpisah (sebelumnya {m}): prediksi dari kemungkinan sebab yang didukung terbukti {held} kali dan tidak terbukti {failed} kali.',
@@ -2796,7 +2793,7 @@ export const ID: Record<string, string> = {
     'Belum ada. Koreksi cara ia membaca sebuah kalimat (di panel catatan), sambungkan catatan ke elemen, atau batalkan tautan yang disarankannya, dan ia belajar dari situ.',
   'Forget what the local AI learned': 'Lupakan yang dipelajari AI lokal',
   'Forget it': 'Lupakan',
-  'Reads as an explanation in your own words. That is your hypothesis about a cause, not evidence of it.':
+  'Reads as an explanation in your own words. That is your hunch about a cause, not evidence of it.':
     'Terbaca sebagai penjelasan dengan kata-katamu sendiri. Itu dugaanmu tentang sebuah sebab, bukan buktinya.',
   'Sounds low.': 'Terdengar murung.',
   'Sounds good.': 'Terdengar senang.',
@@ -2833,7 +2830,7 @@ export const ID: Record<string, string> = {
     'Noa Atlas adalah peta hidupmu yang kamu bangun dari apa yang kamu tulis. Semua berawal dari catatanmu; Atlas membacanya dan menyambungkannya ke enam lensa: Peta (yang kamu pegang, lakukan, dan yang ada di sekitarmu), Waktu (apa yang terjadi, kapan), Sebab (kemungkinan alasan sesuatu terjadi), Pengulangan (apa yang terus terjadi), Ke Depan (opsi dan rencanamu) dan Misi (rencanamu sebagai bos yang harus dikalahkan). Atlas tidak pernah memberimu skor atau memilihkan untukmu: ia memisahkan apa yang terjadi, apa yang kamu kira penyebabnya, dan apa yang kamu bayangkan, supaya kamu bisa melihat bagaimana kamu tahu apa yang kamu tahu.',
   'Writing notes, and how one note reaches every lens': 'Menulis catatan, dan bagaimana satu catatan sampai ke setiap lensa',
   'Write a note with Capture (or press N): what happened, what you noticed, how it felt. When you save it, the Atlas reads it and connects it on its own: the elements it mentions (Map), what happened and any decision it says you made (Time), another time a repeat happened (Repeats), steps it says are finished (Ahead and Quests). An explanation in your own words is only offered, as a possible reason. Anything it connected can be taken back with ×.':
-    'Tulis catatan lewat Catat (atau tekan N): apa yang terjadi, apa yang kamu perhatikan, bagaimana rasanya. Saat kamu menyimpannya, Atlas membacanya dan menyambungkannya sendiri: elemen yang disebut (Peta), apa yang terjadi dan keputusan yang katanya kamu ambil (Waktu), satu lagi saat sebuah pengulangan terjadi (Pengulangan), langkah yang katanya sudah selesai (Ke Depan dan Misi). Penjelasan dengan kata-katamu sendiri hanya ditawarkan, sebagai kemungkinan alasan. Apa pun yang disambungkannya bisa dibatalkan dengan ×.',
+    'Tulis catatan lewat Catat (atau tekan N): apa yang terjadi, apa yang kamu perhatikan, bagaimana rasanya. Saat kamu menyimpannya, Atlas membacanya dan menyambungkannya sendiri: elemen yang disebut (Peta), apa yang terjadi dan keputusan yang katanya kamu ambil (Waktu), satu lagi saat sebuah pengulangan terjadi (Pengulangan), langkah yang katanya sudah selesai (Ke Depan dan Misi). Penjelasan dengan kata-katamu sendiri hanya ditawarkan, sebagai kemungkinan sebab. Apa pun yang disambungkannya bisa dibatalkan dengan ×.',
   'The Map lens': 'Lensa Peta',
   'The Time lens': 'Lensa Waktu',
   'The Causes lens': 'Lensa Sebab',
@@ -2841,21 +2838,21 @@ export const ID: Record<string, string> = {
   'Options in Ahead': 'Opsi di Ke Depan',
   'Your plan in Ahead': 'Rencanamu di Ke Depan',
   'The Quests lens': 'Lensa Misi',
-  'How a reason becomes surer': 'Bagaimana sebuah alasan menjadi lebih pasti',
+  'How a reason becomes surer': 'Bagaimana sebuah sebab menjadi lebih pasti',
   'Every reason starts as a hunch, never as a fact, however sure you feel. It becomes plausible, then supported, as your notes show the cause and then the outcome in that order, in separate weeks; a time the cause was there and the outcome did not follow counts against it; a test, where you change one thing on purpose and compare with what you expected, is the strongest. Saying “because” in a note, or naming it, is not evidence: it is your explanation, to be checked.':
-    'Setiap alasan berawal sebagai dugaan, bukan fakta, seyakin apa pun kamu. Ia menjadi masuk akal, lalu didukung, ketika catatanmu menunjukkan sebab lalu akibatnya dengan urutan itu, di minggu-minggu yang berbeda; saat sebabnya ada tapi akibatnya tidak muncul, itu melemahkannya; tes, di mana kamu sengaja mengubah satu hal dan membandingkannya dengan yang kamu perkirakan, adalah yang paling kuat. Menulis “karena” di catatan, atau menyebutnya, bukan bukti: itu penjelasanmu, untuk dicek.',
+    'Setiap sebab berawal sebagai dugaan, bukan fakta, seyakin apa pun kamu. Ia menjadi masuk akal, lalu didukung, ketika catatanmu menunjukkan sebab lalu akibatnya dengan urutan itu, di minggu-minggu yang berbeda; saat sebabnya ada tapi akibatnya tidak muncul, itu melemahkannya; tes, di mana kamu sengaja mengubah satu hal dan membandingkannya dengan yang kamu perkirakan, adalah yang paling kuat. Menulis “karena” di catatan, atau menyebutnya, bukan bukti: itu penjelasanmu, untuk dicek.',
   'Your atlas is kept in this browser, or in your claude.ai account when you open it there signed in. Nothing leaves it unless you ask Claude. In Settings → Your data you can export all of it as a file, import one, and save or go back to versions. The local AI runs on this device.':
     'Atlasmu disimpan di browser ini, atau di akun claude.ai-mu bila kamu membukanya di sana dalam keadaan masuk. Tidak ada yang keluar kecuali kamu bertanya ke Claude. Di Pengaturan → Datamu kamu bisa mengekspor semuanya sebagai file, mengimpor file, dan menyimpan atau kembali ke versi sebelumnya. AI lokal berjalan di perangkat ini.',
   'What the agent can do': 'Apa yang bisa dilakukan agen',
   'Tell me what happened, a plan, or something that keeps happening, and I’ll draft it into your lenses: elements on the Map, a note on Time, possible reasons in Causes, a repeat, an option in Ahead, or a quest with its steps. Nothing is added until you press Apply, and you can take it all back. You can also ask why something keeps happening, what happened lately, or what to do next, and I’ll answer from your own notes, citing them.':
-    'Ceritakan apa yang terjadi, sebuah rencana, atau sesuatu yang terus terjadi, dan aku akan menyusunnya ke lensa-lensamu: elemen di Peta, catatan di Waktu, kemungkinan alasan di Sebab, sebuah pengulangan, opsi di Ke Depan, atau misi beserta langkahnya. Tidak ada yang ditambahkan sebelum kamu menekan Terapkan, dan semuanya bisa dibatalkan. Kamu juga bisa bertanya kenapa sesuatu terus terjadi, apa yang terjadi belakangan ini, atau apa yang sebaiknya dilihat berikutnya, dan aku menjawab dari catatanmu sendiri, dengan menyebut sumbernya.',
+    'Ceritakan apa yang terjadi, sebuah rencana, atau sesuatu yang terus terjadi, dan aku akan menyusunnya ke lensa-lensamu: elemen di Peta, catatan di Waktu, kemungkinan sebab di lensa Sebab, sebuah pengulangan, opsi di Ke Depan, atau misi beserta langkahnya. Tidak ada yang ditambahkan sebelum kamu menekan Terapkan, dan semuanya bisa dibatalkan. Kamu juga bisa bertanya kenapa sesuatu terus terjadi, apa yang terjadi belakangan ini, atau apa yang sebaiknya dilihat berikutnya, dan aku menjawab dari catatanmu sendiri, dengan menyebut sumbernya.',
   'The local AI and Claude': 'AI lokal dan Claude',
   'The agent can answer on this device (it understands what you write and builds your lenses from it, offline) or with Claude on your own claude.ai account, which can talk things through more freely. Choose in the agent’s menu: Auto uses Claude when it is available here, and the device otherwise.':
     'Agen bisa menjawab di perangkat ini (ia memahami yang kamu tulis dan membangun lensamu darinya, tanpa internet) atau dengan Claude di akun claude.ai-mu sendiri, yang bisa diajak berdiskusi lebih bebas. Pilih di menu agen: Otomatis memakai Claude bila tersedia di sini, dan perangkat ini bila tidak.',
   'Habits, in the Atlas': 'Kebiasaan, di Atlas',
   'A habit tends to run as a sequence: a situation that sets it off, what you do, and what follows. In the Atlas that is a repeat with three steps; write the times it happens, and the times it did not (the exceptions are what show what changes it). To change one, try changing a single thing on purpose for a while, as a test, and compare with what you expected.':
     'Kebiasaan biasanya berjalan sebagai urutan: situasi yang memicunya, apa yang kamu lakukan, dan apa yang mengikutinya. Di Atlas itu adalah pengulangan dengan tiga langkah; catat saat-saat ia terjadi, dan saat-saat ia tidak terjadi (pengecualian itulah yang menunjukkan apa yang mengubahnya). Untuk mengubahnya, coba ubah satu hal dengan sengaja selama beberapa waktu, sebagai tes, lalu bandingkan dengan yang kamu perkirakan.',
-  'Testing a reason yourself': 'Menguji sebuah alasan sendiri',
+  'Testing a reason yourself': 'Menguji sebuah sebab sendiri',
   'To find out whether one thing really affects another, change only that one thing, on purpose, for a set time, write down beforehand what you expect, and compare. Choose something reversible that you do yourself, never something where health or money is at stake. One result is a hint; the same result in separate weeks is stronger.':
     'Untuk tahu apakah satu hal benar-benar memengaruhi yang lain, ubah hanya satu hal itu, dengan sengaja, selama waktu tertentu, tulis dulu apa yang kamu perkirakan, lalu bandingkan. Pilih sesuatu yang bisa dikembalikan dan kamu lakukan sendiri, jangan sesuatu yang mempertaruhkan kesehatan atau uang. Satu hasil adalah petunjuk; hasil yang sama di minggu-minggu berbeda lebih kuat.',
   'Happening together is not a cause': 'Terjadi bersamaan bukan berarti sebab',
@@ -2868,18 +2865,18 @@ export const ID: Record<string, string> = {
   'A goal becomes doable as targets with dates, and each target as a few steps you can take this week. In the Atlas, a quest is exactly that: a title, a date, and its steps; ticking steps off is what brings it closer. Keep steps small enough to finish in a sitting.':
     'Sebuah tujuan jadi bisa dikerjakan sebagai target bertanggal, dan setiap target sebagai beberapa langkah yang bisa kamu ambil minggu ini. Di Atlas, misi persis seperti itu: judul, tanggal, dan langkah-langkahnya; mencentang langkah itulah yang membuatnya makin dekat. Buat langkah cukup kecil untuk selesai dalam sekali duduk.',
   'What your atlas has on why “{name}” happens:': 'Yang ada di atlasmu tentang kenapa “{name}” terjadi:',
-  'There is no possible reason for “{name}” on your atlas yet.': 'Belum ada kemungkinan alasan untuk “{name}” di atlasmu.',
+  'There is no possible reason for “{name}” on your atlas yet.': 'Belum ada kemungkinan sebab untuk “{name}” di atlasmu.',
   'It takes part in:': 'Ia terlibat dalam:',
   'Your latest notes about it:': 'Catatan terbarumu tentangnya:',
   'These are possibilities, not findings: a reason grows surer only as your notes show it, in separate weeks, and a test is the strongest.':
-    'Ini kemungkinan, bukan temuan: sebuah alasan makin pasti hanya bila catatanmu menunjukkannya, di minggu-minggu berbeda, dan tes adalah yang paling kuat.',
+    'Ini kemungkinan, bukan temuan: sebuah sebab makin pasti hanya bila catatanmu menunjukkannya, di minggu-minggu berbeda, dan tes adalah yang paling kuat.',
   'Tell me what you think leads to it (for example “late nights make Energy go down”), and I’ll draft it as a hunch to check.':
     'Ceritakan apa yang menurutmu menyebabkannya (misalnya “begadang bikin Energi turun”), dan aku akan menyusunnya sebagai dugaan untuk dicek.',
   'Open Causes': 'Buka Sebab',
   'One note is about it.': 'Satu catatan membahasnya.',
   '{n} notes are about it.': '{n} catatan membahasnya.',
   'The latest:': 'Yang terbaru:',
-  'Possible reasons for it:': 'Kemungkinan alasannya:',
+  'Possible reasons for it:': 'Kemungkinan sebabnya:',
   'What it may lead to:': 'Yang mungkin diakibatkannya:',
   'Linked to one other element.': 'Tertaut ke satu elemen lain.',
   'Linked to {n} other elements.': 'Tertaut ke {n} elemen lain.',
@@ -2910,9 +2907,9 @@ export const ID: Record<string, string> = {
   'it is about {names}': 'membahas {names}',
   'a decision: “{what}”': 'sebuah keputusan: “{what}”',
   'finished: {steps}': 'selesai: {steps}',
-  'your explanation is offered as a possible reason': 'penjelasanmu ditawarkan sebagai kemungkinan alasan',
+  'your explanation is offered as a possible reason': 'penjelasanmu ditawarkan sebagai kemungkinan sebab',
   'When the note is saved, the Atlas will also connect it:': 'Saat catatannya disimpan, Atlas juga akan menyambungkannya:',
-  'A reason starts as a hunch to check: saying so is not evidence.': 'Sebuah alasan berawal sebagai dugaan untuk dicek: menyebutnya bukan bukti.',
+  'A reason starts as a hunch to check: saying so is not evidence.': 'Sebuah sebab berawal sebagai dugaan untuk dicek: menyebutnya bukan bukti.',
   'I can’t go into how the app works behind the scenes; I’m here for your atlas. What I can tell you: it is kept in this browser (or in your claude.ai account), and you can export or import all of it in Settings → Your data.':
     'Aku tidak bisa membahas cara kerja aplikasi di balik layar; aku di sini untuk atlasmu. Yang bisa aku sampaikan: atlasmu disimpan di browser ini (atau di akun claude.ai-mu), dan kamu bisa mengekspor atau mengimpor semuanya di Pengaturan → Datamu.',
   'That is outside what I can help with here. I’m here for your atlas: tell me what happened and I’ll build it into your lenses, ask why something keeps happening, look at your options, or plan a quest.':
@@ -3002,32 +2999,43 @@ export const ID: Record<string, string> = {
   'Informatics student, working part-time as a barista.': 'Mahasiswa Informatika, kerja paruh waktu sebagai barista.',
   'The example atlases': 'Atlas-atlas contoh',
   'The examples are eight invented people, each a life already filled in, there to learn how the Atlas works on something close to your own: Emma (designer), Daniel (accountant), Ryan (manager), Maya (director), Leo (producer), Kevin (data scientist), Adam (programmer) and Sofia (student). Each has about five months of notes, reasons with different statuses, repeats, options and a plan, written in English and in Indonesian: an example opens in the language you choose, and follows it when you switch while it is still as you opened it. Open one from the ⋯ menu (Open an example, or Other examples); your own atlas is saved as a version first, and one step brings you back.':
-    'Contohnya adalah delapan tokoh rekaan, masing-masing kehidupan yang sudah terisi, untuk mempelajari cara kerja Atlas pada sesuatu yang dekat dengan hidupmu: Emma (desainer), Daniel (akuntan), Ryan (manajer), Maya (direktur), Leo (produser), Kevin (data scientist), Adam (programmer), dan Sofia (mahasiswa). Masing-masing punya sekitar lima bulan catatan, alasan dengan status yang berbeda-beda, pengulangan, opsi, dan rencana, ditulis dalam bahasa Inggris dan bahasa Indonesia: contoh terbuka dalam bahasa yang kamu pilih, dan ikut berganti saat kamu mengganti bahasa selama belum kamu ubah. Buka dari menu ⋯ (Buka contoh, atau Contoh lain); atlasmu sendiri disimpan dulu sebagai versi, dan satu langkah membawamu kembali.',
+    'Contohnya adalah delapan tokoh rekaan, masing-masing kehidupan yang sudah terisi, untuk mempelajari cara kerja Atlas pada sesuatu yang dekat dengan hidupmu: Emma (desainer), Daniel (akuntan), Ryan (manajer), Maya (direktur), Leo (produser), Kevin (data scientist), Adam (programmer), dan Sofia (mahasiswa). Masing-masing punya sekitar lima bulan catatan, kemungkinan sebab dengan status yang berbeda-beda, pengulangan, opsi, dan rencana, ditulis dalam bahasa Inggris dan bahasa Indonesia: contoh terbuka dalam bahasa yang kamu pilih, dan ikut berganti saat kamu mengganti bahasa selama belum kamu ubah. Buka dari menu ⋯ (Buka contoh, atau Contoh lain); atlasmu sendiri disimpan dulu sebagai versi, dan satu langkah membawamu kembali.',
   'The Atlas for designers': 'Atlas untuk desainer',
   'For a designer, the Atlas is most useful where work loops: briefs, revisions, critiques and side projects. On the Map, put what you hold (craft, being heard early), what you do (writing the brief together, user research, freelancing) and who is around you (the PM, a mentor). Notes about each feature show what comes before many rounds of revision: a reason like “writing the brief together lowers revisions” becomes surer as features with and without a written brief are recorded in separate weeks. Weekend freelancing followed by a tired Monday is a common repeat worth writing down. Emma’s example (Designer) shows it all filled in.':
-    'Bagi desainer, Atlas paling berguna di bagian kerja yang berputar: brief, revisi, kritik desain, dan proyek sampingan. Di Peta, taruh apa yang kamu pegang (mutu karya, didengar sejak awal), apa yang kamu lakukan (menulis brief bersama, riset pengguna, freelance), dan siapa di sekitarmu (PM, mentor). Catatan tentang setiap fitur menunjukkan apa yang datang sebelum revisi berputar-putar: alasan seperti “menulis brief bersama menurunkan revisi” makin kuat saat fitur dengan dan tanpa brief tertulis dicatat di minggu-minggu yang berbeda. Freelance di akhir pekan lalu Senin yang lelah adalah pengulangan yang layak dicatat. Contoh Emma (Desainer) menunjukkan semuanya sudah terisi.',
+    'Bagi desainer, Atlas paling berguna di bagian kerja yang berputar: brief, revisi, kritik desain, dan proyek sampingan. Di Peta, taruh apa yang kamu pegang (mutu karya, didengar sejak awal), apa yang kamu lakukan (menulis brief bersama, riset pengguna, freelance), dan siapa di sekitarmu (PM, mentor). Catatan tentang setiap fitur menunjukkan apa yang datang sebelum revisi berputar-putar: kemungkinan sebab seperti “menulis brief bersama menurunkan revisi” makin kuat saat fitur dengan dan tanpa brief tertulis dicatat di minggu-minggu yang berbeda. Freelance di akhir pekan lalu Senin yang lelah adalah pengulangan yang layak dicatat. Contoh Emma (Desainer) menunjukkan semuanya sudah terisi.',
   'The Atlas for accountants': 'Atlas untuk akuntan',
   'For an accountant, the month has a rhythm: daily entries, closing, audits, and study for a certification. The Atlas helps you see what makes closing heavy: write each closing week (how many late nights, what was postponed) and a reason like “postponing reconciliation raises overtime” can be checked against months when it was done daily. Study hours for an exam and time with family are worth recording as states, because they are what overtime takes. Daniel’s example (Accountant) shows it filled in.':
-    'Bagi akuntan, setiap bulan punya ritme: pencatatan harian, closing, audit, dan belajar untuk sertifikasi. Atlas membantumu melihat apa yang membuat closing berat: tulis setiap minggu closing (berapa malam lembur, apa yang ditunda) dan alasan seperti “menunda rekonsiliasi menaikkan lembur” bisa dicek terhadap bulan-bulan saat rekonsiliasi dikerjakan harian. Jam belajar untuk ujian dan waktu bersama keluarga layak dicatat sebagai keadaan, karena itulah yang diambil oleh lembur. Contoh Daniel (Akuntan) menunjukkannya sudah terisi.',
+    'Bagi akuntan, setiap bulan punya ritme: pencatatan harian, closing, audit, dan belajar untuk sertifikasi. Atlas membantumu melihat apa yang membuat closing berat: tulis setiap minggu closing (berapa malam lembur, apa yang ditunda) dan kemungkinan sebab seperti “menunda rekonsiliasi menaikkan lembur” bisa dicek terhadap bulan-bulan saat rekonsiliasi dikerjakan harian. Jam belajar untuk ujian dan waktu bersama keluarga layak dicatat sebagai keadaan, karena itulah yang diambil oleh lembur. Contoh Daniel (Akuntan) menunjukkannya sudah terisi.',
   'The Atlas for managers': 'Atlas untuk manajer',
   'For a manager, much of what matters happens through other people: whether they stay, whether they decide on their own, whether you still have time to think. Record one-on-ones, meetings, and the times you stepped in yourself; the Atlas can then show, for instance, whether people leave after weeks without one-on-ones, or whether a day full of meetings leaves no time to focus. A bonus or a new rule is a test: write what you expect before it starts, and compare. Ryan’s example (Manager) shows it filled in.':
     'Bagi manajer, banyak hal penting terjadi lewat orang lain: apakah mereka bertahan, apakah mereka berani memutuskan sendiri, dan apakah kamu masih punya waktu untuk berpikir. Catat obrolan satu-satu, rapat, dan saat-saat kamu turun tangan sendiri; Atlas lalu bisa menunjukkan, misalnya, apakah orang keluar setelah minggu-minggu tanpa satu-satu, atau apakah hari penuh rapat menyisakan nol waktu fokus. Bonus atau aturan baru adalah sebuah tes: tulis apa yang kamu harapkan sebelum dimulai, lalu bandingkan. Contoh Ryan (Manajer) menunjukkannya sudah terisi.',
   'The Atlas for directors and business owners': 'Atlas untuk direktur dan pemilik usaha',
   'For a director or business owner, the hardest thing to protect is time for direction. Record where the days went (operational problems that reached you, decisions you delegated), cash and orders, and your own health. A reason like “getting into operational detail lowers time for strategy” becomes surer over separate weeks; a hunch like “big discounts bring orders” can be weakened by the times they did not. Options such as hiring an operations director or entering a new market are described side by side, never ranked. Maya’s example (Director) shows it filled in.':
-    'Bagi direktur atau pemilik usaha, hal yang paling sulit dijaga adalah waktu untuk arah. Catat ke mana hari-harimu pergi (masalah operasional yang sampai ke mejamu, keputusan yang kamu delegasikan), kas dan pesanan, serta kesehatanmu sendiri. Alasan seperti “ikut campur detail operasional menurunkan waktu untuk strategi” makin kuat di minggu-minggu yang berbeda; dugaan seperti “diskon besar mendatangkan pesanan” bisa melemah oleh saat-saat ketika itu tidak terjadi. Opsi seperti merekrut direktur operasional atau masuk ke pasar baru dijabarkan berdampingan, tidak pernah diperingkat. Contoh Maya (Direktur) menunjukkannya sudah terisi.',
+    'Bagi direktur atau pemilik usaha, hal yang paling sulit dijaga adalah waktu untuk arah. Catat ke mana hari-harimu pergi (masalah operasional yang sampai ke mejamu, keputusan yang kamu delegasikan), kas dan pesanan, serta kesehatanmu sendiri. Kemungkinan sebab seperti “ikut campur detail operasional menurunkan waktu untuk strategi” makin kuat di minggu-minggu yang berbeda; dugaan seperti “diskon besar mendatangkan pesanan” bisa melemah oleh saat-saat ketika itu tidak terjadi. Opsi seperti merekrut direktur operasional atau masuk ke pasar baru dijabarkan berdampingan, tidak pernah diperingkat. Contoh Maya (Direktur) menunjukkannya sudah terisi.',
   'The Atlas for producers and event organisers': 'Atlas untuk produser dan penyelenggara acara',
   'For a producer or event organiser, each project is an episode: vendors, budget, crew, and the rest between projects. Write each event briefly (who was late, what was agreed in writing, what went over budget) and the Atlas can check a reason like “written contracts lower vendor delays” against the events without them. Back-to-back projects and your energy make a common repeat; setting a budget reserve aside is a test worth running. Leo’s example (Producer) shows it filled in.':
-    'Bagi produser atau penyelenggara acara, setiap proyek adalah satu episode: vendor, anggaran, kru, dan jeda di antara proyek. Tulis setiap acara secara singkat (siapa yang terlambat, apa yang disepakati tertulis, apa yang melebihi anggaran) dan Atlas bisa mengecek alasan seperti “kontrak tertulis menurunkan keterlambatan vendor” terhadap acara-acara tanpa kontrak. Proyek beruntun dan energimu sering menjadi pengulangan; menyisihkan cadangan anggaran adalah tes yang layak dicoba. Contoh Leo (Produser) menunjukkannya sudah terisi.',
+    'Bagi produser atau penyelenggara acara, setiap proyek adalah satu episode: vendor, anggaran, kru, dan jeda di antara proyek. Tulis setiap acara secara singkat (siapa yang terlambat, apa yang disepakati tertulis, apa yang melebihi anggaran) dan Atlas bisa mengecek kemungkinan sebab seperti “kontrak tertulis menurunkan keterlambatan vendor” terhadap acara-acara tanpa kontrak. Proyek beruntun dan energimu sering menjadi pengulangan; menyisihkan cadangan anggaran adalah tes yang layak dicoba. Contoh Leo (Produser) menunjukkannya sudah terisi.',
   'The Atlas for data scientists and analysts': 'Atlas untuk data scientist dan analis',
   'For a data scientist or analyst, the question is often less whether a model is accurate than whether it is used. Record when the people who use it were involved, the ad-hoc requests, documentation, and late nights tuning; the Atlas can then compare models built with and without their users, or weeks with and without set hours for requests. A belief like “more tuning raises accuracy” is a reason to check like any other. Kevin’s example (Data scientist) shows it filled in.':
-    'Bagi data scientist atau analis, pertanyaannya sering bukan seberapa akurat sebuah model, tapi apakah model itu dipakai. Catat kapan orang yang akan memakainya dilibatkan, permintaan dadakan, dokumentasi, dan malam-malam tuning; Atlas lalu bisa membandingkan model yang dibangun dengan dan tanpa penggunanya, atau minggu dengan dan tanpa jam khusus untuk permintaan. Keyakinan seperti “tuning lebih lama menaikkan akurasi” adalah alasan yang dicek seperti alasan lain. Contoh Kevin (Data scientist) menunjukkannya sudah terisi.',
+    'Bagi data scientist atau analis, pertanyaannya sering bukan seberapa akurat sebuah model, tapi apakah model itu dipakai. Catat kapan orang yang akan memakainya dilibatkan, permintaan dadakan, dokumentasi, dan malam-malam tuning; Atlas lalu bisa membandingkan model yang dibangun dengan dan tanpa penggunanya, atau minggu dengan dan tanpa jam khusus untuk permintaan. Keyakinan seperti “tuning lebih lama menaikkan akurasi” adalah kemungkinan sebab yang dicek seperti sebab lain. Contoh Kevin (Data scientist) menunjukkannya sudah terisi.',
   'The Atlas for programmers': 'Atlas untuk programmer',
   'For a programmer, incidents, sprints and focus leave clear traces worth writing down: when you deployed, whether tests ran, how late you coded, how much old code slowed a change. A reason like “Friday deploys raise weekend bugs” can be checked against the weeks you released on Thursday; tech debt and sprint speed are states you can record each sprint. Adam’s example (Programmer) shows it filled in.':
-    'Bagi programmer, insiden, sprint, dan fokus meninggalkan jejak jelas yang layak ditulis: kapan kamu deploy, apakah tes berjalan, sampai jam berapa kamu ngoding, seberapa banyak kode lama memperlambat perubahan. Alasan seperti “rilis hari Jumat menaikkan bug di akhir pekan” bisa dicek terhadap minggu-minggu saat kamu rilis hari Kamis; utang teknis dan kecepatan sprint adalah keadaan yang bisa kamu catat setiap sprint. Contoh Adam (Programmer) menunjukkannya sudah terisi.',
+    'Bagi programmer, insiden, sprint, dan fokus meninggalkan jejak jelas yang layak ditulis: kapan kamu deploy, apakah tes berjalan, sampai jam berapa kamu ngoding, seberapa banyak kode lama memperlambat perubahan. Kemungkinan sebab seperti “rilis hari Jumat menaikkan bug di akhir pekan” bisa dicek terhadap minggu-minggu saat kamu rilis hari Kamis; utang teknis dan kecepatan sprint adalah keadaan yang bisa kamu catat setiap sprint. Contoh Adam (Programmer) menunjukkannya sudah terisi.',
   'The Atlas for students': 'Atlas untuk mahasiswa',
   'For a student, the Atlas helps with the balance between classes, work, organisations and sleep. Record quiz and exam results, sleep, work shifts, study groups and meetings; then a reason like “late nights lower energy the next day” or “group study raises quiz scores” can be checked across separate weeks. A choice like an internship now or later goes into Ahead as options, described without a ranking. Sofia’s example (Student) shows it filled in.':
-    'Bagi mahasiswa, Atlas membantu menjaga keseimbangan antara kuliah, kerja, organisasi, dan tidur. Catat hasil kuis dan ujian, jam tidur, shift kerja, belajar kelompok, dan rapat; lalu alasan seperti “begadang menurunkan energi keesokan harinya” atau “belajar kelompok menaikkan nilai kuis” bisa dicek di minggu-minggu yang berbeda. Pilihan seperti magang sekarang atau nanti masuk ke Ahead sebagai opsi, dijabarkan tanpa peringkat. Contoh Sofia (Mahasiswa) menunjukkannya sudah terisi.',
+    'Bagi mahasiswa, Atlas membantu menjaga keseimbangan antara kuliah, kerja, organisasi, dan tidur. Catat hasil kuis dan ujian, jam tidur, shift kerja, belajar kelompok, dan rapat; lalu kemungkinan sebab seperti “begadang menurunkan energi keesokan harinya” atau “belajar kelompok menaikkan nilai kuis” bisa dicek di minggu-minggu yang berbeda. Pilihan seperti magang sekarang atau nanti masuk ke Ahead sebagai opsi, dijabarkan tanpa peringkat. Contoh Sofia (Mahasiswa) menunjukkannya sudah terisi.',
   'The example is open in {to}. The one you changed is saved in Versions.': 'Contoh sudah terbuka dalam {to}. Yang kamu ubah disimpan di Versi.',
   'This example is still in {from}, with your changes in it.': 'Contoh ini masih dalam {from}, berisi perubahanmu.',
   'Open it in {to}': 'Buka dalam {to}',
+  optional: 'opsional',
+  'Show every field, setting and the finer workings of reasons': 'Tampilkan semua kolom, pengaturan, dan cara kerja sebab secara rinci',
+  'Fold away what most people do not need at first': 'Lipat hal-hal yang belum dibutuhkan kebanyakan orang di awal',
+  'Simple view': 'Tampilan sederhana',
+  'More detail': 'Detail lainnya',
+  'How much to show': 'Seberapa banyak yang ditampilkan',
+  'Simple folds away what most people do not need at first: the finer workings of reasons, extra fields and technical settings. Nothing is removed; “More detail” opens it.':
+    'Sederhana melipat hal yang belum dibutuhkan kebanyakan orang di awal: cara kerja sebab secara rinci, kolom tambahan, dan pengaturan teknis. Tidak ada yang dihapus; “Detail lainnya” membukanya.',
+  Simple: 'Sederhana',
+  'Advanced settings': 'Pengaturan lanjutan',
+  'New option': 'Opsi baru',
 };

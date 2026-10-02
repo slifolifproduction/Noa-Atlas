@@ -22,6 +22,7 @@ import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { CausesRail } from './CausesRail';
 import { StatusHud } from './StatusHud';
+import { useSimple } from '../../components/ui/Detail';
 import { t } from '../../i18n';
 import { useFrictionNote } from '../../hooks/useFriction';
 import { mapElements } from '../../domain/selectors';
@@ -38,6 +39,7 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
   const data = useAtlas((s) => s.data);
   const inspectorOpen = useUI((s) => s.inspector.length > 0);
   const view = useUI((s) => s.orbitView);
+  const simple = useSimple();
   const shape: MapShape = view.shape ?? 'orbit';
   // Each shape keeps its own arrangement: dragging something on Leo leaves the orbit as it was.
   const stored = useUI((s) => (shape === 'orbit' ? s.layouts.orbit.positions : s.shapePositions[shape]));
@@ -210,8 +212,12 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
           <ViewMenu padding={padding}>
             {lens === 'map' ? (
               <>
-                <ShapePicker value={shape} onChange={pickShape} />
-                <MenuSeparator />
+                {!simple && (
+                  <>
+                    <ShapePicker value={shape} onChange={pickShape} />
+                    <MenuSeparator />
+                  </>
+                )}
                 <MenuItem
                   checked={Boolean(view.showAll)}
                   hint={t('Without this, each area shows only its key elements; choose an area to open the rest.')}
@@ -233,31 +239,36 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
                 >
                   {t('Only what is linked to it')}
                 </MenuItem>
-                <MenuSeparator />
-                {LAYERS.map((l) => (
-                  <MenuItem
-                    key={l.key}
-                    checked={!view.hiddenLayers.includes(l.key)}
-                    hint={l.description}
-                    onSelect={() =>
-                      setOrbitView({
-                        hiddenLayers: view.hiddenLayers.includes(l.key) ? view.hiddenLayers.filter((x) => x !== l.key) : [...view.hiddenLayers, l.key],
-                      })
-                    }
-                  >
-                    {l.label}
-                  </MenuItem>
-                ))}
-                <MenuSeparator />
-                {!isMobile && (
-                  <MenuItem
-                    icon={allCollapsed ? UnfoldVertical : FoldVertical}
-                    hint={t('Double-click one area to fold just that one')}
-                    onSelect={() => setOrbitView({ collapsed: allCollapsed ? [] : [...SECTOR_KEYS] })}
-                  >
-                    {allCollapsed ? t('Unfold all areas') : t('Fold all areas')}
-                  </MenuItem>
+                {!simple && (
+                  <>
+                    <MenuSeparator />
+                    {LAYERS.map((l) => (
+                      <MenuItem
+                        key={l.key}
+                        checked={!view.hiddenLayers.includes(l.key)}
+                        hint={l.description}
+                        onSelect={() =>
+                          setOrbitView({
+                            hiddenLayers: view.hiddenLayers.includes(l.key) ? view.hiddenLayers.filter((x) => x !== l.key) : [...view.hiddenLayers, l.key],
+                          })
+                        }
+                      >
+                        {l.label}
+                      </MenuItem>
+                    ))}
+                    <MenuSeparator />
+                    {!isMobile && (
+                      <MenuItem
+                        icon={allCollapsed ? UnfoldVertical : FoldVertical}
+                        hint={t('Double-click one area to fold just that one')}
+                        onSelect={() => setOrbitView({ collapsed: allCollapsed ? [] : [...SECTOR_KEYS] })}
+                      >
+                        {allCollapsed ? t('Unfold all areas') : t('Fold all areas')}
+                      </MenuItem>
+                    )}
+                  </>
                 )}
+                <MenuSeparator />
                 {isDesktop && (
                   <MenuItem checked={hudOpen} hint={t('Something to look at, and the next step')} onSelect={() => setHudOpen(!hudOpen)}>
                     {t('Overview panel')}
@@ -266,28 +277,37 @@ export function OrbitPage({ lens }: { lens: CanvasLens }) {
               </>
             ) : (
               <>
-                <MenuLabel>{t('Shape')}</MenuLabel>
-                {(
-                  [
-                    ['helix', Dna, t('Helix'), t('A double helix read from top to bottom: you on one strand, what surrounds you on the other')],
-                    ['globe', Globe, t('Globe'), t('A turning globe: what may lead at the north, what may follow at the south, each area on its own meridian')],
-                  ] as const
-                ).map(([value, Icon, label, hint]) => (
-                  <MenuItem
-                    key={value}
-                    radio
-                    keepOpen
-                    checked={(causes.shape ?? 'helix') === value}
-                    hint={hint}
-                    onSelect={() => setNetworkView({ shape: value })}
-                  >
-                    <span className="inline-flex items-center gap-1.5">
-                      <Icon size={13} strokeWidth={1.8} className="text-ink-3" aria-hidden />
-                      {label}
-                    </span>
-                  </MenuItem>
-                ))}
-                <MenuSeparator />
+                {!simple && (
+                  <>
+                    <MenuLabel>{t('Shape')}</MenuLabel>
+                    {(
+                      [
+                        ['helix', Dna, t('Helix'), t('A double helix read from top to bottom: you on one strand, what surrounds you on the other')],
+                        [
+                          'globe',
+                          Globe,
+                          t('Globe'),
+                          t('A turning globe: what may lead at the north, what may follow at the south, each area on its own meridian'),
+                        ],
+                      ] as const
+                    ).map(([value, Icon, label, hint]) => (
+                      <MenuItem
+                        key={value}
+                        radio
+                        keepOpen
+                        checked={(causes.shape ?? 'helix') === value}
+                        hint={hint}
+                        onSelect={() => setNetworkView({ shape: value })}
+                      >
+                        <span className="inline-flex items-center gap-1.5">
+                          <Icon size={13} strokeWidth={1.8} className="text-ink-3" aria-hidden />
+                          {label}
+                        </span>
+                      </MenuItem>
+                    ))}
+                    <MenuSeparator />
+                  </>
+                )}
                 <MenuLabel>{t('Trace from what you are looking at')}</MenuLabel>
                 {(
                   [

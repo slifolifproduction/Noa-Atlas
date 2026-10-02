@@ -5,6 +5,7 @@ import { PAGE_FRAME, PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { FieldLabel, Kbd, Segmented } from '../../components/ui/primitives';
 import { modelCounts } from '../../domain/selectors';
+import { FullOnly, MoreDetail } from '../../components/ui/Detail';
 import { todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
@@ -40,6 +41,8 @@ export function SettingsPage() {
   const resetLayout = useUI((s) => s.resetLayout);
   const setShortcutsOpen = useUI((s) => s.setShortcutsOpen);
   const spaceMode = useUI((s) => s.spaceMode);
+  const detail = useUI((s) => s.detail);
+  const setDetail = useUI((s) => s.setDetail);
   const setSpaceMode = useUI((s) => s.setSpaceMode);
   const setVersionsOpen = useUI((s) => s.setVersionsOpen);
   const setStartFreshOpen = useUI((s) => s.setStartFreshOpen);
@@ -95,20 +98,26 @@ export function SettingsPage() {
         description={
           inAccount
             ? t('Your atlas is kept in your claude.ai account and on this device. Nothing else leaves it unless you ask Claude.')
-            : t('Everything is stored in this browser. Nothing leaves it unless you switch the analysis provider to Claude.')
+            : t('Everything is stored in this browser. Nothing leaves it unless you choose Claude to read your notes.')
         }
       />
 
       <div className="mt-6 max-w-[1040px]">
-        <Block title={t('Where your atlas is kept')}>
-          <AccountPanel />
-        </Block>
-
         <Block
-          title={t('What the Atlas has learned')}
-          description={t('Only from you: plain counts it uses to order and suggest, never to decide. Kept with your atlas.')}
+          title={t('How much to show')}
+          description={t(
+            'Simple folds away what most people do not need at first: the finer workings of reasons, extra fields and technical settings. Nothing is removed; “More detail” opens it.',
+          )}
         >
-          <LearnedPanel />
+          <Segmented<'simple' | 'full'>
+            label={t('How much to show')}
+            value={detail}
+            onChange={setDetail}
+            options={[
+              { value: 'simple', label: t('Simple') },
+              { value: 'full', label: t('Everything') },
+            ]}
+          />
         </Block>
 
         <Block
@@ -128,134 +137,8 @@ export function SettingsPage() {
         </Block>
 
         <Block
-          title={t('Space')}
-          description={t(
-            'Orbit and Mind are drawn as a 3D space: nodes sit at different depths and the view turns with your pointer (or the tilt of a phone). Reduced-motion settings on your device always keep it still.',
-          )}
-        >
-          <Segmented<SpaceMode>
-            label={t('Depth')}
-            value={spaceMode}
-            onChange={setSpaceMode}
-            options={[
-              { value: 'auto', label: t('Automatic'), title: t('Depth on; switches to flat if this device cannot keep motion smooth') },
-              { value: 'on', label: t('Always 3D') },
-              { value: 'off', label: t('Flat') },
-            ]}
-          />
-          <p className="mt-2 text-[12.5px] leading-snug text-ink-3">
-            {spaceMode === 'auto' && spaceHealth.degraded
-              ? t('Automatic switched to flat on this device for this visit, to keep motion smooth.')
-              : spaceMode === 'off'
-                ? t('Flat: stars still drift, the graph itself stays in one plane.')
-                : t('Pan, zoom, move the pointer or select a node to see depth.')}
-          </p>
-        </Block>
-
-        <Block
-          title={t('Analysis provider')}
-          description={t(
-            'Every provider returns the same structured objects: observations, evidence suggestions, pattern candidates, experiment drafts. Nothing is applied without your review.',
-          )}
-        >
-          <div role="radiogroup" aria-label={t('Analysis provider')} className="space-y-2">
-            {(
-              [
-                {
-                  id: 'local',
-                  title: t('Local heuristics'),
-                  body: t('Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.'),
-                },
-                {
-                  id: 'local-ai',
-                  title: t('Local AI on this device'),
-                  body: t(
-                    'The local heuristics, and machine learning models that run in this browser: a built-in one that reads every sentence straight away, and a language model that reads meaning once you download it. Nothing you write leaves the device.',
-                  ),
-                },
-                {
-                  id: 'account',
-                  title: t('Claude, with your claude.ai account'),
-                  body: t(
-                    'Inside claude.ai, while you are signed in: the note being read, with element and pattern names, goes to Claude on your own account and usage. It asks you first, and falls back to local heuristics when it cannot.',
-                  ),
-                },
-                {
-                  id: 'claude',
-                  title: t('Claude, via your proxy'),
-                  body: t(
-                    'Sends the entry being analysed plus node and pattern names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.',
-                  ),
-                },
-              ] as const
-            ).map((o) => (
-              <label
-                key={o.id}
-                className={cn(
-                  'flex cursor-pointer gap-3 rounded-[2px] border px-3.5 py-3',
-                  settings.provider === o.id ? 'border-accent/45 bg-accent-dim/40' : 'border-line hover:border-line-strong',
-                )}
-              >
-                <input
-                  type="radio"
-                  name="provider"
-                  className="mt-1 accent-[var(--color-accent)]"
-                  checked={settings.provider === o.id}
-                  disabled={o.id === 'account' && claude !== 'available' && settings.provider !== 'account'}
-                  onChange={() => setSettings({ provider: o.id })}
-                />
-                <span>
-                  <span className="block text-[13.5px] text-ink">{o.title}</span>
-                  <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-2">{o.body}</span>
-                  {o.id === 'account' && claude !== 'available' && (
-                    <span className="mt-1 block text-[12px] text-ink-3">
-                      {claude === 'checking'
-                        ? t('Checking whether Claude can be asked from here…')
-                        : t('Not available here: open Noa Atlas inside claude.ai while signed in.')}
-                    </span>
-                  )}
-                </span>
-              </label>
-            ))}
-          </div>
-          {settings.provider === 'local-ai' && <LocalAIPanel />}
-          {settings.provider === 'claude' && (
-            <div className="mt-3.5 space-y-2">
-              <FieldLabel htmlFor="s-endpoint" hint={t('dev server forwards /api/analysis to localhost:8787')}>
-                {t('Proxy endpoint')}
-              </FieldLabel>
-              <div className="flex flex-wrap gap-2">
-                <input
-                  id="s-endpoint"
-                  className="field num max-w-[360px]"
-                  value={settings.endpoint}
-                  onChange={(e) => setSettings({ endpoint: e.target.value })}
-                />
-                <Button
-                  loading={checking}
-                  onClick={async () => {
-                    setChecking(true);
-                    setHealth(await checkProxyHealth(settings.endpoint));
-                    setChecking(false);
-                  }}
-                >
-                  {t('Test connection')}
-                </Button>
-              </div>
-              {health && <p className={cn('text-[12.5px]', health.ok ? 'text-support' : 'text-counter')}>{health.message}</p>}
-              <p className="text-[12px] text-ink-3">
-                <Trans
-                  text={t('Start it with {command}. The key stays on the server.')}
-                  values={{ command: <code className="rounded-[2px] bg-ink/[0.06] px-1 font-mono text-[11.5px]">ANTHROPIC_API_KEY=… npm run proxy</code> }}
-                />
-              </p>
-            </div>
-          )}
-        </Block>
-
-        <Block
           title={t('Your data')}
-          description={t('Stored locally ({size} KB). {records} records, {nodes} points, {patterns} patterns.', {
+          description={t('Stored locally ({size} KB). {records} records, {nodes} points, {patterns} repeats.', {
             size: (bytes / 1024).toFixed(1),
             records: counts.records,
             nodes: counts.nodes,
@@ -290,52 +173,195 @@ export function SettingsPage() {
               </Button>
             </div>
           </div>
-          <Button
-            variant="ghost"
-            icon={RotateCcw}
-            className="mt-3"
-            onClick={() => (resetLayout('orbit'), resetLayout('network'), toast(t('Graph layouts reset.')))}
+          <FullOnly>
+            <Button
+              variant="ghost"
+              icon={RotateCcw}
+              className="mt-3"
+              onClick={() => (resetLayout('orbit'), resetLayout('network'), toast(t('Graph layouts reset.')))}
+            >
+              {t('Reset graph layouts')}
+            </Button>
+          </FullOnly>
+        </Block>
+
+        <Block title={t('Where your atlas is kept')}>
+          <AccountPanel />
+        </Block>
+
+        <MoreDetail label={t('Advanced settings')} inset={false} className="mt-2">
+          <Block
+            title={t('What the Atlas has learned')}
+            description={t('Only from you: plain counts it uses to order and suggest, never to decide. Kept with your atlas.')}
           >
-            {t('Reset graph layouts')}
-          </Button>
-        </Block>
+            <LearnedPanel />
+          </Block>
 
-        <Block title={t('How the model reasons')}>
-          <ul className="space-y-2.5 text-[13px] leading-relaxed text-ink-2">
-            <li>
-              {t(
-                'Four layers are kept apart: what you wrote (the record), what happened (history), what exists (the map), and what is claimed about how it works (understanding). Options and imagined outcomes are possibilities, and never count as evidence.',
-              )}
-            </li>
-            <li>
-              {t(
-                'Links you declare are true because you say so. Claims that one thing changes another are hypotheses: each starts as proposed and climbs to plausible, supported and tested only with instances, a mechanism, contrast cases and deliberate tests. Counter-cases weaken it.',
-              )}
-            </li>
-            <li>
-              {t('There are no percentages, scores, personality types or diagnoses. Your own view of a claim is kept beside its status and never changes it.')}
-            </li>
-            <li>
-              {t(
-                'The analysis only proposes. Nothing it suggests reaches the map until you adopt it, and inner states (what you felt, wanted or feared) are only ever yours to declare.',
-              )}
-            </li>
-            <li>
-              {t(
-                'The Atlas must always be able to show how it knows what it shows: every claim lists its evidence, and every piece of evidence points back to a note.',
-              )}
-            </li>
-          </ul>
-        </Block>
+          <Block
+            title={t('Space')}
+            description={t(
+              'The Map and Causes are drawn as a 3D space: points sit at different depths and the view turns with your pointer (or the tilt of a phone). Reduced-motion settings on your device always keep it still.',
+            )}
+          >
+            <Segmented<SpaceMode>
+              label={t('Depth')}
+              value={spaceMode}
+              onChange={setSpaceMode}
+              options={[
+                { value: 'auto', label: t('Automatic'), title: t('Depth on; switches to flat if this device cannot keep motion smooth') },
+                { value: 'on', label: t('Always 3D') },
+                { value: 'off', label: t('Flat') },
+              ]}
+            />
+            <p className="mt-2 text-[12.5px] leading-snug text-ink-3">
+              {spaceMode === 'auto' && spaceHealth.degraded
+                ? t('Automatic switched to flat on this device for this visit, to keep motion smooth.')
+                : spaceMode === 'off'
+                  ? t('Flat: stars still drift, the graph itself stays in one plane.')
+                  : t('Pan, zoom, move the pointer or select a node to see depth.')}
+            </p>
+          </Block>
 
-        <Block title={t('Keyboard')}>
-          <p className="text-[13px] text-ink-2">
-            <Trans text={t('Press {key} anywhere for the full list.')} values={{ key: <Kbd>?</Kbd> }} />{' '}
-            <button type="button" className="text-accent hover:underline" onClick={() => setShortcutsOpen(true)}>
-              {t('Show shortcuts')}
-            </button>
-          </p>
-        </Block>
+          <Block
+            title={t('Analysis provider')}
+            description={t(
+              'Every provider returns the same structured objects: observations, evidence suggestions, repeat candidates, experiment drafts. Nothing is applied without your review.',
+            )}
+          >
+            <div role="radiogroup" aria-label={t('Analysis provider')} className="space-y-2">
+              {(
+                [
+                  {
+                    id: 'local',
+                    title: t('Local heuristics'),
+                    body: t('Deterministic, transparent phrase and metadata matching. Runs offline; every suggestion shows the phrases that triggered it.'),
+                  },
+                  {
+                    id: 'local-ai',
+                    title: t('Local AI on this device'),
+                    body: t(
+                      'The local heuristics, and machine learning models that run in this browser: a built-in one that reads every sentence straight away, and a language model that reads meaning once you download it. Nothing you write leaves the device.',
+                    ),
+                  },
+                  {
+                    id: 'account',
+                    title: t('Claude, with your claude.ai account'),
+                    body: t(
+                      'Inside claude.ai, while you are signed in: the note being read, with element and repeat names, goes to Claude on your own account and usage. It asks you first, and falls back to local heuristics when it cannot.',
+                    ),
+                  },
+                  {
+                    id: 'claude',
+                    title: t('Claude, via your proxy'),
+                    body: t(
+                      'Sends the entry being analysed plus node and repeat names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.',
+                    ),
+                  },
+                ] as const
+              ).map((o) => (
+                <label
+                  key={o.id}
+                  className={cn(
+                    'flex cursor-pointer gap-3 rounded-[2px] border px-3.5 py-3',
+                    settings.provider === o.id ? 'border-accent/45 bg-accent-dim/40' : 'border-line hover:border-line-strong',
+                  )}
+                >
+                  <input
+                    type="radio"
+                    name="provider"
+                    className="mt-1 accent-[var(--color-accent)]"
+                    checked={settings.provider === o.id}
+                    disabled={o.id === 'account' && claude !== 'available' && settings.provider !== 'account'}
+                    onChange={() => setSettings({ provider: o.id })}
+                  />
+                  <span>
+                    <span className="block text-[13.5px] text-ink">{o.title}</span>
+                    <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-2">{o.body}</span>
+                    {o.id === 'account' && claude !== 'available' && (
+                      <span className="mt-1 block text-[12px] text-ink-3">
+                        {claude === 'checking'
+                          ? t('Checking whether Claude can be asked from here…')
+                          : t('Not available here: open Noa Atlas inside claude.ai while signed in.')}
+                      </span>
+                    )}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {settings.provider === 'local-ai' && <LocalAIPanel />}
+            {settings.provider === 'claude' && (
+              <div className="mt-3.5 space-y-2">
+                <FieldLabel htmlFor="s-endpoint" hint={t('dev server forwards /api/analysis to localhost:8787')}>
+                  {t('Proxy endpoint')}
+                </FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    id="s-endpoint"
+                    className="field num max-w-[360px]"
+                    value={settings.endpoint}
+                    onChange={(e) => setSettings({ endpoint: e.target.value })}
+                  />
+                  <Button
+                    loading={checking}
+                    onClick={async () => {
+                      setChecking(true);
+                      setHealth(await checkProxyHealth(settings.endpoint));
+                      setChecking(false);
+                    }}
+                  >
+                    {t('Test connection')}
+                  </Button>
+                </div>
+                {health && <p className={cn('text-[12.5px]', health.ok ? 'text-support' : 'text-counter')}>{health.message}</p>}
+                <p className="text-[12px] text-ink-3">
+                  <Trans
+                    text={t('Start it with {command}. The key stays on the server.')}
+                    values={{ command: <code className="rounded-[2px] bg-ink/[0.06] px-1 font-mono text-[11.5px]">ANTHROPIC_API_KEY=… npm run proxy</code> }}
+                  />
+                </p>
+              </div>
+            )}
+          </Block>
+
+          <Block title={t('How the model reasons')}>
+            <ul className="space-y-2.5 text-[13px] leading-relaxed text-ink-2">
+              <li>
+                {t(
+                  'Four layers are kept apart: what you wrote (the record), what happened (history), what exists (the map), and what is claimed about how it works (understanding). Options and imagined outcomes are possibilities, and never count as evidence.',
+                )}
+              </li>
+              <li>
+                {t(
+                  'Links you declare are true because you say so. Reasons that one thing changes another are hunches: each starts as proposed and climbs to plausible, supported and tested only with instances, a mechanism, contrast cases and deliberate tests. Counter-cases weaken it.',
+                )}
+              </li>
+              <li>
+                {t(
+                  'There are no percentages, scores, personality types or diagnoses. Your own view of a reason is kept beside its status and never changes it.',
+                )}
+              </li>
+              <li>
+                {t(
+                  'The analysis only proposes. Nothing it suggests reaches the map until you adopt it, and inner states (what you felt, wanted or feared) are only ever yours to declare.',
+                )}
+              </li>
+              <li>
+                {t(
+                  'The Atlas must always be able to show how it knows what it shows: every reason lists its evidence, and every piece of evidence points back to a note.',
+                )}
+              </li>
+            </ul>
+          </Block>
+
+          <Block title={t('Keyboard')}>
+            <p className="text-[13px] text-ink-2">
+              <Trans text={t('Press {key} anywhere for the full list.')} values={{ key: <Kbd>?</Kbd> }} />{' '}
+              <button type="button" className="text-accent hover:underline" onClick={() => setShortcutsOpen(true)}>
+                {t('Show shortcuts')}
+              </button>
+            </p>
+          </Block>
+        </MoreDetail>
       </div>
     </div>
   );

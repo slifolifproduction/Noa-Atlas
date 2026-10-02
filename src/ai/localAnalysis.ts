@@ -729,7 +729,7 @@ export function analyzeEntryLocally(entry: Entry, data: AtlasData, at: ISODateTi
       id: createId('sug'),
       type: 'attribution',
       excerpt: sentence,
-      reason: t('Explains something in your own words ({cue}). That is your hypothesis about a cause, not evidence of it.', { cue: quote(cue) }),
+      reason: t('Explains something in your own words ({cue}). That is your hunch about a cause, not evidence of it.', { cue: quote(cue) }),
       claim: readAttribution(sentence, cue, elements),
       state: 'pending',
     });
@@ -911,8 +911,8 @@ export function proposeExperimentsLocally(claim: Claim, data: AtlasData): Experi
         to: lower(to),
       }),
       durationDays: 30,
-      prediction: t('If the claim holds, “{to}” changes in the direction it predicts within the 30 days.', { to: lower(to) }),
-      criteria: t('If “{to}” does not change, the claim is weakened.', { to: lower(to) }),
+      prediction: t('If the reason holds, “{to}” changes in the direction it predicts within the 30 days.', { to: lower(to) }),
+      criteria: t('If “{to}” does not change, the reason is weakened.', { to: lower(to) }),
       measures: [
         { label: from, baseline: '—' },
         { label: to, baseline: '—' },
@@ -929,7 +929,7 @@ export function proposeExperimentsLocally(claim: Claim, data: AtlasData): Experi
         },
       ),
       durationDays: 14,
-      prediction: t('If the claim holds, most changes in “{to}” follow a change in “{from}”.', { to: lower(to), from: lower(from) }),
+      prediction: t('If the reason holds, most changes in “{to}” follow a change in “{from}”.', { to: lower(to), from: lower(from) }),
       criteria: t('If “{to}” changes as often without it, another explanation is likely.', { to: lower(to) }),
       measures: [{ label: t('Changes in “{to}” after “{from}”', { to, from }) }, { label: t('Changes in “{to}” without it', { to }) }],
     },
@@ -962,8 +962,7 @@ export function evaluateExperimentLocally(experiment: Experiment, result: Experi
               before: claimStatus(data, claim),
               after,
               excerpt:
-                result.summary ||
-                t(result.outcome === 'supports' ? '{title}: hypothesis supported.' : '{title}: hypothesis not supported.', { title: experiment.title }),
+                result.summary || t(result.outcome === 'supports' ? '{title}: hunch supported.' : '{title}: hunch not supported.', { title: experiment.title }),
             },
           ];
         })()
@@ -971,11 +970,11 @@ export function evaluateExperimentLocally(experiment: Experiment, result: Experi
 
   const note =
     result.outcome === 'inconclusive'
-      ? t('An inconclusive result changes no claim. Consider tightening the measures and running it again.')
+      ? t('An inconclusive result changes no reason. Consider tightening the measures and running it again.')
       : t(
           result.outcome === 'supports'
-            ? 'The prediction held. The claim gets a test result as evidence: the strongest kind one person can produce.'
-            : 'The prediction did not hold. The claim gets a failed test as evidence, which weakens it.',
+            ? 'The prediction held. The reason gets a test result as evidence: the strongest kind one person can produce.'
+            : 'The prediction did not hold. The reason gets a failed test as evidence, which weakens it.',
         );
 
   return { experimentId: experiment.id, changes, learningNote: note };

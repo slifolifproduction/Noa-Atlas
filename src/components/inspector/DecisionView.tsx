@@ -19,6 +19,7 @@ import { ConfirmButton } from '../ui/ConfirmButton';
 import { Segmented } from '../ui/primitives';
 import { ExpectationLine, FactorReadingPicker, Proposals } from './Changes';
 import { ClaimRow, HistoryRow, Muted, NodeChip, PanelSection } from './parts';
+import { MoreDetail } from '../ui/Detail';
 import { t } from '../../i18n';
 
 const HORIZON_LABEL = {
@@ -187,45 +188,47 @@ export function DecisionView({ id }: { id: ID }) {
         </PanelSection>
       )}
 
-      {mightFollow.length > 0 && (
-        <PanelSection title={t('What might follow from it')} count={mightFollow.length}>
-          <p className="mb-1.5 text-[11.5px] text-ink-3">
-            {t('Possible, not history: what the things this decision touches may lead to, by the reasons on your map.')}
-          </p>
-          <ul className="-mx-1.5 rounded-[2px] border border-dashed border-line">
-            {mightFollow.map((c) => (
-              <ClaimRow key={c.id} id={c.id} />
-            ))}
-          </ul>
-        </PanelSection>
-      )}
-
-      <ProcessSection decision={d} />
-      <ExplanationSection decision={d} />
-
-      <PanelSection title={t('Cited as evidence')} count={usages.length}>
-        {usages.length ? (
-          <ul className="space-y-1">
-            {usages.map(({ pattern, claim, evidence }) => (
-              <li key={evidence.id}>
-                <button
-                  type="button"
-                  onClick={() => open(pattern ? { kind: 'pattern', id: pattern.id } : { kind: 'claim', id: claim!.id })}
-                  className="flex w-full items-start gap-2 rounded-[2px] px-1 py-1 text-left hover:bg-ink/[0.035]"
-                >
-                  <StanceMark stance={evidence.stance} />
-                  <span className="min-w-0">
-                    <span className="label block">{pattern ? patternCode(pattern.code) : claimCode(claim!.code)}</span>
-                    <span className="block text-[13px] text-ink-2">{pattern ? patternTitle(pattern) : claimSentence(data, claim!)}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Muted>{t('Not cited by any claim or pattern yet.')}</Muted>
+      <MoreDetail>
+        {mightFollow.length > 0 && (
+          <PanelSection title={t('What might follow from it')} count={mightFollow.length}>
+            <p className="mb-1.5 text-[11.5px] text-ink-3">
+              {t('Possible, not history: what the things this decision touches may lead to, by the reasons on your map.')}
+            </p>
+            <ul className="-mx-1.5 rounded-[2px] border border-dashed border-line">
+              {mightFollow.map((c) => (
+                <ClaimRow key={c.id} id={c.id} />
+              ))}
+            </ul>
+          </PanelSection>
         )}
-      </PanelSection>
+
+        <ProcessSection decision={d} />
+        <ExplanationSection decision={d} />
+
+        <PanelSection title={t('Cited as evidence')} count={usages.length}>
+          {usages.length ? (
+            <ul className="space-y-1">
+              {usages.map(({ pattern, claim, evidence }) => (
+                <li key={evidence.id}>
+                  <button
+                    type="button"
+                    onClick={() => open(pattern ? { kind: 'pattern', id: pattern.id } : { kind: 'claim', id: claim!.id })}
+                    className="flex w-full items-start gap-2 rounded-[2px] px-1 py-1 text-left hover:bg-ink/[0.035]"
+                  >
+                    <StanceMark stance={evidence.stance} />
+                    <span className="min-w-0">
+                      <span className="label block">{pattern ? patternCode(pattern.code) : claimCode(claim!.code)}</span>
+                      <span className="block text-[13px] text-ink-2">{pattern ? patternTitle(pattern) : claimSentence(data, claim!)}</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Muted>{t('Not cited by any reason or repeat yet.')}</Muted>
+          )}
+        </PanelSection>
+      </MoreDetail>
     </div>
   );
 }
@@ -339,7 +342,7 @@ function ExplanationSection({ decision: d }: { decision: Decision }) {
           ))}
         </ul>
       ) : (
-        <Muted>{t('No explanation attached. Which claims might account for how it went?')}</Muted>
+        <Muted>{t('No explanation attached. Which reasons might account for how it went?')}</Muted>
       )}
       {adding && (
         <ul className={cn('mt-2 space-y-1')}>
@@ -374,7 +377,7 @@ function OutcomeSection({ id }: { id: ID }) {
     if (!editing)
       return (
         <PanelSection title={t('What actually happened')}>
-          <Muted>{t('Not reviewed yet. Recording what actually happened is what lets decision patterns emerge.')}</Muted>
+          <Muted>{t('Not reviewed yet. Recording what actually happened is what lets repeated decisions emerge.')}</Muted>
           <Button size="sm" className="mt-2" onClick={() => setEditing(true)}>
             {t('Record outcome')}
           </Button>

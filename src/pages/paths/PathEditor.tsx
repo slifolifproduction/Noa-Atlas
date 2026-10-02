@@ -19,7 +19,7 @@ const LIST_FIELDS: { key: ListKey; label: string; placeholder: string }[] = [
       return t('Requirements');
     },
     get placeholder() {
-      return t('What must be true for this path to work');
+      return t('What must be true for this option to work');
     },
   },
   {
@@ -55,7 +55,7 @@ const LIST_FIELDS: { key: ListKey; label: string; placeholder: string }[] = [
       return t('Opportunity costs');
     },
     get placeholder() {
-      return t('What this path rules out');
+      return t('What this option rules out');
     },
   },
   {
@@ -114,10 +114,16 @@ export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): 
   const [lists, setLists] = useState(() => Object.fromEntries(LIST_FIELDS.map((f) => [f.key, path[f.key].join('\n')])) as Record<ListKey, string>);
   // A new option needs only what it is and what it would bring; everything else can be filled in later, or where it stands.
   const fresh = !path.objective && !path.summary && !path.capital && !path.time && !path.skills.length && LIST_FIELDS.every((f) => !path[f.key].length);
+  // Just added and not yet saved: leaving without saving leaves nothing behind.
+  const [isNew] = useState(() => fresh && path.title === t('Untitled option'));
+  const cancel = () => {
+    if (isNew) remove(path.id);
+    onClose();
+  };
 
   const save = () => {
     update(path.id, {
-      title: title.trim() || t('Untitled path'),
+      title: title.trim() || t('Untitled option'),
       objective: objective.trim(),
       summary: summary.trim(),
       capital: capital.trim(),
@@ -131,26 +137,28 @@ export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): 
   return (
     <Modal
       open
-      onClose={onClose}
-      title={t('Edit {code}', { code: pathCode(path.code) })}
+      onClose={cancel}
+      title={isNew ? t('New option') : t('Edit {code}', { code: pathCode(path.code) })}
       description={t('One item per line. Keep the language descriptive rather than persuasive.')}
       width="max-w-[720px]"
       footer={
         <>
           <span className="mr-auto">
-            <ConfirmButton
-              label={t('Delete path')}
-              onConfirm={() => {
-                remove(path.id);
-                onClose();
-              }}
-            />
+            {!isNew && (
+              <ConfirmButton
+                label={t('Delete option')}
+                onConfirm={() => {
+                  remove(path.id);
+                  onClose();
+                }}
+              />
+            )}
           </span>
-          <Button variant="ghost" onClick={onClose}>
+          <Button variant="ghost" onClick={cancel}>
             {t('Cancel')}
           </Button>
           <Button variant="primary" onClick={save}>
-            {t('Save path')}
+            {t('Save option')}
           </Button>
         </>
       }
@@ -161,7 +169,7 @@ export function PathEditor({ path, onClose }: { path: StrategicPath; onClose(): 
           <input
             id="p-title"
             className="field"
-            value={title === t('Untitled path') ? '' : title}
+            value={title === t('Untitled option') ? '' : title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder={t('e.g. Take a full-time role at a studio')}
             autoFocus={fresh}

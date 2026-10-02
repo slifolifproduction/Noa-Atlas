@@ -55,6 +55,7 @@ import { whyWeThink } from '../../domain/ask';
 import { ExpectationLine } from './Changes';
 import { AccountList, InquiryList } from './Inquiry';
 import { ClaimRow, Fold, Muted, NodeChip, PanelSection } from './parts';
+import { FullOnly, MoreDetail, useSimple } from '../ui/Detail';
 import { t, tn } from '../../i18n';
 
 const firstSentence = (text: string) => {
@@ -77,6 +78,7 @@ export function ClaimView({ id }: { id: ID }) {
   const [editing, setEditing] = useState(false);
   const [drafts, setDrafts] = useState<ExperimentDraft[] | null>(null);
   const claim = data.claims[id];
+  const simple = useSimple();
   const status = claim ? claimStatus(data, claim) : 'proposed';
   const profile = useMemo(() => (claim ? evidenceProfile(data, claim) : null), [data, claim]);
   const candidates = useMemo(() => (claim ? evidenceCandidates(data, claim).slice(0, 5) : []), [data, claim]);
@@ -264,8 +266,10 @@ export function ClaimView({ id }: { id: ID }) {
             </li>
           ))}
         </ul>
-        <p className="mt-2 text-[11.5px] leading-snug text-ink-3">{t('By the rule: {rule}', { rule: trace.says })}</p>
-        {trace.assumes.length > 0 && (
+        <FullOnly>
+          <p className="mt-2 text-[11.5px] leading-snug text-ink-3">{t('By the rule: {rule}', { rule: trace.says })}</p>
+        </FullOnly>
+        {!simple && trace.assumes.length > 0 && (
           <div className="mt-3">
             <div className="text-[11.5px] text-ink-3">{t('What it takes for granted')}</div>
             <ul className="mt-1 space-y-0.5">
@@ -297,108 +301,6 @@ export function ClaimView({ id }: { id: ID }) {
         )}
       </PanelSection>
 
-      <Fold title={t('How sure, in detail')}>
-        <StatusLadder status={status} />
-        <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px]">
-          <Fact label={t('Records cited')} value={String(sources)} />
-          <Fact
-            label={t('Episodes, in order')}
-            value={String(profile.episodes)}
-            hint={t('Separate weeks where it came first and the outcome followed, or a time without it')}
-          />
-          <Fact label={t('Times without it')} value={String(profile.contrast)} hint={EVIDENCE_KIND_HINT.contrast} />
-          <Fact label={t('Exceptions')} value={String(profile.counter)} hint={EVIDENCE_KIND_HINT.counter_case} />
-          <Fact label={t('Happened without it')} value={String(profile.elsewhere ?? 0)} hint={EVIDENCE_KIND_HINT.elsewhere} />
-          <Fact
-            label={t('How it works')}
-            value={profile.mechanism ? t('seen') : profile.mechanismDescribed ? t('described only') : t('missing')}
-            hint={EVIDENCE_KIND_HINT.mechanism}
-          />
-          <Fact
-            label={t('Tests')}
-            value={profile.testsFor + profile.testsAgainst ? t('{a} for · {b} against', { a: profile.testsFor, b: profile.testsAgainst }) : t('none')}
-          />
-          <Fact
-            label={t('From what was recorded')}
-            value={String((profile.fromRecord?.fits ?? 0) + (profile.fromRecord?.contrast ?? 0))}
-            hint={t('Episodes the record shows by itself, from what changed, apart from the ones you judged')}
-          />
-          <Fact
-            label={t('Predictions')}
-            value={
-              (profile.predictionsHeld ?? 0) + (profile.predictionsFailed ?? 0)
-                ? t('{a} held · {b} did not', { a: profile.predictionsHeld ?? 0, b: profile.predictionsFailed ?? 0 })
-                : t('none')
-            }
-          />
-          {profile.baseRate && (
-            <Fact
-              label={t('Goes that way anyway')}
-              value={t('{a} of {b} episodes', { a: profile.baseRate.same, b: profile.baseRate.known })}
-              hint={t('How often the outcome went the way this predicts, with or without the cause')}
-            />
-          )}
-          {profile.needsTellingApart && (
-            <Fact
-              label={t('Told apart')}
-              value={String(profile.toldApart ?? 0)}
-              hint={t('Times it happened while what else could produce it was not doing the same')}
-            />
-          )}
-        </dl>
-        {trace.left.length > 0 && (
-          <div className="mt-3">
-            <div className="text-[11.5px] text-ink-3">{t('Left out, and why')}</div>
-            <ul className="mt-1 space-y-0.5">
-              {trace.left.map((l) => (
-                <li key={l} className="text-[12px] leading-snug text-ink-2">
-                  · {l}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div className="mt-3 border-t border-line pt-2">
-          <div className="text-[11.5px] text-ink-3">
-            {ready.ready
-              ? t('The record could now bear a formal comparison. None runs in this version, and none could ever make it “tested”.')
-              : t('Not yet enough for a formal comparison, which would only mislead now:')}
-          </div>
-          {!ready.ready && (
-            <ul className="mt-1 space-y-0.5">
-              {ready.checks
-                .filter((c) => !c.ok)
-                .map((c) => (
-                  <li key={c.key} className="text-[12px] leading-snug text-ink-2">
-                    · {c.says}
-                  </li>
-                ))}
-            </ul>
-          )}
-        </div>
-      </Fold>
-
-      <Fold title={t('How this changed')} count={history.length}>
-        {history.length ? (
-          <ul className="space-y-1.5">
-            {history.map((u) => (
-              <li key={u.id} className="text-[12.5px] leading-snug text-ink-2">
-                <span className="num mr-1.5 text-[11px] text-ink-3">{formatDate(u.at, { year: true })}</span>
-                {u.summary}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Muted>{t('Nothing has changed its standing since the Atlas began keeping track.')}</Muted>
-        )}
-      </Fold>
-
-      <Fold title={t('What the record shows')} count={caseRows(data, claim).length}>
-        <RecordComparison claim={claim} judged={rows.judged} />
-      </Fold>
-
-      <OtherReadings claim={claim} scrutiny={scrutiny} />
-
       <Fold title={t('The moments behind it')} count={claim.evidence.length} defaultOpen={claim.evidence.length > 0 && claim.evidence.length <= 3}>
         {claim.evidence.length ? (
           <ul className="divide-y divide-line">
@@ -411,89 +313,6 @@ export function ClaimView({ id }: { id: ID }) {
         )}
       </Fold>
 
-      {openEpisodes.length > 0 && claim.state !== 'set_aside' && (
-        <Fold title={t('Times it may have happened')} count={openEpisodes.length}>
-          <Muted>
-            {t(
-              'In your history, the cause came first and the outcome followed within {n} days. Coming first is a reason to look, not proof: does it show one leading to the other?',
-              {
-                n: Math.max(...openEpisodes.map((e) => e.days), 0) || 0,
-              },
-            )}
-          </Muted>
-          <ul className="mt-2 space-y-2.5">
-            {openEpisodes.map((e) => {
-              const source = historySource(e.effect)!;
-              const cause = historySource(e.cause)!;
-              return (
-                <li key={e.week} className="rounded-[2px] border border-line p-2.5 text-[12.5px]">
-                  <p className="text-ink-2">
-                    <span className="num text-[11px] text-ink-3">{formatDate(e.cause.date)}</span> {e.cause.label}
-                  </p>
-                  <p className="text-ink-2">
-                    <span className="num text-[11px] text-ink-3">{formatDate(e.effect.date)}</span> {e.effect.label}{' '}
-                    <span className="text-[11px] text-ink-3">{t('{n} days later', { n: e.days })}</span>
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    <button
-                      type="button"
-                      className="rounded-[2px] border border-line px-1.5 py-0.5 text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
-                      onClick={() => a.addClaimEvidence(id, { source, cause, stance: 'supports', kind: 'instance', excerpt: e.effect.label, addedBy: 'user' })}
-                    >
-                      + {t('Yes: one, then the other')}
-                    </button>
-                    <button
-                      type="button"
-                      className="rounded-[2px] px-1.5 py-0.5 text-[11.5px] text-ink-3 hover:text-ink"
-                      onClick={() => setDismissed([...dismissed, e.week])}
-                    >
-                      {t('Not related')}
-                    </button>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </Fold>
-      )}
-
-      {candidates.length > 0 && claim.state !== 'set_aside' && (
-        <Fold title={t('Notes that might bear on it')} count={candidates.length}>
-          <Muted>{t('Notes that mention both sides, or the cause alone. You judge what each shows.')}</Muted>
-          <ul className="mt-2 space-y-2.5">
-            {candidates.map((c) => (
-              <li key={`${c.source.kind}:${c.source.id}`} className="rounded-[2px] border border-line p-2.5">
-                <div className="flex items-baseline gap-2">
-                  <button type="button" className="min-w-0 flex-1 truncate text-left text-[12.5px] text-ink-2 hover:text-ink" onClick={() => open(c.source)}>
-                    {c.title}
-                  </button>
-                  <span className="num shrink-0 text-[11px] text-ink-3">{formatDate(c.date)}</span>
-                </div>
-                <p className="mt-0.5 line-clamp-2 text-[12px] text-ink-3">{c.body}</p>
-                <p className="mt-1 text-[11px] text-ink-3">
-                  {c.sides === 'both'
-                    ? t('Mentions both sides: does it tell one first, then the other?')
-                    : t('Mentions the cause only: did the outcome fail to follow?')}
-                </p>
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {choices(c.sides).map((k) => (
-                    <button
-                      key={k}
-                      type="button"
-                      className="rounded-[2px] border border-line px-1.5 py-0.5 text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
-                      title={EVIDENCE_KIND_HINT[k]}
-                      onClick={() => addFrom(c, k)}
-                    >
-                      + {EVIDENCE_KIND_LABEL[k]}
-                    </button>
-                  ))}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Fold>
-      )}
-
       <PanelSection title={t('Does this fit your experience?')}>
         <Segmented<View | 'none'>
           label={t('Your view')}
@@ -505,58 +324,6 @@ export function ClaimView({ id }: { id: ID }) {
         <p className="mt-1.5 text-[11.5px] text-ink-3">
           {t('Kept apart from what your notes show: your view never changes how sure it is, and how sure it is never overrules your view.')}
         </p>
-      </PanelSection>
-
-      <PanelSection title={t('Competing explanations')} count={rivals.length}>
-        <Muted>{t('If one of these holds, this one may not be needed. More than one can still be true.')}</Muted>
-        {rivals.length > 0 && (
-          <ul className="-mx-1.5 mt-1">
-            {rivals.map(({ claim: o }) => (
-              <li key={o.id} className="flex items-start">
-                <ul className="min-w-0 flex-1">
-                  <ClaimRow id={o.id} />
-                </ul>
-                <button
-                  type="button"
-                  className="mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
-                  aria-pressed
-                  onClick={() => a.toggleRival(id, o.id)}
-                >
-                  {t('Competing')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </PanelSection>
-
-      <PanelSection title={t('Also contributing')} count={alongside.length}>
-        {alongside.length ? (
-          <ul className="-mx-1.5">
-            {alongside.map(({ claim: o, rival }) => (
-              <li key={o.id} className="flex items-start">
-                <ul className="min-w-0 flex-1">
-                  <ClaimRow id={o.id} />
-                </ul>
-                <button
-                  type="button"
-                  className="mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
-                  aria-pressed={rival}
-                  title={t('Competing explanations: if one holds, the other may not be needed')}
-                  onClick={() => a.toggleRival(id, o.id)}
-                >
-                  {rival ? t('Competing') : t('Mark as competing')}
-                </button>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Muted>{t('Nothing else explains the same outcome yet. What else could produce it? Part of it may also be chance.')}</Muted>
-        )}
-      </PanelSection>
-
-      <PanelSection title={t('Predictions from it')} count={predictions.direct.length + predictions.chains.length}>
-        <Predictions claim={claim} direct={predictions.direct} chains={predictions.chains} />
       </PanelSection>
 
       <PanelSection title={t('Try it and see')} count={tests.length}>
@@ -611,26 +378,267 @@ export function ClaimView({ id }: { id: ID }) {
         )}
       </PanelSection>
 
-      {loops.length > 0 && (
-        <PanelSection title={t('Cycles it is part of')} count={loops.length}>
-          <ul className="-mx-1.5">
-            {loops.map((l) => (
-              <li key={l.id}>
-                <button
-                  type="button"
-                  className="group flex w-full items-center gap-2 rounded-[2px] px-1.5 py-1 text-left hover:bg-ink/[0.035]"
-                  onClick={() => open({ kind: 'loop', id: l.id })}
-                >
-                  <LoopIcon size={13} className="shrink-0 text-ink-3" aria-hidden />
-                  <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2 group-hover:text-ink">{loopName(l)}</span>
-                  {l.leastCertain.includes(id) && <span className="text-[11px] text-ink-3">{t('least sure step')}</span>}
-                  {l.leverage.includes(id) && <span className="text-[11px] text-ink-3">{t('where you can act')}</span>}
-                </button>
-              </li>
-            ))}
-          </ul>
+      <MoreDetail>
+        {openEpisodes.length > 0 && claim.state !== 'set_aside' && (
+          <Fold title={t('Times it may have happened')} count={openEpisodes.length}>
+            <Muted>
+              {t(
+                'In your history, the cause came first and the outcome followed within {n} days. Coming first is a reason to look, not proof: does it show one leading to the other?',
+                {
+                  n: Math.max(...openEpisodes.map((e) => e.days), 0) || 0,
+                },
+              )}
+            </Muted>
+            <ul className="mt-2 space-y-2.5">
+              {openEpisodes.map((e) => {
+                const source = historySource(e.effect)!;
+                const cause = historySource(e.cause)!;
+                return (
+                  <li key={e.week} className="rounded-[2px] border border-line p-2.5 text-[12.5px]">
+                    <p className="text-ink-2">
+                      <span className="num text-[11px] text-ink-3">{formatDate(e.cause.date)}</span> {e.cause.label}
+                    </p>
+                    <p className="text-ink-2">
+                      <span className="num text-[11px] text-ink-3">{formatDate(e.effect.date)}</span> {e.effect.label}{' '}
+                      <span className="text-[11px] text-ink-3">{t('{n} days later', { n: e.days })}</span>
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      <button
+                        type="button"
+                        className="rounded-[2px] border border-line px-1.5 py-0.5 text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
+                        onClick={() =>
+                          a.addClaimEvidence(id, { source, cause, stance: 'supports', kind: 'instance', excerpt: e.effect.label, addedBy: 'user' })
+                        }
+                      >
+                        + {t('Yes: one, then the other')}
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded-[2px] px-1.5 py-0.5 text-[11.5px] text-ink-3 hover:text-ink"
+                        onClick={() => setDismissed([...dismissed, e.week])}
+                      >
+                        {t('Not related')}
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Fold>
+        )}
+
+        {candidates.length > 0 && claim.state !== 'set_aside' && (
+          <Fold title={t('Notes that might bear on it')} count={candidates.length}>
+            <Muted>{t('Notes that mention both sides, or the cause alone. You judge what each shows.')}</Muted>
+            <ul className="mt-2 space-y-2.5">
+              {candidates.map((c) => (
+                <li key={`${c.source.kind}:${c.source.id}`} className="rounded-[2px] border border-line p-2.5">
+                  <div className="flex items-baseline gap-2">
+                    <button type="button" className="min-w-0 flex-1 truncate text-left text-[12.5px] text-ink-2 hover:text-ink" onClick={() => open(c.source)}>
+                      {c.title}
+                    </button>
+                    <span className="num shrink-0 text-[11px] text-ink-3">{formatDate(c.date)}</span>
+                  </div>
+                  <p className="mt-0.5 line-clamp-2 text-[12px] text-ink-3">{c.body}</p>
+                  <p className="mt-1 text-[11px] text-ink-3">
+                    {c.sides === 'both'
+                      ? t('Mentions both sides: does it tell one first, then the other?')
+                      : t('Mentions the cause only: did the outcome fail to follow?')}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1">
+                    {choices(c.sides).map((k) => (
+                      <button
+                        key={k}
+                        type="button"
+                        className="rounded-[2px] border border-line px-1.5 py-0.5 text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
+                        title={EVIDENCE_KIND_HINT[k]}
+                        onClick={() => addFrom(c, k)}
+                      >
+                        + {EVIDENCE_KIND_LABEL[k]}
+                      </button>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </Fold>
+        )}
+
+        <Fold title={t('How sure, in detail')}>
+          <StatusLadder status={status} />
+          <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-[12px]">
+            <Fact label={t('Records cited')} value={String(sources)} />
+            <Fact
+              label={t('Episodes, in order')}
+              value={String(profile.episodes)}
+              hint={t('Separate weeks where it came first and the outcome followed, or a time without it')}
+            />
+            <Fact label={t('Times without it')} value={String(profile.contrast)} hint={EVIDENCE_KIND_HINT.contrast} />
+            <Fact label={t('Exceptions')} value={String(profile.counter)} hint={EVIDENCE_KIND_HINT.counter_case} />
+            <Fact label={t('Happened without it')} value={String(profile.elsewhere ?? 0)} hint={EVIDENCE_KIND_HINT.elsewhere} />
+            <Fact
+              label={t('How it works')}
+              value={profile.mechanism ? t('seen') : profile.mechanismDescribed ? t('described only') : t('missing')}
+              hint={EVIDENCE_KIND_HINT.mechanism}
+            />
+            <Fact
+              label={t('Tests')}
+              value={profile.testsFor + profile.testsAgainst ? t('{a} for · {b} against', { a: profile.testsFor, b: profile.testsAgainst }) : t('none')}
+            />
+            <Fact
+              label={t('From what was recorded')}
+              value={String((profile.fromRecord?.fits ?? 0) + (profile.fromRecord?.contrast ?? 0))}
+              hint={t('Episodes the record shows by itself, from what changed, apart from the ones you judged')}
+            />
+            <Fact
+              label={t('Predictions')}
+              value={
+                (profile.predictionsHeld ?? 0) + (profile.predictionsFailed ?? 0)
+                  ? t('{a} held · {b} did not', { a: profile.predictionsHeld ?? 0, b: profile.predictionsFailed ?? 0 })
+                  : t('none')
+              }
+            />
+            {profile.baseRate && (
+              <Fact
+                label={t('Goes that way anyway')}
+                value={t('{a} of {b} episodes', { a: profile.baseRate.same, b: profile.baseRate.known })}
+                hint={t('How often the outcome went the way this predicts, with or without the cause')}
+              />
+            )}
+            {profile.needsTellingApart && (
+              <Fact
+                label={t('Told apart')}
+                value={String(profile.toldApart ?? 0)}
+                hint={t('Times it happened while what else could produce it was not doing the same')}
+              />
+            )}
+          </dl>
+          {trace.left.length > 0 && (
+            <div className="mt-3">
+              <div className="text-[11.5px] text-ink-3">{t('Left out, and why')}</div>
+              <ul className="mt-1 space-y-0.5">
+                {trace.left.map((l) => (
+                  <li key={l} className="text-[12px] leading-snug text-ink-2">
+                    · {l}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <div className="mt-3 border-t border-line pt-2">
+            <div className="text-[11.5px] text-ink-3">
+              {ready.ready
+                ? t('The record could now bear a formal comparison. None runs in this version, and none could ever make it “tested”.')
+                : t('Not yet enough for a formal comparison, which would only mislead now:')}
+            </div>
+            {!ready.ready && (
+              <ul className="mt-1 space-y-0.5">
+                {ready.checks
+                  .filter((c) => !c.ok)
+                  .map((c) => (
+                    <li key={c.key} className="text-[12px] leading-snug text-ink-2">
+                      · {c.says}
+                    </li>
+                  ))}
+              </ul>
+            )}
+          </div>
+        </Fold>
+
+        <Fold title={t('How this changed')} count={history.length}>
+          {history.length ? (
+            <ul className="space-y-1.5">
+              {history.map((u) => (
+                <li key={u.id} className="text-[12.5px] leading-snug text-ink-2">
+                  <span className="num mr-1.5 text-[11px] text-ink-3">{formatDate(u.at, { year: true })}</span>
+                  {u.summary}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Muted>{t('Nothing has changed its standing since the Atlas began keeping track.')}</Muted>
+          )}
+        </Fold>
+
+        <Fold title={t('What the record shows')} count={caseRows(data, claim).length}>
+          <RecordComparison claim={claim} judged={rows.judged} />
+        </Fold>
+
+        <OtherReadings claim={claim} scrutiny={scrutiny} />
+
+        <PanelSection title={t('Competing explanations')} count={rivals.length}>
+          <Muted>{t('If one of these holds, this one may not be needed. More than one can still be true.')}</Muted>
+          {rivals.length > 0 && (
+            <ul className="-mx-1.5 mt-1">
+              {rivals.map(({ claim: o }) => (
+                <li key={o.id} className="flex items-start">
+                  <ul className="min-w-0 flex-1">
+                    <ClaimRow id={o.id} />
+                  </ul>
+                  <button
+                    type="button"
+                    className="mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
+                    aria-pressed
+                    onClick={() => a.toggleRival(id, o.id)}
+                  >
+                    {t('Competing')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </PanelSection>
-      )}
+
+        <PanelSection title={t('Also contributing')} count={alongside.length}>
+          {alongside.length ? (
+            <ul className="-mx-1.5">
+              {alongside.map(({ claim: o, rival }) => (
+                <li key={o.id} className="flex items-start">
+                  <ul className="min-w-0 flex-1">
+                    <ClaimRow id={o.id} />
+                  </ul>
+                  <button
+                    type="button"
+                    className="mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
+                    aria-pressed={rival}
+                    title={t('Competing explanations: if one holds, the other may not be needed')}
+                    onClick={() => a.toggleRival(id, o.id)}
+                  >
+                    {rival ? t('Competing') : t('Mark as competing')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Muted>{t('Nothing else explains the same outcome yet. What else could produce it? Part of it may also be chance.')}</Muted>
+          )}
+        </PanelSection>
+
+        <PanelSection title={t('Predictions from it')} count={predictions.direct.length + predictions.chains.length}>
+          <Predictions claim={claim} direct={predictions.direct} chains={predictions.chains} />
+        </PanelSection>
+
+        {loops.length > 0 && (
+          <PanelSection title={t('Cycles it is part of')} count={loops.length}>
+            <ul className="-mx-1.5">
+              {loops.map((l) => (
+                <li key={l.id}>
+                  <button
+                    type="button"
+                    className="group flex w-full items-center gap-2 rounded-[2px] px-1.5 py-1 text-left hover:bg-ink/[0.035]"
+                    onClick={() => open({ kind: 'loop', id: l.id })}
+                  >
+                    <LoopIcon size={13} className="shrink-0 text-ink-3" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate text-[13px] text-ink-2 group-hover:text-ink">{loopName(l)}</span>
+                    {l.leastCertain.includes(id) && <span className="text-[11px] text-ink-3">{t('least sure step')}</span>}
+                    {l.leverage.includes(id) && <span className="text-[11px] text-ink-3">{t('where you can act')}</span>}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </PanelSection>
+        )}
+      </MoreDetail>
 
       <div className="border-t border-line px-4 py-3 text-[11.5px] text-ink-3">
         {claimCode(claim.code)} · {t('Stated {date}', { date: formatDate(claim.createdAt, { year: true }) })} ·{' '}

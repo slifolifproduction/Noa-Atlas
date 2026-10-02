@@ -60,7 +60,7 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
       open
       onClose={onClose}
       title={t('New test')}
-      description={t('Change one thing on purpose, keep recording, and write down beforehand what should happen if the claim holds.')}
+      description={t('Change one thing on purpose, keep recording, and write down beforehand what should happen if the reason holds.')}
       width="max-w-[620px]"
       footer={
         <>
@@ -76,7 +76,7 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
       <div className="space-y-3.5">
         <div>
           <FieldLabel htmlFor="x-claim" hint="optional">
-            {t('The claim it tests')}
+            {t('The reason it tests')}
           </FieldLabel>
           <select id="x-claim" className="field" value={claimId} onChange={(e) => setClaimId(e.target.value)}>
             <option value="">{t('None')}</option>
@@ -108,7 +108,7 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
               className="field min-h-[56px]"
               value={prediction}
               onChange={(e) => setPrediction(e.target.value)}
-              placeholder={t('If the claim holds, what will you see?')}
+              placeholder={t('If the reason holds, what will you see?')}
             />
           </div>
           <div>
@@ -133,7 +133,7 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
             </div>
             <div>
               <FieldLabel htmlFor="x-hyp" hint="optional">
-                {t('Hypothesis')}
+                {t('Hunch')}
               </FieldLabel>
               <input
                 id="x-hyp"
@@ -152,7 +152,7 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
                 className="field min-h-[56px]"
                 value={criteria}
                 onChange={(e) => setCriteria(e.target.value)}
-                placeholder={t('The result that would count against the claim')}
+                placeholder={t('The result that would count against the reason')}
               />
             </div>
             <div>
@@ -182,7 +182,7 @@ export function NewExperimentModal({ onClose, claimId: initialClaim = '' }: { on
             <div className="grid gap-3 sm:grid-cols-2">
               <div>
                 <FieldLabel htmlFor="x-pattern" hint="optional">
-                  {t('Also bears on pattern')}
+                  {t('Also bears on repeat')}
                 </FieldLabel>
                 <select id="x-pattern" className="field" value={patternId} onChange={(e) => setPatternId(e.target.value)}>
                   <option value="">{t('None')}</option>

@@ -78,7 +78,7 @@ export function PatternView({ id }: { id: ID }) {
             ))}
           </ul>
         ) : (
-          <Muted>{t('No explanation attached yet. A pattern only says what keeps happening; link the claims that may explain it on the Patterns page.')}</Muted>
+          <Muted>{t('No explanation attached yet. A repeat only says what keeps happening; link the reasons that may explain it on the Repeats page.')}</Muted>
         )}
       </PanelSection>
       {p.nodeIds.length > 0 && (
@@ -131,7 +131,7 @@ export function PathView({ id }: { id: ID }) {
             ))}
           </ul>
         ) : (
-          <Muted>{t('No claims attached. What would have to be true for this path to work?')}</Muted>
+          <Muted>{t('No reasons attached. What would have to be true for this option to work?')}</Muted>
         )}
       </PanelSection>
     </div>

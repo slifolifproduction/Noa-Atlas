@@ -69,7 +69,7 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
     if (!proposal) return;
     apply(experiment.id, result(), proposal);
     toast(
-      t(proposal.changes.length ? '{code} completed. The claim was updated.' : '{code} completed. No claim changed.', {
+      t(proposal.changes.length ? '{code} completed. The reason was updated.' : '{code} completed. No reason changed.', {
         code: experimentCode(experiment.code),
       }),
       { tone: 'success' },
@@ -184,7 +184,7 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
                   <li key={c.claimId} className="flex items-start gap-3 px-3 py-2.5">
                     <StanceMark stance={c.stance} />
                     <div className="min-w-0 flex-1">
-                      <div className="label">{claim ? claimCode(claim.code) : t('Claim')}</div>
+                      <div className="label">{claim ? claimCode(claim.code) : t('Reason')}</div>
                       <div className="text-[13px] text-ink">{claim ? claimSentence(data, claim, c.before) : ''}</div>
                       <div className="mt-0.5 text-[12px] text-ink-3">
                         {c.stance === 'supports' ? t('Added as a test that went as predicted.') : t('Added as a test that did not go as predicted.')}
@@ -201,7 +201,7 @@ export function ResultModal({ experiment, onClose }: { experiment: Experiment; o
             </ul>
           ) : (
             <p className="rounded-[2px] border border-dashed border-line-strong px-3 py-2.5 text-[12.5px] text-ink-3">
-              {t('This test is not linked to a claim, so no status will change. An inconclusive result changes nothing either.')}
+              {t('This test is not linked to a reason, so no status will change. An inconclusive result changes nothing either.')}
             </p>
           )}
         </div>

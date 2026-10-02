@@ -17,7 +17,7 @@ export const PAGE_HELP: Record<string, () => string[]> = {
   ],
   network: () => [
     t(
-      'Your possible reasons, as a double helix: a line is a claim that one thing may contribute to another, drawn firmer the surer it is. Read it from top to bottom: each element sits below what may lead to it. Links you drew and things that merely happened together are not drawn here.',
+      'Your possible reasons, as a double helix: a line is a reason that one thing may contribute to another, drawn firmer the surer it is. Read it from top to bottom: each element sits below what may lead to it. Links you drew and things that merely happened together are not drawn here.',
     ),
     t(
       'Tap something to start from it: what may lead to it, by the part each plays, what competes, and what is still unexplained. The list on the left can trace back from it, or on from it.',

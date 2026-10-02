@@ -499,8 +499,8 @@ function BeliefSection({ id }: { id: ID }) {
   const [composing, setComposing] = useState(false);
   if (!node) return null;
   return (
-    <PanelSection title={t('As a claim')}>
-      <Muted>{t('A belief is something you hold, and also a claim about how things work that the record can bear out or not.')}</Muted>
+    <PanelSection title={t('As a reason')}>
+      <Muted>{t('A belief is something you hold, and also an idea about how things work that the record can bear out or not.')}</Muted>
       {node.claimId ? (
         <ul className="-mx-1.5 mt-1.5">
           <ClaimRow id={node.claimId} />
@@ -518,7 +518,7 @@ function BeliefSection({ id }: { id: ID }) {
         </div>
       ) : (
         <Button size="sm" variant="ghost" icon={Plus} className="mt-2" onClick={() => setComposing(true)}>
-          {t('State it as a claim')}
+          {t('State it as a reason')}
         </Button>
       )}
     </PanelSection>
@@ -614,7 +614,7 @@ function QuestionSection({ id }: { id: ID }) {
               )}
               {candidates.length > 0 && (
                 <div className="mt-2">
-                  <div className="text-[11.5px] text-ink-3">{t('Claims on the map that could belong here:')}</div>
+                  <div className="text-[11.5px] text-ink-3">{t('Reasons on the map that could belong here:')}</div>
                   <div className="mt-1 flex flex-col items-start gap-1">
                     {candidates.slice(0, 5).map((c) => (
                       <button

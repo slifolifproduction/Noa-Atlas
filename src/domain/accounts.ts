@@ -281,7 +281,7 @@ function alternatives(data: AtlasData, c: Claim): Account[] {
         key: `tell:artefact:${c.id}`,
         kind: 'track',
         question: t('Note {b} with every note for a few weeks, whether or not it stands out.', { b }),
-        ifSo: t('If the pattern still shows, it is not only how things were written down.'),
+        ifSo: t('If the repeat still shows, it is not only how things were written down.'),
         ifNot: t('Part of it may have been what got written down.'),
         decisive: false,
         factor: c.to,

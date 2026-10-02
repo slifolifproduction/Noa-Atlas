@@ -18,7 +18,7 @@ export function LogoMark({ size = 22 }: { size?: number }) {
 export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={className}>
-      <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
+      <span className="text-[15px] font-semibold tracking-[-0.01em] whitespace-nowrap text-ink">
         Noa <span className="font-normal text-ink-2">Atlas</span>
       </span>
     </span>

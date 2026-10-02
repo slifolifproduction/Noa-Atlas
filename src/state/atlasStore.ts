@@ -631,7 +631,7 @@ export const useAtlas = create<AtlasState>()(
             c.updatedAt = now();
             logUpdate(s.data, {
               kind: 'claim_adopted',
-              summary: t('You adopted {claim} as a hypothesis: {sentence}.', { claim: claimCode(c.code), sentence: claimSentence(s.data, c) }),
+              summary: t('You adopted {claim} as a hunch: {sentence}.', { claim: claimCode(c.code), sentence: claimSentence(s.data, c) }),
               claimId: id,
               after: claimStatus(s.data, c),
             });
@@ -1296,7 +1296,7 @@ export const useAtlas = create<AtlasState>()(
             if (aside) {
               logUpdate(s.data, {
                 kind: 'pattern_set_aside',
-                summary: t('You set {pattern} aside. It stays here for reference and no longer informs paths.', { pattern: patternCode(p.code) }),
+                summary: t('You set {pattern} aside. It stays here for reference and no longer informs options.', { pattern: patternCode(p.code) }),
                 patternId: id,
               });
             }
@@ -1381,7 +1381,7 @@ export const useAtlas = create<AtlasState>()(
               ...input,
               id,
               code,
-              title: input.steps[0]?.label ?? t('Untitled pattern'),
+              title: input.steps[0]?.label ?? t('Untitled repeat'),
               evidence: [],
               explainedBy: [],
               implications: [],
@@ -1435,7 +1435,7 @@ export const useAtlas = create<AtlasState>()(
             s.data.paths[id] = {
               id,
               code,
-              title: t('Untitled path'),
+              title: t('Untitled option'),
               objective: '',
               summary: '',
               requirements: [],
@@ -1544,7 +1544,7 @@ export const useAtlas = create<AtlasState>()(
               if (!proposal.changes.length) {
                 logUpdate(d, {
                   kind: 'experiment_result',
-                  summary: t('{exp} result recorded ({outcome}); no claim changed.', {
+                  summary: t('{exp} result recorded ({outcome}); no reason changed.', {
                     exp: experimentCode(x.code),
                     outcome: EXPERIMENT_OUTCOME_LABEL[result.outcome],
                   }),
@@ -1564,7 +1564,7 @@ export const useAtlas = create<AtlasState>()(
               kind: 'direction_set',
               summary: path
                 ? t('You chose {path} ({title}) as your direction.', { path: pathCode(path.code), title: path.title })
-                : t('You chose a path as your direction.'),
+                : t('You chose an option as your direction.'),
             });
           });
         },

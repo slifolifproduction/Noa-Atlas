@@ -266,9 +266,7 @@ export function PathPanel({
         ) : confirming ? (
           <div className="w-full space-y-2">
             <p className="text-[12px] text-ink-2">
-              {hasPlan
-                ? t('This replaces your current navigation plan with a draft for this path.')
-                : t('A draft navigation plan will be created for you to edit.')}
+              {hasPlan ? t('This replaces your current plan with a draft for this option.') : t('A draft plan will be created for you to edit.')}
             </p>
             <div className="flex gap-1.5">
               <Button size="sm" variant="primary" loading={busy} onClick={onChoose}>

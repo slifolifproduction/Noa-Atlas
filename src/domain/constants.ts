@@ -355,7 +355,7 @@ export const LINKS: LinkMeta[] = [
       return t('Aims at');
     },
     get description() {
-      return t('Declared: A is meant to move B forward. Whether it does is a separate claim.');
+      return t('Declared: A is meant to move B forward. Whether it does is a separate question.');
     },
     color: '#7fbf8f',
     dash: '8 5',
@@ -385,7 +385,7 @@ export const LINKS: LinkMeta[] = [
       return t('In tension');
     },
     get description() {
-      return t('A and B compete for the same time, money or attention. Declared: whether one changes the other is a separate claim.');
+      return t('A and B compete for the same time, money or attention. Declared: whether one changes the other is a separate question.');
     },
     color: '#d9a55a',
     dash: '3 4',
