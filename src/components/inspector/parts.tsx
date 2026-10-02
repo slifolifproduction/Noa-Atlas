@@ -92,11 +92,9 @@ export function HistoryRow({ item }: { item: HistoryItem }) {
       >
         <span className="num w-[62px] shrink-0 pt-[1px] text-[11px] text-ink-3">{formatDate(item.date)}</span>
         <Icon size={12} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
-        <span className={cn('min-w-0 flex-1 text-[12.5px] leading-snug', item.mode === 'actual' ? 'text-ink-2 group-hover:text-ink' : 'text-ink-3 italic')}>
+        <span className={cn('min-w-0 flex-1 text-[12.5px] leading-snug', item.mode === 'actual' ? 'text-ink-2 group-hover:text-ink' : 'text-ink-3')}>
           {item.label}
-          <span className="ml-1.5 font-mono text-[10px] tracking-wide text-ink-3 uppercase not-italic">
-            {OCCURRENCE_KIND_LABEL[item.kind as keyof typeof OCCURRENCE_KIND_LABEL] ?? ''}
-          </span>
+          <span className="label-sm ml-1.5 text-ink-3">{OCCURRENCE_KIND_LABEL[item.kind as keyof typeof OCCURRENCE_KIND_LABEL] ?? ''}</span>
         </span>
       </button>
     </li>

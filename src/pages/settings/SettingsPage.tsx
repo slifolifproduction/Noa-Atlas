@@ -1,7 +1,7 @@
 import { Download, History, RotateCcw, Upload } from 'lucide-react';
 import { useRef, useState, type ReactNode } from 'react';
 import { checkProxyHealth } from '../../ai/health';
-import { PageHeader } from '../../components/shell/PageHeader';
+import { PAGE_FRAME, PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { FieldLabel, Kbd, Segmented } from '../../components/ui/primitives';
 import { modelCounts } from '../../domain/selectors';
@@ -89,7 +89,7 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[920px] px-4 py-5 md:px-6 md:py-6">
+    <div className={PAGE_FRAME}>
       <PageHeader
         title={t('Settings')}
         description={
@@ -99,7 +99,7 @@ export function SettingsPage() {
         }
       />
 
-      <div className="mt-6">
+      <div className="mt-6 max-w-[1040px]">
         <Block title={t('Where your atlas is kept')}>
           <AccountPanel />
         </Block>

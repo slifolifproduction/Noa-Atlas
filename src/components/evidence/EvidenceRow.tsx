@@ -40,7 +40,7 @@ export function EvidenceRow({ evidence, onRemove }: { evidence: Evidence; onRemo
           <SourceLink source={evidence.source} />
           <span className="num text-[11px] text-ink-3">{formatDate(src.date)}</span>
           {evidence.kind && (
-            <span className="font-mono text-[10.5px] tracking-wide text-ink-2 uppercase" title={EVIDENCE_KIND_HINT[evidence.kind]}>
+            <span className="label-sm text-ink-2" title={EVIDENCE_KIND_HINT[evidence.kind]}>
               {EVIDENCE_KIND_LABEL[evidence.kind]}
             </span>
           )}

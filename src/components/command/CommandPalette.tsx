@@ -281,7 +281,7 @@ function Palette({ onClose }: { onClose(): void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center px-3 pt-[12vh]" role="presentation">
-      <div className="absolute inset-0 animate-fade-in bg-black/55 backdrop-blur-[2px]" onClick={onClose} aria-hidden />
+      <div className="absolute inset-0 animate-fade-in bg-[#040506]/80 backdrop-blur-[3px]" onClick={onClose} aria-hidden />
       <div
         role="dialog"
         aria-modal="true"

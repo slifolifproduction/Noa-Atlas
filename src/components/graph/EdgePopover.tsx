@@ -64,7 +64,7 @@ export function EdgePopover({ edgeId, x, y, edges, onClose }: { edgeId: string; 
                 >
                   <span className="flex items-center gap-2">
                     <EffectSwatch effect={c.effect} width={18} />
-                    <span className="font-mono text-[10.5px] tracking-wide text-ink-3 uppercase">{STATUS_META[status].label}</span>
+                    <span className="label-sm text-ink-3">{STATUS_META[status].label}</span>
                   </span>
                   <span className="block text-[12.5px] leading-snug text-ink-2">{claimSentence(data, c, status)}</span>
                 </button>

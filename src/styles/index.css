@@ -170,6 +170,29 @@ html body {
     text-transform: uppercase;
     color: var(--color-ink-3);
   }
+  /* The same voice one step smaller: a tag on a row (a status, a kind, a date), never a heading. */
+  .label-sm {
+    font-family: var(--font-mono);
+    font-size: 0.65625rem;
+    line-height: 0.875rem;
+    font-weight: 400;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-ink-3);
+  }
+  /* A count or a mark that asks for attention ("3 to confirm"): square, like everything else. */
+  .badge {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    border-radius: var(--radius-hair);
+    background: var(--color-accent-dim);
+    padding: 0 0.3125rem;
+    font-family: var(--font-mono);
+    font-size: 0.65625rem;
+    line-height: 1rem;
+    color: var(--color-accent);
+  }
   .num {
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
@@ -207,6 +230,20 @@ html body {
     outline: none;
     border-color: var(--color-accent);
     background: rgb(236 232 223 / 0.04);
+  }
+  /* Every select draws the same chevron, instead of each browser's own. */
+  select.field,
+  select.select-bare {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238e8b84' stroke-width='1.4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.625rem center;
+    padding-right: 1.75rem;
+  }
+  select.field option,
+  select.select-bare option {
+    background: var(--color-overlay);
+    color: var(--color-ink);
   }
   .grid-bg {
     background-image: radial-gradient(rgb(236 232 223 / 0.05) 1px, transparent 1px);
@@ -1850,6 +1887,23 @@ html body {
 .tree-block-row.is-dim {
   opacity: 0.7;
 }
+/*
+ * On a full-bleed stage (Quests), the corners of the HUD sit on the same edges as every other page's frame
+ * (components/shell/PageHeader: PAGE_FRAME, 1320px wide with a 24px gutter), so the title does not jump between lenses.
+ */
+@media (min-width: 1024px) {
+  .frame-l {
+    left: max(1.5rem, calc((100% - 82.5rem) / 2 + 1.5rem));
+  }
+  .frame-r {
+    right: max(1rem, calc((100% - 82.5rem) / 2 + 1.5rem));
+  }
+}
+/* The same title block, set in the flow of a page rather than over a plate (Time). */
+.tree-block.is-inline {
+  position: static;
+  display: inline-flex;
+}
 .tree-gizmo {
   position: absolute;
   bottom: 14px;
@@ -2033,9 +2087,9 @@ html body {
   position: absolute;
   top: 16px;
   right: 16px;
+  bottom: 14px;
   display: flex;
   width: 340px;
-  max-height: calc(100% - 206px);
   flex-direction: column;
   gap: 8px;
 }
@@ -2047,11 +2101,10 @@ html body {
   background: rgb(5 6 8 / 0.78);
   backdrop-filter: blur(8px);
 }
+/* At the foot of the side column: the reading panel above shrinks (and scrolls) before it would run under the key. */
 .ahead-key {
-  position: absolute;
-  right: 16px;
-  bottom: 14px;
-  width: 340px;
+  margin-top: auto;
+  padding-top: 6px;
   font-family: var(--font-mono);
   font-size: 10px;
   letter-spacing: 0.04em;

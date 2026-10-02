@@ -4,7 +4,7 @@ import { StatusBadge } from '../../components/evidence/Status';
 import { claimSentence, claimStatus } from '../../domain/claims';
 import { useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
-import { PageHeader } from '../../components/shell/PageHeader';
+import { PAGE_FRAME, PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EditableLine } from '../../components/ui/InlineEdit';
 import { EmptyState } from '../../components/ui/primitives';
@@ -164,13 +164,13 @@ export function PathsPage() {
   };
 
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-5 md:px-6 md:py-6">
+    <div className={PAGE_FRAME}>
       <PageHeader
         view="paths"
         help="paths"
         description={t('Your options, grown from where you are and asked the same questions. None of it has happened yet, and they are never ranked.')}
         actions={
-          <Button size="sm" variant="ghost" icon={Plus} onClick={() => setEditing(addPath())}>
+          <Button icon={Plus} onClick={() => setEditing(addPath())}>
             {t('Add an option')}
           </Button>
         }
@@ -198,7 +198,7 @@ export function PathsPage() {
               type="button"
               onClick={() => setComparing((c) => !c)}
               aria-expanded={comparing}
-              className="flex w-full items-center justify-between gap-3 border-y border-line py-3 text-left font-mono text-[10.5px] tracking-[0.14em] text-ink-2 uppercase hover:text-ink"
+              className="label-sm flex w-full items-center justify-between gap-3 border-y border-line py-3 text-left text-ink-2 hover:text-ink"
             >
               <span>
                 {t('Compare in detail')}

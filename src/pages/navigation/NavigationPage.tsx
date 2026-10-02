@@ -4,7 +4,7 @@ import { claimCode } from '../../domain/claims';
 import { useState, type ReactNode } from 'react';
 import { hrefFor } from '../../app/router';
 import { ResultModal } from '../../components/experiments/ResultModal';
-import { PageHeader } from '../../components/shell/PageHeader';
+import { PAGE_FRAME, PageHeader } from '../../components/shell/PageHeader';
 import { Button, buttonClass, IconButton } from '../../components/ui/Button';
 import { EmptyState, Progress } from '../../components/ui/primitives';
 import { EditableLine } from '../../components/ui/InlineEdit';
@@ -23,14 +23,14 @@ export function NavigationPage() {
   const nav = useAtlas((s) => s.data.navigation);
   const [creating, setCreating] = useState(false);
   return (
-    <div className="mx-auto max-w-[1280px] px-4 py-5 md:px-6 md:py-6">
+    <div className={PAGE_FRAME}>
       <PageHeader
         view="navigation"
         help="navigation"
         description={t("Your chosen direction, broken down into a goal, this month's targets and this week's steps.")}
         actions={
           nav && (
-            <a href={hrefFor('paths')} className="text-[12.5px] text-ink-2 hover:text-ink">
+            <a href={hrefFor('paths')} className={buttonClass('ghost')}>
               {t('Change direction →')}
             </a>
           )

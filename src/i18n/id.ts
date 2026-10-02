@@ -2249,6 +2249,7 @@ export const ID: Record<string, string> = {
   'Keeps coming back': 'Terus kembali',
   // The Repeats almanac: the year as a wheel that turns under a reading needle.
   'Plate · Repeats': 'Lembar · Pengulangan',
+  'Plate · Time': 'Lembar · Waktu',
   'Not said yet': 'Belum kamu nilai',
   'Happened {times} in {weeks}, first on {first} and last on {last}.': 'Terjadi {times} dalam {weeks}, pertama pada {first} dan terakhir pada {last}.',
   'Happened once, on {date}.': 'Terjadi sekali, pada {date}.',

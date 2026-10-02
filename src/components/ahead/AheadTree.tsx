@@ -1217,26 +1217,25 @@ export function AheadTree({
                   {t('Edit where you are')}
                 </Button>
               </div>
-              <p className="mt-4 font-mono text-[10.5px] leading-relaxed tracking-[0.06em] text-ink-3 uppercase">
+              <p className="label-sm mt-4 leading-relaxed text-ink-3">
                 {t('Drag to turn it · point at a root to read its option · at a level to compare them · click a node to open it')}
               </p>
             </Section>
           )}
         </aside>
-      </div>
-
-      {/* The key. */}
-      <div className="ahead-key" aria-hidden>
-        <div className="label mb-1.5">{t('Key')}</div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          {KEY.map((k, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <svg width={14} height={14} viewBox="-7 -7 14 14" className="ahead-key-glyph shrink-0 overflow-visible">
-                <Glyph kind={k.kind} item={k.item} size={0.9} />
-              </svg>
-              <span className="min-w-0 leading-snug">{k.label()}</span>
-            </div>
-          ))}
+        {/* The key. */}
+        <div className="ahead-key" aria-hidden>
+          <div className="label mb-1.5">{t('Key')}</div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+            {KEY.map((k, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <svg width={14} height={14} viewBox="-7 -7 14 14" className="ahead-key-glyph shrink-0 overflow-visible">
+                  <Glyph kind={k.kind} item={k.item} size={0.9} />
+                </svg>
+                <span className="min-w-0 leading-snug">{k.label()}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

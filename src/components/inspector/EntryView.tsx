@@ -244,8 +244,7 @@ function SuggestionRow({ entryId, suggestion: s }: { entryId: ID; suggestion: An
   } else if (s.type === 'occurrence') {
     title = (
       <>
-        {t('Add to the timeline')}: <span className="text-ink">{s.label}</span>{' '}
-        <span className="font-mono text-[10.5px] tracking-wide text-ink-3 uppercase">{OCCURRENCE_KIND_LABEL[s.kind]}</span>
+        {t('Add to the timeline')}: <span className="text-ink">{s.label}</span> <span className="label-sm text-ink-3">{OCCURRENCE_KIND_LABEL[s.kind]}</span>
       </>
     );
   } else if (s.type === 'change') {

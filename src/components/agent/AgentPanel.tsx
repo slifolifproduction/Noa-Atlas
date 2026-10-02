@@ -57,7 +57,7 @@ function Preview({ messageId, set }: { messageId: string; set: ChangeSet }) {
       <div className="divide-y divide-line">
         {LENS_ORDER.filter((lens) => set.items.some((i) => LENS_OF[i.change.kind] === lens)).map((lens) => (
           <div key={lens} className="px-3 py-2">
-            <div className="mb-1 font-mono text-[10px] tracking-[0.16em] text-ink-3 uppercase">{LENS_LABEL[lens]()}</div>
+            <div className="label-sm mb-1 text-ink-3">{LENS_LABEL[lens]()}</div>
             <ul className="space-y-1">
               {set.items
                 .filter((i) => LENS_OF[i.change.kind] === lens)
@@ -234,13 +234,13 @@ export function AgentPanel() {
     <aside
       aria-label={t('Atlas agent')}
       onKeyDown={(e) => e.key === 'Escape' && (e.stopPropagation(), setOpen(false))}
-      className="fixed inset-0 z-[45] flex animate-slide-in-right flex-col bg-surface md:inset-y-0 md:top-[52px] md:right-0 md:left-auto md:z-40 md:w-[420px] md:border-l md:border-line-strong md:shadow-[-40px_0_80px_-40px_rgb(0_0_0/0.8)]"
+      className="fixed inset-0 z-[45] flex animate-slide-in-right flex-col bg-surface md:inset-y-0 md:bg-surface/[0.97] md:backdrop-blur-md md:top-[52px] md:right-0 md:left-auto md:z-40 md:w-[400px] md:border-l md:border-line-strong md:shadow-[-40px_0_80px_-40px_rgb(0_0_0/0.8)]"
     >
-      <header className="flex h-12 shrink-0 items-center gap-1 border-b border-line px-3">
-        <span className="text-[14px] text-ink">{t('Atlas agent')}</span>
-        <span className="ml-2 truncate text-[11px] text-ink-3">{answering}</span>
-        <IconButton icon={MessageSquarePlus} label={t('New chat')} className="ml-auto" onClick={newChat} disabled={!messages.length} />
-        <IconButton icon={ChevronsRight} label={t('Close')} onClick={() => setOpen(false)} />
+      <header className="flex h-11 shrink-0 items-center gap-1 border-b border-line pr-2 pl-2">
+        <span className="label shrink-0 px-2">{t('Atlas agent')}</span>
+        <span className="truncate text-[11px] text-ink-3">{answering}</span>
+        <IconButton icon={MessageSquarePlus} label={t('New chat')} size="sm" className="ml-auto" onClick={newChat} disabled={!messages.length} />
+        <IconButton icon={ChevronsRight} label={t('Close')} size="sm" onClick={() => setOpen(false)} />
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -277,7 +277,7 @@ export function AgentPanel() {
       </div>
 
       <div className="shrink-0 border-t border-line p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-        <div className="rounded-[2px] border border-line-strong bg-canvas focus-within:border-ink/40">
+        <div className="rounded-[2px] border border-line-strong bg-[rgb(236_232_223/0.025)] transition-colors hover:border-[rgb(236_232_223/0.26)] focus-within:border-accent!">
           <textarea
             ref={input}
             rows={1}
@@ -296,7 +296,7 @@ export function AgentPanel() {
               id="agent-mode"
               value={mode}
               onChange={(e) => setMode(e.target.value as AgentMode)}
-              className="h-7 rounded-[2px] border border-transparent bg-transparent px-1 text-[12px] text-ink-2 hover:border-line"
+              className="select-bare h-7 rounded-[2px] border border-transparent bg-transparent pl-1.5 text-[12px] text-ink-2 hover:border-line"
               title={claude === 'available' ? undefined : t('Claude answers when the Atlas is opened inside claude.ai, signed in.')}
             >
               {MODES.map((o) => (
@@ -313,7 +313,7 @@ export function AgentPanel() {
                 onClick={submit}
                 disabled={!draft.trim()}
                 aria-label={t('Send')}
-                className="ml-auto flex h-7 w-7 items-center justify-center rounded-full bg-ink text-canvas transition-opacity disabled:opacity-25"
+                className="ml-auto flex h-7 w-7 items-center justify-center rounded-[2px] bg-ink text-canvas transition-opacity disabled:opacity-25"
               >
                 <ArrowUp size={15} strokeWidth={2.2} aria-hidden />
               </button>

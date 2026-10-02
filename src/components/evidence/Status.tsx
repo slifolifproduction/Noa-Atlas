@@ -11,7 +11,7 @@ export function StatusBadge({ status, className }: { status: ClaimStatus; classN
   return (
     <span className={cn('inline-flex items-center gap-1.5 whitespace-nowrap', className)} title={m.description}>
       <StatusSwatch status={status} width={18} />
-      <span className="font-mono text-[10.5px] tracking-[0.08em] text-ink-2 uppercase">{m.label}</span>
+      <span className="label-sm text-ink-2">{m.label}</span>
     </span>
   );
 }
@@ -65,7 +65,7 @@ export function KnowledgeTag({ kind, className }: { kind: Knowledge; className?:
 /** A pattern's regularity, derived from when its instances fell. */
 export function RegularityTag({ regularity }: { regularity: Regularity }) {
   return (
-    <span className="font-mono text-[10.5px] tracking-[0.08em] text-ink-2 uppercase" title={REGULARITY_HINT[regularity]}>
+    <span className="label-sm text-ink-2" title={REGULARITY_HINT[regularity]}>
       {REGULARITY_LABEL[regularity]}
     </span>
   );

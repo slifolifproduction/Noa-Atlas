@@ -105,7 +105,7 @@ export function DecisionView({ id }: { id: ID }) {
               <div className="flex items-center gap-2 text-[13px] text-ink">
                 <Check size={13} className="shrink-0 text-accent" aria-hidden />
                 {chosen.label}
-                <span className="ml-auto font-mono text-[10px] tracking-wide text-ink-3 uppercase">{t('Lived')}</span>
+                <span className="label-sm ml-auto text-ink-3">{t('Lived')}</span>
               </div>
               {chosen.rationale && <p className="mt-0.5 text-[12.5px] text-ink-2">{chosen.rationale}</p>}
               {chosen.expected && (
@@ -119,7 +119,7 @@ export function DecisionView({ id }: { id: ID }) {
             <li key={o.id} className="rounded-[2px] border border-dashed border-line px-2.5 py-2">
               <div className="flex items-center gap-2 text-[13px] text-ink-2">
                 {o.label}
-                <span className="ml-auto font-mono text-[10px] tracking-wide text-ink-3 uppercase">{t('Not taken')}</span>
+                <span className="label-sm ml-auto text-ink-3">{t('Not taken')}</span>
               </div>
               {o.rationale && <p className="mt-0.5 text-[12.5px] text-ink-3">{o.rationale}</p>}
               {o.expected && (
@@ -244,10 +244,10 @@ function ImaginedField({ decision, optionId }: { decision: Decision; optionId: I
     );
   if (!editing)
     return (
-      <p className="mt-1 text-[12px] text-ink-3 italic">
-        <KnowledgeTag kind="imagined" className="mr-1.5 not-italic" />
+      <p className="mt-1 text-[12px] text-ink-3">
+        <KnowledgeTag kind="imagined" className="mr-1.5" />
         {option.imagined}
-        <button type="button" className="ml-1.5 not-italic text-ink-3 hover:text-ink" aria-label={t('Edit')} onClick={() => setEditing(true)}>
+        <button type="button" className="ml-1.5 text-ink-3 hover:text-ink" aria-label={t('Edit')} onClick={() => setEditing(true)}>
           <Pencil size={11} className="inline" aria-hidden />
         </button>
       </p>

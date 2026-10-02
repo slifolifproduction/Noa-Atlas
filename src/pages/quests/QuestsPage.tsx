@@ -205,7 +205,7 @@ export function QuestsPage() {
       <>
         <section ref={stage} className="quest-stage relative h-full min-h-[520px] overflow-hidden">
           <BossEye dormant parts={[]} state="active" urgent={false} hit={0} wide={wide} avoid={avoid} label={t('A closed eye: no boss yet')} />
-          <div ref={hudTop} className="quest-hud absolute top-3 left-4 lg:top-5 lg:left-6">
+          <div ref={hudTop} className="quest-hud frame-l absolute top-3 left-4 lg:top-5">
             {pageLabel}
           </div>
           <div ref={hudBottom} className="quest-hud absolute inset-x-4 bottom-8 mx-auto max-w-[560px] text-center">
@@ -285,7 +285,7 @@ export function QuestsPage() {
         <div className="quest-scrim quest-scrim-bottom" aria-hidden />
 
         {/* Top: where you are, and what is watching you. */}
-        <div ref={hudTop} className="quest-hud absolute top-3 right-4 left-4 lg:top-5 lg:right-auto lg:left-6 lg:w-fit lg:max-w-[min(560px,calc(100%-470px))]">
+        <div ref={hudTop} className="quest-hud frame-l absolute top-3 right-4 left-4 lg:top-5 lg:right-auto lg:w-fit lg:max-w-[min(560px,calc(100%-470px))]">
           {/* Only space at first: the page's own controls come out after the eye, after its name and strength. */}
           <div className="quest-hud-in flex items-center gap-3" style={{ '--in': '2.75s' } as CSSProperties}>
             {pageLabel}
@@ -297,7 +297,7 @@ export function QuestsPage() {
               <Button size="sm" variant="ghost" icon={PLACE_ICONS.ahead} onClick={() => navigate('navigation')}>
                 {t('Open the plan')}
               </Button>
-              <Button size="sm" variant="primary" icon={Plus} onClick={() => setStarting(true)}>
+              <Button size="sm" icon={Plus} onClick={() => setStarting(true)}>
                 {t('Start a quest')}
               </Button>
             </div>
@@ -324,7 +324,7 @@ export function QuestsPage() {
         </div>
 
         {/* Bottom left, on a wide screen: the countdown and its strength. */}
-        <div ref={hudBottom} className="quest-hud absolute bottom-6 left-6 hidden w-[320px] lg:block">
+        <div ref={hudBottom} className="quest-hud frame-l absolute bottom-6 hidden w-[320px] lg:block">
           <Readout boss={boss} urgent={urgent} />
         </div>
 
@@ -334,7 +334,7 @@ export function QuestsPage() {
           key={boss.id}
           ref={consoleBox}
           style={{ '--in': '2.85s' } as CSSProperties}
-          className="quest-console quest-console-in absolute inset-x-0 top-[66%] bottom-0 overflow-y-auto px-4 pt-8 pb-5 lg:inset-x-auto lg:top-4 lg:right-4 lg:bottom-auto lg:max-h-[calc(100%-2rem)] lg:w-[384px] lg:border lg:border-line lg:p-0"
+          className="quest-console quest-console-in frame-r absolute inset-x-0 top-[66%] bottom-0 overflow-y-auto px-4 pt-8 pb-5 lg:inset-x-auto lg:top-4 lg:bottom-auto lg:max-h-[calc(100%-2rem)] lg:w-[384px] lg:border lg:border-line lg:p-0"
           aria-label={t('What brings it down')}
         >
           <div ref={consoleMain} className="lg:p-4">
@@ -502,7 +502,7 @@ export function QuestsPage() {
       </section>
 
       {/* Below the stage: its armor, the other bosses, and you. */}
-      <div id="quest-below" className="mx-auto max-w-[1180px] scroll-mt-2 px-4 pt-8 pb-10 md:px-6">
+      <div id="quest-below" className="mx-auto max-w-[1320px] scroll-mt-2 px-4 pt-8 pb-10 md:px-6">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
           <div className="min-w-0">
             <section id="quest-armor" className="scroll-mt-4 rounded-[2px] border border-line p-4">
@@ -594,8 +594,8 @@ export function QuestsPage() {
             <div className="mt-2 flex items-baseline gap-2">
               <span className="display text-[34px] leading-none text-ink">{t('Level {n}', { n: me.level })}</span>
             </div>
-            <div className="mt-3 h-1 rounded-full bg-ink/10">
-              <div className="h-full rounded-full bg-ink/80" style={{ width: `${Math.round(((me.xp - me.floor) / (me.next - me.floor)) * 100)}%` }} />
+            <div className="mt-3 h-1 bg-ink/10">
+              <div className="h-full bg-ink/80" style={{ width: `${Math.round(((me.xp - me.floor) / (me.next - me.floor)) * 100)}%` }} />
             </div>
             <div className="mt-1 font-mono text-[10.5px] text-ink-3">{t('{n} XP to level {level}', { n: me.next - me.xp, level: me.level + 1 })}</div>
             <table className="mt-3 w-full text-[12.5px]">

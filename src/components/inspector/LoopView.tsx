@@ -57,7 +57,7 @@ export function LoopView({ id }: { id: string }) {
             </Button>
           </form>
         ) : (
-          <h2 className="mt-2.5 display text-[20px] leading-[1.2] text-ink">
+          <h2 className="mt-2.5 display text-[21px] leading-[1.2] text-ink">
             {loopName(loop)}
             <button type="button" className="ml-2 align-middle text-ink-3 hover:text-ink" aria-label={t('Name this cycle')} onClick={() => setEditing(true)}>
               <Pencil size={13} aria-hidden />

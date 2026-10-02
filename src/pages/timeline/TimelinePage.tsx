@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { CAPTURE_ICONS, HISTORY_ICONS, PLACE_ICONS } from '../../components/icons';
 import { NodeChip } from '../../components/inspector/parts';
 import { FocusBanner, useFocusFilter } from '../../components/shell/Focus';
-import { PageHeader } from '../../components/shell/PageHeader';
+import { PAGE_FRAME, PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { EmptyState, Segmented } from '../../components/ui/primitives';
 import { momentsOf } from '../../domain/ask';
@@ -119,13 +119,13 @@ export function TimelinePage({ preset }: { preset?: string }) {
   const quiet = show === 'all' && !on && !query && !review && area === 'all' && !landmarks;
 
   return (
-    <div className="mx-auto max-w-[980px] px-4 py-5 md:px-6 md:py-6">
+    <div className={PAGE_FRAME}>
       <PageHeader
         view="timeline"
         help="timeline"
         actions={
           <>
-            <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')} kbd="N">
+            <Button icon={Plus} onClick={() => openCapture('journal')} kbd="N">
               {t('Write a note')}
             </Button>
             <Button variant="ghost" icon={HISTORY_ICONS.decision} onClick={() => openCapture('decision')}>
@@ -310,7 +310,7 @@ function NoteRow({
           <div className="flex items-center gap-2">
             <Icon size={13} className="shrink-0 text-ink-3" aria-hidden />
             <span className="display min-w-0 flex-1 truncate text-[16px] leading-[1.2] text-ink">{e.title}</span>
-            {pending > 0 && <span className="shrink-0 rounded-full bg-accent-dim px-1.5 text-[10.5px] text-accent">{t('{n} to confirm', { n: pending })}</span>}
+            {pending > 0 && <span className="badge">{t('{n} to confirm', { n: pending })}</span>}
           </div>
           <p className="mt-0.5 line-clamp-2 pl-[21px] text-[12.5px] leading-snug text-ink-2">{e.content}</p>
           {e.areas.length > 0 && (
@@ -330,9 +330,7 @@ function NoteRow({
           {happened.map((x) => (
             <li key={x.key}>
               <button type="button" onClick={() => onOpenItem(x)} className="flex w-full items-baseline gap-2 text-left text-[12px] text-ink-2 hover:text-ink">
-                <span className="shrink-0 font-mono text-[10px] tracking-wide text-ink-3 uppercase">
-                  {OCCURRENCE_KIND_LABEL[x.kind as OccurrenceKind] ?? ''}
-                </span>
+                <span className="label-sm shrink-0 text-ink-3">{OCCURRENCE_KIND_LABEL[x.kind as OccurrenceKind] ?? ''}</span>
                 <span className="min-w-0 truncate">{x.label}</span>
               </button>
             </li>
@@ -399,12 +397,12 @@ function Row({ item: h, active, onOpen }: { item: HistoryItem; active: boolean; 
         <div className="min-w-0">
           <button type="button" onClick={onOpen} className="flex w-full items-start gap-2 text-left">
             <Icon size={13} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
-            <span className={cn('min-w-0 flex-1 text-[13.5px] leading-snug', h.mode === 'actual' ? 'text-ink hover:underline' : 'text-ink-2 italic')}>
+            <span className={cn('min-w-0 flex-1 text-[13.5px] leading-snug', h.mode === 'actual' ? 'text-ink hover:underline' : 'text-ink-2')}>
               {h.label}
               {h.value !== undefined && <span className="num ml-1.5 text-[11.5px] text-ink-3">({h.value})</span>}
             </span>
             {h.landmark && <Star size={12} className="mt-[3px] shrink-0 text-accent" aria-label={t('Landmark')} />}
-            <span className="shrink-0 font-mono text-[10px] tracking-wide text-ink-3 uppercase">
+            <span className="label-sm shrink-0 text-ink-3">
               {h.mode === 'actual' ? (OCCURRENCE_KIND_LABEL[h.kind as keyof typeof OCCURRENCE_KIND_LABEL] ?? '') : MODE_LABEL[h.mode]}
               {h.external ? ` · ${t('happened to you')}` : ''}
             </span>

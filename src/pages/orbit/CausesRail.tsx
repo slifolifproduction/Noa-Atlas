@@ -183,8 +183,8 @@ function ToggleRow({ on, onClick, icon, count, children }: { on: boolean; onClic
       {icon}
       <span className="flex-1 text-[12.5px] text-ink-2">{children}</span>
       {count !== undefined && <span className="num text-[11px] text-ink-3">{count}</span>}
-      <span className={cn('h-3.5 w-6 rounded-full p-[2px] transition-colors', on ? 'bg-accent/60' : 'bg-ink/10')} aria-hidden>
-        <span className={cn('block h-2.5 w-2.5 rounded-full bg-ink transition-transform', on && 'translate-x-2.5')} />
+      <span className={cn('h-3.5 w-6 rounded-[2px] p-[2px] transition-colors', on ? 'bg-accent/60' : 'bg-ink/10')} aria-hidden>
+        <span className={cn('block h-2.5 w-2.5 rounded-[1px] bg-ink transition-transform', on && 'translate-x-2.5')} />
       </span>
     </button>
   );

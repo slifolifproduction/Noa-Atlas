@@ -43,9 +43,7 @@ export function ArmorPanel({ boss, className = 'mt-6' }: { boss: Boss; className
           return (
             <li key={`${p.ref.kind}:${p.ref.id}`} className={cn(p.broken || p.withdrawn ? 'opacity-60' : undefined)}>
               <div className="flex items-start gap-2">
-                <span className="mt-[3px] shrink-0 rounded-[2px] border border-line px-1 font-mono text-[9.5px] tracking-wider text-ink-3 uppercase">
-                  {kindLabel(p)}
-                </span>
+                <span className="label-sm mt-[3px] shrink-0 rounded-[2px] border border-line px-1 text-ink-3">{kindLabel(p)}</span>
                 {p.open ? (
                   <button
                     type="button"
@@ -67,11 +65,8 @@ export function ArmorPanel({ boss, className = 'mt-6' }: { boss: Boss; className
                   <X size={13} aria-hidden />
                 </button>
               </div>
-              <div className="mt-1.5 h-1 rounded-full bg-ink/10" role="img" aria-label={t('{n}% standing', { n: Math.round(p.integrity * 100) })}>
-                <div
-                  className={cn('h-full rounded-full', p.broken || p.withdrawn ? 'bg-ink/25' : 'bg-ink/75')}
-                  style={{ width: `${Math.round(p.integrity * 100)}%` }}
-                />
+              <div className="mt-1.5 h-1 bg-ink/10" role="img" aria-label={t('{n}% standing', { n: Math.round(p.integrity * 100) })}>
+                <div className={cn('h-full', p.broken || p.withdrawn ? 'bg-ink/25' : 'bg-ink/75')} style={{ width: `${Math.round(p.integrity * 100)}%` }} />
               </div>
               <p className="mt-1 text-[11.5px] leading-snug text-ink-3">
                 {p.broken && <span className="text-ink-2">{t('Broken.')} </span>}

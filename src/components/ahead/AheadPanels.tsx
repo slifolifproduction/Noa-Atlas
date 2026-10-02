@@ -138,9 +138,7 @@ export function ItemPanel({
       }
     >
       <p className="mt-2 text-[14px] leading-snug text-ink">{item.text}</p>
-      {item.status && (
-        <p className={cn('mt-1.5 font-mono text-[10.5px] tracking-[0.1em] uppercase', item.warn ? 'text-accent' : 'text-ink-3')}>{item.status}</p>
-      )}
+      {item.status && <p className={cn('label-sm mt-1.5', item.warn ? 'text-accent' : 'text-ink-3')}>{item.status}</p>}
       <button type="button" className="mt-3 text-left text-[12px] text-ink-3 hover:text-ink" onClick={() => onPath(path.id)}>
         {pathCode(path.code)} · {path.title}
       </button>
@@ -244,7 +242,7 @@ export function PathPanel({
       <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 border-t border-line pt-3">
         {BANDS.map((b, i) => (
           <div key={b}>
-            <div className="font-mono text-[9.5px] tracking-[0.14em] text-ink-3 uppercase">
+            <div className="label-sm text-ink-3">
               {['I', 'II', 'III', 'IV'][i]} {BAND_LABEL[b]()}
             </div>
             <div className="num mt-0.5 text-[17px] text-ink">{counts(b)}</div>

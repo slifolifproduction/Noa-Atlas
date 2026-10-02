@@ -9,7 +9,7 @@ import { ClaimRow, NodeChip } from '../../components/inspector/parts';
 import { activeClaims, claimSentence, claimsTouching } from '../../domain/claims';
 import { sharedWithRepeats } from '../../domain/ask';
 import { AddReason } from '../../components/inspector/Ask';
-import { PageHeader } from '../../components/shell/PageHeader';
+import { PAGE_FRAME, PageHeader } from '../../components/shell/PageHeader';
 import { Button, buttonClass, IconButton } from '../../components/ui/Button';
 import { EmptyState, Section, Segmented, ToggleChip } from '../../components/ui/primitives';
 import { EXPERIMENT_STATUS_LABEL, PATTERN_KIND_LABEL, STATUS_META } from '../../domain/constants';
@@ -69,7 +69,7 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-[1320px] px-4 py-5 md:px-6 md:py-6">
+    <div className={PAGE_FRAME}>
       <PageHeader
         view="patterns"
         help="patterns"
@@ -78,11 +78,11 @@ export function PatternsPage({ patternId }: { patternId?: string }) {
         )}
         actions={
           <>
-            <Button size="sm" variant="ghost" icon={ScanSearch} onClick={scan} loading={busyScan} disabled={empty}>
-              {t('Look again')}
-            </Button>
-            <Button size="sm" variant="ghost" icon={Plus} onClick={() => setDescribing(true)}>
+            <Button icon={Plus} onClick={() => setDescribing(true)}>
               {t('Describe one you suspect')}
+            </Button>
+            <Button variant="ghost" icon={ScanSearch} onClick={scan} loading={busyScan} disabled={empty}>
+              {t('Look again')}
             </Button>
           </>
         }
@@ -182,10 +182,7 @@ function PatternListItem({ pattern: p, active, pendingCount }: { pattern: Patter
         <div className="flex items-center gap-2">
           <RegularityTag regularity={stats.regularity} />
           {pendingCount > 0 && (
-            <span
-              className="ml-auto rounded-full bg-accent-dim px-1.5 text-[10.5px] text-accent"
-              title={t('Notes that might belong here, waiting for a yes or no')}
-            >
+            <span className="badge ml-auto" title={t('Notes that might belong here, waiting for a yes or no')}>
               {t('{n} to confirm', { n: pendingCount })}
             </span>
           )}

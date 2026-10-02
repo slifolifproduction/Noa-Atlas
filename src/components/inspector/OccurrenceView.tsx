@@ -51,7 +51,7 @@ export function OccurrenceView({ id }: { id: ID }) {
             <KnowledgeTag kind={o.mode === 'actual' ? 'recorded' : 'imagined'} />
           </span>
         </div>
-        <h2 className="mt-2.5 display text-[19px] leading-[1.25] text-ink">{o.label}</h2>
+        <h2 className="mt-2.5 display text-[21px] leading-[1.25] text-ink">{o.label}</h2>
         <p className="num mt-1 text-[12.5px] text-ink-2">
           {o.approx ? '~' : ''}
           {formatDate(o.date, { year: true })}

@@ -124,7 +124,7 @@ export function ClaimView({ id }: { id: ID }) {
             <KnowledgeTag kind={knowledge} />
           </span>
         </div>
-        <h2 className="mt-2.5 display text-[19px] leading-[1.25] text-ink">{claimSentence(data, claim, status)}</h2>
+        <h2 className="mt-2.5 display text-[21px] leading-[1.25] text-ink">{claimSentence(data, claim, status)}</h2>
 
         {editing ? (
           <ClaimEditForm id={id} onDone={() => setEditing(false)} />

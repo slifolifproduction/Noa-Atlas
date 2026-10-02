@@ -42,7 +42,7 @@ export function FocusChip({ className }: { className?: string }) {
         className="flex min-w-0 items-center gap-2 py-1 pr-1 pl-2.5 text-left"
         title={node ? KIND_META[node.kind].label : t('Area of life')}
       >
-        <span className="shrink-0 font-mono text-[10px] tracking-[0.1em] text-ink-3 uppercase">{t('Looking at')}</span>
+        <span className="label-sm shrink-0 text-ink-3">{t('Looking at')}</span>
         <FocusMark focus={focus} />
         <span className="truncate text-[12.5px] text-ink">{focusLabel(data, focus)}</span>
       </button>

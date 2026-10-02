@@ -2,6 +2,12 @@ import type { ReactNode } from 'react';
 import { VIEWS, type ViewKey } from '../../domain/constants';
 import { HowItWorks } from '../ui/HowItWorks';
 
+/**
+ * The frame every page sits in: one width and one left edge, so moving between lenses the title stays where it was.
+ * A page that reads better narrower keeps its own column inside it, aligned to the same edge.
+ */
+export const PAGE_FRAME = 'mx-auto max-w-[1320px] px-4 py-5 md:px-6 md:py-6';
+
 /** The question the page answers, stated plainly at the top. */
 export function PageHeader({
   view,

@@ -181,7 +181,12 @@ export function TimeStrand({ onJump }: { onJump(month: string): void }) {
   return (
     <section className="time-strand ticks relative mt-6 overflow-hidden rounded-[2px] border border-line px-3 pt-3 pb-2.5">
       <div className="relative z-[1] flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-        <h2 className="label">{t('Load and energy, week by week')}</h2>
+        <h2 className="tree-block is-inline">
+          <span className="tree-block-main">
+            <span className="tree-block-row is-head">{t('Plate · Time').toUpperCase()}</span>
+            <span className="tree-block-row is-sub">{t('Load and energy, week by week').toUpperCase()}</span>
+          </span>
+        </h2>
         <span className="text-[11px] text-ink-3">{t('Counted from lifespans and from what you recorded with each note. Side by side, not a finding.')}</span>
       </div>
 
