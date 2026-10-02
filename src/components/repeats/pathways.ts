@@ -1,6 +1,7 @@
 import { AREAS } from '../../domain/constants';
 import type { AreaKey, AtlasData, ID, Pattern, SourceRef } from '../../domain/types';
 import { polar, type Almanac, type Mark } from './almanac';
+import type { Ctrl } from './sway';
 
 /*
  * The pathways a repeat runs through your life, drawn the way contact networks are (a ring of groups, a dot for
@@ -48,6 +49,9 @@ export interface Strand {
   to: ID;
   exception: boolean;
   d: string;
+  /** The points it is bundled through, and what each is (see sway.ts): how it sways as a living cable. */
+  pts: [number, number][];
+  ctrl: Ctrl[];
 }
 export interface Pathways {
   sectors: Sector[];
@@ -104,7 +108,7 @@ const MIN_SPAN = 14;
 
 export function pathwaysOf(data: AtlasData, al: Almanac, patterns: Pattern[]): Pathways {
   const anchors: Record<ID, ID> = {};
-  const raw: Omit<Strand, 'd'>[] = [];
+  const raw: Omit<Strand, 'd' | 'pts' | 'ctrl'>[] = [];
   for (const ring of al.rings) {
     const p = patterns.find((x) => x.id === ring.patternId);
     if (!p) continue;
@@ -172,6 +176,10 @@ export function pathwaysOf(data: AtlasData, al: Almanac, patterns: Pattern[]): P
     if (!a || !b) continue;
     const sa = sectorOf.get(a.area)!;
     const sb = sectorOf.get(b.area)!;
+    const ctrl: Ctrl[] =
+      sa === sb
+        ? ['end', `near:${a.id}`, `hub:${sa.area}`, `near:${b.id}`, 'end']
+        : ['end', `near:${a.id}`, `hub:${sa.area}`, `hub:${sb.area}`, `near:${b.id}`, 'end'];
     const pts: [number, number][] =
       sa === sb
         ? [polar(a.angle, R - a.size - 2), polar(a.angle, R * 0.8), polar(sa.mid, R * 0.5), polar(b.angle, R * 0.8), polar(b.angle, R - b.size - 2)]
@@ -183,7 +191,7 @@ export function pathwaysOf(data: AtlasData, al: Almanac, patterns: Pattern[]): P
             polar(b.angle, R * 0.78),
             polar(b.angle, R - b.size - 2),
           ];
-    strands.push({ ...s, d: bundle(pts, 0.86) });
+    strands.push({ ...s, d: bundle(pts, 0.86), pts, ctrl });
   }
   return { sectors, dots, strands, anchors };
 }

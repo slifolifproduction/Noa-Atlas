@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { claimSentence, claimStatus } from '../../domain/claims';
 import { AREA_META, REGULARITY_LABEL, STATUS_META } from '../../domain/constants';
@@ -13,7 +13,8 @@ import { forecastRepeat } from '../../ml/forecast';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { almanacOf, polar } from './almanac';
-import { pathwaysOf, R, repeatColor, type Dot, type Pathways, type Sector, type Strand } from './pathways';
+import { bundle, pathwaysOf, R, repeatColor, type Dot, type Pathways, type Sector, type Strand } from './pathways';
+import { breath, cableOf, sway } from './sway';
 
 /** How long each time the repeat being read happened stays lit as they are played back, in order. */
 const PLAY_MS = 2400;
@@ -48,7 +49,8 @@ type Hover = { kind: 'dot'; dot: Dot } | { kind: 'strand'; strand: Strand } | { 
  * One plate of pathways (see pathways.ts) for the repeat being read: the areas round the ring, a dot for every
  * element that took part, a strand for every time. The repeat being read is in its colour and the rest in gray;
  * its strands are drawn in as it is chosen, and each time it happened is played back in turn. Small, the same plate
- * is one of the multiples below, one per repeat.
+ * is one of the multiples below, one per repeat. Live, its strands are living cables: they sway (see sway.ts) and
+ * light runs along each, out from what sets it off; on an exception it dies before it arrives.
  */
 function Plate({
   pw,
@@ -59,6 +61,7 @@ function Plate({
   hover,
   onHover,
   labels,
+  live,
 }: {
   pw: Pathways;
   focus?: ID;
@@ -69,6 +72,8 @@ function Plate({
   onHover?(h: Hover, e?: React.PointerEvent): void;
   /** The size area names are set at, in the plate's units (larger on a phone, where the plate is small). */
   labels?: number;
+  /** In motion: light along the strands, the dots that took part answering, what sets it off sending. */
+  live?: boolean;
 }) {
   const data = useAtlas((s) => s.data);
   const open = useUI((s) => s.openEntity);
@@ -83,7 +88,7 @@ function Plate({
   const id = `pw${useId().replace(/[^a-zA-Z0-9]/g, '')}`;
 
   return (
-    <g className={cn('pw-plate', small && 'is-small')}>
+    <g className={cn('pw-plate', small && 'is-small', live && 'is-live')}>
       {/* The areas round the ring: a band each, the one the repeat starts from thick and in its colour. */}
       {pw.sectors.map((s) => {
         const home = s.area === anchorArea;
@@ -114,13 +119,14 @@ function Plate({
       {/* The strands: the other repeats in gray, under; its exceptions in gray; every time it happened in its colour, over. */}
       <g className="pw-strands is-others">
         {others.map((s) => (
-          <path key={s.key} d={s.d} className={cn('pw-strand', touches(s) && 'is-touched')} />
+          <path key={s.key} data-strand={s.key} d={s.d} className={cn('pw-strand', touches(s) && 'is-touched')} />
         ))}
       </g>
       <g className="pw-strands is-own" key={focus}>
         {own.map((s, i) => (
           <path
             key={s.key}
+            data-strand={s.key}
             d={s.d}
             pathLength={1}
             className={cn('pw-strand', s.exception ? 'is-exception' : 'is-own', s.mark.key === playing && 'is-playing', touches(s) && 'is-touched')}
@@ -131,6 +137,7 @@ function Plate({
           own.map((s) => (
             <path
               key={`h${s.key}`}
+              data-strand={s.key}
               d={s.d}
               className="pw-strand-hit"
               onPointerEnter={(e) => onHover({ kind: 'strand', strand: s }, e)}
@@ -141,8 +148,29 @@ function Plate({
           ))}
       </g>
 
+      {/* Light running along every strand, from what sets it off: brighter on this repeat's, faint on the others'. */}
+      {live &&
+        ([others, own] as const).map((list, o) => (
+          <g key={o} className={cn('pw-pulses', o ? 'is-own' : 'is-others')} style={o ? ({ '--pw-color': color } as CSSProperties) : undefined}>
+            {list.map((s, i) => {
+              const k = (i * 0.618034) % 1;
+              const dur = o ? 2.6 + k * 1.6 : 4.8 + k * 2.6;
+              return (
+                <path
+                  key={`p${s.key}`}
+                  data-strand={s.key}
+                  d={s.d}
+                  pathLength={1}
+                  className={cn('pw-pulse', s.exception && 'is-exception', o === 1 && s.mark.key === playing && 'is-playing')}
+                  style={{ animationDuration: `${dur.toFixed(2)}s`, animationDelay: `${((o ? 1.2 : 0) + k * dur).toFixed(2)}s` }}
+                />
+              );
+            })}
+          </g>
+        ))}
+
       {/* The dots: every element that took part, larger the more often; in colour when it is part of this repeat. */}
-      {pw.dots.map((d) => {
+      {pw.dots.map((d, i) => {
         const [x, y] = polar(d.angle, R);
         const on = involved.has(d.id);
         const size = small ? d.size * 1.25 : d.size;
@@ -153,6 +181,8 @@ function Plate({
             onPointerLeave={onHover ? () => onHover(null) : undefined}
             onClick={onHover ? () => open({ kind: 'node', id: d.id }) : undefined}
           >
+            {live && on && <circle cx={x} cy={y} r={size} className="pw-halo" style={{ stroke: color, animationDelay: `${((i * 0.37) % 3.8).toFixed(2)}s` }} />}
+            {live && d.id === anchor && <circle cx={x} cy={y} r={size + 5} className="pw-beacon" style={{ stroke: color }} />}
             {d.id === anchor && <circle cx={x} cy={y} r={size + 5} className="pw-anchor" style={{ stroke: color }} />}
             <circle cx={x} cy={y} r={size} className={cn('pw-dot', on && 'is-on', lit === d.id && 'is-lit')} style={on ? { fill: color } : undefined} />
             {onHover && <circle cx={x} cy={y} r={Math.max(9, size + 3)} className="pw-hit" />}
@@ -178,6 +208,7 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
   const al = useMemo(() => almanacOf(data, patterns, today), [data, patterns, today]);
   const pw = useMemo(() => pathwaysOf(data, al, patterns), [data, al, patterns]);
   const plateRef = useRef<HTMLDivElement>(null);
+  const dial = useRef<SVGSVGElement>(null);
   const [hover, setHover] = useState<Hover>(null);
   const [tip, setTip] = useState<[number, number]>([0, 0]);
   const index = (id?: ID) => patterns.findIndex((p) => p.id === id);
@@ -196,6 +227,41 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
     return () => clearInterval(id);
   }, [reduced, times.length, hover]);
   const playing = !reduced && times.length ? times[beat % times.length] : undefined;
+
+  // The strands sway as living cables (see sway.ts), never still, while the plate is on screen; the light along them
+  // runs in CSS. Every drawing of a strand (its line, the light on it, where it is pointed at) moves together.
+  useEffect(() => {
+    const svg = dial.current;
+    if (!svg || reduced) return;
+    const cables = new Map(pw.strands.map((s) => [s.key, cableOf(s.key, s.pts, s.ctrl)]));
+    const els = new Map<string, Element[]>();
+    for (const el of svg.querySelectorAll('[data-strand]')) {
+      const key = el.getAttribute('data-strand') ?? '';
+      els.set(key, [...(els.get(key) ?? []), el]);
+    }
+    let visible = true;
+    const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting));
+    io.observe(svg);
+    let raf = 0;
+    let last = 0;
+    const step = (now: number) => {
+      raf = requestAnimationFrame(step);
+      if (!visible || document.hidden || now - last < 33) return;
+      last = now;
+      const beta = breath(now);
+      for (const [key, list] of els) {
+        const c = cables.get(key);
+        if (!c) continue;
+        const d = bundle(sway(c, now), beta);
+        for (const el of list) el.setAttribute('d', d);
+      }
+    };
+    raf = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+    };
+  }, [pw, selected?.id, reduced]);
 
   const point = (h: Hover, e?: React.PointerEvent) => {
     if (e && plateRef.current) {
@@ -264,13 +330,14 @@ export function Almanac({ patterns, selected, schedule }: { patterns: Pattern[];
 
         <div ref={plateRef} className={cn('almanac-plate', hover && 'is-pointing')}>
           <svg
+            ref={dial}
             className="almanac-dial"
             viewBox="-460 -460 920 920"
             role="img"
             aria-label={t('Where each repeat runs through the areas of your life, every time it happened')}
             onPointerLeave={() => setHover(null)}
           >
-            <Plate pw={pw} focus={selected?.id} color={color} playing={playing?.key} hover={hover} onHover={point} labels={narrow ? 19 : 13} />
+            <Plate pw={pw} focus={selected?.id} color={color} playing={playing?.key} hover={hover} onHover={point} labels={narrow ? 19 : 13} live={!reduced} />
           </svg>
 
           {/* What is being played back: when, what the note is, and the repeat. */}
