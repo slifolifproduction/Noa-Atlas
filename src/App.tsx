@@ -21,7 +21,8 @@ import { useToday } from './lib/dates';
 import { cn } from './lib/cn';
 import { OrbitPage } from './pages/orbit/OrbitPage';
 import { useUI } from './state/uiStore';
-import { t } from './i18n';
+import { exampleFollowsLanguage } from './state/versionOps';
+import { t, useLang, type Lang } from './i18n';
 
 const TimelinePage = lazy(() => import('./pages/timeline/TimelinePage').then((m) => ({ default: m.TimelinePage })));
 const NavigationPage = lazy(() => import('./pages/navigation/NavigationPage').then((m) => ({ default: m.NavigationPage })));
@@ -53,6 +54,18 @@ function Page({ route }: { route: ReturnType<typeof useRoute> }): ReactNode {
   }
 }
 
+/** The language the interface was last shown in (the app is rebuilt when it changes, so it is kept outside it). */
+let shownIn: Lang | undefined;
+
+/** An example atlas follows the interface language (see exampleFollowsLanguage); on load it is only ever reopened, never offered. */
+function useExampleLanguage() {
+  const lang = useLang();
+  useEffect(() => {
+    exampleFollowsLanguage(lang, shownIn !== undefined && shownIn !== lang);
+    shownIn = lang;
+  }, [lang]);
+}
+
 export function App() {
   const route = useRoute();
   // Re-render everything when the date turns over in the chosen zone, or the zone itself changes.
@@ -61,6 +74,7 @@ export function App() {
   const panelWidth = useInspectorWidth();
   useGlobalShortcuts();
   useLocalAIBoot();
+  useExampleLanguage();
 
   useEffect(() => {
     document.title = `${VIEWS[route.key].label} · Cognitive Atlas`;

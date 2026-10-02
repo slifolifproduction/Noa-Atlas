@@ -3,7 +3,7 @@
  * saved one, start fresh, import. Anything that replaces the atlas saves the
  * current one first, so nothing is ever lost by accident.
  */
-import type { ExampleKey } from '../data/examples';
+import { exampleLangOf, exampleUntouched, isExampleKey, type ExampleKey } from '../data/examples';
 import { isExampleAtlas } from '../data/seed';
 import type { AtlasData } from '../domain/types';
 import { formatDate, formatTime, todayISO } from '../lib/dates';
@@ -11,8 +11,8 @@ import { toCurrentShape } from '../persistence/migrate';
 import { exportPayload } from '../persistence/storage';
 import { getVersion, putVersion, type SavedLayouts, type VersionMeta, type VersionReason } from '../persistence/versions';
 import { useAtlas } from './atlasStore';
-import { useUI } from './uiStore';
-import { t } from '../i18n';
+import { toast, useUI } from './uiStore';
+import { LANGUAGES, t, type Lang } from '../i18n';
 
 /** A short, readable timestamp for automatic version names. */
 export const versionStamp = (d = new Date()) => `${formatDate(todayISO(d), { year: true })}, ${formatTime(d)}`;
@@ -63,6 +63,35 @@ export async function startFresh(opts: { save: boolean; name: string; mode: 'emp
   if (opts.mode === 'sample' && !wasExample && saved) useUI.getState().setReturnVersion(saved.id);
   else if (opts.mode === 'empty') useUI.getState().setReturnVersion(undefined);
   return saved;
+}
+
+/**
+ * An example follows the interface language. Still as it was opened, it is simply reopened in the new language (with
+ * the same ids, so an open panel and the arrangement stay as they are). With changes of the person's in it, opening
+ * it in the new language is offered, the changed one kept as a version first; `offer` is false on load, when an
+ * example someone changed and kept in the other language is left as it is.
+ */
+export function exampleFollowsLanguage(lang: Lang, offer = true) {
+  const data = useAtlas.getState().data;
+  const key = data.profile?.example;
+  if (!isExampleKey(key) || exampleLangOf(data) === lang) return;
+  if (exampleUntouched(data)) {
+    useAtlas.getState().resetToSample(key, lang);
+    return;
+  }
+  if (!offer) return;
+  const name = (l: Lang) => LANGUAGES.find((x) => x.key === l)?.name ?? l;
+  const reopen = async () => {
+    try {
+      await startFresh({ save: true, name: t('The example, as I left it · {when}', { when: versionStamp() }), mode: 'sample', example: key });
+      toast(t('The example is open in {to}. The one you changed is saved in Versions.', { to: name(lang) }), { tone: 'success' });
+    } catch {
+      toast(t('Could not save a version in this browser, so nothing was changed. Use Export in Settings first.'), { tone: 'warning' });
+    }
+  };
+  toast(t('This example is still in {from}, with your changes in it.', { from: name(exampleLangOf(data)) }), {
+    action: { label: t('Open it in {to}', { to: name(lang) }), run: () => void reopen() },
+  });
 }
 
 /** Leave the example and go back to the person's own atlas, saved when they opened it. */

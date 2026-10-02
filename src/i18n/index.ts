@@ -8,9 +8,10 @@
  * are filled from `vars`. A unit test checks that every key used in the code
  * has an Indonesian translation.
  *
- * What people write (notes, decisions, the sample atlas) is content, not
- * interface, and is never translated. Text the local analysis generates is
- * written in the language chosen at the moment it is generated.
+ * What people write (notes, decisions) is content, not interface, and is
+ * never translated. The example atlases are written in both languages and
+ * open in the chosen one (data/examples). Text the local analysis generates
+ * is written in the language chosen at the moment it is generated.
  */
 import { useSyncExternalStore } from 'react';
 import { safeLocalStorage, STORAGE_KEYS } from '../persistence/local';

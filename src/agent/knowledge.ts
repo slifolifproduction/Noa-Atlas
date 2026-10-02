@@ -155,7 +155,7 @@ export const PASSAGES: Passage[] = [
     title: () => t('The example atlases'),
     text: () =>
       t(
-        'The examples are eight invented people, each a life already filled in, there to learn how the Atlas works on something close to your own: Nadia (designer), Hendra (accountant), Rizky (manager), Maya (director), Bimo (producer), Kevin (data scientist), Fajar (programmer) and Dinda (student). Each has about five months of notes, reasons with different statuses, repeats, options and a plan. Open one from the ⋯ menu (Open an example, or Other examples); your own atlas is saved as a version first, and one step brings you back.',
+        'The examples are eight invented people, each a life already filled in, there to learn how the Atlas works on something close to your own: Nadia (designer), Hendra (accountant), Rizky (manager), Maya (director), Bimo (producer), Kevin (data scientist), Fajar (programmer) and Dinda (student). Each has about five months of notes, reasons with different statuses, repeats, options and a plan, written in English and in Indonesian: an example opens in the language you choose, and follows it when you switch while it is still as you opened it. Open one from the ⋯ menu (Open an example, or Other examples); your own atlas is saved as a version first, and one step brings you back.',
       ),
     words: 'contoh example sample atlas contoh tokoh persona orang people pekerjaan job profesi profession identitas identity',
   },

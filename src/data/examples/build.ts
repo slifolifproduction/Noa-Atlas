@@ -2,10 +2,11 @@
  * The example atlases, written compactly and built into full atlases here.
  *
  * Each example is one invented person in a kind of work (designer, accountant, manager, director, producer, data
- * scientist, programmer) or a student, written in Indonesian, with about five months of records: notes in their own
- * words, what those notes report (dated, each traced to its note), the elements of their life on the Map, possible
- * reasons with evidence of a kind (so their statuses differ and are derived, as in the Noa sample in ../seed.ts),
- * things that keep happening, options never ranked, a chosen direction broken into steps, and quests.
+ * scientist, programmer) or a student, with about five months of records: notes in their own words, what those notes
+ * report (dated, each traced to its note), the elements of their life on the Map, possible reasons with evidence of a
+ * kind (so their statuses differ and are derived, as in the Noa sample in ../seed.ts), things that keep happening,
+ * options never ranked, a chosen direction broken into steps, and quests. Each is written twice, in Indonesian (here)
+ * and in English (./en), with exactly the same structure (./shape.ts), and opens in the interface language.
  *
  * Dates are written against an anchor week and shifted by whole weeks at load time, so an example always reads as
  * recent and its weekly plan stays aligned with this week. Everything is invented. Nothing is a diagnosis.
@@ -205,11 +206,12 @@ export interface ExampleSpec {
   loopNames?: [string[], string][];
 }
 
-const ANCHOR_WEEK = '2026-09-28';
+/** The week an example's dates are written against. */
+export const ANCHOR_WEEK = '2026-09-28';
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** An example, built into a full atlas whose dates end in the week of `today`. */
-export function buildExample(spec: ExampleSpec, today: string = todayISO()): AtlasData {
+/** An example, built into a full atlas whose dates end in the week of `today`, in the language it is written in. */
+export function buildExample(spec: ExampleSpec, today: string = todayISO(), lang: 'en' | 'id' = 'id'): AtlasData {
   const offset = daysBetween(ANCHOR_WEEK, weekStart(today));
   const D = (date: string) => addDays(date, offset);
   const T = (date: string, time = '09:00:00') => `${D(date)}T${time}.000Z`;
@@ -432,7 +434,7 @@ export function buildExample(spec: ExampleSpec, today: string = todayISO()): Atl
   const loopId = (ids: string[]) => [...ids].sort().join('|');
 
   const data: AtlasData = {
-    profile: { name: spec.name, since: D(spec.since), example: spec.key },
+    profile: { name: spec.name, since: D(spec.since), example: spec.key, exampleLang: lang },
     areas,
     nodes,
     edges,

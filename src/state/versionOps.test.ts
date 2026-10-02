@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { listVersions, MAX_VERSIONS, setMemoryVersionStore } from '../persistence/versions';
 import { useAtlas } from './atlasStore';
 import { useUI } from './uiStore';
-import { backToMyAtlas, importWithBackup, restoreVersion, saveCurrentVersion, startFresh } from './versionOps';
+import { backToMyAtlas, exampleFollowsLanguage, importWithBackup, restoreVersion, saveCurrentVersion, startFresh } from './versionOps';
+import { createExample } from '../data/examples';
 import { createSeedData, isExampleAtlas } from '../data/seed';
 
 describe('versions', () => {
@@ -73,5 +74,53 @@ describe('versions', () => {
     await startFresh({ save: true, name: 'The example, as I left it', mode: 'empty', profileName: 'Sam' });
     expect(useUI.getState().returnVersionId).toBeUndefined();
     expect(isExampleAtlas(useAtlas.getState().data)).toBe(false);
+  });
+});
+
+describe('an example in the interface language', () => {
+  beforeEach(() => {
+    setMemoryVersionStore();
+    useUI.setState({ toasts: [] });
+  });
+
+  it('reopens an untouched example in the new language, with the same ids', () => {
+    useAtlas.getState().replaceData(createExample('student', '2026-09-28', 'id'));
+    const ids = Object.keys(useAtlas.getState().data.nodes);
+    exampleFollowsLanguage('en');
+    const d = useAtlas.getState().data;
+    expect(d.profile).toMatchObject({ example: 'student', exampleLang: 'en' });
+    expect(d.entries.ent_01.content).toMatch(/Evening shift until eleven/);
+    expect(Object.keys(d.nodes)).toEqual(ids);
+    expect(useUI.getState().toasts).toHaveLength(0);
+    // Already in that language: nothing happens.
+    exampleFollowsLanguage('en');
+    expect(useAtlas.getState().data).toBe(d);
+  });
+
+  it('offers to reopen one the person changed, keeping the changed one as a version', async () => {
+    const changed = createExample('designer', '2026-09-28', 'id');
+    changed.navigation!.actions.find((a) => a.id === 'a05')!.status = 'done';
+    useAtlas.getState().replaceData(changed);
+    // On load, nothing is offered.
+    exampleFollowsLanguage('en', false);
+    expect(useUI.getState().toasts).toHaveLength(0);
+    exampleFollowsLanguage('en');
+    expect(useAtlas.getState().data.profile.exampleLang).toBe('id');
+    const offer = useUI.getState().toasts.at(-1)!;
+    expect(offer.action).toBeTruthy();
+    offer.action!.run();
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+    expect(useAtlas.getState().data.profile.exampleLang).toBe('en');
+    expect((await listVersions()).map((v) => v.reason)).toEqual(['restart']);
+  });
+
+  it('leaves an atlas of the person’s own alone', () => {
+    const own = createExample('designer', '2026-09-28', 'id');
+    delete own.profile.example;
+    useAtlas.getState().replaceData(own);
+    exampleFollowsLanguage('en');
+    expect(useAtlas.getState().data.profile.exampleLang).toBe('id');
+    expect(useUI.getState().toasts).toHaveLength(0);
   });
 });

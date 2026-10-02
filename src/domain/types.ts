@@ -862,6 +862,8 @@ export interface Profile {
   since: ISODate;
   /** Set on an example atlas (data/examples): which one it is. An atlas of the person's own has none. */
   example?: string;
+  /** The language an example is written in ('id' when not set: the first examples were only in Indonesian). */
+  exampleLang?: 'en' | 'id';
 }
 
 export interface Counters {

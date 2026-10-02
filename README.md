@@ -27,7 +27,7 @@ npm test           # domain + analysis tests
 npm run build      # type-check and production build (static, works from any path)
 ```
 
-The app opens on an example atlas (Nadia, an invented UI/UX designer) so every screen has something to show. There are eight examples, each an invented person in Indonesia with about five months of records written in Indonesian: seven kinds of work and one student (see *The examples* below). Settings lets you export, import, open an example, or start empty. Data lives in `localStorage` in your browser.
+The app opens on an example atlas (Nadia, an invented UI/UX designer) so every screen has something to show. There are eight examples, each an invented person in Indonesia with about five months of records, written in English and in Indonesian: seven kinds of work and one student (see *The examples* below). Settings lets you export, import, open an example, or start empty. Data lives in `localStorage` in your browser.
 
 ## Using it
 
@@ -35,7 +35,7 @@ You do not need to learn the whole system first. Everything starts from one gest
 
 **First, choose how to begin.** On the first visit the welcome asks: **learn with an example first** (and which one), or **start from blank**. Each example is a worked study, a life already filled in, so the whole system can be learned on something close to your own before an atlas of your own begins. While an example is open, a note at the top says whose it is, with **Other examples** and **Start my own atlas**; from your own atlas, **⋯ → Open an example** opens one to look something up, and **Back to my atlas** returns. Nothing is lost either way: the atlas being left is saved as a version first, and every version stays under **⋯ → Versions**. People who already have an atlas are not asked.
 
-**The examples.** Eight invented people, written compactly in `src/data/examples/` and built into full atlases by one builder (`build.ts`), dated so they always end in the current week:
+**The examples.** Eight invented people, written compactly in `src/data/examples/` (Indonesian) and `src/data/examples/en/` (English) and built into full atlases by one builder (`build.ts`), dated so they always end in the current week. Both languages tell exactly the same story: the same ids, dates, evidence and plan, checked by a test (`shape.ts`), so every reason reaches the same status in either. An example opens in the interface language; switching languages reopens it in the other one while it is still as it was opened (same ids, so an open panel stays), and once you have changed something in it, offers to, keeping the changed one as a version.
 
 | Example | Person | Their life | What their reasons show |
 | --- | --- | --- | --- |

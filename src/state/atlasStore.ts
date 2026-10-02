@@ -63,7 +63,7 @@ import { arsenal, canUpgrade, quests } from '../domain/quests';
 import type { ReadDecision, Untie } from '../domain/weave';
 import { createId } from '../lib/ids';
 import { DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
-import { t } from '../i18n';
+import { t, type Lang } from '../i18n';
 
 const now = () => new Date().toISOString();
 
@@ -217,8 +217,8 @@ interface AtlasActions {
   setCurrentAction(id: ID): void;
   deleteAction(id: ID): void;
   // data management
-  /** Open one of the example atlases (the first when none is named). */
-  resetToSample(key?: ExampleKey): void;
+  /** Open one of the example atlases (the first when none is named), in the interface language unless told. */
+  resetToSample(key?: ExampleKey, lang?: Lang): void;
   clearAll(name?: string): void;
   replaceData(data: AtlasData): void;
   /**
@@ -1767,9 +1767,9 @@ export const useAtlas = create<AtlasState>()(
 
         /* ---------------- data management ---------------- */
 
-        resetToSample(key) {
+        resetToSample(key, lang) {
           set((s) => {
-            s.data = createExample(key);
+            s.data = createExample(key, undefined, lang);
           });
         },
 
