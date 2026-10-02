@@ -8,7 +8,7 @@
 import type { AtlasData, GraphLayer } from '../domain/types';
 import { t } from '../i18n';
 
-export type VersionReason = 'manual' | 'restart' | 'import' | 'restore';
+export type VersionReason = 'manual' | 'restart' | 'import' | 'restore' | 'agent';
 
 export interface VersionMeta {
   id: string;

@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, type ReactNode } from 'react';
 import { rememberView, useRoute, type RouteKey } from './app/router';
 import { useGlobalShortcuts } from './app/useGlobalShortcuts';
 import { CaptureModal } from './components/capture/CaptureModal';
+import { AgentPanel } from './components/agent/AgentPanel';
 import { CommandPalette } from './components/command/CommandPalette';
 import { Inspector } from './components/inspector/Inspector';
 import { AccountStrip } from './components/shell/AccountControls';
@@ -97,6 +98,7 @@ export function App() {
       <VersionsModal />
       <StartFreshModal />
       <ReviewDialog />
+      <AgentPanel />
       <ShortcutsDialog />
       <Toasts />
     </div>

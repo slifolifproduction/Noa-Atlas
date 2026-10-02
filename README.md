@@ -212,6 +212,21 @@ Then choose **Claude, via your proxy** in Settings. The API key stays on the ser
 - **Learning from you.** Correct how a sentence was read in a note's panel, link notes yourself, or take a link back, and it learns from that (`learning.ml`, forgettable in Settings).
 - **Forecasts.** The Repeats notes say when a repeat may come next, from the usual gap between the times it happened, labelled as a forecast.
 
+### The atlas agent
+
+**Agent** in the top bar (or **A**) opens a side panel where the person types and the agent builds their atlas or talks it through with them (`src/agent`).
+
+- **Who answers.** *On this device*, *Claude* (on the person's own claude.ai account, through the `sample` capability: their usage, their consent) or *Auto* (Claude when it can be asked from here, the device otherwise; if Claude cannot answer, the device does and says so).
+- **The agent on this device** (`local.ts`) has no language model. It recognises what a message is: a summary of the week, the next step, why something on the Map keeps happening, what the atlas holds about an element, how the Atlas works, or something to build. A story becomes a note, with what the weave will connect said beforehand; statements and commands ("tambah tujuan: …", "aku takut …", "setiap kali X, Y", "A bikin B turun", "deadline: … 6 Desember, langkah: …", "pilihan: A atau B") become elements, reasons, repeats, quests and options.
+- **Claude** (`claude.ts`) reads a compact picture of the atlas in the person's terms (element names, `N12` for a note, `R4` for a reason, never an internal id) and has read tools (search and read notes, an element's record, the app's own guide) and drafting tools (`propose_element`, `propose_link`, `propose_reason`, `propose_repeat`, `propose_option`, `propose_quest`, `propose_note`) that only add to the preview.
+- **A preview, never a silent write** (`changes.ts`). What the agent would add is shown lens by lens, checked against the atlas: an existing element of that name is used, not made twice; a link or reason between names that mean nothing says so and is left out. The person can untick any part. Applying saves a version first, makes everything through the store's own actions (so integrity holds), applies notes last so the weave connects them to what the set added, and keeps what it made: **Undo all** takes back exactly that, including what its notes connected on their own. A reason goes in as a hunch, with no evidence.
+- **What it is for, and not** (`scope.ts`). The person's atlas, how the Atlas works, and knowledge that helps them use it (habits, testing a reason, deciding), tied back to their atlas (`knowledge.ts`, which shares its text with the pages' own help).
+  - **Before.** A plainly unrelated request (code, homework, news, translations) or one about the app's insides (instructions, database, storage, code, models) is answered on the device and never sent.
+  - **During.** Claude's instructions say the same, and its tools only speak the person's language.
+  - **After.** An answer is cleaned of anything that looks like an internal id or code, and withheld if it repeats its instructions.
+  - **Not a lock.** The atlas is the person's own, in their browser (they can export all of it). This keeps the agent to its job.
+- **Answers cite their records**: `[N12]`, `[D3]`, `[R4]` and `[P2]` are shown as chips that open them. The conversation is kept on the device (**New chat** clears it).
+
 ## Responsive behaviour
 
 Desktop is the primary experience. On tablets the inspector becomes a bottom sheet and the Overview opens on demand. On phones the canvas switches to a compact portrait layout showing you and the area markers (an area's elements appear when it is selected), the Overview and the Causes list open in a sheet, the six lenses move to a bottom tab bar, and the panel opens as a sheet above it so the lenses stay reachable. The information architecture stays the same.

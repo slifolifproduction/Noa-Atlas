@@ -1,4 +1,19 @@
-import { ArrowLeft, BookOpen, Ellipsis, History, Keyboard, LifeBuoy, Plus, Search, Settings, Sparkles, Sprout, type LucideIcon } from 'lucide-react';
+import {
+  ArrowLeft,
+  BookOpen,
+  Ellipsis,
+  History,
+  Keyboard,
+  LifeBuoy,
+  MessageSquareText,
+  Plus,
+  Search,
+  Settings,
+  Sparkles,
+  Sprout,
+  type LucideIcon,
+} from 'lucide-react';
+import { useAgent } from '../../agent/store';
 import { groupTarget, hrefFor, type RouteKey } from '../../app/router';
 import { isExampleAtlas } from '../../data/seed';
 import { GROUPS, groupOf, VIEWS, type GroupKey } from '../../domain/constants';
@@ -25,6 +40,8 @@ export const GROUP_ICONS: Record<GroupKey, LucideIcon> = PLACE_ICONS;
 export function TopBar({ active }: { active: RouteKey }) {
   const openCapture = useUI((s) => s.openCapture);
   const setPaletteOpen = useUI((s) => s.setPaletteOpen);
+  const agentOpen = useAgent((s) => s.open);
+  const toggleAgent = useAgent((s) => s.toggle);
   const current = groupOf(active)?.key;
 
   return (
@@ -75,6 +92,18 @@ export function TopBar({ active }: { active: RouteKey }) {
           <Kbd className="border-line bg-transparent">⌘K</Kbd>
         </button>
         <IconButton icon={Search} label={t('Search')} className="sm:hidden" onClick={() => setPaletteOpen(true)} />
+        <span className="hidden sm:inline-flex">
+          <Button
+            icon={MessageSquareText}
+            onClick={toggleAgent}
+            kbd="A"
+            aria-pressed={agentOpen}
+            className={agentOpen ? 'border-ink/45 bg-ink/[0.06]' : undefined}
+          >
+            {t('Agent')}
+          </Button>
+        </span>
+        <IconButton icon={MessageSquareText} label={t('Agent')} className="sm:hidden" active={agentOpen} onClick={toggleAgent} />
         <span className="hidden sm:inline-flex">
           <Button variant="primary" icon={Plus} onClick={() => openCapture('journal')} kbd="N">
             {t('Capture')}

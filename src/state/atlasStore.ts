@@ -179,6 +179,8 @@ interface AtlasActions {
   toggleExplanation(patternId: ID, claimId: ID): void;
   adoptCandidate(candidate: PatternCandidate): ID;
   addPattern(input: NewPattern): ID;
+  /** Remove a repeat outright (taking back one the agent made); what pointed at it lets go of it. */
+  deletePattern(id: ID): void;
   // investigations
   updateInvestigation(questionId: ID, patch: Partial<Investigation>): void;
   // possibility and plans
@@ -1360,6 +1362,12 @@ export const useAtlas = create<AtlasState>()(
             });
           });
           return id;
+        },
+
+        deletePattern(id) {
+          set((s) => {
+            delete s.data.patterns[id];
+          });
         },
 
         addPattern(input) {

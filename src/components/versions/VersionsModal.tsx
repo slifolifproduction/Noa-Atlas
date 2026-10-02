@@ -34,6 +34,7 @@ const reasonText = (reason: VersionMeta['reason']): string | null =>
     manual: null,
     restart: t('Saved automatically before starting fresh'),
     import: t('Saved automatically before an import'),
+    agent: t('Saved automatically before the agent’s changes were applied'),
     restore: t('Saved automatically before going back to another version'),
   })[reason];
 

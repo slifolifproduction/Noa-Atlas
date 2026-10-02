@@ -3,6 +3,7 @@ import { GROUPS, groupOf } from '../domain/constants';
 import { isTyping } from '../lib/dom';
 import { useUI } from '../state/uiStore';
 import { groupTarget, navigate, parseHash, type RouteKey } from './router';
+import { useAgent } from '../agent/store';
 import { t } from '../i18n';
 
 /**
@@ -40,6 +41,9 @@ export function useGlobalShortcuts() {
         case '/':
           e.preventDefault();
           return ui.setPaletteOpen(true);
+        case 'a':
+          e.preventDefault();
+          return useAgent.getState().toggle();
         case '?':
           return ui.setShortcutsOpen(true);
         case 'j':
@@ -81,6 +85,12 @@ export const SHORTCUTS: { keys: string[]; label: string }[] = [
     keys: ['D'],
     get label() {
       return t('Your decisions, in Time');
+    },
+  },
+  {
+    keys: ['A'],
+    get label() {
+      return t('Open or close the atlas agent');
     },
   },
   {
