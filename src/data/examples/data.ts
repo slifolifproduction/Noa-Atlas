@@ -1,9 +1,9 @@
 import type { ExampleSpec } from './build';
 
-/** Kevin, a data scientist at an e-commerce company in Jakarta. Invented. */
+/** Kevin, a data scientist at an e-commerce company. Invented. */
 export const data: ExampleSpec = {
   key: 'data',
-  name: 'Kevin Wijaya',
+  name: 'Kevin Moore',
   since: '2026-05-01',
   areas: {
     self: ['Data scientist yang ingin modelnya benar-benar dipakai', 'Lebih senang membangun daripada menjelaskan.'],
@@ -12,14 +12,14 @@ export const data: ExampleSpec = {
     money: ['Gaji tetap, menabung untuk S2', 'Target tabungan dua tahun.'],
     people: ['Manajer, tim bisnis, dan teman komunitas data', 'Sering merasa tim bisnis tidak paham modelnya.'],
     health: ['Duduk sepuluh jam sehari', 'Mulai main badminton Kamis malam.'],
-    place: ['Kantor di Kuningan, kos di Setiabudi', 'Fokus paling baik pagi sebelum jam sepuluh.'],
+    place: ['Kantor di pusat kota, kamar sewa tidak jauh dari kantor', 'Fokus paling baik pagi sebelum jam sepuluh.'],
     growth: ['Statistik kuat, mulai belajar MLOps', 'Ingin bisa menjelaskan model ke orang non-teknis.'],
   },
   state: {
     position: 'Data scientist, model churn versi dua sedang diuji di tim CRM.',
     summary: 'Model yang dibahas dengan pengguna sejak awal akhirnya dipakai. Permintaan dadakan masih memotong waktu riset.',
     constraints: ['Permintaan ad-hoc dari empat tim', 'Data transaksi lama tidak rapi', 'Server GPU dipakai bergantian'],
-    assets: ['Manajer yang melindungi waktu fokus (Mbak Sinta)', 'Akses ke data perilaku pengguna', 'Komunitas data di Jakarta'],
+    assets: ['Manajer yang melindungi waktu fokus (Claire)', 'Akses ke data perilaku pengguna', 'Komunitas data di kotanya'],
   },
   elements: [
     ['r_ds', 'role', 'self', 'Data scientist', 'Membangun model prediksi untuk tim bisnis.'],
@@ -48,12 +48,12 @@ export const data: ExampleSpec = {
     ['s_akurasi', 'state', 'projects', 'Akurasi model', 'Diukur dengan AUC pada data uji.'],
     ['s_tanya', 'state', 'work', 'Pertanyaan berulang', 'Pertanyaan yang sama dari tim lain soal data.'],
     ['s_energi', 'state', 'health', 'Energi', 'Dicatat di setiap catatan, 1 sampai 5.'],
-    ['p_sinta', 'person', 'people', 'Mbak Sinta (manajer data)', 'Atasan langsung, dulu analis bisnis.'],
+    ['p_sinta', 'person', 'people', 'Claire (manajer data)', 'Atasan langsung, dulu analis bisnis.'],
     ['p_crm', 'person', 'people', 'Tim CRM', 'Pengguna model churn.'],
-    ['p_komunitas', 'person', 'people', 'Komunitas data Jakarta', 'Meetup bulanan.'],
+    ['p_komunitas', 'person', 'people', 'Komunitas data kota', 'Meetup bulanan.'],
     ['res_data', 'resource', 'work', 'Data perilaku pengguna', 'Klik, keranjang, dan transaksi dua tahun.'],
     ['res_gpu', 'resource', 'work', 'Server GPU tim', 'Dipakai bergantian empat orang.'],
-    ['pl_kantor', 'place', 'place', 'Kantor Kuningan', 'Lantai terbuka, ramai setelah jam sepuluh.'],
+    ['pl_kantor', 'place', 'place', 'Kantor pusat kota', 'Lantai terbuka, ramai setelah jam sepuluh.'],
     ['sk_statistik', 'skill', 'growth', 'Statistik dan pemodelan', 'Kekuatan utama.', { level: 'have' }],
     ['sk_mlops', 'skill', 'growth', 'MLOps', 'Sedang belajar deployment dan pemantauan model.', { level: 'developing' }],
     ['sk_cerita', 'skill', 'growth', 'Menjelaskan ke non-teknis', 'Masih terlalu banyak istilah.', { level: 'gap' }],
@@ -134,7 +134,7 @@ export const data: ExampleSpec = {
       n: 7,
       date: '2026-07-22',
       title: 'Jam kantor data',
-      text: 'Mbak Sinta mengusulkan jam kantor data: permintaan dadakan hanya dilayani Selasa dan Kamis sore. Minggu ini aku dapat tiga pagi utuh untuk riset.',
+      text: 'Claire mengusulkan jam kantor data: permintaan dadakan hanya dilayani Selasa dan Kamis sore. Minggu ini aku dapat tiga pagi utuh untuk riset.',
       about: ['bh_adhoc', 's_riset', 'p_sinta'],
       areas: ['work'],
       energy: 4,
@@ -197,7 +197,7 @@ export const data: ExampleSpec = {
       n: 13,
       date: '2026-09-21',
       title: 'Rapat penilaian',
-      text: 'Mbak Sinta bilang peluang Senior Data Scientist besar kalau model churn dipakai rutin dan aku bisa menjelaskan dampaknya dalam bahasa bisnis.',
+      text: 'Claire bilang peluang Senior Data Scientist besar kalau model churn dipakai rutin dan aku bisa menjelaskan dampaknya dalam bahasa bisnis.',
       about: ['g_senior', 'p_sinta', 'sk_cerita'],
       areas: ['work'],
       energy: 4,
@@ -334,7 +334,7 @@ export const data: ExampleSpec = {
         ],
       ],
       chosen: 0,
-      action: 'Mengumumkan jam kantor data bersama Mbak Sinta.',
+      action: 'Mengumumkan jam kantor data bersama Claire.',
       expected: 'Tiga pagi riset seminggu tanpa mengecewakan tim bisnis.',
       enacted: 'yes',
       actual: 'Riset jalan, model churn versi pertama selesai tepat waktu.',

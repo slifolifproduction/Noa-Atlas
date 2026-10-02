@@ -46,7 +46,7 @@ export function TopBar({ active }: { active: RouteKey }) {
 
   return (
     <header className="relative z-30 flex h-[52px] shrink-0 items-center gap-2 border-b border-line bg-canvas px-3 md:px-5">
-      <a href={hrefFor('orbit')} className="mr-1 flex items-center gap-2.5 rounded-[2px] py-1 pr-1 xl:mr-4" aria-label={t('Cognitive Atlas, home')}>
+      <a href={hrefFor('orbit')} className="mr-1 flex items-center gap-2.5 rounded-[2px] py-1 pr-1 xl:mr-4" aria-label={t('Noa Atlas, home')}>
         <LogoMark />
         <Wordmark className="hidden xl:inline" />
       </a>
@@ -126,7 +126,7 @@ function MoreMenu() {
       <MenuItem icon={History} hint={t('Save your atlas, go back to an earlier one, or start fresh')} onSelect={() => ui().setVersionsOpen(true)}>
         {t('Versions')}
       </MenuItem>
-      <MenuItem icon={LifeBuoy} hint={t('What Cognitive Atlas is, in three lines')} onSelect={() => ui().setGuideOpen(true)}>
+      <MenuItem icon={LifeBuoy} hint={t('What Noa Atlas is, in three lines')} onSelect={() => ui().setGuideOpen(true)}>
         {t('Guide')}
       </MenuItem>
       {example ? (

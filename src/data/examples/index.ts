@@ -39,14 +39,14 @@ export const exampleSpec = (key: ExampleKey, lang: Lang): ExampleSpec => SPECS[l
 
 /** In the order they are offered. */
 export const EXAMPLES: ExampleInfo[] = [
-  { key: 'designer', identity: 'Designer', name: designer.name, blurb: 'UI/UX designer at a fintech in Jakarta, freelancing on weekends.' },
-  { key: 'accountant', identity: 'Accountant', name: accountant.name, blurb: 'Senior accountant in Surabaya, studying for the CPA exam.' },
-  { key: 'manager', identity: 'Manager', name: manager.name, blurb: 'Warehouse operations manager in Cikarang, leading 40 people.' },
-  { key: 'director', identity: 'Director', name: director.name, blurb: 'Managing director of a family furniture exporter in Jepara.' },
-  { key: 'producer', identity: 'Producer', name: producer.name, blurb: 'Concert and event producer at an event organiser in Jakarta.' },
+  { key: 'designer', identity: 'Designer', name: designer.name, blurb: 'UI/UX designer at a fintech startup, freelancing on weekends.' },
+  { key: 'accountant', identity: 'Accountant', name: accountant.name, blurb: 'Senior accountant at a distributor, studying for the CPA exam.' },
+  { key: 'manager', identity: 'Manager', name: manager.name, blurb: 'Warehouse operations manager, leading 40 people.' },
+  { key: 'director', identity: 'Director', name: director.name, blurb: 'Managing director of a family furniture exporter.' },
+  { key: 'producer', identity: 'Producer', name: producer.name, blurb: 'Concert and event producer at an event organiser.' },
   { key: 'data', identity: 'Data scientist', name: data.name, blurb: 'Data scientist at an e-commerce company, building a churn model.' },
-  { key: 'programmer', identity: 'Programmer', name: programmer.name, blurb: 'Backend developer at a logistics startup in Bandung.' },
-  { key: 'student', identity: 'Student', name: student.name, blurb: 'Informatics student in Yogyakarta, working part-time as a barista.' },
+  { key: 'programmer', identity: 'Programmer', name: programmer.name, blurb: 'Backend developer at a logistics startup.' },
+  { key: 'student', identity: 'Student', name: student.name, blurb: 'Informatics student, working part-time as a barista.' },
 ];
 
 /** The example a new visitor sees first. */

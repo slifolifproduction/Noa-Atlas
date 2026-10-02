@@ -1,5 +1,5 @@
 /**
- * Cognitive Atlas data model.
+ * Noa Atlas data model.
  *
  * Four layers and one fenced mode, never collapsed into each other:
  *

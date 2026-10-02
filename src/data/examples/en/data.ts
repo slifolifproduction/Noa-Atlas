@@ -1,9 +1,9 @@
 import type { ExampleSpec } from '../build';
 
-/** Kevin, a data scientist at an e-commerce company in Jakarta. Invented. English. */
+/** Kevin, a data scientist at an e-commerce company. Invented. English. */
 export const data: ExampleSpec = {
   key: 'data',
-  name: 'Kevin Wijaya',
+  name: 'Kevin Moore',
   since: '2026-05-01',
   areas: {
     self: ['A data scientist who wants his models actually used', 'Would rather build than explain.'],
@@ -12,14 +12,14 @@ export const data: ExampleSpec = {
     money: ['A steady salary, saving for a master’s', 'A two-year savings target.'],
     people: ['A manager, the business teams, and friends in the data community', 'Often feels the business teams don’t understand his models.'],
     health: ['Sitting ten hours a day', 'Started playing badminton on Thursday evenings.'],
-    place: ['Office in Kuningan, a rented room in Setiabudi', 'Focuses best in the morning before ten.'],
+    place: ['Office downtown, a rented room nearby', 'Focuses best in the morning before ten.'],
     growth: ['Strong in statistics, starting to learn MLOps', 'Wants to explain models to non-technical people.'],
   },
   state: {
     position: 'Data scientist, version two of the churn model being tried by the CRM team.',
     summary: 'The model discussed with its users from the start finally got used. Ad-hoc requests still cut into research time.',
     constraints: ['Ad-hoc requests from four teams', 'Messy historical transaction data', 'A shared GPU server'],
-    assets: ['A manager who protects focus time (Sinta)', 'Access to user behaviour data', 'The data community in Jakarta'],
+    assets: ['A manager who protects focus time (Claire)', 'Access to user behaviour data', 'The local data community'],
   },
   elements: [
     ['r_ds', 'role', 'self', 'Data scientist', 'Builds prediction models for the business teams.'],
@@ -48,12 +48,12 @@ export const data: ExampleSpec = {
     ['s_akurasi', 'state', 'projects', 'Model accuracy', 'Measured as AUC on test data.'],
     ['s_tanya', 'state', 'work', 'Repeated questions', 'The same questions about the data from other teams.'],
     ['s_energi', 'state', 'health', 'Energy', 'Recorded with every note, 1 to 5.'],
-    ['p_sinta', 'person', 'people', 'Sinta (data manager)', 'Direct manager, formerly a business analyst.'],
+    ['p_sinta', 'person', 'people', 'Claire (data manager)', 'Direct manager, formerly a business analyst.'],
     ['p_crm', 'person', 'people', 'The CRM team', 'Users of the churn model.'],
-    ['p_komunitas', 'person', 'people', 'Jakarta data community', 'A monthly meetup.'],
+    ['p_komunitas', 'person', 'people', 'City data community', 'A monthly meetup.'],
     ['res_data', 'resource', 'work', 'User behaviour data', 'Two years of clicks, carts and transactions.'],
     ['res_gpu', 'resource', 'work', 'The team’s GPU server', 'Shared by four people.'],
-    ['pl_kantor', 'place', 'place', 'Kuningan office', 'Open plan, busy after ten.'],
+    ['pl_kantor', 'place', 'place', 'The downtown office', 'Open plan, busy after ten.'],
     ['sk_statistik', 'skill', 'growth', 'Statistics and modelling', 'The main strength.', { level: 'have' }],
     ['sk_mlops', 'skill', 'growth', 'MLOps', 'Learning deployment and model monitoring.', { level: 'developing' }],
     ['sk_cerita', 'skill', 'growth', 'Explaining to non-technical people', 'Still too much jargon.', { level: 'gap' }],
@@ -134,7 +134,7 @@ export const data: ExampleSpec = {
       n: 7,
       date: '2026-07-22',
       title: 'Data office hours',
-      text: 'Sinta proposed data office hours: ad-hoc requests only on Tuesday and Thursday afternoons. This week I got three whole mornings for research.',
+      text: 'Claire proposed data office hours: ad-hoc requests only on Tuesday and Thursday afternoons. This week I got three whole mornings for research.',
       about: ['bh_adhoc', 's_riset', 'p_sinta'],
       areas: ['work'],
       energy: 4,
@@ -197,7 +197,7 @@ export const data: ExampleSpec = {
       n: 13,
       date: '2026-09-21',
       title: 'Review meeting',
-      text: 'Sinta said my chances of Senior Data Scientist are good if the churn model is used routinely and I can explain its impact in business terms.',
+      text: 'Claire said my chances of Senior Data Scientist are good if the churn model is used routinely and I can explain its impact in business terms.',
       about: ['g_senior', 'p_sinta', 'sk_cerita'],
       areas: ['work'],
       energy: 4,
@@ -342,7 +342,7 @@ export const data: ExampleSpec = {
         ],
       ],
       chosen: 0,
-      action: 'Announced data office hours together with Sinta.',
+      action: 'Announced data office hours together with Claire.',
       expected: 'Three research mornings a week without letting the business teams down.',
       enacted: 'yes',
       actual: 'Research moved forward; the first version of the churn model was done on time.',

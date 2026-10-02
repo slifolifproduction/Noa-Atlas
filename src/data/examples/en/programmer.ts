@@ -1,9 +1,9 @@
 import type { ExampleSpec } from '../build';
 
-/** Fajar, a backend developer at a logistics startup in Bandung. Invented. English. */
+/** Adam, a backend developer at a logistics startup. Invented. English. */
 export const programmer: ExampleSpec = {
   key: 'programmer',
-  name: 'Fajar Nugroho',
+  name: 'Adam Foster',
   since: '2026-05-01',
   areas: {
     self: ['A programmer who wants his code to be dependable', 'Loves solving hard problems, impatient with process.'],
@@ -12,14 +12,14 @@ export const programmer: ExampleSpec = {
     money: ['A steady salary, saving for a house', 'Considering remote work paid in dollars.'],
     people: ['A small team, a tech lead, and a girlfriend', 'Often on call at weekends.'],
     health: ['Up late when the code is stuck', 'Dry eyes and a stiff neck.'],
-    place: ['Office in Dago, a rented room in Coblong', 'Works from home two days a week.'],
+    place: ['Office downtown, a rented room nearby', 'Works from home two days a week.'],
     growth: ['Strong in Go and databases', 'Learning system design and spoken English.'],
   },
   state: {
     position: 'Backend developer, three months from the tracking service launch.',
     summary: 'Weekend bugs have almost disappeared since releases stopped on Fridays. Tech debt still slows the sprints.',
     constraints: ['On call every third week', 'Old code without tests', 'Packed two-week sprints'],
-    assets: ['A tech lead who likes to teach (Yudi)', 'Four years of experience with Go', 'A side project already used by three shops'],
+    assets: ['A tech lead who likes to teach (Victor)', 'Four years of experience with Go', 'A side project already used by three shops'],
   },
   elements: [
     ['r_programmer', 'role', 'self', 'Backend developer', 'Builds the APIs and services for the courier app.'],
@@ -43,13 +43,13 @@ export const programmer: ExampleSpec = {
     ['s_energi', 'state', 'health', 'Energy', 'Recorded with every note, 1 to 5.'],
     ['s_utang', 'state', 'work', 'Tech debt', 'Old code that slows changes down.'],
     ['s_kecepatan', 'state', 'work', 'Sprint velocity', 'Story points finished per sprint.'],
-    ['p_yudi', 'person', 'people', 'Yudi (tech lead)', 'Mentor and code reviewer.'],
+    ['p_yudi', 'person', 'people', 'Victor (tech lead)', 'Mentor and code reviewer.'],
     ['p_tim', 'person', 'people', 'The backend team', 'Five people, one QA.'],
-    ['p_anisa', 'person', 'people', 'Anisa (girlfriend)', 'Works at a bank, regular hours.'],
+    ['p_anisa', 'person', 'people', 'Hannah (girlfriend)', 'Works at a bank, regular hours.'],
     ['res_ci', 'resource', 'work', 'CI pipeline', 'Runs the automated tests on every merge.'],
     ['pl_kos', 'place', 'place', 'His rented room', 'Where he works from home and stays up late.'],
     ['sk_go', 'skill', 'growth', 'Go and databases', 'The main strength.', { level: 'have' }],
-    ['sk_sistem', 'skill', 'growth', 'System design', 'Learning from Yudi.', { level: 'developing' }],
+    ['sk_sistem', 'skill', 'growth', 'System design', 'Learning from Victor.', { level: 'developing' }],
     ['sk_inggris', 'skill', 'growth', 'Spoken English', 'Reads fluently, nervous when speaking.', { level: 'gap' }],
   ],
   links: [
@@ -65,7 +65,7 @@ export const programmer: ExampleSpec = {
       n: 1,
       date: '2026-05-09',
       title: 'Saturday on call',
-      text: 'Released on Friday afternoon, and on Saturday morning the courier app broke because of a database migration. Three hours fixing it from my room. My plans with Anisa were cancelled.',
+      text: 'Released on Friday afternoon, and on Saturday morning the courier app broke because of a database migration. Three hours fixing it from my room. My plans with Hannah were cancelled.',
       about: ['bh_jumat', 's_bugakhir', 'p_anisa'],
       areas: ['work', 'people'],
       energy: 2,
@@ -96,8 +96,8 @@ export const programmer: ExampleSpec = {
     {
       n: 4,
       date: '2026-06-06',
-      title: 'Yudi’s suggestion',
-      text: 'Yudi said releasing on Friday means problems show up when nobody is on watch. He suggested deploying by Thursday noon at the latest.',
+      title: 'Victor’s suggestion',
+      text: 'Victor said releasing on Friday means problems show up when nobody is on watch. He suggested deploying by Thursday noon at the latest.',
       about: ['bh_jumat', 'p_yudi'],
       areas: ['work'],
       kind: 'reflection',
@@ -180,7 +180,7 @@ export const programmer: ExampleSpec = {
       n: 12,
       date: '2026-09-12',
       title: 'Refactoring the shipping module',
-      text: 'Two days refactoring the shipping module with Yudi, with tests. The next sprint was ninety percent done.',
+      text: 'Two days refactoring the shipping module with Victor, with tests. The next sprint was ninety percent done.',
       about: ['s_utang', 's_kecepatan', 'bh_tes', 'p_yudi'],
       areas: ['work'],
       energy: 4,
@@ -351,7 +351,7 @@ export const programmer: ExampleSpec = {
       title: 'Prepare for remote work',
       context: 'Rejected at the first remote interview because of communication, not technical skill.',
       options: [
-        ['Become senior here', 'Yudi is ready to recommend him.', 'Promotion in six months.'],
+        ['Become senior here', 'Victor is ready to recommend him.', 'Promotion in six months.'],
         ['Remote for a company abroad', 'A dollar salary and freedom of place.', 'Needs spoken English and system design.'],
         ['Turn the point-of-sale app into a SaaS', 'A product of his own.', 'Income not yet certain.'],
       ],
@@ -394,7 +394,7 @@ export const programmer: ExampleSpec = {
       via: 'Bugs are caught in CI before merging, not by users.',
       evidence: [
         { note: 6, kind: 'instance', excerpt: 'Two bugs were caught in CI before merging, the kind that usually reach production.' },
-        { note: 12, kind: 'instance', excerpt: 'Two days refactoring the shipping module with Yudi, with tests.' },
+        { note: 12, kind: 'instance', excerpt: 'Two days refactoring the shipping module with Victor, with tests.' },
       ],
       at: '2026-09-13',
     },
@@ -444,7 +444,7 @@ export const programmer: ExampleSpec = {
       observation: 'Every weekend incident in May came from a Friday afternoon release.',
       triggers: ['The end of the sprint', 'A feature not finished by Thursday'],
       behaviors: ['Deploying just before going home'],
-      consequences: ['On call at the weekend', 'Plans with Anisa cancelled'],
+      consequences: ['On call at the weekend', 'Plans with Hannah cancelled'],
       areas: ['work', 'people'],
       cues: { supports: ['released on friday', 'deployed on friday', 'broke on saturday'], counters: ['thursday release', 'quiet weekend'] },
       evidence: [
@@ -485,7 +485,7 @@ export const programmer: ExampleSpec = {
       title: 'Senior engineer at the current startup',
       objective: 'Leading the tracking service and mentoring two juniors.',
       summary: 'Moving up somewhere familiar, with a supportive mentor.',
-      requirements: ['Launch the tracking service', 'A system design reviewed by Yudi'],
+      requirements: ['Launch the tracking service', 'A system design reviewed by Victor'],
       dependencies: ['The six-monthly review'],
       skills: [
         ['Go and databases', 'have'],
@@ -505,10 +505,10 @@ export const programmer: ExampleSpec = {
       id: 'path_b',
       code: 'B',
       title: 'Remote for a company abroad',
-      objective: 'A remote backend engineer paid in dollars, working from Bandung.',
+      objective: 'A remote backend engineer paid in dollars, working from home.',
       summary: 'More pay and freedom; communicating in English becomes the main requirement.',
       requirements: ['Spoken English for interviews', 'System design', 'A portfolio on GitHub'],
-      dependencies: ['Openings that accept Indonesia'],
+      dependencies: ['Openings open to his time zone'],
       skills: [
         ['Go and databases', 'have'],
         ['System design', 'developing'],
@@ -543,7 +543,7 @@ export const programmer: ExampleSpec = {
       opportunityCosts: ['The house savings'],
       unknowns: ['How many shops would pay monthly?'],
       assumptions: ['c04'],
-      proposedExperiments: ['Offer a subscription to ten shops in Coblong'],
+      proposedExperiments: ['Offer a subscription to ten shops in his neighbourhood'],
       patternIds: ['pat_02'],
     },
   ],

@@ -1,5 +1,5 @@
 /**
- * Minimal analysis proxy for Cognitive Atlas.
+ * Minimal analysis proxy for Noa Atlas.
  *
  *   ANTHROPIC_API_KEY=... npm run proxy
  *
@@ -79,5 +79,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Cognitive Atlas analysis proxy on http://localhost:${PORT}${PREFIX} (model: ${MODEL})`);
+  console.log(`Noa Atlas analysis proxy on http://localhost:${PORT}${PREFIX} (model: ${MODEL})`);
 });

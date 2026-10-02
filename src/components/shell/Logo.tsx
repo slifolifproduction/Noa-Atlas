@@ -1,4 +1,4 @@
-import { t } from '../../i18n'; /**
+/**
  * The mark: a sighting circle with its four cardinal ticks, a fixed centre,
  * and one body in orbit, in the signal colour.
  */
@@ -14,12 +14,12 @@ export function LogoMark({ size = 22 }: { size?: number }) {
   );
 }
 
-/** "Cognitive Atlas", set like a masthead. */
+/** "Noa Atlas", set like a masthead. */
 export function Wordmark({ className }: { className?: string }) {
   return (
     <span className={className}>
       <span className="text-[15px] font-semibold tracking-[-0.01em] text-ink">
-        {t('Cognitive')} <span className="font-normal text-ink-2">{t('Atlas')}</span>
+        Noa <span className="font-normal text-ink-2">Atlas</span>
       </span>
     </span>
   );

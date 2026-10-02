@@ -7,17 +7,17 @@
  */
 import type { AtlasData } from '../domain/types';
 import { t } from '../i18n';
-import { replaceUntouchedNoa, toCurrentShape } from './migrate';
+import { refreshExample, replaceUntouchedNoa, toCurrentShape } from './migrate';
 
 export { safeLocalStorage, STORAGE_KEYS } from './local';
 
 /** Bump when AtlasData changes shape, and add a step to `migrateData`. */
-export const DATA_VERSION = 6;
+export const DATA_VERSION = 7;
 
 /** Step-wise migrations from older persisted versions. */
 export function migrateData(persisted: unknown, fromVersion: number): unknown {
   const state = persisted as { data?: unknown } | undefined;
-  if (!state?.data || fromVersion >= 6) return persisted;
+  if (!state?.data || fromVersion >= 7) return persisted;
   // v1 → v2: the layered model (areas × layers, links vs claims, history).
   // v2 → v3: the logic of causes (a stored sample gets its corrected claims).
   // v3 → v4: what changed, episodes, expectations (a stored sample gets what it now records).
@@ -26,7 +26,10 @@ export function migrateData(persisted: unknown, fromVersion: number): unknown {
   const data = fromVersion >= 4 ? (state.data as AtlasData) : toCurrentShape(state.data);
   // v5 → v6: the example became people in eight kinds of work. Noa's example, never written in, gives way to the
   // first of them; one the person wrote in stays as it is (its note offers the new ones).
-  return { ...state, data: fromVersion < 6 ? replaceUntouchedNoa(data) : data };
+  const v6 = fromVersion < 6 ? replaceUntouchedNoa(data) : data;
+  // v6 → v7: the examples' people got globally common names. An example the person added nothing to is reopened
+  // with them; one they added to stays as it is.
+  return { ...state, data: fromVersion < 7 ? refreshExample(v6) : v6 };
 }
 
 const REQUIRED_RECORDS = ['nodes', 'edges', 'entries', 'decisions', 'patterns', 'paths', 'experiments'] as const;
@@ -52,5 +55,5 @@ export function parseImport(text: string): { data: AtlasData } | { error: string
 }
 
 export function exportPayload(data: AtlasData): string {
-  return JSON.stringify({ app: 'cognitive-atlas', version: DATA_VERSION, exportedAt: new Date().toISOString(), data }, null, 2);
+  return JSON.stringify({ app: 'noa-atlas', version: DATA_VERSION, exportedAt: new Date().toISOString(), data }, null, 2);
 }

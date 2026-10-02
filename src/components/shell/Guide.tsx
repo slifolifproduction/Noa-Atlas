@@ -111,7 +111,7 @@ export function Guide() {
     <Modal
       open={open}
       onClose={close}
-      title={t('Welcome to Cognitive Atlas')}
+      title={t('Welcome to Noa Atlas')}
       width="max-w-[560px]"
       initialFocus="#guide-start"
       footer={

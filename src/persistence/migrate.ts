@@ -17,7 +17,7 @@
  * An atlas that is still the sample (with or without notes of the person's
  * own) is rebuilt from the new sample and keeps everything the person added.
  */
-import { createExample } from '../data/examples';
+import { createExample, exampleLangOf, isExampleKey } from '../data/examples';
 import { createSeedData, isNoaExample, SEED_PROFILE_NAME } from '../data/seed';
 import type {
   AnalysisSuggestion,
@@ -405,6 +405,22 @@ export function replaceUntouchedNoa(data: AtlasData): AtlasData {
     untouched(data.claims, fresh.claims) &&
     untouched(data.experiments, fresh.experiments);
   return same ? createExample() : data;
+}
+
+/**
+ * An example opened before its people got their present names: with nothing the person added to it (no note,
+ * decision, element, reason, repeat, option or test of their own), it is reopened as it is now, in its language.
+ * One the person added to stays as it is.
+ */
+export function refreshExample(data: AtlasData): AtlasData {
+  const key = data.profile?.example;
+  if (!isExampleKey(key)) return data;
+  const lang = exampleLangOf(data);
+  const fresh = createExample(key, undefined, lang);
+  const nothingAdded = (['entries', 'decisions', 'nodes', 'claims', 'patterns', 'paths', 'experiments'] as const).every((k) =>
+    Object.keys(data[k] ?? {}).every((id) => id in fresh[k]),
+  );
+  return nothingAdded ? fresh : data;
 }
 
 /** Any stored or imported atlas, in the current shape. */

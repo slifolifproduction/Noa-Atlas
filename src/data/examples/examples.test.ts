@@ -6,7 +6,7 @@ import { claimStatus } from '../../domain/claims';
 import { contextStates, readingsOf } from '../../domain/history';
 import { danglingReferences } from '../../domain/integrity';
 import { weekStart } from '../../lib/dates';
-import { replaceUntouchedNoa } from '../../persistence/migrate';
+import { refreshExample, replaceUntouchedNoa } from '../../persistence/migrate';
 import { migrateData } from '../../persistence/storage';
 import { createSeedData, isExampleAtlas, isNoaExample } from '../seed';
 import { createExample, DEFAULT_EXAMPLE, EXAMPLES, exampleInfo, exampleSpec, exampleUntouched } from './index';
@@ -116,6 +116,29 @@ describe('the examples in two languages', () => {
       expect(exampleUntouched(dismissed)).toBe(false);
     }
     expect(exampleUntouched(createSeedData(TODAY))).toBe(false);
+  });
+});
+
+describe('an example opened before its people were renamed', () => {
+  const old = () => {
+    const d = createExample('accountant', '2026-09-14', 'id');
+    d.profile.name = 'Hendra Gunawan';
+    d.nodes.p_wati.label = 'Bu Wati (CFO)';
+    return d;
+  };
+
+  it('is reopened with the present names when nothing was added to it', () => {
+    const d = refreshExample(old());
+    expect(d.profile).toMatchObject({ name: 'Daniel Reed', example: 'accountant', exampleLang: 'id' });
+    expect(d.nodes.p_wati.label).toBe('Helen (CFO)');
+    const stored = migrateData({ data: old() }, 6) as { data: { profile: { name: string } } };
+    expect(stored.data.profile.name).toBe('Daniel Reed');
+  });
+
+  it('stays as it is once the person added something of their own', () => {
+    const d = old();
+    d.entries.mine = { ...d.entries.ent_01, id: 'mine', seq: 99 };
+    expect(refreshExample(d)).toBe(d);
   });
 });
 

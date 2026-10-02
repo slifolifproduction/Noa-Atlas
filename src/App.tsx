@@ -77,7 +77,7 @@ export function App() {
   useExampleLanguage();
 
   useEffect(() => {
-    document.title = `${VIEWS[route.key].label} · Cognitive Atlas`;
+    document.title = `${VIEWS[route.key].label} · Noa Atlas`;
     rememberView(route.key);
   }, [route.key]);
 

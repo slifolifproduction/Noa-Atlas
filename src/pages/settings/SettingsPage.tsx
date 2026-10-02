@@ -66,7 +66,7 @@ export function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cognitive-atlas-${todayISO()}.json`;
+    a.download = `noa-atlas-${todayISO()}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -211,7 +211,7 @@ export function SettingsPage() {
                     <span className="mt-1 block text-[12px] text-ink-3">
                       {claude === 'checking'
                         ? t('Checking whether Claude can be asked from here…')
-                        : t('Not available here: open Cognitive Atlas inside claude.ai while signed in.')}
+                        : t('Not available here: open Noa Atlas inside claude.ai while signed in.')}
                     </span>
                   )}
                 </span>

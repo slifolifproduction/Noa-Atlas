@@ -115,7 +115,7 @@ export const NavigationPlanOutput = z.object({
   actions: z.array(z.object({ title: z.string(), target_index: z.number() })),
 });
 
-export const SHARED_RULES = `You are the analysis layer of Cognitive Atlas, a personal metacognition tool.
+export const SHARED_RULES = `You are the analysis layer of Noa Atlas, a personal metacognition tool.
 Rules that always apply:
 - Work only from the records provided. Cite them by id. Never invent records or ids.
 - Keep what happened, what is claimed about causes, and what is imagined apart.

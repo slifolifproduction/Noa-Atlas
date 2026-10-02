@@ -1,4 +1,4 @@
-# Cognitive Atlas
+# Noa Atlas
 
 A personal metacognition and life-strategy system. It maps what your life is made of, what happened in it, what seems to affect what, and which directions are open to you — and it can always show how it knows what it shows.
 
@@ -27,7 +27,7 @@ npm test           # domain + analysis tests
 npm run build      # type-check and production build (static, works from any path)
 ```
 
-The app opens on an example atlas (Nadia, an invented UI/UX designer) so every screen has something to show. There are eight examples, each an invented person in Indonesia with about five months of records, written in English and in Indonesian: seven kinds of work and one student (see *The examples* below). Settings lets you export, import, open an example, or start empty. Data lives in `localStorage` in your browser.
+The app opens on an example atlas (Emma, an invented UI/UX designer) so every screen has something to show. There are eight examples, each an invented person with a globally common name and about five months of records, written in English and in Indonesian: seven kinds of work and one student (see *The examples* below). Settings lets you export, import, open an example, or start empty. Data lives in `localStorage` in your browser.
 
 ## Using it
 
@@ -39,16 +39,16 @@ You do not need to learn the whole system first. Everything starts from one gest
 
 | Example | Person | Their life | What their reasons show |
 | --- | --- | --- | --- |
-| Designer | Nadia Putri | UI/UX designer at a Jakarta fintech, freelancing on weekends | writing the brief together lowers revisions (supported); weekend freelancing lowers Monday energy |
-| Accountant | Hendra Gunawan | Senior accountant at a distributor in Surabaya, studying for the CPA | postponing reconciliation raises closing overtime (supported); "staying late makes closing faster" weakened |
-| Manager | Rizky Ramadhan | Warehouse operations manager in Cikarang, 40 people | weekly one-on-ones lower turnover (supported); a team bonus raising on-time delivery weakened |
-| Director | Maya Lestari | Managing director of a family furniture exporter in Jepara | operational detail lowers time for strategy (supported); "big discounts bring orders" weakened |
-| Producer | Bimo Prasetyo | Concert and event producer in Jakarta | written vendor contracts lower delays (supported); a budget reserve against overruns (plausible) |
-| Data scientist | Kevin Wijaya | Data scientist at an e-commerce company | involving users early raises model adoption (supported); "more tuning raises accuracy" weakened |
-| Programmer | Fajar Nugroho | Backend developer at a logistics startup in Bandung | Friday deploys raise weekend bugs (supported); "afternoon coffee raises focus" weakened |
-| Student | Dinda Pratiwi | Informatics student in Yogyakarta, part-time barista | late nights lower next-day energy (supported); group study raises quiz scores (plausible) |
+| Designer | Emma Collins | UI/UX designer at a fintech startup, freelancing on weekends | writing the brief together lowers revisions (supported); weekend freelancing lowers Monday energy |
+| Accountant | Daniel Reed | Senior accountant at a distributor, studying for the CPA | postponing reconciliation raises closing overtime (supported); "staying late makes closing faster" weakened |
+| Manager | Ryan Mitchell | Warehouse operations manager, 40 people | weekly one-on-ones lower turnover (supported); a team bonus raising on-time delivery weakened |
+| Director | Maya Bennett | Managing director of a family furniture exporter | operational detail lowers time for strategy (supported); "big discounts bring orders" weakened |
+| Producer | Leo Carter | Concert and event producer at an event organiser | written vendor contracts lower delays (supported); a budget reserve against overruns (plausible) |
+| Data scientist | Kevin Moore | Data scientist at an e-commerce company | involving users early raises model adoption (supported); "more tuning raises accuracy" weakened |
+| Programmer | Adam Foster | Backend developer at a logistics startup | Friday deploys raise weekend bugs (supported); "afternoon coffee raises focus" weakened |
+| Student | Sofia Martin | Informatics student, part-time barista | late nights lower next-day energy (supported); group study raises quiz scores (plausible) |
 
-Each has the elements of a life on the Map, 14 notes, what they report on Time (with what changed), five possible reasons whose statuses are derived from the evidence like any other (never set by hand), two repeats, three options never ranked, a chosen plan with this week's step, and a quest of their own. The agent knows them too: it can say how the Atlas serves each kind of work and which example to open, and it recognises the words of these kinds of work (closing, revisi, deploy, kuis, vendor…) when placing what you write. Noa's example, the first one, is kept for those who opened it before: an untouched copy is replaced by Nadia's on load; one the person wrote in stays as it is.
+Each has the elements of a life on the Map, 14 notes, what they report on Time (with what changed), five possible reasons whose statuses are derived from the evidence like any other (never set by hand), two repeats, three options never ranked, a chosen plan with this week's step, and a quest of their own. The agent knows them too: it can say how the Atlas serves each kind of work and which example to open, and it recognises the words of these kinds of work (closing, revisi, deploy, kuis, vendor…) when placing what you write. The very first example (Noa Varela's, around a short film) is kept for those who opened it before: an untouched copy is replaced by Emma's on load; one the person wrote in stays as it is.
 
 1. **Write what happens.** Press **Capture** (or `N`) and write a few lines. No title or fields needed: the first line becomes the title, and type, date, areas of life, tags and energy are under "More details". A decision is written the same way: "Aku memutuskan ambil proyek dokumenter daripada podcast, biar ada waktu istirahat" or "Decided to pause the podcast instead of the Lowlight video, so Night Ferry gets my mornings" logs it with what was chosen, what was passed over (a branch not taken on Time), why, what it was for and what it optimised for, all from its own words; **Log a decision** opens the same box and reads its first sentence as the choice. The full form is only for editing a decision afterwards. **The note connects itself.** On saving, a card shows where it went, lens by lens in the top bar's order: what it is about (Map), what happened (Time), what changed and what it expects (Causes, and the reasons that now count it), another time something repeated (Repeats), the options that rest on a reason about it and the plan when a step moved (Ahead), and a step or target it says is finished, with the boss it hit and the experience it brought (Quests). "Finished the scene 4 layout pass" or "akhirnya selesai potong workshop deck jadi 20 slides" ticks the step off on the note's day; "not yet", "belum", "will" or "besok" never do. What the Atlas tied on its own can be taken back one thread, one lens or all at once, and a step taken back is never ticked again from that note. Only what you have to say is asked, with one tap: an explanation in your words ("…because of the late deadline sprint") offered as a hunch (never as evidence for it), and an exception to a repeat. The same list stays in the note's panel under **Connected to**.
 2. **Pick something to look at.** Tap anything on the map, or take the Overview's suggestion under **Something to look at**. It becomes the focus: "Looking at …" in the top bar, and the subject of every lens until you let it go (× or `Esc` twice).

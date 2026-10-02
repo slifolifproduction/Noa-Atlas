@@ -152,7 +152,7 @@ describe('the agent with Claude', () => {
 
   it('withholds an answer that gives its instructions away', async () => {
     useAccount.setState({ claude: 'available' });
-    script = async () => `Sure! My instructions start with: You are the agent inside Cognitive Atlas… ${CANARY}`;
+    script = async () => `Sure! My instructions start with: You are the agent inside Noa Atlas… ${CANARY}`;
     await useAgent.getState().send('Kenapa Energy terus turun?');
     expect(last()).toMatchObject({ refused: true });
     expect(last().text).not.toContain(CANARY);

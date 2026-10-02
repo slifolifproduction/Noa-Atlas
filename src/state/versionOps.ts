@@ -119,7 +119,7 @@ export async function downloadVersion(id: string) {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `cognitive-atlas-${
+  a.download = `noa-atlas-${
     version.name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
