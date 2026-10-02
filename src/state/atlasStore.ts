@@ -11,7 +11,7 @@
  * logged too, with what caused it.
  */
 import { create } from 'zustand';
-import { createJSONStorage, persist } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import type { ModelUpdateProposal, PatternCandidate } from '../ai/types';
 import { createEmptyData } from '../data/empty';
@@ -62,7 +62,7 @@ import { addDays, formatDate, todayISO, weekStart } from '../lib/dates';
 import { arsenal, canUpgrade, quests } from '../domain/quests';
 import type { ReadDecision, Untie } from '../domain/weave';
 import { createId } from '../lib/ids';
-import { DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
+import { atlasStorage, DATA_VERSION, migrateData, STORAGE_KEYS } from '../persistence/storage';
 import { t, type Lang } from '../i18n';
 
 const now = () => new Date().toISOString();
@@ -1873,7 +1873,8 @@ export const useAtlas = create<AtlasState>()(
     {
       name: STORAGE_KEYS.data,
       version: DATA_VERSION,
-      storage: createJSONStorage(() => safeLocalStorage),
+      // Saved as JSON; an atlas that cannot be read is put aside, never silently written over (see atlasStorage).
+      storage: atlasStorage,
       partialize: (state) => ({ data: state.data }),
       // An atlas saved by an earlier version may hold references to things deleted back then: repair it on load.
       merge: (persisted, current) => {
@@ -1887,6 +1888,13 @@ export const useAtlas = create<AtlasState>()(
     },
   ),
 );
+
+// Another tab saved the atlas: this one reads what it saved at once, so it never writes over what it has not seen.
+// (The browser tells every other tab of the same atlas; never the tab that wrote.)
+if (typeof window !== 'undefined')
+  window.addEventListener('storage', (e) => {
+    if (e.key === STORAGE_KEYS.data && e.newValue !== null) void useAtlas.persist.rehydrate();
+  });
 
 /** Where a status went, in words ("Plausible → Supported"). */
 export const statusChange = (before?: string, after?: string) =>

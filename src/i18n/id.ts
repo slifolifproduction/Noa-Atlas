@@ -3040,4 +3040,18 @@ export const ID: Record<string, string> = {
   Simple: 'Sederhana',
   'Advanced settings': 'Pengaturan lanjutan',
   'New option': 'Opsi baru',
+  'This browser is not saving your atlas: its storage is full or blocked. What you change now stays only until this tab is closed.':
+    'Browser ini tidak menyimpan atlasmu: penyimpanannya penuh atau diblokir. Yang kamu ubah sekarang hanya bertahan sampai tab ini ditutup.',
+  'Download a copy': 'Unduh salinan',
+  'Your saved atlas could not be read, so the Atlas opened without it. Nothing was thrown away: the unreadable copy is kept aside.':
+    'Atlas yang tersimpan tidak bisa dibaca, jadi Atlas dibuka tanpanya. Tidak ada yang dibuang: salinan yang tidak terbaca disimpan terpisah.',
+  'Download the unreadable copy': 'Unduh salinan yang tidak terbaca',
+  'This panel could not be drawn.': 'Panel ini tidak bisa ditampilkan.',
+  'Something went wrong drawing this page.': 'Ada yang salah saat menampilkan halaman ini.',
+  'Something went wrong.': 'Ada yang salah.',
+  'Your atlas is safe: it is kept in this browser, and nothing was changed.': 'Atlasmu aman: tetap tersimpan di browser ini, dan tidak ada yang berubah.',
+  Reload: 'Muat ulang',
+  'Go to the Map': 'Ke Peta',
+  'Close the panel': 'Tutup panel',
+  'Download a copy of your atlas': 'Unduh salinan atlasmu',
 };

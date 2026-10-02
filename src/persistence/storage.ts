@@ -5,8 +5,11 @@
  * StateStorage-compatible adapter. Replacing it with a backend means providing
  * another adapter with the same three methods; the store and UI do not change.
  */
+import type { PersistStorage, StorageValue } from 'zustand/middleware';
 import type { AtlasData } from '../domain/types';
 import { t } from '../i18n';
+import { useStorageHealth } from './health';
+import { safeLocalStorage, STORAGE_KEYS } from './local';
 import { refreshExample, replaceUntouchedNoa, toCurrentShape } from './migrate';
 
 export { safeLocalStorage, STORAGE_KEYS } from './local';
@@ -53,6 +56,56 @@ export function parseImport(text: string): { data: AtlasData } | { error: string
   // Files exported before the layered model are converted on the way in.
   return { data: toCurrentShape(candidate) };
 }
+
+/** Where an atlas found unreadable on load is put aside, untouched (one, the latest). */
+export const UNREADABLE_KEY = `${STORAGE_KEYS.data}:unreadable`;
+
+/**
+ * Whether what is stored can be read as a saved atlas: valid JSON, and, from the shape this version keeps (4 on), the
+ * records an atlas cannot be without. An older shape is left to the migrations. Nothing stored yet is not unreadable.
+ */
+function readable(value: unknown): value is StorageValue<{ data?: AtlasData }> {
+  if (!value || typeof value !== 'object') return false;
+  const { state, version } = value as { state?: unknown; version?: unknown };
+  if (!state || typeof state !== 'object') return false;
+  const data = (state as { data?: unknown }).data;
+  if (data === undefined) return true;
+  if (!data || typeof data !== 'object') return false;
+  if (typeof version === 'number' && version < 4) return true;
+  return REQUIRED_RECORDS.every((k) => {
+    const r = (data as Record<string, unknown>)[k];
+    return Boolean(r) && typeof r === 'object';
+  });
+}
+
+/** Put an unreadable atlas aside, exactly as it was, and say so, before anything can write over it. */
+function keepAside(key: string, raw: string) {
+  const at = new Date().toISOString();
+  safeLocalStorage.setItem(UNREADABLE_KEY, JSON.stringify({ key, at, raw }));
+  useStorageHealth.getState().setUnreadable({ key, at, raw });
+  console.warn('[atlas] the saved atlas could not be read; it is kept aside under', UNREADABLE_KEY);
+}
+
+/**
+ * How the atlas is saved: as JSON through `safeLocalStorage`. Reading it, an atlas that cannot be read is never
+ * silently replaced: it is put aside first (see keepAside), and the Atlas opens without it.
+ */
+export const atlasStorage: PersistStorage<{ data: AtlasData }> = {
+  getItem(name) {
+    const raw = safeLocalStorage.getItem(name) as string | null;
+    if (raw === null) return null;
+    try {
+      const value: unknown = JSON.parse(raw);
+      if (readable(value)) return value as StorageValue<{ data: AtlasData }>;
+    } catch {
+      /* unreadable: below */
+    }
+    keepAside(name, raw);
+    return null;
+  },
+  setItem: (name, value) => void safeLocalStorage.setItem(name, JSON.stringify(value)),
+  removeItem: (name) => void safeLocalStorage.removeItem(name),
+};
 
 export function exportPayload(data: AtlasData): string {
   return JSON.stringify({ app: 'noa-atlas', version: DATA_VERSION, exportedAt: new Date().toISOString(), data }, null, 2);

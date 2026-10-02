@@ -11,6 +11,8 @@ import { Guide } from './components/shell/Guide';
 import { ShortcutsDialog } from './components/shell/ShortcutsDialog';
 import { MobileTabBar, SubNav, TopBar } from './components/shell/TopBar';
 import { Toasts } from './components/ui/Toasts';
+import { ErrorBoundary } from './components/shell/ErrorBoundary';
+import { StorageNotice } from './components/shell/StorageNotice';
 import { StartFreshModal } from './components/versions/StartFreshModal';
 import { ReviewDialog } from './components/review/ReviewDialog';
 import { VersionsModal } from './components/versions/VersionsModal';
@@ -71,6 +73,8 @@ export function App() {
   // Re-render everything when the date turns over in the chosen zone, or the zone itself changes.
   useToday();
   const inspectorOpen = useUI((s) => s.inspector.length > 0);
+  // What the panel shows: drawn again, if it once failed, when it shows something else.
+  const panelKey = useUI((s) => JSON.stringify(s.inspector.at(-1) ?? null));
   const panelWidth = useInspectorWidth();
   useGlobalShortcuts();
   useLocalAIBoot();
@@ -94,16 +98,21 @@ export function App() {
       <SubNav active={route.key} />
       <ExampleNote />
       <AccountStrip />
+      <StorageNotice />
       <main id="main" className="relative min-h-0 flex-1">
         <div
           className={cn('h-full transition-[padding] duration-200', isGraph ? 'overflow-hidden' : 'overflow-y-auto')}
           style={{ paddingRight: !isGraph && inspectorOpen ? panelWidth : 0 }}
         >
-          <Suspense fallback={<div className="p-6 text-[13px] text-ink-3">{t('Loading…')}</div>}>
-            <Page route={route} />
-          </Suspense>
+          <ErrorBoundary where="page" resetKey={`${route.key}:${route.param ?? ''}`}>
+            <Suspense fallback={<div className="p-6 text-[13px] text-ink-3">{t('Loading…')}</div>}>
+              <Page route={route} />
+            </Suspense>
+          </ErrorBoundary>
         </div>
-        <Inspector />
+        <ErrorBoundary where="panel" resetKey={panelKey}>
+          <Inspector />
+        </ErrorBoundary>
       </main>
       <MobileTabBar active={route.key} />
       <CaptureModal />

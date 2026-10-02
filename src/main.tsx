@@ -5,6 +5,7 @@ import '@fontsource/ibm-plex-mono/latin-400.css';
 import '@fontsource/ibm-plex-mono/latin-500.css';
 import './styles/index.css';
 import { App } from './App';
+import { ErrorBoundary } from './components/shell/ErrorBoundary';
 import { loadLanguage, useLang } from './i18n';
 import { safeLocalStorage, STORAGE_KEYS } from './persistence/storage';
 import { useAtlas } from './state/atlasStore';
@@ -26,7 +27,9 @@ function Root() {
 void loadLanguage().finally(() => {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <Root />
+      <ErrorBoundary where="app">
+        <Root />
+      </ErrorBoundary>
     </StrictMode>,
   );
   // Inside claude.ai, a signed-in viewer's atlas can be their account's (see sync/connect).
