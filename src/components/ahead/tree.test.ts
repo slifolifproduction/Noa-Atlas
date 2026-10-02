@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createSeedData } from '../../data/seed';
-import { answersOf, BANDS } from './answers';
-import { DEPTH, FLOOR, growTree, HALF, LEVELS, LOOK_Y, project, SOIL, TOP, type Camera } from './tree';
+import { answersOf, BANDS, type Answer } from './answers';
+import { cutAt, DEPTH, FLOOR, growTree, HALF, LEVELS, LOOK_Y, project, reachOf, sizeOf, SOIL, TOP, type Camera, type Tree } from './tree';
 
 const data = createSeedData();
 const paths = Object.values(data.paths).sort((a, b) => a.code.localeCompare(b.code));
@@ -13,14 +13,67 @@ describe('the Ahead tree in its case', () => {
   const split = tree.taproot.at(-1)!;
   const out = (p: number[]) => Math.hypot(p[0] - split[0], p[2] - split[2]);
 
-  it('grows a root for every option, each to its own bearing, none deeper or farther out than another', () => {
+  it('grows a root for every option, each to its own bearing, none farther out than another', () => {
     expect(tree.roots.map((l) => l.pathId)).toEqual(paths.map((p) => p.id));
     expect(new Set(tree.roots.map((l) => l.bearing)).size).toBe(paths.length);
     for (const l of tree.roots) {
-      expect(l.tip[1]).toBeCloseTo(-DEPTH, 6);
-      expect(out(l.tip)).toBeCloseTo(out(tree.roots[0].tip), 6);
+      expect(l.curve.at(-1)![1]).toBeCloseTo(-DEPTH, 6);
+      expect(out(l.curve.at(-1)!)).toBeCloseTo(out(tree.roots[0].curve.at(-1)!), 6);
       expect(l.curve[0]).toEqual(split);
+      expect(l.tip[1]).toBeCloseTo(l.cut, 6);
     }
+  });
+
+  it('grows each root as far down as its option has answers, and the tree above with them', () => {
+    const only = (bands: number[]) => (answers.get(paths[0].id) ?? []).filter((a) => bands.includes(BANDS.indexOf(a.band)));
+    const one = (list: Answer[]) => growTree([paths[0]], new Map([[paths[0].id, list]]), [], []);
+    // Nothing written yet: a stub under the split, above the first question, and a seedling.
+    const bare = one([]);
+    expect(bare.roots[0].reach).toBe(0);
+    expect(bare.roots[0].tip[1]).toBeGreaterThan(LEVELS[0]);
+    expect(bare.roots[0].tip[1]).toBeLessThan(split[1]);
+    expect(sizeOf(bare.grown)).toBeCloseTo(0.3, 6);
+    // Only what it needs: past the first stratum, short of the second.
+    const needs = one(only([0]));
+    expect(needs.roots[0].reach).toBe(1);
+    expect(needs.roots[0].tip[1]).toBeLessThan(LEVELS[0]);
+    expect(needs.roots[0].tip[1]).toBeGreaterThan(LEVELS[1]);
+    // What is not known yet answered: all the way down, and grown.
+    const deep = one(only([0, 3]));
+    expect(deep.roots[0].reach).toBe(4);
+    expect(deep.roots[0].tip[1]).toBeCloseTo(-DEPTH, 6);
+    expect(deep.grown).toBe(1);
+    // Deeper is never less: the tree only grows as the roots go down.
+    for (let k = 1; k <= 4; k++) expect(cutAt(k)).toBeLessThan(cutAt(k - 1));
+    expect(reachOf([])).toBe(0);
+  });
+
+  it('grows every rootlet where its root has reached, and nothing of a root below where it has', () => {
+    for (const l of tree.roots) {
+      for (const a of tree.answers.filter((x) => x.pathId === l.pathId)) expect(a.from[1]).toBeGreaterThanOrEqual(l.cut - 0.5);
+    }
+    // A root that reaches one stratum keeps what lies below it for later, ungrown.
+    const needs = (answers.get(paths[0].id) ?? []).filter((a) => a.band === 'needs');
+    const short = growTree([paths[0]], new Map([[paths[0].id, needs]]), [], []);
+    const g = short.groups.root.get(paths[0].id)!;
+    let below = 0;
+    for (let s = 0; s < short.kind.length; s++) if (short.kind[s] === 0 && short.group[s] === g && short.origin[s] < short.roots[0].cut) below++;
+    expect(below).toBeGreaterThan(0);
+  });
+
+  it('grows only what changed when one more answer is written: the rest of it stays where it was', () => {
+    const wood = (t: Tree) => {
+      const out: number[] = [];
+      for (let s = 0; s < t.kind.length; s++)
+        if (t.kind[s] !== 0) for (const v of [t.seg[s * 2], t.seg[s * 2 + 1]]) out.push(t.verts[v * 3], t.verts[v * 3 + 1], t.verts[v * 3 + 2]);
+      return out;
+    };
+    const fewer = new Map(answers);
+    fewer.set(paths[0].id, (answers.get(paths[0].id) ?? []).slice(0, -1));
+    const before = growTree(paths, fewer, data.currentState.constraints, data.currentState.assets);
+    expect(wood(before)).toEqual(wood(tree));
+    for (const l of tree.roots.slice(1)) expect(before.roots.find((b) => b.pathId === l.pathId)!.curve).toEqual(l.curve);
+    expect(before.answers.length).toBe(tree.answers.length - 1);
   });
 
   it('puts a node for every answer, at the stratum its question is asked, on its own root', () => {

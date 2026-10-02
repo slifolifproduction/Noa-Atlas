@@ -148,6 +148,7 @@ export function BossEye({
   label,
   seed = 1,
   dormant = false,
+  empty = false,
   ref,
 }: {
   parts: BossPart[];
@@ -169,8 +170,13 @@ export function BossEye({
   label: string;
   /** Shapes its tear, so each boss looks through its own. */
   seed?: number;
-  /** No boss: a closed eye, asleep behind a sealed scar. */
+  /** A boss beaten or gone: a closed eye, asleep behind a sealed scar. */
   dormant?: boolean;
+  /**
+   * No boss yet, ever: only space and its stars, with nothing of the tear or the eye. The first boss breaks space
+   * open as it arrives.
+   */
+  empty?: boolean;
   ref?: Ref<EyeHandle>;
 }) {
   const reduced = useMediaQuery('(prefers-reduced-motion: reduce)');
@@ -218,6 +224,8 @@ export function BossEye({
   const [geo, setGeo] = useState({ w: 0, h: 0, cx: 0, cy: 0, k: 1 });
   const layout = useMemo(() => spokes(parts), [parts]);
   const id = `eye${useId().replace(/[^\w]/g, '')}`;
+  // An empty stage is still: nothing in it to wake.
+  dormant ||= empty;
   const rest = dormant || state === 'defeated' ? 0.02 : state === 'escaped' ? 0.42 : urgent ? 0.84 : 1;
   const avoidKey = avoid.map((b) => `${Math.round(b.x)},${Math.round(b.y)},${Math.round(b.w)},${Math.round(b.h)}`).join(';');
 
@@ -866,7 +874,7 @@ export function BossEye({
     <div
       ref={root}
       className="quest-rig"
-      data-state={dormant ? 'dormant' : state}
+      data-state={empty ? 'empty' : dormant ? 'dormant' : state}
       data-urgent={urgent && state === 'active' ? '' : undefined}
       role="img"
       aria-label={label}
@@ -874,7 +882,7 @@ export function BossEye({
     >
       <canvas ref={sky} className="quest-stars" style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }} />
 
-      <div ref={body} className="quest-body" style={{ transformOrigin: `${geo.cx}px ${geo.cy}px` }}>
+      <div ref={body} className="quest-body" style={{ transformOrigin: `${geo.cx}px ${geo.cy}px`, display: empty ? 'none' : undefined }}>
         {/* The eye's dimension, seen only through the tear. Not space: a haze with light at its end, lines
             drifting in it, and a tunnel of torn membrane round the eye, ring behind ring, turning; then the eye. */}
         <div ref={portal} className="quest-portal" style={{ clipPath: `url(#${id}-window)` }}>

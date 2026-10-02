@@ -10,8 +10,8 @@ import { BANDS, type Answer, type Band } from './answers';
  * are its boughs in leaf, to one side, and what holds you (constraints) its
  * bare boughs, to the other. Under the ground its taproot divides into a root
  * for every option, each running out and down its own way, spaced evenly
- * round it, and all as deep and as far as each other, for nothing here is
- * ranked; drawn in dashes, as the atlas draws what has not happened. Every
+ * round it, and all as far out as each other, for nothing here is ranked;
+ * drawn in dashes, as the atlas draws what has not happened. Every
  * option is asked the same four questions, at four depths, cut as strata
  * (what it needs nearest the surface, then the skills it takes, what it
  * costs, and what is not known yet deepest of all); where a root passes a
@@ -19,6 +19,13 @@ import { BANDS, type Answer, type Band } from './answers';
  * Reading down a root reads one option; reading across a stratum compares
  * them. Everything else (the lesser roots, the circuits on the walls below
  * the ground) is texture, drawn so it never reads as data.
+ *
+ * It grows as you think the options through. A root reaches down only as far as
+ * its option has answers: a stub under the split while none is written, past
+ * each stratum that has one, to the bottom once what is not known yet has one.
+ * A short root is an option not yet thought through, never a worse one. The
+ * tree above grows with its roots, from a seedling while they are short to grown
+ * once they reach down.
  *
  * Units are metres of the drawing: the surface of the earth is at 0, y is up.
  */
@@ -40,6 +47,21 @@ const TREE_H = 14;
 /** The four strata, as shares of the way from where the taproot divides down to the deepest tip. */
 const LEVEL_AT = [0.2, 0.42, 0.64, 0.86];
 export const LEVELS: number[] = LEVEL_AT.map((s) => -(SPLIT + (DEPTH - SPLIT) * s));
+/** How far down a root reaches when its answers reach `k` strata: a stub with none, past each one it reaches, then the bottom. */
+const REACH_AT = [0.1, 0.31, 0.53, 0.75, 1];
+/** The tree above at its smallest, as a share of its grown size: a seedling. */
+const SEEDLING = 0.3;
+
+/** How many strata an option's answers reach down to: 0 with none, 4 once what is not known yet has one. */
+export const reachOf = (list: Answer[]) => list.reduce((k, a) => Math.max(k, BANDS.indexOf(a.band) + 1), 0);
+/** The height a root grows down to when it reaches `k` strata. */
+export const cutAt = (k: number) => -(SPLIT + (DEPTH - SPLIT) * REACH_AT[Math.max(0, Math.min(4, k))]);
+/** How grown the tree is (0 to 1): how far its options' roots reach, all together. */
+export const grownOf = (reaches: number[]) => (reaches.length ? reaches.reduce((n, k) => n + k, 0) / (reaches.length * 4) : 0);
+/** The tree above, as a share of its grown size. */
+export const sizeOf = (grown: number) => SEEDLING + (1 - SEEDLING) * Math.max(0, Math.min(1, grown));
+/** How much of the crown is in leaf: a seedling's few leaves, then all of them. */
+export const leafAt = (grown: number) => 0.35 + 0.65 * Math.max(0, Math.min(1, grown));
 
 export interface TreeAnswer extends Answer {
   /** Its number on the plate: the option's letter and its place. */
@@ -53,7 +75,12 @@ export interface OptionRoot {
   code: string;
   /** The way it runs out, in degrees round the trunk: only where it is drawn, so never shown as a number. */
   bearing: number;
+  /** All the way down; only what is above `cut` is grown. */
   curve: V3[];
+  /** How many strata its answers reach (0 to 4), and the height it grows down to for that. */
+  reach: number;
+  cut: number;
+  /** Where it ends, at `cut`. */
   tip: V3;
   /** Where it passes each stratum. */
   levels: V3[];
@@ -89,10 +116,19 @@ export interface Tree {
   group: Uint16Array;
   grow: Float32Array;
   kind: Uint8Array;
+  /**
+   * For a root's line, the height where its branch leaves that root: a line is grown once the root reaches down to
+   * it. (The taproot, the tree and what is not anyone's root: 0.)
+   */
+  origin: Float32Array;
   /** The leaves: where, whose (a group), and when they come out. */
   leaves: Float32Array;
   leafGroup: Uint16Array;
   leafGrow: Float32Array;
+  /** How much of the crown must be in leaf for each leaf to show (see `leafAt`); 0 for a bough's, which is data. */
+  leafNeed: Float32Array;
+  /** How grown it is (see `grownOf`). */
+  grown: number;
   /** The earth's grain, on its faces (0 its top, 1–4 its sides: +x, −x, +z, −z); and crumbs fallen on the floor. */
   dirt: Float32Array;
   dirtFace: Uint8Array;
@@ -143,7 +179,7 @@ function bezier(p0: V3, p1: V3, p2: V3, p3: V3, n: number): V3[] {
   });
 }
 /** Where a curve passes height `y`. */
-function atHeight(curve: V3[], y: number): V3 {
+export function atHeight(curve: V3[], y: number): V3 {
   for (let i = 1; i < curve.length; i++) {
     const [a, b] = [curve[i - 1], curve[i]];
     if ((a[1] - y) * (b[1] - y) <= 0) {
@@ -169,10 +205,13 @@ class Growth {
   group: number[] = [];
   grow: number[] = [];
   kind: number[] = [];
+  origin: number[] = [];
   leaves: number[] = [];
   leafGroup: number[] = [];
   leafGrow: number[] = [];
-  constructor(readonly r: () => number) {}
+  /** The height where what is drawn now leaves its root (see `Tree.origin`). */
+  from = 0;
+  constructor(public r: () => number) {}
   private vert(p: V3) {
     this.verts.push(p[0], p[1], p[2]);
     return this.verts.length / 3 - 1;
@@ -199,6 +238,7 @@ class Growth {
       this.group.push(group);
       this.grow.push(g0 + (g1 - g0) * f);
       this.kind.push(kind);
+      this.origin.push(this.from);
       prev = v;
     }
   }
@@ -262,9 +302,15 @@ class Growth {
 
 /** The tree for these options, where you are standing between what holds and carries you. */
 export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>, constraints: string[], assets: string[]): Tree {
-  const seed = hashOf(paths.map((p) => p.id).join('|') + '#' + constraints.length + '#' + assets.length);
-  const r = seeded(seed);
+  // Each part grows from a seed of its own (a root from its option, a rootlet from its answer, the crown, a bough, the
+  // earth), so writing one more answer grows only that, and nothing else shifts.
+  let r = seeded(0);
   const G = new Growth(r);
+  const stream = (name: string) => {
+    r = seeded(hashOf(name));
+    G.r = r;
+  };
+  stream('taproot');
   const groups = { root: new Map<string, number>(), twig: new Map<string, number>(), bough: new Map<string, number>() };
   const rootOf = new Map<number, number>();
   let next = 2;
@@ -277,9 +323,11 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
   const taproot = G.jag([0, 0, 0], split, 7, 0.25);
   G.line(taproot, 0.95, 0.75, 1, 0, SPLIT / DOWN, 0);
 
-  // The roots: one per option, toward its own bearing, all alike in depth and reach.
+  // The roots: one per option, toward its own bearing, all as far out as each other; each drawn all the way down,
+  // and grown as far as its answers reach.
   const n = Math.max(1, paths.length);
   const roots: OptionRoot[] = paths.map((p, i) => {
+    stream(`root:${p.id}`);
     const bearing = (-60 + (i * 360) / n + 360) % 360;
     const h = flat(bearing);
     const fall = DEPTH - SPLIT;
@@ -308,6 +356,7 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       const a = curve[k - 1];
       const b = curve[k];
       const seg = len(sub(b, a));
+      G.from = b[1];
       // In long dashes: two steps drawn, the third left out, for none of it has happened.
       if (k % 3 !== 0)
         G.line([a, b], 0.62 - 0.52 * ((k - 1) / (curve.length - 1)), 0.62 - 0.52 * (k / (curve.length - 1)), g, run / DOWN, (run + seg) / DOWN, 0);
@@ -325,9 +374,13 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       const at = curve[Math.round(t * (curve.length - 1))];
       const turn = (r() < 0.5 ? -1 : 1) * (30 + r() * 60);
       const dir = add(flat(bearing + turn), [0, -(0.4 + r() * 0.9), 0]);
+      G.from = at[1];
       G.roots(at, dir, (7.5 - 4 * t) * (0.7 + r() * 0.5), 0.26 - 0.16 * t, g, (SPLIT + t * 45) / DOWN, 2, DOWN);
     }
-    return { pathId: p.id, code: p.code, bearing, curve, tip: curve[curve.length - 1], levels: LEVELS.map((y) => atHeight(curve, y)) };
+    G.from = 0;
+    const reach = reachOf(answers.get(p.id) ?? []);
+    const cut = cutAt(reach);
+    return { pathId: p.id, code: p.code, bearing, curve, reach, cut, tip: atHeight(curve, cut), levels: LEVELS.map((y) => atHeight(curve, y)) };
   });
 
   // The rootlets: at each stratum, every answer of that question off the root, spread round it.
@@ -339,7 +392,9 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       const list = mine.filter((a) => a.band === band);
       const spread = Math.min(32, 220 / Math.max(1, list.length));
       list.forEach((a, j) => {
+        stream(`answer:${a.key}`);
         const from = add(root.levels[b], [0, (j % 2 ? 0.5 : -0.5) * Math.min(1, list.length / 4), 0]);
+        G.from = from[1];
         const dir = flat(root.bearing + (j - (list.length - 1) / 2) * spread);
         const reach = 3.4 + r() * 1.8;
         const at = inside(add(add(from, mul(dir, reach)), [0, -(0.3 + r() * 1.6) + (j % 3 === 2 ? 0.9 : 0), 0]), false);
@@ -357,8 +412,10 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
       });
     });
   }
+  G.from = 0;
 
   // A few more roots off the taproot, unnamed.
+  stream('taproot:lesser');
   for (let k = 0; k < 6; k++) {
     const dir = add(flat(r() * 360), [0, -(0.3 + r() * 0.8), 0]);
     const at = taproot[2 + Math.floor(r() * (taproot.length - 3))];
@@ -366,7 +423,8 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
   }
 
   // The tree above: a slender trunk and a light crown; the boughs that carry you in leaf to one side, those
-  // that hold you bare to the other.
+  // that hold you bare to the other. Drawn grown; the case shows it at the size its roots have reached.
+  stream('crown');
   const trunkTop: V3 = [0.25, 6.2, 0.1];
   const trunk = G.jag([0, 0, 0], trunkTop, 8, 0.12);
   G.line(trunk, 0.5, 0.3, 1, 0, 6.2 / UP, 1);
@@ -388,6 +446,7 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
   const boughs: Bough[] = [];
   const side = (list: string[], kind: Bough['side'], centre: number) =>
     list.forEach((text, i) => {
+      stream(`${kind}:${i}`);
       const bearing = centre + (i - (list.length - 1) / 2) * Math.min(28, 120 / Math.max(1, list.length));
       // From the trunk or a leader, at a height of its own.
       const h = 2.6 + ((i + 0.5) / Math.max(1, list.length)) * 7.5;
@@ -409,6 +468,7 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
   side(assets, 'asset', 0);
 
   // Grass along the earth's edges and over it, dark against the light.
+  stream('grass');
   const blade = (x: number, z: number, g0: number) => {
     const h = 0.3 + r() * 0.6;
     G.line(
@@ -439,6 +499,7 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
   for (let k = 0; k < 70; k++) blade((r() * 2 - 1) * (HALF - 1), (r() * 2 - 1) * (HALF - 1), r() * 0.5);
 
   // The earth's grain: on its top, and on each side, thicker toward the top.
+  stream('earth');
   const dirt: number[] = [];
   const dirtFace: number[] = [];
   for (let k = 0; k < 1800; k++) {
@@ -462,6 +523,7 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
   }
 
   // The walls' circuits, under the ground; and, above it, a few dark marks on the light.
+  stream('walls');
   const circuits: Circuit[] = [];
   const onWall = (wall: number, u: number, y: number): V3 => {
     const e = HALF - 0.25;
@@ -514,6 +576,10 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
     }
   }
 
+  // Which leaves of the crown show while it is young; a bough's leaves always do.
+  stream('leaves');
+  const leafNeed = G.leafGroup.map((g) => (g === 0 ? r() : 0));
+
   return {
     taproot,
     roots,
@@ -525,9 +591,12 @@ export function growTree(paths: StrategicPath[], answers: Map<string, Answer[]>,
     group: new Uint16Array(G.group),
     grow: new Float32Array(G.grow.map((g) => Math.min(1, g))),
     kind: new Uint8Array(G.kind),
+    origin: new Float32Array(G.origin),
     leaves: new Float32Array(G.leaves),
     leafGroup: new Uint16Array(G.leafGroup),
     leafGrow: new Float32Array(G.leafGrow),
+    leafNeed: new Float32Array(leafNeed),
+    grown: grownOf(roots.map((l) => l.reach)),
     dirt: new Float32Array(dirt),
     dirtFace: new Uint8Array(dirtFace),
     crumbs: new Float32Array(crumbs),

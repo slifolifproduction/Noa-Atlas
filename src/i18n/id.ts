@@ -2393,7 +2393,9 @@ export const ID: Record<string, string> = {
   '{title} is beaten. +{xp} XP': '{title} dikalahkan. +{xp} XP',
   'Hit: {title}. +{xp} XP': 'Kena: {title}. +{xp} XP',
   'Set aside: {title}. It no longer counts for or against you.': 'Disisihkan: {title}. Tidak lagi dihitung untuk atau melawanmu.',
-  'A closed eye: no boss yet': 'Mata yang terpejam: belum ada boss',
+  'Empty space: no boss yet': 'Ruang kosong: belum ada boss',
+  'A root grows deeper as you answer its questions, and the tree above grows with its roots. A short root is an option not yet thought through, not a worse one.':
+    'Akar tumbuh makin dalam saat kamu menjawab pertanyaannya, dan pohon di atasnya ikut tumbuh bersama akar-akarnya. Akar yang pendek adalah opsi yang belum dipikirkan matang, bukan opsi yang lebih buruk.',
   'No boss yet': 'Belum ada boss',
   'Bosses come from the plan you choose in Ahead (its milestone, each target with a date, this week’s steps) and from quests you start yourself: something with a date and the steps that bring it down.':
     'Boss datang dari rencana yang kamu pilih di Ke depan (tonggaknya, tiap target bertanggal, langkah minggu ini) dan dari quest yang kamu mulai sendiri: sesuatu yang bertanggal beserta langkah-langkah yang menjatuhkannya.',

@@ -45,6 +45,9 @@ export const PAGE_HELP: Record<string, () => string[]> = {
   ],
   paths: () => [
     t('Each option is a possible direction, described the same way so you can compare them. They are never ranked, and nothing here has happened yet.'),
+    t(
+      'A root grows deeper as you answer its questions, and the tree above grows with its roots. A short root is an option not yet thought through, not a worse one.',
+    ),
     t('“Relies on” lists the reasons an option needs to hold, with how sure each one is: that is how solid the option is.'),
     t('When you have decided, press “Choose as direction”. It then turns into concrete steps, under What you chose.'),
   ],

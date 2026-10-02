@@ -199,12 +199,12 @@ export function QuestsPage() {
     </div>
   );
 
-  // Nothing to fight: the eye is there, closed, asleep.
+  // Nothing to fight yet: only space. The first boss tears it open as it arrives.
   if (!boss) {
     return (
       <>
         <section ref={stage} className="quest-stage relative h-full min-h-[520px] overflow-hidden">
-          <BossEye dormant parts={[]} state="active" urgent={false} hit={0} wide={wide} avoid={avoid} label={t('A closed eye: no boss yet')} />
+          <BossEye empty parts={[]} state="active" urgent={false} hit={0} wide={wide} avoid={avoid} label={t('Empty space: no boss yet')} />
           <div ref={hudTop} className="quest-hud frame-l absolute top-3 left-4 lg:top-5">
             {pageLabel}
           </div>

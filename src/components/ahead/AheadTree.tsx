@@ -13,7 +13,25 @@ import { useUI } from '../../state/uiStore';
 import { Button } from '../ui/Button';
 import { BAND_LABEL, BANDS, KIND_LABEL, answersOf, type Band } from './answers';
 import { BandPanel, Glyph, ItemPanel, KEY, PathPanel, Section } from './AheadPanels';
-import { DISTANCE, eye, faceYaw, FLOOR, growTree, HALF, LEVELS, project, projectAll, SOIL, TOP, type Camera, type TreeAnswer, type V3 } from './tree';
+import {
+  atHeight,
+  DISTANCE,
+  eye,
+  faceYaw,
+  FLOOR,
+  growTree,
+  HALF,
+  leafAt,
+  LEVELS,
+  project,
+  projectAll,
+  sizeOf,
+  SOIL,
+  TOP,
+  type Camera,
+  type TreeAnswer,
+  type V3,
+} from './tree';
 
 type Pick = { kind: 'path'; id: string } | { kind: 'item'; key: string } | { kind: 'bough'; key: string } | { kind: 'band'; band: Band } | null;
 const same = (a: Pick, b: Pick) => JSON.stringify(a) === JSON.stringify(b);
@@ -28,6 +46,8 @@ const PITCH = 8;
 const TURN = 150;
 /** The tree grows in, up and down at once, over this long, as the page opens. */
 const BUILD_MS = 3200;
+/** After that, a root or the tree grows toward a new size about this fast (the time to go most of the way). */
+const GROW_MS = 480;
 const ROMAN = ['I', 'II', 'III', 'IV'];
 /** The close-ups on the cards: drawn this much sharper than their size, and this much nearer than the plate. */
 const CROP_DPR = typeof window === 'undefined' ? 1 : Math.min(2, window.devicePixelRatio || 1);
@@ -68,6 +88,9 @@ interface Card {
   warm?: boolean;
   /** What a click on it opens. */
   pick: Pick;
+  /** It reads a root's tip (wherever the root has grown to), or something on the tree above (shown at its size). */
+  root?: string;
+  lift?: boolean;
   /** Where what it reads is kept, and when it last changed: how the plate knows it. */
   from?: string;
 }
@@ -182,6 +205,7 @@ export function AheadTree({
       return {
         key: `root:${id}`,
         at: l.tip,
+        root: id,
         meta: pathCode(p.code).toUpperCase(),
         title: p.title,
         sub: step ? `${t('Next step')}: ${clip(step.title, 48)}` : BANDS.map((b, i) => `${ROMAN[i]} ${counts(id, b)}`).join(' · '),
@@ -200,6 +224,7 @@ export function AheadTree({
       put({
         key: b.key,
         at: b.end,
+        lift: true,
         meta: (b.side === 'constraint' ? t('Holds you') : t('Carries you')).toUpperCase(),
         title: clip(b.text, 64),
         pick: { kind: 'bough', key: b.key },
@@ -222,6 +247,8 @@ export function AheadTree({
   const live = useRef({ show, sel, cards, chosen: nav?.pathId, reduced, compact });
   Object.assign(live.current, { show, sel, cards, chosen: nav?.pathId, reduced, compact });
   const cam = useRef({ yaw: 20, pitch: PITCH, lookX: 0, lookY: 0, drag: null as null | { x: number; y: number; yaw: number; pitch: number; moved: boolean } });
+  // How far each root has grown and how grown the tree is, kept across redraws, so what changes grows into place.
+  const growth = useRef({ built: false, cut: new Map<string, number>(), grown: 0 });
   const seen = useRef({
     buds: new Map<string, [number, number]>(),
     roots: new Map<string, [number, number][]>(),
@@ -289,6 +316,27 @@ export function AheadTree({
     const start = new Uint32Array(BINS + 1);
     const cursor = new Uint32Array(BINS + 1);
     const order = new Uint32Array(S);
+    // The whole tree grows in once, as the page opens; after that, only what changed grows, from where it was.
+    const G = growth.current;
+    const first = !G.built;
+    G.built = true;
+    const splitY = tree.taproot[tree.taproot.length - 1][1];
+    const rootIds = new Set(tree.roots.map((l) => l.pathId));
+    for (const id of [...G.cut.keys()]) if (!rootIds.has(id)) G.cut.delete(id);
+    for (const l of tree.roots) if (first || !G.cut.has(l.pathId)) G.cut.set(l.pathId, first ? l.cut : splitY);
+    if (first) G.grown = tree.grown;
+    const cutOf = (pathId: string) => G.cut.get(pathId) ?? 0;
+    const pathOfGroup = new Map([...tree.groups.root].map(([id, g]) => [g, id]));
+    // The tree above is drawn grown and shown at its size, about its foot: its wood and its leaves.
+    const lifted = new Uint8Array(V);
+    for (let s = 0; s < S; s++)
+      if (tree.kind[s] === 1) {
+        lifted[tree.seg[s * 2]] = 1;
+        lifted[tree.seg[s * 2 + 1]] = 1;
+      }
+    const verts = new Float32Array(tree.verts);
+    const leaves = new Float32Array(tree.leaves);
+    let shownSize = -1;
     /** Sorts the lines into their bins (counting), so each bin can be drawn as one stroke. */
     const sortBins = (nb: number) => {
       bins.fill(0);
@@ -311,8 +359,8 @@ export function AheadTree({
     // Which roots are drawn warm: some of what you chose, and the rootlets that want attention.
     const warmTwigs = new Set(tree.answers.filter((a) => a.warn).map((a) => tree.groups.twig.get(a.key)!));
     const rootGroup = (g: number) => tree.rootOf.get(g) ?? g;
-    const started = performance.now();
-    let last = started;
+    const started = first ? performance.now() : -Infinity;
+    let last = performance.now();
     let raf = 0;
     let frame = 0;
     const cardPos = new Map<string, { x: number; y: number }>();
@@ -377,6 +425,26 @@ export function AheadTree({
       const age = now - started;
       const building = !L.reduced && age < BUILD_MS;
       const reveal = building ? ease(age / BUILD_MS) : 1;
+
+      // Each root grows toward as far down as its answers reach, the tree toward its size; the tip still growing lit.
+      const step = L.reduced ? 1 : Math.min(1, dt / GROW_MS);
+      const growing = new Set<string>();
+      for (const l of tree.roots) {
+        const was = cutOf(l.pathId);
+        const next = was + (l.cut - was) * step;
+        G.cut.set(l.pathId, Math.abs(l.cut - next) < 0.02 ? l.cut : next);
+        if (Math.abs(l.cut - next) >= 0.02) growing.add(l.pathId);
+      }
+      G.grown = Math.abs(tree.grown - G.grown) < 0.002 ? tree.grown : G.grown + (tree.grown - G.grown) * step;
+      const treeSize = sizeOf(G.grown);
+      if (treeSize !== shownSize) {
+        shownSize = treeSize;
+        for (let i = 0; i < V; i++) if (lifted[i]) for (let a = 0; a < 3; a++) verts[i * 3 + a] = tree.verts[i * 3 + a] * treeSize;
+        for (let i = 0; i < leaves.length; i++) leaves[i] = tree.leaves[i] * treeSize;
+      }
+      const lift = (p: V3): V3 => [p[0] * treeSize, p[1] * treeSize, p[2] * treeSize];
+      const tipOf = (pathId: string) => atHeight(rootById.get(pathId)!.curve, cutOf(pathId));
+      const inLeaf = leafAt(G.grown);
 
       // What is lit.
       const show = L.show;
@@ -558,15 +626,19 @@ export function AheadTree({
       for (let i = 0; i < NC; i++) ctx.fillRect(crx[i] - 0.7, cry[i] - 0.5, 1.4, 1);
 
       // The roots, lit: in bins, a wide faint glow, the line itself, white or warm, and a hot core in the thickest.
-      projectAll(camera, tree.verts, vx, vy, vz);
+      projectAll(camera, verts, vx, vy, vz);
       for (let s = 0; s < S; s++) {
         binOf[s] = NONE;
         if (tree.kind[s] !== 0 || tree.grow[s] > reveal) continue;
+        const g = tree.group[s];
+        const rg = rootGroup(g);
+        // Only as far down as its root has grown.
+        const pid = pathOfGroup.get(rg);
+        const cut = pid === undefined ? -Infinity : cutOf(pid);
+        if (tree.origin[s] < cut - 0.01) continue;
         const i = tree.seg[s * 2];
         const j = tree.seg[s * 2 + 1];
         const z = (vz[i] + vz[j]) / 2;
-        const g = tree.group[s];
-        const rg = rootGroup(g);
         let a = 0.88 * Math.max(0.3, Math.min(1, 0.66 - z / 64));
         if (anything) {
           if (litTwig !== undefined) a *= g === litTwig ? 2.2 : rg === litRoot ? 1 : 0.32;
@@ -578,6 +650,7 @@ export function AheadTree({
         }
         const grow = tree.grow[s];
         if (building && reveal - grow < 0.025) a *= 2.2;
+        if (pid !== undefined && growing.has(pid) && tree.origin[s] - cut < 1.8) a *= 2.2;
         a = Math.min(1, a);
         const wb = widthBin(tree.width[s] * scale * (DISTANCE / (DISTANCE + z)));
         const ab = Math.min(AB - 1, Math.floor(a * AB));
@@ -613,7 +686,7 @@ export function AheadTree({
       if (chosenRoot !== undefined && !L.reduced && L.chosen && !building) {
         const root = rootById.get(L.chosen);
         if (root) {
-          const route = [...tree.taproot, ...root.curve];
+          const route = [...tree.taproot, ...root.curve.filter((p) => p[1] >= cutOf(root.pathId))];
           ctx.fillStyle = 'rgba(255,150,100,0.95)';
           for (let k = 0; k < 5; k++) {
             const f = ((now / 3600 + k / 5) % 1) * (route.length - 1);
@@ -687,9 +760,9 @@ export function AheadTree({
         ctx.stroke();
       }
       ctx.lineWidth = 1;
-      projectAll(camera, tree.leaves, lx, ly, lz);
+      projectAll(camera, leaves, lx, ly, lz);
       for (let i = 0; i < NL; i++) {
-        if (tree.leafGrow[i] > reveal) continue;
+        if (tree.leafGrow[i] > reveal || tree.leafNeed[i] > inLeaf) continue;
         const lit = litBough !== undefined && tree.leafGroup[i] === litBough;
         ctx.fillStyle = lit ? 'rgba(255,110,50,0.9)' : `rgba(10,13,11,${lz[i] > 8 ? 0.6 : 0.92})`;
         const s = lz[i] < 0 ? 2.6 : 2;
@@ -724,17 +797,18 @@ export function AheadTree({
       ctx.textAlign = 'center';
       ctx.font = '500 10px "IBM Plex Mono", ui-monospace, monospace';
       for (const l of tree.roots) {
+        const cut = cutOf(l.pathId);
         seenRoots.set(
           l.pathId,
           l.curve
-            .filter((_, i) => i % 2 === 0)
+            .filter((p, i) => i % 2 === 0 && p[1] >= cut)
             .map((p) => {
               const [px, py] = P(p);
               return [px, py];
             }),
         );
         if (reveal < 0.98) continue;
-        const [px, py] = P(l.tip);
+        const [px, py] = P(tipOf(l.pathId));
         const chosen = L.chosen === l.pathId;
         ctx.strokeStyle = chosen ? 'rgba(255,90,31,0.95)' : 'rgba(228,240,234,0.65)';
         ctx.fillStyle = 'rgba(7,8,10,0.9)';
@@ -748,14 +822,14 @@ export function AheadTree({
       const seenBoughs = seen.current.boughs;
       ctx.lineWidth = 1.3;
       for (const b of tree.boughs) {
-        const [px, py] = P(b.end);
+        const [px, py] = P(lift(b.end));
         seenBoughs.set(b.key, [px, py]);
         if (reveal < 0.9) continue;
         const lit = litBough === tree.groups.bough.get(b.key);
         ctx.strokeStyle = lit ? 'rgba(255,90,31,0.95)' : 'rgba(12,15,13,0.85)';
         ctx.beginPath();
         if (b.side === 'constraint') {
-          const [qx, qy] = P(b.curve[b.curve.length - 2]);
+          const [qx, qy] = P(lift(b.curve[b.curve.length - 2]));
           const l = Math.hypot(px - qx, py - qy) || 1;
           const [nx, ny] = [-(py - qy) / l, (px - qx) / l];
           ctx.moveTo(px - nx * 5, py - ny * 5);
@@ -772,10 +846,13 @@ export function AheadTree({
         for (const a of tree.answers) {
           const el = buds.querySelector<SVGGElement>(`[data-bud="${CSS.escape(a.key)}"]`);
           const [px, py, z] = P(a.at);
-          seenBuds.set(a.key, [px, py]);
+          // Out once its root has grown down to it.
+          const grown = a.from[1] >= cutOf(a.pathId) - 0.01;
+          if (grown) seenBuds.set(a.key, [px, py]);
+          else seenBuds.delete(a.key);
           if (!el) continue;
           el.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)})`);
-          el.style.opacity = reveal < 0.97 ? '0' : String(Math.max(0.35, Math.min(1, 0.9 - z / 50)));
+          el.style.opacity = reveal < 0.97 || !grown ? '0' : String(Math.max(0.35, Math.min(1, 0.9 - z / 50)));
         }
       }
 
@@ -830,7 +907,7 @@ export function AheadTree({
       for (const card of L.cards) {
         const el = cardEls.current.get(card.key);
         if (!el) continue;
-        const [ax, ay] = P(card.at);
+        const [ax, ay] = P(card.root && rootById.has(card.root) ? tipOf(card.root) : card.lift ? lift(card.at) : card.at);
         const was = cardSide.get(card.key);
         // On a phone the levels take the left, so every card goes right.
         const side = L.compact ? 1 : was && Math.abs(ax - cx) < 36 ? was : ax < cx ? -1 : 1;
