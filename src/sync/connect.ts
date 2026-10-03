@@ -14,6 +14,7 @@
 import type { AtlasData } from '../domain/types';
 import { createId } from '../lib/ids';
 import { todayISO, addDays } from '../lib/dates';
+import { prepareToRead } from '../persistence/migrate';
 import { DATA_VERSION, migrateData, safeLocalStorage } from '../persistence/storage';
 import { capability, insideClaude } from '../runtime/claude';
 import { useAccount, type DeviceReason } from '../state/accountStore';
@@ -70,14 +71,16 @@ const recently = (key: string) => {
 };
 
 /** The account's atlas as this device last cached it. */
-function cached(uid: string): AtlasData | null {
+async function cached(uid: string): Promise<AtlasData | null> {
   try {
     const raw = safeLocalStorage.getItem(KEYS.world(uid)) as string | null;
     if (!raw) return null;
     const stored = JSON.parse(raw) as { state?: { data?: AtlasData }; version?: number };
     if (!stored.state?.data) return null;
     const version = stored.version ?? DATA_VERSION;
-    return version < DATA_VERSION ? (migrateData(stored.state, version) as { data: AtlasData }).data : stored.state.data;
+    if (version >= DATA_VERSION) return stored.state.data;
+    await prepareToRead(stored.state.data);
+    return (migrateData(stored.state, version) as { data: AtlasData }).data;
   } catch {
     return null;
   }
@@ -106,7 +109,7 @@ export async function connectAccount(): Promise<void> {
   engine = new AccountSync(db, uid, deviceId(), world, baseStore(uid), (sync) => useAccount.setState({ sync }));
 
   // A cached copy opens at once; the account is asked in the background.
-  const copy = cached(uid);
+  const copy = await cached(uid);
   if (copy && engine.revision) return enter(uid, copy);
 
   let manifest;

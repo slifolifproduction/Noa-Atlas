@@ -10,7 +10,7 @@ import type { AtlasData } from '../domain/types';
 import { t } from '../i18n';
 import { useStorageHealth } from './health';
 import { safeLocalStorage, STORAGE_KEYS } from './local';
-import { refreshExample, replaceUntouchedNoa, toCurrentShape } from './migrate';
+import { prepareToRead, refreshExample, replaceUntouchedNoa, toCurrentShape } from './migrate';
 
 export { safeLocalStorage, STORAGE_KEYS } from './local';
 
@@ -36,6 +36,17 @@ export function migrateData(persisted: unknown, fromVersion: number): unknown {
 }
 
 const REQUIRED_RECORDS = ['nodes', 'edges', 'entries', 'decisions', 'patterns', 'paths', 'experiments'] as const;
+
+/** Read an imported export file, with what an older one needs fetched first (see prepareToRead). */
+export async function readImport(text: string): Promise<{ data: AtlasData } | { error: string }> {
+  try {
+    const parsed = JSON.parse(text) as { data?: unknown };
+    await prepareToRead(parsed?.data ?? parsed);
+  } catch {
+    // Not JSON: parseImport says so.
+  }
+  return parseImport(text);
+}
 
 /** Validate an imported export file. Returns the data or a human-readable error. */
 export function parseImport(text: string): { data: AtlasData } | { error: string } {

@@ -1,7 +1,7 @@
 import { Cloud, CloudOff, CloudUpload, HardDrive } from 'lucide-react';
 import { useState } from 'react';
 import { hrefFor } from '../../app/router';
-import { isExampleAtlas } from '../../data/seed';
+import { isExampleAtlas } from '../../data/exampleAtlas';
 import { dateOf, formatDate, formatTime, todayISO } from '../../lib/dates';
 import { useAccount, type AccountState } from '../../state/accountStore';
 import { useAtlas } from '../../state/atlasStore';

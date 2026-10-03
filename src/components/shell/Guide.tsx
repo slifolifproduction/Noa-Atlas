@@ -2,7 +2,7 @@ import { ArrowRight, BookOpen, Sprout } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { navigate } from '../../app/router';
 import { DEFAULT_EXAMPLE, isExampleKey, type ExampleKey } from '../../data/examples';
-import { isExampleAtlas } from '../../data/seed';
+import { isExampleAtlas } from '../../data/exampleAtlas';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { useAccount } from '../../state/accountStore';

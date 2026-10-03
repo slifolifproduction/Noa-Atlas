@@ -18,6 +18,7 @@
  * the device in its compressed form. What the Atlas believes (the belief
  * ledger) is derived, so it stays on each device and is not synced.
  */
+import { prepareToRead } from '../persistence/migrate';
 import { DATA_VERSION, migrateData } from '../persistence/storage';
 import type { AtlasData } from '../domain/types';
 import type { Db, DocRef } from '../runtime/claude';
@@ -163,7 +164,10 @@ export class AccountSync {
       }
       if (whole) {
         let data = await decodeAtlas(m.encoding, parts);
-        if (m.dataVersion < DATA_VERSION) data = (migrateData({ data }, m.dataVersion) as { data: AtlasData }).data;
+        if (m.dataVersion < DATA_VERSION) {
+          await prepareToRead(data);
+          data = (migrateData({ data }, m.dataVersion) as { data: AtlasData }).data;
+        }
         return { data, base: { rev: m.rev, encoding: m.encoding, parts, hash: m.hash, dataVersion: m.dataVersion } };
       }
       // Caught between a writer's parts and its manifest: the next look finds them whole.
@@ -175,7 +179,9 @@ export class AccountSync {
   private async baseData(): Promise<AtlasData | null> {
     if (!this.base) return null;
     const data = await decodeAtlas(this.base.encoding, this.base.parts);
-    return this.base.dataVersion < DATA_VERSION ? (migrateData({ data }, this.base.dataVersion) as { data: AtlasData }).data : data;
+    if (this.base.dataVersion >= DATA_VERSION) return data;
+    await prepareToRead(data);
+    return (migrateData({ data }, this.base.dataVersion) as { data: AtlasData }).data;
   }
 
   /** Take in a newer revision, keeping anything not yet saved here. Resolves whether this device still has something to save. */

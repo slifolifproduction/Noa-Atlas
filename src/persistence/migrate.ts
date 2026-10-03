@@ -17,8 +17,10 @@
  * An atlas that is still the sample (with or without notes of the person's
  * own) is rebuilt from the new sample and keeps everything the person added.
  */
-import { createExample, exampleLangOf, isExampleKey } from '../data/examples';
-import { createSeedData, isNoaExample, SEED_PROFILE_NAME } from '../data/seed';
+import { createExample, DEFAULT_EXAMPLE, exampleLangOf, exampleLoaded, isExampleKey, loadExample, type ExampleKey } from '../data/examples';
+import { isNoaExample, SEED_PROFILE_NAME } from '../data/exampleAtlas';
+import { loadNoa, noaAtlas } from '../data/noa';
+import { getLang, type Lang } from '../i18n';
 import type {
   AnalysisSuggestion,
   AreaKey,
@@ -278,8 +280,10 @@ function isSample(v1: V1): boolean {
 
 /** Rebuild the sample in the new model and carry over what the person added to it. */
 function upgradeSample(v1: V1): AtlasData {
-  const fresh = createSeedData();
+  const fresh = noaAtlas();
   const converted = convertV1(v1);
+  // Noa's atlas not fetched (see prepareToRead): converted as it is, like any other.
+  if (!fresh) return converted;
   const own = <T extends { id: string }>(rec: Record<string, T>) => Object.values(rec).filter((x) => !SAMPLE_ID.test(x.id));
   for (const n of own(converted.nodes)) fresh.nodes[n.id] = n;
   const keep = (id: string) => Boolean(fresh.nodes[id]);
@@ -319,7 +323,9 @@ export function correctSampleCauses(data: AtlasData): AtlasData {
   if ((data.causesLogic ?? 0) >= 3) return data;
   const sample = data.profile?.name === SEED_PROFILE_NAME && Boolean(data.claims?.c01) && Boolean(data.entries?.ent_01);
   if (!sample) return { ...data, causesLogic: 3 };
-  const fresh = createSeedData();
+  // Not fetched: left as it is, unmarked, to be corrected when it is.
+  const fresh = noaAtlas();
+  if (!fresh) return data;
   const claims = { ...data.claims };
   const sampleEvidence = /^e\d{4}$/;
   for (const [id, f] of Object.entries(fresh.claims)) {
@@ -356,7 +362,8 @@ export function correctSampleCauses(data: AtlasData): AtlasData {
 export function upgradeSampleLogic(data: AtlasData): AtlasData {
   if ((data.causesLogic ?? 0) >= 4) return data;
   if (!isNoaExample(data)) return { ...data, causesLogic: 4 };
-  const fresh = createSeedData();
+  const fresh = noaAtlas();
+  if (!fresh) return data;
   const occurrences = { ...data.occurrences };
   for (const [id, f] of Object.entries(fresh.occurrences)) {
     const mine = occurrences[id];
@@ -396,7 +403,8 @@ export function upgradeSampleLogic(data: AtlasData): AtlasData {
 /** Noa's example as it was opened, with nothing the person added, becomes the first of the new examples. */
 export function replaceUntouchedNoa(data: AtlasData): AtlasData {
   if (!isNoaExample(data)) return data;
-  const fresh = createSeedData();
+  const fresh = noaAtlas();
+  if (!fresh || !exampleLoaded(DEFAULT_EXAMPLE, getLang())) return data;
   const untouched = (mine: Record<string, unknown> | undefined, theirs: Record<string, unknown>) => Object.keys(mine ?? {}).every((id) => id in theirs);
   const same =
     untouched(data.entries, fresh.entries) &&
@@ -416,6 +424,7 @@ export function refreshExample(data: AtlasData): AtlasData {
   const key = data.profile?.example;
   if (!isExampleKey(key)) return data;
   const lang = exampleLangOf(data);
+  if (!exampleLoaded(key, lang)) return data;
   const fresh = createExample(key, undefined, lang);
   const nothingAdded = (['entries', 'decisions', 'nodes', 'claims', 'patterns', 'paths', 'experiments'] as const).every((k) =>
     Object.keys(data[k] ?? {}).every((id) => id in fresh[k]),
@@ -428,4 +437,31 @@ export function toCurrentShape(data: unknown): AtlasData {
   if (isV2(data)) return upgradeSampleLogic(correctSampleCauses({ ...data, loopNames: data.loopNames ?? {} }));
   const v1 = data as V1;
   return isSample(v1) ? upgradeSample(v1) : convertV1(v1);
+}
+
+/**
+ * What reading an atlas may need that is fetched only on demand: Noa's atlas, for one saved by an early version of
+ * hers (and the first example, which replaces it untouched); and the example an atlas is, to compare it with its
+ * words. `canReadNow` says whether all of it is here already.
+ */
+function needs(data: unknown): { noa: boolean; examples: [ExampleKey, Lang][] } {
+  const profile = (data as { profile?: { name?: unknown; example?: unknown; exampleLang?: unknown } } | null | undefined)?.profile;
+  const examples: [ExampleKey, Lang][] = [];
+  const noa = profile?.name === SEED_PROFILE_NAME;
+  if (noa) examples.push([DEFAULT_EXAMPLE, getLang()]);
+  if (isExampleKey(profile?.example)) examples.push([profile.example, profile.exampleLang === 'en' ? 'en' : 'id']);
+  return { noa, examples };
+}
+
+export function canReadNow(data: unknown): boolean {
+  const { noa, examples } = needs(data);
+  return (!noa || noaAtlas() !== undefined) && examples.every(([k, l]) => exampleLoaded(k, l));
+}
+
+/** Fetch what reading `data` needs (nothing for most atlases). A failed fetch only means an older atlas stays as it is. */
+export async function prepareToRead(data: unknown): Promise<void> {
+  const { noa, examples } = needs(data);
+  await Promise.all([noa ? loadNoa() : undefined, ...examples.map(([k, l]) => loadExample(k, l))]).catch((error) =>
+    console.warn('[atlas] could not fetch what an older atlas needs; it is read as it is', error),
+  );
 }

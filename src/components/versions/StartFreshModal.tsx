@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { navigate } from '../../app/router';
 import { cn } from '../../lib/cn';
 import { DEFAULT_EXAMPLE, exampleInfo, isExampleKey, type ExampleKey } from '../../data/examples';
-import { isExampleAtlas } from '../../data/seed';
+import { isExampleAtlas } from '../../data/exampleAtlas';
 import { useAtlas } from '../../state/atlasStore';
 import { toast, useUI } from '../../state/uiStore';
 import { restoreVersion, startFresh, versionStamp } from '../../state/versionOps';

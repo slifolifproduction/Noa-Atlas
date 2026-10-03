@@ -15,9 +15,9 @@ import {
   Sprout,
   type LucideIcon,
 } from 'lucide-react';
-import { useAgent } from '../../agent/store';
+import { useAgentPanel } from '../../agent/panel';
 import { groupTarget, hrefFor, type RouteKey } from '../../app/router';
-import { isExampleAtlas } from '../../data/seed';
+import { isExampleAtlas } from '../../data/exampleAtlas';
 import { GROUPS, groupOf, VIEWS, type GroupKey } from '../../domain/constants';
 import { cn } from '../../lib/cn';
 import { useAccount } from '../../state/accountStore';
@@ -43,8 +43,8 @@ export const GROUP_ICONS: Record<GroupKey, LucideIcon> = PLACE_ICONS;
 export function TopBar({ active }: { active: RouteKey }) {
   const openCapture = useUI((s) => s.openCapture);
   const setPaletteOpen = useUI((s) => s.setPaletteOpen);
-  const agentOpen = useAgent((s) => s.open);
-  const toggleAgent = useAgent((s) => s.toggle);
+  const agentOpen = useAgentPanel((s) => s.open);
+  const toggleAgent = useAgentPanel((s) => s.toggle);
   const current = groupOf(active)?.key;
   const simple = useSimple();
 

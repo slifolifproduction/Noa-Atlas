@@ -3,6 +3,7 @@ import { useMediaQuery } from '../../hooks/useMediaQuery';
 import type { BossPart, BossState } from '../../domain/quests';
 import { cn } from '../../lib/cn';
 import { clockParts } from '../../lib/dates';
+import { lighter, slowWatch, spaceHealth } from '../../lib/motion';
 import {
   arc,
   CONTOUR,
@@ -561,6 +562,11 @@ export function BossEye({
     let visible = true;
     const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting));
     if (el) io.observe(el);
+    // Lighter on a device found slow (or with Settings → Space flat): the tunnel stands still (see lib/motion). Known
+    // from the start, it never turns; found out now, it stops where it is.
+    const lite = (on: boolean, how: 'still' | 'stopped') => (on ? el?.setAttribute('data-lite', how) : el?.removeAttribute('data-lite'));
+    lite(lighter(), 'still');
+    const slow = slowWatch();
 
     const wakeAt = performance.now();
     const dormant = live.current.dormant;
@@ -607,6 +613,10 @@ export function BossEye({
       const L = live.current;
       const wake = now - wakeAt;
       const active = L.state === 'active' && !L.dormant;
+      if (slow(now, now - lastFrame)) {
+        spaceHealth.degraded = true;
+        if (!el?.hasAttribute('data-lite')) lite(lighter(), 'stopped');
+      }
       const dt = Math.min(64, now - lastFrame);
       lastFrame = now;
       // The tear: a crack runs out along its line, flickering; then space tears open on the other

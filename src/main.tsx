@@ -8,14 +8,9 @@ import { App } from './App';
 import { ErrorBoundary } from './components/shell/ErrorBoundary';
 import { loadLanguage, useLang } from './i18n';
 import { safeLocalStorage, STORAGE_KEYS } from './persistence/storage';
-import { useAtlas } from './state/atlasStore';
+import { openAtlas, useAtlas } from './state/atlasStore';
 import { startFollowingAtlas } from './state/follow';
 import { connectAccount } from './sync/connect';
-
-// Persist the sample atlas on first visit, so what the user sees is what is saved.
-if (!safeLocalStorage.getItem(STORAGE_KEYS.data)) useAtlas.setState((s) => ({ data: s.data }));
-// The panel, the focus and the map's saved positions let go of anything the atlas no longer has.
-startFollowingAtlas();
 
 /** The whole interface is rebuilt in the new language when it changes; the atlas and UI state live in the stores and stay. */
 function Root() {
@@ -23,8 +18,14 @@ function Root() {
   return <App key={lang} />;
 }
 
-// Start once the interface language is ready (Indonesian is fetched on demand).
-void loadLanguage().finally(() => {
+// Start once the interface language is ready (Indonesian is fetched on demand) and the atlas is read (an older one
+// may wait for what it needs to be fetched; see openAtlas).
+void loadLanguage().finally(async () => {
+  await openAtlas();
+  // Persist the sample atlas on first visit, so what the user sees is what is saved.
+  if (!safeLocalStorage.getItem(STORAGE_KEYS.data)) useAtlas.setState((s) => ({ data: s.data }));
+  // The panel, the focus and the map's saved positions let go of anything the atlas no longer has.
+  startFollowingAtlas();
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <ErrorBoundary where="app">

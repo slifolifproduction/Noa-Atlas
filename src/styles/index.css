@@ -1568,9 +1568,15 @@ html body {
     translate: -1.2% 1%;
   }
 }
-.quest-rig:is([data-state='defeated'], [data-state='dormant']) .quest-membrane {
-  /* Over the animation each depth sets for itself. */
+.quest-rig:is([data-state='defeated'], [data-state='dormant']) .quest-membrane,
+.quest-rig[data-lite='stopped'] .quest-membrane {
+  /* Over the animation each depth sets for itself. Lighter (a device found slow while here): stopped where it is. */
   animation-play-state: paused !important;
+}
+/* Lighter from the start (a device found slow before, or Settings → Space flat): never turning, nothing to composite. */
+.quest-rig[data-lite='still'] .quest-membrane {
+  animation: none !important;
+  will-change: auto;
 }
 /* It comes out of the tear's depth: small, dim and out of focus, pulled forward into focus. */
 .quest-emerge {

@@ -2458,17 +2458,18 @@ export const ID: Record<string, string> = {
   'today, note dates, weeks and experiment days follow it': 'hari ini, tanggal catatan, minggu, dan hari eksperimen mengikutinya',
   Profile: 'Profil',
   Space: 'Ruang',
-  'The Map and Causes are drawn as a 3D space: points sit at different depths and the view turns with your pointer (or the tilt of a phone). Reduced-motion settings on your device always keep it still.':
-    'Peta dan Sebab digambar sebagai ruang 3D: titik-titik berada di kedalaman berbeda dan tampilan berputar mengikuti penunjukmu (atau kemiringan ponsel). Pengaturan kurangi gerakan di perangkatmu selalu membuatnya diam.',
+  'The Map and Causes are drawn as a 3D space: points sit at different depths and the view turns with your pointer (or the tilt of a phone). The tree in Ahead and the tunnel in Quests move too. Reduced-motion settings on your device always keep it still.':
+    'Peta dan Sebab digambar sebagai ruang 3D: titik-titik berada di kedalaman berbeda dan tampilan berputar mengikuti penunjukmu (atau kemiringan ponsel). Pohon di Ke depan dan terowongan di Misi juga bergerak. Pengaturan kurangi gerakan di perangkatmu selalu membuatnya diam.',
   Depth: 'Kedalaman',
   Automatic: 'Otomatis',
-  'Depth on; switches to flat if this device cannot keep motion smooth':
-    'Kedalaman aktif; beralih ke datar jika perangkat ini tidak bisa menjaga gerakan tetap lancar',
+  'Depth on; switches to lighter motion if this device cannot keep it smooth':
+    'Kedalaman aktif; beralih ke gerakan yang lebih ringan jika perangkat ini tidak bisa menjaganya tetap lancar',
   'Always 3D': 'Selalu 3D',
   Flat: 'Datar',
-  'Automatic switched to flat on this device for this visit, to keep motion smooth.':
-    'Otomatis beralih ke datar di perangkat ini untuk kunjungan ini, agar gerakan tetap lancar.',
-  'Flat: stars still drift, the graph itself stays in one plane.': 'Datar: bintang tetap melayang, grafiknya sendiri tetap di satu bidang.',
+  'Automatic switched to lighter motion on this device for this visit, to keep it smooth: the Map and Causes flat, the tree in Ahead drawn lighter, the tunnel in Quests still.':
+    'Otomatis beralih ke gerakan yang lebih ringan di perangkat ini untuk kunjungan ini, agar tetap lancar: Peta dan Sebab datar, pohon di Ke depan digambar lebih ringan, terowongan di Misi diam.',
+  'Flat: stars still drift, the graph itself stays in one plane; the tree in Ahead is drawn lighter and the tunnel in Quests stands still.':
+    'Datar: bintang tetap melayang, grafiknya sendiri tetap di satu bidang; pohon di Ke depan digambar lebih ringan dan terowongan di Misi diam.',
   'Pan, zoom, move the pointer or select a node to see depth.': 'Geser, zoom, gerakkan kursor, atau pilih titik untuk melihat kedalaman.',
   'Analysis provider': 'Penyedia analisis',
   'Every provider returns the same structured objects: observations, evidence suggestions, repeat candidates, experiment drafts. Nothing is applied without your review.':

@@ -23,12 +23,9 @@ import { check as inScope, clean, refusal } from './scope';
 import type { AgentMessage, AgentMode, ChangeSet, Citation } from './types';
 
 interface AgentState {
-  open: boolean;
   mode: AgentMode;
   messages: AgentMessage[];
   busy: boolean;
-  setOpen(open: boolean): void;
-  toggle(): void;
   setMode(mode: AgentMode): void;
   newChat(): void;
   send(text: string): Promise<void>;
@@ -68,12 +65,9 @@ export const useAgent = create<AgentState>()(
       };
 
       return {
-        open: false,
         mode: 'auto',
         messages: [],
         busy: false,
-        setOpen: (open) => set({ open }),
-        toggle: () => set((s) => ({ open: !s.open })),
         setMode: (mode) => set({ mode }),
         newChat: () => {
           controller?.abort();

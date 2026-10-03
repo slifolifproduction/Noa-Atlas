@@ -3,16 +3,16 @@
  * saved one, start fresh, import. Anything that replaces the atlas saves the
  * current one first, so nothing is ever lost by accident.
  */
-import { exampleLangOf, exampleUntouched, isExampleKey, type ExampleKey } from '../data/examples';
-import { isExampleAtlas } from '../data/seed';
+import { DEFAULT_EXAMPLE, exampleLangOf, exampleLoaded, exampleUntouched, isExampleKey, loadExample, type ExampleKey } from '../data/examples';
+import { isExampleAtlas } from '../data/exampleAtlas';
 import type { AtlasData } from '../domain/types';
 import { formatDate, formatTime, todayISO } from '../lib/dates';
-import { toCurrentShape } from '../persistence/migrate';
+import { prepareToRead, toCurrentShape } from '../persistence/migrate';
 import { exportPayload } from '../persistence/storage';
 import { getVersion, putVersion, type SavedLayouts, type VersionMeta, type VersionReason } from '../persistence/versions';
 import { useAtlas } from './atlasStore';
 import { toast, useUI } from './uiStore';
-import { LANGUAGES, t, type Lang } from '../i18n';
+import { getLang, LANGUAGES, t, type Lang } from '../i18n';
 
 /** A short, readable timestamp for automatic version names. */
 export const versionStamp = (d = new Date()) => `${formatDate(todayISO(d), { year: true })}, ${formatTime(d)}`;
@@ -40,7 +40,8 @@ export async function restoreVersion(id: string, opts: { backup?: boolean } = {}
   const version = await getVersion(id);
   if (!version) throw new Error(t('That version no longer exists.'));
   const backup = opts.backup === false ? undefined : await saveCurrentVersion(t('Before restoring “{name}”', { name: version.name }), 'restore');
-  // Versions saved before the layered model are converted when restored.
+  // Versions saved before the layered model are converted when restored (with what that may need fetched first).
+  await prepareToRead(version.data);
   useAtlas.getState().replaceData(toCurrentShape(structuredClone(version.data)));
   afterSwap(version.layouts);
   // Back in an atlas of the person's own, there is nothing to go back to.
@@ -56,6 +57,8 @@ export async function restoreVersion(id: string, opts: { backup?: boolean } = {}
  */
 export async function startFresh(opts: { save: boolean; name: string; mode: 'empty' | 'sample'; profileName?: string; example?: ExampleKey }) {
   const wasExample = isExampleAtlas(useAtlas.getState().data);
+  // The example's words are fetched before anything is saved or changed, so a failed fetch changes nothing.
+  if (opts.mode === 'sample') await loadExample(opts.example ?? DEFAULT_EXAMPLE, getLang());
   const saved = opts.save ? await saveCurrentVersion(opts.name, 'restart') : undefined;
   if (opts.mode === 'sample') useAtlas.getState().resetToSample(opts.example);
   else useAtlas.getState().clearAll(opts.profileName?.trim() ?? '');
@@ -71,10 +74,16 @@ export async function startFresh(opts: { save: boolean; name: string; mode: 'emp
  * it in the new language is offered, the changed one kept as a version first; `offer` is false on load, when an
  * example someone changed and kept in the other language is left as it is.
  */
-export function exampleFollowsLanguage(lang: Lang, offer = true) {
+export function exampleFollowsLanguage(lang: Lang, offer = true): void | Promise<void> {
   const data = useAtlas.getState().data;
   const key = data.profile?.example;
   if (!isExampleKey(key) || exampleLangOf(data) === lang) return;
+  // Both languages' words are needed, to compare and to reopen: fetched first when they are not here yet.
+  if (!exampleLoaded(key, lang) || !exampleLoaded(key, exampleLangOf(data)))
+    return Promise.all([loadExample(key, lang), loadExample(key, exampleLangOf(data))]).then(
+      () => void exampleFollowsLanguage(lang, offer),
+      (error) => console.warn('[atlas] could not fetch the example in the new language; it stays as it is', error),
+    );
   if (exampleUntouched(data)) {
     useAtlas.getState().resetToSample(key, lang);
     return;

@@ -2,7 +2,7 @@ import { BookOpen, X } from 'lucide-react';
 import { useState } from 'react';
 import { navigate } from '../../app/router';
 import { exampleInfo } from '../../data/examples';
-import { isExampleAtlas } from '../../data/seed';
+import { isExampleAtlas } from '../../data/exampleAtlas';
 import { useAtlas } from '../../state/atlasStore';
 import { toast, useUI } from '../../state/uiStore';
 import { backToMyAtlas } from '../../state/versionOps';

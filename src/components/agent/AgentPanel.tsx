@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { navigate } from '../../app/router';
 import { applicable, describe, LENS_LABEL, LENS_OF, LENS_ORDER, summary } from '../../agent/changes';
 import { citationLabel, splitCitations } from '../../agent/refs';
+import { useAgentPanel } from '../../agent/panel';
 import { claudeReady, useAgent } from '../../agent/store';
 import type { AgentMessage, AgentMode, ChangeSet, Citation } from '../../agent/types';
 import { t, tn } from '../../i18n';
@@ -187,7 +188,8 @@ const MODES: { value: AgentMode; label: () => string }[] = [
  * you. Opened from the top bar or with A.
  */
 export function AgentPanel() {
-  const { open, setOpen, messages, send, busy, stop, mode, setMode, newChat } = useAgent();
+  const { open, setOpen } = useAgentPanel();
+  const { messages, send, busy, stop, mode, setMode, newChat } = useAgent();
   const claude = useAccount((s) => s.claude);
   const [draft, setDraft] = useState('');
   const input = useRef<HTMLTextAreaElement>(null);

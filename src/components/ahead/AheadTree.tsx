@@ -5,6 +5,7 @@ import { currentAction, experimentCode, pathCode } from '../../domain/selectors'
 import type { StrategicPath } from '../../domain/types';
 import { useIsDesktop, useMediaQuery } from '../../hooks/useMediaQuery';
 import { t } from '../../i18n';
+import { drawPacer, lighter, slowWatch, spaceHealth } from '../../lib/motion';
 import { cn } from '../../lib/cn';
 import { formatDate } from '../../lib/dates';
 import { useAtlas } from '../../state/atlasStore';
@@ -261,9 +262,16 @@ export function AheadTree({
     if (!cv || !size.w) return;
     const ctx = cv.getContext('2d');
     if (!ctx) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    // Lighter on a device found slow (or with Settings → Space flat): drawn at one pixel per point.
+    let dpr = Math.min(window.devicePixelRatio || 1, lighter() ? 1 : 2);
     cv.width = Math.round(size.w * dpr);
     cv.height = Math.round(size.h * dpr);
+    // Drawn only while on screen, and no more often than leaves the page room to answer (see drawPacer).
+    let visible = true;
+    const io = new IntersectionObserver(([e]) => (visible = e.isIntersecting));
+    if (plateRef.current) io.observe(plateRef.current);
+    const pace = drawPacer();
+    const slow = slowWatch();
     const area = { left: compact ? 0 : MARGIN, right: size.w - (wide ? ROOM : 0) };
     const cx = (area.left + area.right) / 2;
     const span = area.right - area.left;
@@ -456,6 +464,16 @@ export function AheadTree({
       const anything = Boolean(show);
       const chosenRoot = L.chosen ? tree.groups.root.get(L.chosen) : undefined;
 
+      if (!visible || document.hidden || !pace.due(now)) return;
+      // Slow is what a draw costs, not how often it is drawn (which the pacing itself spaces out).
+      if (pace.cost() && slow(now, pace.cost())) {
+        spaceHealth.degraded = true;
+        if (lighter() && dpr > 1) {
+          dpr = 1;
+          cv.width = Math.round(size.w);
+          cv.height = Math.round(size.h);
+        }
+      }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size.w, size.h);
       ctx.lineCap = 'round';
@@ -1000,9 +1018,13 @@ export function AheadTree({
           cardPos.delete(key);
           cardSide.delete(key);
         }
+      pace.drew(now);
     };
     raf = requestAnimationFrame(frameFn);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tree, size, wide, compact]);
 

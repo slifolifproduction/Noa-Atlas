@@ -1,27 +1,22 @@
-import { lazy, Suspense, useEffect, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react';
 import { rememberView, useRoute, type RouteKey } from './app/router';
 import { useGlobalShortcuts } from './app/useGlobalShortcuts';
 import { CaptureModal } from './components/capture/CaptureModal';
-import { AgentPanel } from './components/agent/AgentPanel';
 import { CommandPalette } from './components/command/CommandPalette';
-import { Inspector } from './components/inspector/Inspector';
 import { AccountStrip } from './components/shell/AccountControls';
 import { ExampleNote } from './components/shell/ExampleNote';
 import { Guide } from './components/shell/Guide';
-import { ShortcutsDialog } from './components/shell/ShortcutsDialog';
 import { MobileTabBar, SubNav, TopBar } from './components/shell/TopBar';
 import { Toasts } from './components/ui/Toasts';
 import { ErrorBoundary } from './components/shell/ErrorBoundary';
 import { StorageNotice } from './components/shell/StorageNotice';
-import { StartFreshModal } from './components/versions/StartFreshModal';
-import { ReviewDialog } from './components/review/ReviewDialog';
-import { VersionsModal } from './components/versions/VersionsModal';
 import { VIEWS } from './domain/constants';
 import { useInspectorWidth } from './hooks/useMediaQuery';
 import { useLocalAIBoot } from './ml/boot';
 import { useToday } from './lib/dates';
 import { cn } from './lib/cn';
 import { OrbitPage } from './pages/orbit/OrbitPage';
+import { useAgentPanel } from './agent/panel';
 import { useUI } from './state/uiStore';
 import { exampleFollowsLanguage } from './state/versionOps';
 import { t, useLang, type Lang } from './i18n';
@@ -32,6 +27,23 @@ const PathsPage = lazy(() => import('./pages/paths/PathsPage').then((m) => ({ de
 const PatternsPage = lazy(() => import('./pages/patterns/PatternsPage').then((m) => ({ default: m.PatternsPage })));
 const SettingsPage = lazy(() => import('./pages/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })));
 const QuestsPage = lazy(() => import('./pages/quests/QuestsPage').then((m) => ({ default: m.QuestsPage })));
+// Not needed to start, so fetched the first time each is opened: the panel (fetched early, once the page is idle, so
+// it opens at once), the agent and the dialogs.
+const loadInspector = () => import('./components/inspector/Inspector');
+const Inspector = lazy(() => loadInspector().then((m) => ({ default: m.Inspector })));
+const AgentPanel = lazy(() => import('./components/agent/AgentPanel').then((m) => ({ default: m.AgentPanel })));
+const VersionsModal = lazy(() => import('./components/versions/VersionsModal').then((m) => ({ default: m.VersionsModal })));
+const StartFreshModal = lazy(() => import('./components/versions/StartFreshModal').then((m) => ({ default: m.StartFreshModal })));
+const ReviewDialog = lazy(() => import('./components/review/ReviewDialog').then((m) => ({ default: m.ReviewDialog })));
+const ShortcutsDialog = lazy(() => import('./components/shell/ShortcutsDialog').then((m) => ({ default: m.ShortcutsDialog })));
+
+/** Fetched and drawn the first time it is opened, then kept as before (a finished review is still there when reopened). */
+function WhenOpen({ open, children }: { open: boolean; children: ReactNode }) {
+  const [opened, setOpened] = useState(open);
+  if (open && !opened) setOpened(true);
+  return opened ? <Suspense fallback={null}>{children}</Suspense> : null;
+}
+
 const GRAPH_ROUTES = new Set<RouteKey>(['orbit', 'network']);
 
 function Page({ route }: { route: ReturnType<typeof useRoute> }): ReactNode {
@@ -63,7 +75,7 @@ let shownIn: Lang | undefined;
 function useExampleLanguage() {
   const lang = useLang();
   useEffect(() => {
-    exampleFollowsLanguage(lang, shownIn !== undefined && shownIn !== lang);
+    void exampleFollowsLanguage(lang, shownIn !== undefined && shownIn !== lang);
     shownIn = lang;
   }, [lang]);
 }
@@ -73,6 +85,16 @@ export function App() {
   // Re-render everything when the date turns over in the chosen zone, or the zone itself changes.
   useToday();
   const inspectorOpen = useUI((s) => s.inspector.length > 0);
+  const agentOpen = useAgentPanel((s) => s.open);
+  const versionsOpen = useUI((s) => s.versionsOpen);
+  const startFreshOpen = useUI((s) => s.startFreshOpen);
+  const reviewOpen = useUI((s) => s.reviewOpen);
+  const shortcutsOpen = useUI((s) => s.shortcutsOpen);
+  // The panel is what is opened most: fetched as soon as the page is idle.
+  useEffect(() => {
+    const idle = window.requestIdleCallback ?? ((f: () => void) => window.setTimeout(f, 1500));
+    idle(() => void loadInspector());
+  }, []);
   // What the panel shows: drawn again, if it once failed, when it shows something else.
   const panelKey = useUI((s) => JSON.stringify(s.inspector.at(-1) ?? null));
   const panelWidth = useInspectorWidth();
@@ -111,18 +133,30 @@ export function App() {
           </ErrorBoundary>
         </div>
         <ErrorBoundary where="panel" resetKey={panelKey}>
-          <Inspector />
+          <WhenOpen open={inspectorOpen}>
+            <Inspector />
+          </WhenOpen>
         </ErrorBoundary>
       </main>
       <MobileTabBar active={route.key} />
       <CaptureModal />
       <CommandPalette />
       <Guide />
-      <VersionsModal />
-      <StartFreshModal />
-      <ReviewDialog />
-      <AgentPanel />
-      <ShortcutsDialog />
+      <WhenOpen open={versionsOpen}>
+        <VersionsModal />
+      </WhenOpen>
+      <WhenOpen open={startFreshOpen}>
+        <StartFreshModal />
+      </WhenOpen>
+      <WhenOpen open={reviewOpen}>
+        <ReviewDialog />
+      </WhenOpen>
+      <WhenOpen open={agentOpen}>
+        <AgentPanel />
+      </WhenOpen>
+      <WhenOpen open={shortcutsOpen}>
+        <ShortcutsDialog />
+      </WhenOpen>
       <Toasts />
     </div>
   );

@@ -4,7 +4,7 @@ import { claimSentence, claimStatus } from '../../domain/claims';
 import { AREA_META, areaHubKey, isAreaHubId, KIND_META, LAYER_META, layerOf, OCCURRENCE_KIND_LABEL, YOU_ID } from '../../domain/constants';
 import type { HistoryItem } from '../../domain/history';
 import { decisionCode, displayNode, entryCode, patternCode, patternStats, patternTitle } from '../../domain/selectors';
-import type { EntityRef, ID } from '../../domain/types';
+import type { ID } from '../../domain/types';
 import { formatDate } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
@@ -12,13 +12,9 @@ import { useUI } from '../../state/uiStore';
 import { RegularityTag, StatusBadge } from '../evidence/Status';
 import { AREA_ICONS, ClaimIcon, HISTORY_ICONS, KIND_ICONS, PatternIcon } from '../icons';
 import { t } from '../../i18n';
+import { refForNode } from './refForNode';
 
-export function refForNode(id: ID): EntityRef {
-  if (id === YOU_ID) return { kind: 'area', id: 'self' };
-  if (isAreaHubId(id)) return { kind: 'area', id: areaHubKey(id) };
-  if (useAtlas.getState().data.patterns[id]) return { kind: 'pattern', id };
-  return { kind: 'node', id };
-}
+export { refForNode };
 
 export function nodeIcon(id: ID) {
   const data = useAtlas.getState().data;

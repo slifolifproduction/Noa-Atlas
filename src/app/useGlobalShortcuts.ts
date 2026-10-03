@@ -3,7 +3,7 @@ import { GROUPS, groupOf } from '../domain/constants';
 import { isTyping } from '../lib/dom';
 import { useUI } from '../state/uiStore';
 import { groupTarget, navigate, parseHash, type RouteKey } from './router';
-import { useAgent } from '../agent/store';
+import { useAgentPanel } from '../agent/panel';
 import { t } from '../i18n';
 
 /**
@@ -43,7 +43,7 @@ export function useGlobalShortcuts() {
           return ui.setPaletteOpen(true);
         case 'a':
           e.preventDefault();
-          return useAgent.getState().toggle();
+          return useAgentPanel.getState().toggle();
         case '?':
           return ui.setShortcutsOpen(true);
         case 'j':

@@ -6,7 +6,7 @@ import { GraphCanvas } from '../../components/graph/GraphCanvas';
 import { GraphSearch, ViewMenu } from '../../components/graph/GraphToolbar';
 import { ShapePicker } from '../../components/graph/ShapePicker';
 import { Legend } from '../../components/graph/Legend';
-import { refForNode } from '../../components/inspector/parts';
+import { refForNode } from '../../components/inspector/refForNode';
 import { useFocus } from '../../components/shell/Focus';
 import { Button, IconButton } from '../../components/ui/Button';
 import { MenuItem, MenuLabel, MenuSeparator } from '../../components/ui/Menu';

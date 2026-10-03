@@ -9,7 +9,7 @@ import { FullOnly, MoreDetail } from '../../components/ui/Detail';
 import { todayISO } from '../../lib/dates';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
-import { exportPayload, parseImport, STORAGE_KEYS } from '../../persistence/storage';
+import { exportPayload, readImport, STORAGE_KEYS } from '../../persistence/storage';
 import { spaceHealth } from '../../graph/space';
 import { toast, useUI, type SpaceMode } from '../../state/uiStore';
 import { importWithBackup, restoreVersion } from '../../state/versionOps';
@@ -75,7 +75,7 @@ export function SettingsPage() {
   };
 
   const importData = async (f: File) => {
-    const result = parseImport(await f.text());
+    const result = await readImport(await f.text());
     if ('error' in result) {
       toast(result.error, { tone: 'warning' });
       return;
@@ -200,7 +200,7 @@ export function SettingsPage() {
           <Block
             title={t('Space')}
             description={t(
-              'The Map and Causes are drawn as a 3D space: points sit at different depths and the view turns with your pointer (or the tilt of a phone). Reduced-motion settings on your device always keep it still.',
+              'The Map and Causes are drawn as a 3D space: points sit at different depths and the view turns with your pointer (or the tilt of a phone). The tree in Ahead and the tunnel in Quests move too. Reduced-motion settings on your device always keep it still.',
             )}
           >
             <Segmented<SpaceMode>
@@ -208,16 +208,18 @@ export function SettingsPage() {
               value={spaceMode}
               onChange={setSpaceMode}
               options={[
-                { value: 'auto', label: t('Automatic'), title: t('Depth on; switches to flat if this device cannot keep motion smooth') },
+                { value: 'auto', label: t('Automatic'), title: t('Depth on; switches to lighter motion if this device cannot keep it smooth') },
                 { value: 'on', label: t('Always 3D') },
                 { value: 'off', label: t('Flat') },
               ]}
             />
             <p className="mt-2 text-[12.5px] leading-snug text-ink-3">
               {spaceMode === 'auto' && spaceHealth.degraded
-                ? t('Automatic switched to flat on this device for this visit, to keep motion smooth.')
+                ? t(
+                    'Automatic switched to lighter motion on this device for this visit, to keep it smooth: the Map and Causes flat, the tree in Ahead drawn lighter, the tunnel in Quests still.',
+                  )
                 : spaceMode === 'off'
-                  ? t('Flat: stars still drift, the graph itself stays in one plane.')
+                  ? t('Flat: stars still drift, the graph itself stays in one plane; the tree in Ahead is drawn lighter and the tunnel in Quests stands still.')
                   : t('Pan, zoom, move the pointer or select a node to see depth.')}
             </p>
           </Block>

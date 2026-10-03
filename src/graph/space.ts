@@ -37,6 +37,7 @@ import { helixDrawing, helixSpan, scanStep, type HelixDrawing, type HelixProject
 import { hash01, HOP_MS, waveBus, type Wave } from './motion';
 import { LAYER_Z, type FigureShape } from './shapes';
 import type { AtlasFlowNode, SemanticEdge } from './types';
+import { spaceHealth } from '../lib/motion';
 
 type FlowState = ReactFlowState<AtlasFlowNode, SemanticEdge>;
 interface FlowStore {
@@ -79,9 +80,10 @@ const GLOBE_FACE = 2.4;
 
 /**
  * Set when automatic mode found this device too slow for depth. Kept for the
- * page's lifetime so every graph stays flat instead of re-testing.
+ * page's lifetime so every graph stays flat instead of re-testing; shared with
+ * every heavy scene (see lib/motion).
  */
-export const spaceHealth = { degraded: false };
+export { spaceHealth };
 
 /* Spring constants (per second²). Slightly underdamped: motion settles with a little life. */
 const K_HOME = 16;

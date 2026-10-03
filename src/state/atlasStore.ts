@@ -62,10 +62,27 @@ import { addDays, formatDate, todayISO, weekStart } from '../lib/dates';
 import { arsenal, canUpgrade, quests } from '../domain/quests';
 import type { ReadDecision, Untie } from '../domain/weave';
 import { createId } from '../lib/ids';
-import { atlasStorage, DATA_VERSION, migrateData, STORAGE_KEYS } from '../persistence/storage';
+import { canReadNow, prepareToRead } from '../persistence/migrate';
+import { atlasStorage, DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
 import { t, type Lang } from '../i18n';
 
 const now = () => new Date().toISOString();
+
+/**
+ * Who the stored atlas is (its profile), read without parsing the whole atlas: enough to know whether reading it needs
+ * something fetched first (an older example, Noa's atlas; see prepareToRead).
+ */
+function storedProfile(): { profile?: unknown } | undefined {
+  const raw = safeLocalStorage.getItem(STORAGE_KEYS.data) as string | null;
+  if (!raw) return undefined;
+  const at = /"profile"\s*:\s*(\{[^{}]*\})/.exec(raw);
+  try {
+    return at ? { profile: JSON.parse(at[1]) } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+const stored = storedProfile();
 
 export type NewNode = Pick<AtlasNode, 'label' | 'kind' | 'area'> &
   Partial<
@@ -1873,6 +1890,8 @@ export const useAtlas = create<AtlasState>()(
     {
       name: STORAGE_KEYS.data,
       version: DATA_VERSION,
+      // Read at once, as the store is made, unless reading it needs something fetched first: then openAtlas reads it.
+      skipHydration: !canReadNow(stored),
       // Saved as JSON; an atlas that cannot be read is put aside, never silently written over (see atlasStorage).
       storage: atlasStorage,
       partialize: (state) => ({ data: state.data }),
@@ -1888,6 +1907,13 @@ export const useAtlas = create<AtlasState>()(
     },
   ),
 );
+
+/** Before anything is shown: read the stored atlas, if it was waiting for something to be fetched first. */
+export async function openAtlas(): Promise<void> {
+  if (useAtlas.persist.hasHydrated()) return;
+  await prepareToRead(stored);
+  await useAtlas.persist.rehydrate();
+}
 
 // Another tab saved the atlas: this one reads what it saved at once, so it never writes over what it has not seen.
 // (The browser tells every other tab of the same atlas; never the tab that wrote.)
