@@ -5,12 +5,16 @@ test.use({ serviceWorkers: 'allow' });
 // The service worker and the browser's storage are the same on any screen: on the desktop only.
 test.beforeEach(({ isMobile }) => test.skip(isMobile, 'the same on a phone'));
 
-test('installable: a manifest with its icons, and nothing missing for the browser to offer it', async ({ page, request }) => {
+test('installable: a manifest with its icons, and nothing missing for the browser to offer it', async ({ page, request, browserName }) => {
   await firstVisit(page);
   const manifest = await (await request.get('/manifest.webmanifest')).json();
   expect(manifest).toMatchObject({ name: 'Noa Atlas', start_url: './', display: 'standalone' });
   for (const size of ['192x192', '512x512']) expect(manifest.icons.some((i: { sizes: string }) => i.sizes === size)).toBe(true);
   for (const icon of manifest.icons) expect((await request.get(`/${icon.src}`)).ok(), icon.src).toBe(true);
+  for (const href of await page.locator('link[rel=manifest], link[rel=apple-touch-icon]').evaluateAll((l) => l.map((e) => (e as HTMLLinkElement).href)))
+    expect((await request.get(href)).ok(), href).toBe(true);
+  // What else the browser wants before it offers an install, only Chromium says.
+  if (browserName !== 'chromium') return;
   const cdp = await page.context().newCDPSession(page);
   const { installabilityErrors } = await cdp.send('Page.getInstallabilityErrors');
   // A test browser's context is private, which alone keeps it from offering an install.

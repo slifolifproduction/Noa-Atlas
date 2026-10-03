@@ -36,10 +36,23 @@ jobs:
         with:
           path: dist
 
-  # The built app in Chromium, on a desktop and on a phone (e2e/, playwright.config.ts).
+  # The built app in each browser engine, side by side (e2e/, playwright.config.ts): Chromium on a desktop and a
+  # phone, Firefox on a desktop, and WebKit, Safari's engine, on a desktop and an iPhone.
   e2e:
+    name: e2e (${{ matrix.browser }})
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
+    strategy:
+      # One engine failing does not stop the others: each says what it found.
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chromium
+            projects: --project=desktop --project=phone
+          - browser: firefox
+            projects: --project=firefox
+          - browser: webkit
+            projects: --project=safari --project=iphone
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
@@ -47,13 +60,13 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npx playwright install --with-deps chromium
-      - run: npm run e2e
+      - run: npx playwright install --with-deps ${{ matrix.browser }}
+      - run: npm run e2e -- ${{ matrix.projects }}
       # What a failing test saw: the report, with a trace of each failure (open with `npx playwright show-report`).
       - if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: |
             playwright-report
             test-results

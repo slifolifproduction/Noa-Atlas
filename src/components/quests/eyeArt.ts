@@ -848,6 +848,9 @@ export const DIAL = (() => {
 
 /* ---- The sky --------------------------------------------------------------- */
 
+/** Whether a canvas can blur what it draws (not in Safari). */
+const CANVAS_BLURS = typeof CanvasRenderingContext2D !== 'undefined' && 'filter' in CanvasRenderingContext2D.prototype;
+
 /**
  * Draw with `draw` onto a canvas the size of `ctx`'s, then lay it onto `ctx`
  * blurred by `blur` pixels: one blur for the whole of it. (A filter set on the
@@ -863,8 +866,23 @@ function soft(ctx: CanvasRenderingContext2D, blur: number, draw: (c: CanvasRende
   draw(o);
   ctx.save();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.filter = `blur(${blur.toFixed(2)}px)`;
-  ctx.drawImage(off, 0, 0);
+  if (CANVAS_BLURS) {
+    ctx.filter = `blur(${blur.toFixed(2)}px)`;
+    ctx.drawImage(off, 0, 0);
+  } else {
+    // Safari's canvas has no filter: shrunk and drawn back up, smoothed, is near enough to a blur for these layers.
+    const k = Math.max(1, blur / 1.5);
+    const small = document.createElement('canvas');
+    small.width = Math.max(1, Math.round(off.width / k));
+    small.height = Math.max(1, Math.round(off.height / k));
+    const s = small.getContext('2d');
+    if (s) {
+      s.imageSmoothingQuality = 'high';
+      s.drawImage(off, 0, 0, small.width, small.height);
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(small, 0, 0, off.width, off.height);
+    } else ctx.drawImage(off, 0, 0);
+  }
   ctx.restore();
 }
 
