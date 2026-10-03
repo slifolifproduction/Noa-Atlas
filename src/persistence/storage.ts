@@ -8,6 +8,7 @@
 import type { PersistStorage, StorageValue } from 'zustand/middleware';
 import type { AtlasData } from '../domain/types';
 import { t } from '../i18n';
+import { mergeAtlas } from '../sync/merge';
 import { useStorageHealth } from './health';
 import { safeLocalStorage, STORAGE_KEYS } from './local';
 import { prepareToRead, refreshExample, replaceUntouchedNoa, toCurrentShape } from './migrate';
@@ -97,13 +98,39 @@ function keepAside(key: string, raw: string) {
   console.warn('[atlas] the saved atlas could not be read; it is kept aside under', UNREADABLE_KEY);
 }
 
+/** What this tab last read or wrote, by key: the common past when another tab has saved since (see setItem). */
+const seen = new Map<string, string | null>();
+let combined: (() => void) | undefined;
+
+/** Run after a save that took in another tab's changes, for the store to read the combined atlas back. */
+export const whenCombined = (fn: () => void) => void (combined = fn);
+
+/** A saved atlas as stored, if it is one this version can put together with another. */
+function savedAtlas(raw: string | null | undefined, version?: number): AtlasData | null {
+  if (!raw) return null;
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!readable(value) || value.version !== version) return null;
+    return value.state.data ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * How the atlas is saved: as JSON through `safeLocalStorage`. Reading it, an atlas that cannot be read is never
  * silently replaced: it is put aside first (see keepAside), and the Atlas opens without it.
+ *
+ * Two tabs: each reads what the other saved as soon as the browser says so (atlasStore), but that word can arrive
+ * after this tab has saved again (Firefox, under load). So a save first looks at what is stored: when another tab
+ * saved since this one last read or wrote, the two are put together, from what this tab last saw, as two devices'
+ * edits are (mergeAtlas), instead of one writing over what the other added. A browser too full to write keeps this
+ * tab's copy and reads it back, so nothing is put together then.
  */
 export const atlasStorage: PersistStorage<{ data: AtlasData }> = {
   getItem(name) {
     const raw = safeLocalStorage.getItem(name) as string | null;
+    seen.set(name, raw);
     if (raw === null) return null;
     try {
       const value: unknown = JSON.parse(raw);
@@ -114,8 +141,25 @@ export const atlasStorage: PersistStorage<{ data: AtlasData }> = {
     keepAside(name, raw);
     return null;
   },
-  setItem: (name, value) => void safeLocalStorage.setItem(name, JSON.stringify(value)),
-  removeItem: (name) => void safeLocalStorage.removeItem(name),
+  setItem(name, value) {
+    let out = value;
+    const now = safeLocalStorage.getItem(name) as string | null;
+    if (seen.has(name) && now !== null && now !== seen.get(name)) {
+      const theirs = savedAtlas(now, value.version);
+      if (theirs && value.state.data) {
+        const data = mergeAtlas(savedAtlas(seen.get(name), value.version), value.state.data, theirs).data;
+        out = { ...value, state: { ...value.state, data } };
+        queueMicrotask(() => combined?.());
+      }
+    }
+    const raw = JSON.stringify(out);
+    safeLocalStorage.setItem(name, raw);
+    seen.set(name, raw);
+  },
+  removeItem(name) {
+    safeLocalStorage.removeItem(name);
+    seen.delete(name);
+  },
 };
 
 export function exportPayload(data: AtlasData): string {

@@ -63,7 +63,7 @@ import { arsenal, canUpgrade, quests } from '../domain/quests';
 import type { ReadDecision, Untie } from '../domain/weave';
 import { createId } from '../lib/ids';
 import { canReadNow, prepareToRead } from '../persistence/migrate';
-import { atlasStorage, DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS } from '../persistence/storage';
+import { atlasStorage, DATA_VERSION, migrateData, safeLocalStorage, STORAGE_KEYS, whenCombined } from '../persistence/storage';
 import { t, type Lang } from '../i18n';
 
 const now = () => new Date().toISOString();
@@ -1921,6 +1921,8 @@ if (typeof window !== 'undefined')
   window.addEventListener('storage', (e) => {
     if (e.key === STORAGE_KEYS.data && e.newValue !== null) void useAtlas.persist.rehydrate();
   });
+// A save that came before that word, and so took in the other tab's changes (atlasStorage): show what was saved.
+whenCombined(() => void useAtlas.persist.rehydrate());
 
 /** Where a status went, in words ("Plausible → Supported"). */
 export const statusChange = (before?: string, after?: string) =>

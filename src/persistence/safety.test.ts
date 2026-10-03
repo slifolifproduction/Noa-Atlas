@@ -2,7 +2,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createSeedData } from '../data/seed';
 import { useStorageHealth } from './health';
 import { safeLocalStorage } from './local';
-import { atlasStorage, DATA_VERSION, UNREADABLE_KEY } from './storage';
+import type { AtlasData } from '../domain/types';
+import { atlasStorage, DATA_VERSION, UNREADABLE_KEY, whenCombined } from './storage';
 
 /** A browser storage that holds what it is given, or refuses every write (full), as asked. */
 function fakeBrowser(full = false) {
@@ -62,5 +63,83 @@ describe('keeping the atlas safe in the browser', () => {
     safeLocalStorage.setItem('atlas', 'NEWEST');
     expect(room.get('atlas')).toBe('NEWEST');
     expect(useStorageHealth.getState().failing).toBe(false);
+  });
+});
+
+describe('two tabs saving the same atlas', () => {
+  afterEach(() => delete (globalThis as { window?: unknown }).window);
+
+  /** A note, as a tab would add it. */
+  const note = (d: AtlasData, id: string, content: string) => {
+    const e = Object.values(d.entries)[0];
+    d.entries[id] = { ...e, id, title: content, content };
+  };
+  const saved = (kept: Map<string, string>) => JSON.parse(kept.get('atlas')!) as { state: { data: AtlasData }; version: number };
+  /** The atlas as stored, this tab having read it. */
+  const opened = (kept: Map<string, string>, data: AtlasData) => {
+    kept.set('atlas', JSON.stringify({ state: { data }, version: DATA_VERSION }));
+    atlasStorage.getItem('atlas');
+  };
+
+  it('a save made before word of the other tab’s arrives takes in what that tab added, and is read back', async () => {
+    const kept = fakeBrowser();
+    const base = createSeedData();
+    opened(kept, base);
+    // The other tab adds a note and saves; word of it has not reached this tab.
+    const theirs = structuredClone(base);
+    note(theirs, 'e_b', 'NOTE B');
+    kept.set('atlas', JSON.stringify({ state: { data: theirs }, version: DATA_VERSION }));
+    // This tab adds its own and saves.
+    const mine = structuredClone(base);
+    note(mine, 'e_a', 'NOTE A');
+    let readBack = 0;
+    whenCombined(() => readBack++);
+    atlasStorage.setItem('atlas', { state: { data: mine }, version: DATA_VERSION });
+    const after = saved(kept).state.data;
+    expect(after.entries.e_a?.content).toBe('NOTE A');
+    expect(after.entries.e_b?.content).toBe('NOTE B');
+    await Promise.resolve();
+    expect(readBack).toBe(1);
+  });
+
+  it('what this tab deleted stays deleted, and what the other tab changed is kept', () => {
+    const kept = fakeBrowser();
+    const base = createSeedData();
+    const [first, second] = Object.keys(base.entries);
+    opened(kept, base);
+    const theirs = structuredClone(base);
+    theirs.entries[second] = { ...theirs.entries[second], content: 'EDITED THERE' };
+    kept.set('atlas', JSON.stringify({ state: { data: theirs }, version: DATA_VERSION }));
+    const mine = structuredClone(base);
+    delete mine.entries[first];
+    atlasStorage.setItem('atlas', { state: { data: mine }, version: DATA_VERSION });
+    const after = saved(kept).state.data;
+    expect(after.entries[first]).toBeUndefined();
+    expect(after.entries[second]?.content).toBe('EDITED THERE');
+  });
+
+  it('with nothing saved meanwhile, a save is written as it is', () => {
+    const kept = fakeBrowser();
+    const base = createSeedData();
+    opened(kept, base);
+    const mine = structuredClone(base);
+    note(mine, 'e_a', 'NOTE A');
+    atlasStorage.setItem('atlas', { state: { data: mine }, version: DATA_VERSION });
+    expect(saved(kept).state.data).toEqual(mine);
+    // And again, from what it wrote: still nothing to put together.
+    note(mine, 'e_c', 'NOTE C');
+    atlasStorage.setItem('atlas', { state: { data: mine }, version: DATA_VERSION });
+    expect(saved(kept).state.data).toEqual(mine);
+  });
+
+  it('a save by another version of the app is not put together with', () => {
+    const kept = fakeBrowser();
+    const base = createSeedData();
+    opened(kept, base);
+    kept.set('atlas', JSON.stringify({ state: { data: base }, version: DATA_VERSION + 1 }));
+    const mine = structuredClone(base);
+    note(mine, 'e_a', 'NOTE A');
+    atlasStorage.setItem('atlas', { state: { data: mine }, version: DATA_VERSION });
+    expect(saved(kept)).toEqual({ state: { data: mine }, version: DATA_VERSION });
   });
 });
