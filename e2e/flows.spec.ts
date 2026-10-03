@@ -58,6 +58,7 @@ test('outside claude.ai, the agent says why Claude cannot answer here, and where
   await firstVisit(page, 'en', 'timeline');
   await page.keyboard.press('a');
   const panel = page.getByRole('complementary', { name: 'Atlas agent' });
+  await expect(panel).toBeVisible();
   await expect(panel.getByText('Claude answers when the Atlas is opened in claude.ai, signed in.')).toBeVisible();
   await expect(panel.getByRole('link', { name: 'Open in claude.ai' })).toHaveAttribute('href', /^https:\/\/claude\.ai\/artifact\//);
   await expect(panel.getByRole('option', { name: 'Claude' })).toBeDisabled();
@@ -67,8 +68,11 @@ test('Claude chosen in claude.ai, then opened elsewhere: said before anything is
   await firstVisit(page, 'en', 'timeline');
   await page.evaluate(() => localStorage.setItem('cognitive-atlas:agent', JSON.stringify({ state: { mode: 'claude', messages: [] }, version: 0 })));
   await page.reload();
+  // A key pressed before the page is ready goes nowhere.
+  await expect(page.locator('#main')).toContainText(/\w{3}/);
   await page.keyboard.press('a');
   const panel = page.getByRole('complementary', { name: 'Atlas agent' });
+  await expect(panel).toBeVisible();
   await expect(panel.getByRole('note')).toContainText('Claude answers when the Atlas is opened in claude.ai');
   await expect(panel.getByText('Claude, not available here')).toBeVisible();
   await panel.getByRole('button', { name: 'Let the agent on this device answer' }).click();
@@ -86,6 +90,7 @@ test('opened on claude.ai as a page of its own: said as that, not as signed out'
   await expect(page.getByText('Opened as a page of its own, it cannot reach your claude.ai account.')).toBeVisible();
   await page.keyboard.press('a');
   const panel = page.getByRole('complementary', { name: 'Atlas agent' });
+  await expect(panel).toBeVisible();
   await expect(panel.getByText('Opened as a page of its own, the Atlas cannot ask Claude')).toBeVisible();
   await expect(panel.getByRole('link', { name: 'Open in claude.ai' })).toBeVisible();
 });
