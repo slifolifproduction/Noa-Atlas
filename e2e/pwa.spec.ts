@@ -1,5 +1,9 @@
+import { readFile } from 'node:fs/promises';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import { extname } from 'node:path';
 import { expect, test } from '@playwright/test';
-import { DATA, firstVisit, ROUTES, storedAtlas } from './helpers';
+import { closeWelcome, DATA, firstVisit, ROUTES, storedAtlas } from './helpers';
 
 test.use({ serviceWorkers: 'allow' });
 // The service worker and the browser's storage are the same on any screen: on the desktop only.
@@ -21,28 +25,83 @@ test('installable: a manifest with its icons, and nothing missing for the browse
   expect(installabilityErrors.filter((e) => e.errorId !== 'in-incognito')).toEqual([]);
 });
 
+const TYPES: Record<string, string> = {
+  '.html': 'text/html',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
+  '.woff': 'font/woff',
+  '.wasm': 'application/wasm',
+};
+
+/**
+ * The built app at an address of its own, from a server the test can take away. The browser's own offline switch
+ * will not do in every browser: WebKit's, under test, fails a page's requests before its service worker can answer.
+ */
+async function serveBuild() {
+  const root = new URL('../dist/', import.meta.url);
+  const server = createServer(async (req, res) => {
+    const path = new URL(req.url ?? '/', 'http://x').pathname.replace(/^\/+/, '') || 'index.html';
+    const file = new URL(path, root);
+    try {
+      if (!file.href.startsWith(root.href)) throw new Error('outside');
+      const body = await readFile(file);
+      res.writeHead(200, { 'content-type': TYPES[extname(file.pathname)] ?? 'application/octet-stream', 'cache-control': 'no-cache' }).end(body);
+    } catch {
+      res.writeHead(404).end();
+    }
+  });
+  await new Promise<void>((done) => server.listen(0, done));
+  return {
+    url: `http://127.0.0.1:${(server.address() as AddressInfo).port}/`,
+    stop: () =>
+      new Promise<void>((done) => {
+        server.close(() => done());
+        server.closeAllConnections();
+      }),
+  };
+}
+
 test('after a first visit, the app opens with no connection: every lens, and another example too', async ({ context, page }) => {
-  await firstVisit(page);
-  // Kept on the device: the service worker has taken the page, with every file of this version.
-  await page.evaluate(() => navigator.serviceWorker.ready);
-  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
-  await context.setOffline(true);
-  await page.reload();
-  await expect(page.getByText('Offline. The Atlas works as usual')).toBeVisible();
-  for (const route of ROUTES) {
-    await page.goto(`/#/${route}`);
-    await expect(page.locator('#main'), route).toContainText(/\w{3}/);
-    await expect(page.locator('#main'), route).not.toContainText('Loading…');
+  const site = await serveBuild();
+  try {
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('e2e')) return;
+      sessionStorage.setItem('e2e', '1');
+      localStorage.setItem('cognitive-atlas:lang', 'en');
+    });
+    await page.goto(`${site.url}#/orbit`);
+    await closeWelcome(page);
+    // Kept on the device: the service worker has taken the page, with every file of this version.
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+    // The site is gone.
+    await site.stop();
+    await page.reload();
+    for (const route of ROUTES) {
+      await page.goto(`${site.url}#/${route}`);
+      await expect(page.locator('#main'), route).toContainText(/\w{3}/);
+      await expect(page.locator('#main'), route).not.toContainText('Loading…');
+    }
+    await page
+      .getByRole('button', { name: /^Other examples$/ })
+      .first()
+      .click();
+    const dialog = page.getByRole('dialog');
+    await dialog.locator('label').filter({ hasText: 'Accountant' }).first().click();
+    await dialog.getByRole('button', { name: /^Start fresh$/ }).click();
+    await expect.poll(async () => (await storedAtlas(page)).state.data.profile.name).toBe('Daniel Reed');
+    // The connection gone too: a quiet line says so, and nothing else changes.
+    await context.setOffline(true);
+    await expect(page.getByText('Offline. The Atlas works as usual')).toBeVisible();
+    await context.setOffline(false);
+  } finally {
+    await site.stop();
   }
-  await page
-    .getByRole('button', { name: /^Other examples$/ })
-    .first()
-    .click();
-  const dialog = page.getByRole('dialog');
-  await dialog.locator('label').filter({ hasText: 'Accountant' }).first().click();
-  await dialog.getByRole('button', { name: /^Start fresh$/ }).click();
-  await expect.poll(async () => (await storedAtlas(page)).state.data.profile.name).toBe('Daniel Reed');
-  await context.setOffline(false);
 });
 
 /** The example made the person's own, as it would be had they written it, and watched since `daysAgo`. */
