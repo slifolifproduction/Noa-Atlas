@@ -11,6 +11,7 @@ import { cn } from '../../lib/cn';
 import { useAccount } from '../../state/accountStore';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
+import { ClaudeElsewhere } from '../shell/ClaudeElsewhere';
 import { Button, IconButton } from '../ui/Button';
 
 /** The agent's mark: a small atlas, a dot on its ring. */
@@ -230,7 +231,12 @@ export function AgentPanel() {
       input.current?.setSelectionRange(s.text().length, s.text().length);
     }, 0);
   };
-  const answering = mode === 'claude' || (mode === 'auto' && claudeReady()) ? t('Claude, on your account') : t('The agent on this device');
+  const answering =
+    mode === 'claude' && claude === 'unavailable'
+      ? t('Claude, not available here')
+      : mode === 'claude' || (mode === 'auto' && claudeReady())
+        ? t('Claude, on your account')
+        : t('The agent on this device');
 
   return (
     <aside
@@ -267,6 +273,7 @@ export function AgentPanel() {
                 </li>
               ))}
             </ul>
+            {claude === 'unavailable' && mode === 'auto' && <ClaudeElsewhere className="mt-4 border-t border-line pt-3" />}
           </div>
         ) : (
           <div className="space-y-5">
@@ -279,6 +286,15 @@ export function AgentPanel() {
       </div>
 
       <div className="shrink-0 border-t border-line p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        {claude === 'unavailable' && mode === 'claude' && (
+          // Chosen where it cannot answer (the choice is kept from a visit in claude.ai): say so before anything is sent.
+          <div role="note" className="mb-2.5">
+            <ClaudeElsewhere />
+            <button type="button" onClick={() => setMode('auto')} className="tap mt-1 text-[12px] text-ink-2 underline underline-offset-2 hover:text-ink">
+              {t('Let the agent on this device answer')}
+            </button>
+          </div>
+        )}
         <div className="rounded-[2px] border border-line-strong bg-[rgb(236_232_223/0.025)] transition-colors hover:border-[rgb(236_232_223/0.26)] focus-within:border-accent!">
           <textarea
             ref={input}
@@ -299,7 +315,7 @@ export function AgentPanel() {
               value={mode}
               onChange={(e) => setMode(e.target.value as AgentMode)}
               className="select-bare h-7 rounded-[2px] border border-transparent bg-transparent pl-1.5 text-[12px] text-ink-2 hover:border-line"
-              title={claude === 'available' ? undefined : t('Claude answers when the Atlas is opened inside claude.ai, signed in.')}
+              title={claude === 'available' ? undefined : t('Claude answers when the Atlas is opened in claude.ai, signed in.')}
             >
               {MODES.map((o) => (
                 <option key={o.value} value={o.value} disabled={o.value === 'claude' && claude !== 'available' && mode !== 'claude'}>

@@ -37,6 +37,23 @@ test('no WCAG A or AA violations on any lens, in the capture form or in the pane
   await expect(page.getByRole('dialog')).toBeVisible();
   expect(await violations(page), 'capture').toEqual([]);
   await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  // The agent, as it opens here (outside claude.ai: with the note on where Claude answers).
+  await page.keyboard.press('a');
+  const agent = page.getByRole('complementary', { name: 'Atlas agent' });
+  await expect(agent).toBeVisible();
+  // It slides in, fading up: checked once it has arrived, as the pages that come in with motion are.
+  await agent.evaluate((el) =>
+    Promise.all(
+      el
+        .getAnimations({ subtree: true })
+        .filter((a) => a.effect?.getComputedTiming().endTime !== Infinity)
+        .map((a) => a.finished),
+    ),
+  );
+  expect(await violations(page), 'agent').toEqual([]);
+  await page.keyboard.press('Escape');
+  await expect(agent).toBeHidden();
   if (!isMobile) {
     await page.goto('/#/orbit');
     await (await restingNode(page)).click({ force: true });

@@ -84,6 +84,18 @@ const runtime = (): Runtime | null => {
 /** Whether the page runs inside claude.ai at all (capabilities may still be absent). */
 export const insideClaude = () => runtime() !== null;
 
+/** Where this Atlas is published on claude.ai: opened there and signed in, it can ask Claude and keep the atlas in the account. */
+export const ON_CLAUDE = 'https://claude.ai/artifact/Jxu8KoFdgA9Y4zVctV5Gpv';
+
+/**
+ * Where the page was opened, to say why a capability is absent: not in claude.ai at all; served by claude.ai as a page
+ * of its own (on the artifact's own address, where every capability is absent for now); or in claude.ai's viewer.
+ */
+export function whereOpened(): 'outside' | 'full-page' | 'viewer' {
+  if (!insideClaude()) return 'outside';
+  return typeof window !== 'undefined' && window.top === window.self ? 'full-page' : 'viewer';
+}
+
 const asked = new Map<string, Promise<unknown>>();
 
 /** A capability, or null when this view cannot use it. Asked once per page load. */

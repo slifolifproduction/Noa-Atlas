@@ -16,7 +16,7 @@ import { createId } from '../lib/ids';
 import { todayISO, addDays } from '../lib/dates';
 import { prepareToRead } from '../persistence/migrate';
 import { DATA_VERSION, migrateData, safeLocalStorage } from '../persistence/storage';
-import { capability, insideClaude } from '../runtime/claude';
+import { capability, insideClaude, whereOpened } from '../runtime/claude';
 import { useAccount, type DeviceReason } from '../state/accountStore';
 import { useAtlas } from '../state/atlasStore';
 import { AccountSync, EMPTY_MANIFEST, type Base, type BaseStore, type WorldPort } from './accountSync';
@@ -103,7 +103,7 @@ export async function connectAccount(): Promise<void> {
   void capability('sample').then((sample) => useAccount.setState({ claude: sample ? 'available' : 'unavailable' }));
   if (!insideClaude()) return onDevice('outside');
   const [db, user] = await Promise.all([capability('db'), capability('user')]);
-  if (!db || !user) return onDevice('signed-out');
+  if (!db || !user) return onDevice(whereOpened() === 'full-page' ? 'full-page' : 'signed-out');
   const uid = await user.id().catch(() => null);
   if (!uid) return onDevice('signed-out');
   engine = new AccountSync(db, uid, deviceId(), world, baseStore(uid), (sync) => useAccount.setState({ sync }));

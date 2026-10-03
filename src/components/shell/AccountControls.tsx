@@ -30,6 +30,10 @@ function deviceSentence(a: AccountState): string {
   if (!a.reason) return t('Your claude.ai account can keep it too, the same on every device where you sign in.');
   if (a.reason === 'outside') return t('Opened inside claude.ai while signed in, it can be kept in your account and used on every device.');
   if (a.reason === 'signed-out') return t('Sign in to claude.ai to keep it in your account and use it on every device.');
+  if (a.reason === 'full-page')
+    return t(
+      'Opened as a page of its own, it cannot reach your claude.ai account. Opened in claude.ai, signed in, it can be kept there and used on every device.',
+    );
   if (a.reason === 'read-only')
     return t('This link lets you use the atlas but not save it to your account (people from outside the owner’s workspace cannot). Export a copy to move it.');
   return t('Your account could not be reached just now; it is asked again next time.');

@@ -1046,6 +1046,8 @@ export const ID: Record<string, string> = {
     'Akun claude.ai-mu juga bisa menyimpannya, sama di setiap perangkat tempat kamu masuk.',
   'Opened inside claude.ai while signed in, it can be kept in your account and used on every device.':
     'Jika dibuka di dalam claude.ai dalam keadaan masuk, atlas ini bisa disimpan di akunmu dan dipakai di setiap perangkat.',
+  'Opened as a page of its own, it cannot reach your claude.ai account. Opened in claude.ai, signed in, it can be kept there and used on every device.':
+    'Dibuka sebagai halaman tersendiri, Atlas tidak bisa menjangkau akun claude.ai-mu. Dibuka di claude.ai dalam keadaan masuk, atlas bisa disimpan di sana dan dipakai di semua perangkat.',
   'Sign in to claude.ai to keep it in your account and use it on every device.':
     'Masuk ke claude.ai untuk menyimpannya di akunmu dan memakainya di setiap perangkat.',
   'This link lets you use the atlas but not save it to your account (people from outside the owner’s workspace cannot). Export a copy to move it.':
@@ -2484,7 +2486,6 @@ export const ID: Record<string, string> = {
   'Sends the entry being analysed plus node and repeat names to a server you run (server/claude-proxy.ts), which calls the Claude API with structured outputs. Falls back to local heuristics if unreachable.':
     'Mengirim catatan yang dianalisis beserta nama titik dan pengulangan ke server yang kamu jalankan (server/claude-proxy.ts), yang memanggil Claude API dengan output terstruktur. Kembali ke heuristik lokal jika tidak terjangkau.',
   'Checking whether Claude can be asked from here…': 'Memeriksa apakah Claude bisa ditanya dari sini…',
-  'Not available here: open Noa Atlas inside claude.ai while signed in.': 'Tidak tersedia di sini: buka Noa Atlas di dalam claude.ai dalam keadaan masuk.',
   'dev server forwards /api/analysis to localhost:8787': 'server dev meneruskan /api/analysis ke localhost:8787',
   'Proxy endpoint': 'Endpoint proxy',
   'Test connection': 'Uji koneksi',
@@ -2955,7 +2956,16 @@ export const ID: Record<string, string> = {
   'Tell or ask the agent…': 'Ceritakan atau tanyakan ke agen…',
   'Message to the agent': 'Pesan untuk agen',
   'Who answers': 'Siapa yang menjawab',
-  'Claude answers when the Atlas is opened inside claude.ai, signed in.': 'Claude menjawab bila Atlas dibuka di dalam claude.ai dalam keadaan masuk.',
+  'Claude answers when the Atlas is opened in claude.ai, signed in.': 'Claude menjawab bila Atlas dibuka di claude.ai dalam keadaan masuk.',
+  'Opened as a page of its own, the Atlas cannot ask Claude: open it in claude.ai, signed in.':
+    'Dibuka sebagai halaman tersendiri, Atlas tidak bisa bertanya ke Claude: buka di claude.ai dalam keadaan masuk.',
+  'Claude cannot be asked in this view: sign in to claude.ai, then open the Atlas again.':
+    'Claude tidak bisa ditanya di tampilan ini: masuk ke claude.ai, lalu buka Atlas lagi.',
+  'Open in claude.ai': 'Buka di claude.ai',
+  'Your atlas does not come along by itself: export it here (Settings → Your data) and import it there.':
+    'Atlasmu tidak ikut pindah dengan sendirinya: ekspor di sini (Pengaturan → Datamu), lalu impor di sana.',
+  'Let the agent on this device answer': 'Biarkan agen di perangkat ini yang menjawab',
+  'Claude, not available here': 'Claude, tidak tersedia di sini',
   Send: 'Kirim',
   'About your atlas only. It can be wrong: check what it drafts before you apply it.':
     'Khusus tentang atlasmu. Ia bisa keliru: periksa susunannya sebelum kamu menerapkannya.',

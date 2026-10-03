@@ -23,6 +23,7 @@ import { AccountPanel } from '../../components/shell/AccountControls';
 import { LearnedPanel } from '../../components/shell/LearnedPanel';
 import { LocalAIPanel } from '../../components/shell/LocalAIPanel';
 import { useAccount } from '../../state/accountStore';
+import { ClaudeElsewhere } from '../../components/shell/ClaudeElsewhere';
 import { Trans } from '../../i18n/Trans';
 
 function Block({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
@@ -349,9 +350,7 @@ export function SettingsPage() {
                     <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-2">{o.body}</span>
                     {o.id === 'account' && claude !== 'available' && (
                       <span className="mt-1 block text-[12px] text-ink-3">
-                        {claude === 'checking'
-                          ? t('Checking whether Claude can be asked from here…')
-                          : t('Not available here: open Noa Atlas inside claude.ai while signed in.')}
+                        {claude === 'checking' ? t('Checking whether Claude can be asked from here…') : <ClaudeElsewhere />}
                       </span>
                     )}
                   </span>

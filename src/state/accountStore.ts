@@ -13,6 +13,8 @@ export type DeviceReason =
   | 'outside'
   /** Inside claude.ai, but no account (signed out) or no store for this view. */
   | 'signed-out'
+  /** Served by claude.ai as a page of its own (opened in a tab by itself), where it lends the page nothing. */
+  | 'full-page'
   /** Signed in, but this link does not let the viewer save to their account. */
   | 'read-only'
   /** The account could not be reached just now. */
