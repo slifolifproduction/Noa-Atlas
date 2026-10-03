@@ -183,10 +183,10 @@ export function TimelinePage({ preset }: { preset?: string }) {
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t('Search what you wrote')}
                 aria-label={t('Search what you wrote')}
-                className="w-full bg-transparent text-[12.5px] placeholder:text-ink-3 focus:outline-none"
+                className="w-full self-stretch bg-transparent text-[12.5px] placeholder:text-ink-3 focus:outline-none"
               />
               {query && (
-                <button type="button" onClick={() => setQuery('')} aria-label={t('Clear search')} className="text-ink-3 hover:text-ink">
+                <button type="button" onClick={() => setQuery('')} aria-label={t('Clear search')} className="tap text-ink-3 hover:text-ink">
                   <X size={12} aria-hidden />
                 </button>
               )}
@@ -337,10 +337,14 @@ function NoteRow({
         </div>
       </button>
       {happened.length > 0 && (
-        <ul className="-mt-1.5 space-y-0.5 pr-2 pb-3 pl-[105px]">
+        <ul className="-mt-[9px] pr-2 pb-[9px] pl-[105px]">
           {happened.map((x) => (
             <li key={x.key}>
-              <button type="button" onClick={() => onOpenItem(x)} className="flex w-full items-baseline gap-2 text-left text-[12px] text-ink-2 hover:text-ink">
+              <button
+                type="button"
+                onClick={() => onOpenItem(x)}
+                className="flex w-full items-baseline gap-2 py-[3px] text-left text-[12px] text-ink-2 hover:text-ink"
+              >
                 <span className="label-sm shrink-0 text-ink-3">{OCCURRENCE_KIND_LABEL[x.kind as OccurrenceKind] ?? ''}</span>
                 <span className="min-w-0 truncate">{x.label}</span>
               </button>
@@ -406,7 +410,7 @@ function Row({ item: h, active, onOpen }: { item: HistoryItem; active: boolean; 
           {h.until && <div className="text-[10.5px] text-ink-3">– {formatDate(h.until)}</div>}
         </div>
         <div className="min-w-0">
-          <button type="button" onClick={onOpen} className="flex w-full items-start gap-2 text-left">
+          <button type="button" onClick={onOpen} className="tap flex w-full items-start gap-2 text-left">
             <Icon size={13} className="mt-[3px] shrink-0 text-ink-3" aria-hidden />
             <span className={cn('min-w-0 flex-1 text-[13.5px] leading-snug', h.mode === 'actual' ? 'text-ink hover:underline' : 'text-ink-2')}>
               {h.label}

@@ -113,7 +113,7 @@ export function LocalAIPanel() {
 
         {busy && (
           <div className="mt-2.5">
-            <Progress value={ai.fraction} color="var(--color-accent)" />
+            <Progress value={ai.fraction} label={t('Getting the sentence model ready')} color="var(--color-accent)" />
             <p className="mt-1 text-ink-3">
               {ai.status === 'downloading'
                 ? ai.total

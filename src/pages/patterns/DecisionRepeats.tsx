@@ -86,7 +86,7 @@ export function DecisionRepeats() {
                       <span className="text-ink-3">{t('Worth asking:')}</span> {c.explanation}
                     </p>
                   )}
-                  <a href={hrefFor('timeline', 'decisions')} className="inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink">
+                  <a href={hrefFor('timeline', 'decisions')} className="tap inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink">
                     {t('All decisions')} <ArrowRight size={12} aria-hidden />
                   </a>
                 </div>

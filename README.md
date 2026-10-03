@@ -253,3 +253,12 @@ Then choose **Claude, via your proxy** in Settings. The API key stays on the ser
 ## Responsive behaviour
 
 Desktop is the primary experience. On tablets the inspector becomes a bottom sheet and the Overview opens on demand. On phones the canvas switches to a compact portrait layout showing you and the area markers (an area's elements appear when it is selected), the Overview and the Causes list open in a sheet, the six lenses move to a bottom tab bar, and the panel opens as a sheet above it so the lenses stay reachable. The information architecture stays the same.
+
+## Accessibility
+
+Checked with axe-core (the WCAG 2.0, 2.1 and 2.2 A and AA rules) on the welcome, every lens, the capture form and the panel (on a note, a map element and a Causes element), with every folded section open, on a desktop in English and on a phone in Indonesian: no violations.
+
+- **Every control answers a tap over at least 24 × 24 px** (WCAG 2.5.8). A control drawn smaller keeps its look and its place and gets an invisible tap area about it (`.tap` in `src/styles/index.css`); rows of small links are spaced 24 px apart, so no tap area covers a neighbour's. A browser check taps a 24 × 24 px square about every control under 24 px on a phone, and checks that no control's centre lies inside another's tap area.
+- **What shows on hover shows on a touch screen.** Removing a target and a step's menu on the plan appeared only on hover, so never on a phone; on a touch screen they are always shown.
+- **Named, and the right kind of thing.** Progress bars say what they measure; Ahead's plate, which holds buttons, is a named group rather than a picture; an evidence mark (supports, counters) is a labelled image; Quests' console, which scrolls on a phone, takes keyboard focus. The map's drag-to-connect handle is mouse-only and hidden from assistive technology: an element's panel has **Connect** for the same thing.
+

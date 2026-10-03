@@ -17,7 +17,11 @@ export function HowItWorks({ page, className }: { page: string; className?: stri
   if (!items) return null;
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className={cn('inline-flex items-center gap-1.5 text-[12px] text-ink-3 hover:text-ink-2', className)}>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={cn('tap inline-flex items-center gap-1.5 text-[12px] text-ink-3 hover:text-ink-2', className)}
+      >
         <CircleHelp size={13} aria-hidden />
         {t('How this page works')}
       </button>

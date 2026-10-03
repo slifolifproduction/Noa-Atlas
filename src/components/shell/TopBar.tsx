@@ -194,7 +194,7 @@ export function SubNav({ active }: { active: RouteKey }) {
   const home = group.views[0];
   return (
     <nav aria-label={group.label} className="relative z-20 flex h-10 shrink-0 items-center gap-3 border-b border-line bg-canvas px-3 md:px-5">
-      <a href={hrefFor(home)} className="flex items-center gap-1.5 text-[12.5px] text-ink-3 hover:text-ink">
+      <a href={hrefFor(home)} className="tap flex items-center gap-1.5 text-[12.5px] text-ink-3 hover:text-ink">
         <ArrowLeft size={13} aria-hidden />
         {VIEWS[home].label}
       </a>

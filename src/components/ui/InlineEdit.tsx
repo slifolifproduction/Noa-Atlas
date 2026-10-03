@@ -40,7 +40,7 @@ export function EditableLine({
       setEditing(true);
     };
     const shared = {
-      className: cn('block w-full cursor-text rounded-[2px] text-left hover:bg-ink/[0.04]', className),
+      className: cn('tap block w-full cursor-text rounded-[2px] text-left hover:bg-ink/[0.04]', className),
       onClick: start,
       title: t('Click to edit'),
       'aria-label': label ? t('Edit {name}', { name: label }) : undefined,

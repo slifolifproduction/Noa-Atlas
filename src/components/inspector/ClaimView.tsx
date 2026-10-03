@@ -405,7 +405,7 @@ export function ClaimView({ id }: { id: ID }) {
                     <div className="mt-1.5 flex flex-wrap gap-1">
                       <button
                         type="button"
-                        className="rounded-[2px] border border-line px-1.5 py-0.5 text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
+                        className="tap rounded-[2px] border border-line px-1.5 py-0.5 text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
                         onClick={() =>
                           a.addClaimEvidence(id, { source, cause, stance: 'supports', kind: 'instance', excerpt: e.effect.label, addedBy: 'user' })
                         }
@@ -414,7 +414,7 @@ export function ClaimView({ id }: { id: ID }) {
                       </button>
                       <button
                         type="button"
-                        className="rounded-[2px] px-1.5 py-0.5 text-[11.5px] text-ink-3 hover:text-ink"
+                        className="tap rounded-[2px] px-1.5 py-0.5 text-[11.5px] text-ink-3 hover:text-ink"
                         onClick={() => setDismissed([...dismissed, e.week])}
                       >
                         {t('Not related')}
@@ -450,7 +450,7 @@ export function ClaimView({ id }: { id: ID }) {
                       <button
                         key={k}
                         type="button"
-                        className="rounded-[2px] border border-line px-1.5 py-0.5 text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
+                        className="tap rounded-[2px] border border-line px-1.5 py-0.5 text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
                         title={EVIDENCE_KIND_HINT[k]}
                         onClick={() => addFrom(c, k)}
                       >
@@ -577,7 +577,7 @@ export function ClaimView({ id }: { id: ID }) {
                   </ul>
                   <button
                     type="button"
-                    className="mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
+                    className="tap mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
                     aria-pressed
                     onClick={() => a.toggleRival(id, o.id)}
                   >
@@ -599,7 +599,7 @@ export function ClaimView({ id }: { id: ID }) {
                   </ul>
                   <button
                     type="button"
-                    className="mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
+                    className="tap mt-1.5 shrink-0 rounded-[2px] border border-line px-1.5 py-0.5 text-[11px] text-ink-3 hover:text-ink"
                     aria-pressed={rival}
                     title={t('Competing explanations: if one holds, the other may not be needed')}
                     onClick={() => a.toggleRival(id, o.id)}

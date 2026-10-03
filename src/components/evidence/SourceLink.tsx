@@ -15,7 +15,7 @@ export function SourceLink({ source, showTitle, className }: { source: SourceRef
     <button
       type="button"
       onClick={() => open({ kind: source.kind, id: source.id })}
-      className={cn('group inline-flex min-w-0 items-baseline gap-1.5 text-left', className)}
+      className={cn('tap group inline-flex min-w-0 items-baseline gap-1.5 text-left', className)}
       title={`${r.code} · ${r.title} · ${formatDate(r.date)}`}
     >
       <span className="num shrink-0 text-[11.5px] tracking-[0.02em] text-ink-2 underline decoration-ink-3/40 underline-offset-[3px] group-hover:text-ink group-hover:decoration-ink">

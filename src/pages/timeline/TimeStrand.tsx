@@ -236,7 +236,7 @@ export function TimeStrand({ onJump }: { onJump(month: string): void }) {
             key={d.id}
             type="button"
             onClick={() => openEntity({ kind: 'decision', id: d.id })}
-            className="inline-flex max-w-full items-center gap-1.5 rounded-[2px] border border-line-strong px-1.5 py-px font-sans text-[12px] text-ink hover:border-ink-3"
+            className="tap inline-flex max-w-full items-center gap-1.5 rounded-[2px] border border-line-strong px-1.5 py-px font-sans text-[12px] text-ink hover:border-ink-3"
           >
             <i className="strand-key strand-key-knot" aria-hidden />
             <span className="truncate">{d.title}</span>

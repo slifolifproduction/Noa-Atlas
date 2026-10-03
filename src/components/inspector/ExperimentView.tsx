@@ -95,7 +95,7 @@ export function ExperimentView({ id }: { id: ID }) {
               <span className="num">{t('Day {d} of {total}', { d: prog.day, total: prog.total })}</span>
               <span className="num">{t('ends {date}', { date: formatDate(prog.endDate) })}</span>
             </div>
-            <Progress value={prog.ratio} color="var(--color-ink)" />
+            <Progress value={prog.ratio} label={t('How far along the experiment is')} color="var(--color-ink)" />
           </div>
         )}
         <div className="mt-3.5 flex flex-wrap items-center gap-1.5">

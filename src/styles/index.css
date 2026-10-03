@@ -160,6 +160,23 @@ html body {
 }
 
 @layer components {
+  /*
+   * A control drawn smaller than a fingertip keeps its look and its place, but answers a tap over at least 24 × 24 px
+   * (WCAG 2.5.8), centred on it: an invisible extension of the control itself, so a tap there is a tap on it. A layer
+   * below every utility and unlayered rule, so a control positioned otherwise (absolute, fixed) stays so.
+   */
+  .tap {
+    position: relative;
+  }
+  .tap::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 24px);
+    height: max(100%, 24px);
+    translate: -50% -50%;
+  }
   /* Small mono caps label: the structural voice of the interface. */
   .label {
     font-family: var(--font-mono);
@@ -300,6 +317,10 @@ html body {
   opacity: 0.35;
 }
 .react-flow__attribution a {
+  /* 24 px tall to a tap, in the place of its 11 px line. */
+  display: inline-block;
+  margin-block: -6.5px;
+  padding-block: 6.5px;
   color: var(--color-ink-3);
 }
 .react-flow__node {
@@ -1993,6 +2014,12 @@ html body {
   pointer-events: auto;
   transition: color 0.2s;
 }
+/* A tap anywhere in a 24 px band about the level answers it (its line is 18 px). */
+.tree-level::after {
+  content: '';
+  position: absolute;
+  inset: -3px 0;
+}
 .tree-level svg path {
   fill: none;
   stroke: currentColor;
@@ -2539,6 +2566,9 @@ html body {
   font-weight: 500;
 }
 .pw-readout-now {
+  /* 24 px tall to a tap, in the place of an 18 px line. */
+  margin-block: -3px;
+  padding-block: 3px;
   max-width: 100%;
   overflow: hidden;
   white-space: nowrap;

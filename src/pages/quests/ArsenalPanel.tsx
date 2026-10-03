@@ -70,7 +70,7 @@ export function ArsenalPanel() {
                 <button
                   type="button"
                   onClick={() => openEntity({ kind: 'node', id: i.node.id })}
-                  className="text-left text-[13px] leading-snug text-ink hover:underline"
+                  className="tap text-left text-[13px] leading-snug text-ink hover:underline"
                 >
                   {i.node.label}
                 </button>

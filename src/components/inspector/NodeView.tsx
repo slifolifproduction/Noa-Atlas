@@ -794,7 +794,7 @@ function EditForm({ id, onDone }: { id: ID; onDone(): void }) {
           <input type="date" className="field mt-1" value={until} onChange={(e) => setUntil(e.target.value)} />
         </label>
       </div>
-      <label className="flex items-start gap-2 text-[12.5px] text-ink-2">
+      <label className="tap flex items-start gap-2 text-[12.5px] text-ink-2">
         <input type="checkbox" className="mt-[3px]" checked={concern} onChange={(e) => setConcern(e.target.checked)} />
         <span>{t('Something I want explained or changed')}</span>
       </label>

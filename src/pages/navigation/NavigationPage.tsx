@@ -156,7 +156,7 @@ function Route() {
           multiline
         />
         <div className="mt-2 flex max-w-[420px] items-center gap-3">
-          <Progress value={progress.objectiveRatio} />
+          <Progress value={progress.objectiveRatio} label={t('How far along the plan is')} />
           <span className="num shrink-0 text-[11.5px] text-ink-3">
             {t('month {n} of {total} · by {date}', { n: monthNow, total: monthsTotal, date: formatDate(nav.objective.targetDate, { year: true }) })}
           </span>
@@ -179,7 +179,7 @@ function Route() {
               <p className="mt-1 text-[13px] text-ink-2">{exp.hypothesis}</p>
               {exp.status === 'running' && (
                 <div className="mt-2 flex items-center gap-3">
-                  <Progress value={expProgress.ratio} color="var(--color-ink)" />
+                  <Progress value={expProgress.ratio} label={t('How far along the experiment is')} color="var(--color-ink)" />
                   <span className="num shrink-0 text-[11.5px] text-ink-3">{t('day {d} of {total}', { d: expProgress.day, total: expProgress.total })}</span>
                 </div>
               )}
@@ -210,7 +210,7 @@ function Route() {
                 aria-checked={tg.done}
                 onClick={() => toggleTarget(tg.id)}
                 className={cn(
-                  'flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border',
+                  'tap flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border',
                   tg.done ? 'border-ink-2 bg-ink-2 text-canvas' : 'border-line-strong hover:border-ink-3',
                 )}
                 aria-label={tg.title}
@@ -221,7 +221,7 @@ function Route() {
               <span className="num shrink-0 text-[11.5px] text-ink-3">{formatDate(tg.due)}</span>
               <button
                 type="button"
-                className="shrink-0 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+                className="tap shrink-0 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100 pointer-coarse:opacity-100"
                 aria-label={t('Remove {name}', { name: tg.title })}
                 onClick={() => deleteTarget(tg.id)}
               >
@@ -309,7 +309,7 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
               aria-checked={a.status === 'done'}
               onClick={() => setStatus(a.id, next[a.status])}
               className={cn(
-                'flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
+                'tap flex h-4 w-4 shrink-0 items-center justify-center rounded-full border',
                 a.status === 'done'
                   ? 'border-ink-2 bg-ink-2 text-canvas'
                   : a.status === 'skipped'
@@ -334,7 +334,7 @@ function WeeklyActions({ week, actions }: { week: string; actions: NavAction[] }
             {current?.id === a.id && <span className="shrink-0 rounded-[2px] border border-accent/40 px-1 text-[10.5px] text-accent">{t('next')}</span>}
             <button
               type="button"
-              className="shrink-0 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100"
+              className="tap shrink-0 rounded-[2px] p-0.5 text-ink-3 opacity-0 group-hover:opacity-100 hover:text-ink focus-visible:opacity-100 pointer-coarse:opacity-100"
               aria-label={t('More')}
               onClick={() => setMenu(menu === a.id ? null : a.id)}
             >
@@ -505,7 +505,7 @@ function ExperimentCard({ experiment: x }: { experiment: Experiment }) {
       )}
       {x.status === 'running' && (
         <div className="mt-2.5 flex items-center gap-2.5">
-          <Progress value={prog.ratio} color="var(--color-ink)" />
+          <Progress value={prog.ratio} label={t('How far along the experiment is')} color="var(--color-ink)" />
           <span className={cn('num shrink-0 text-[11px]', prog.overdue ? 'text-counter' : 'text-ink-3')}>
             {prog.overdue ? t('result due') : t('day {d}/{total}', { d: prog.day, total: prog.total })}
           </span>

@@ -15,7 +15,7 @@ function Tick({ done, label, onClick }: { done: boolean; label: string; onClick(
       aria-label={label}
       onClick={onClick}
       className={cn(
-        'flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border',
+        'tap flex h-4 w-4 shrink-0 items-center justify-center rounded-[2px] border',
         done ? 'border-ink-2 bg-ink-2 text-canvas' : 'border-line-strong hover:border-ink-3',
       )}
     >
@@ -38,7 +38,7 @@ export function OwnQuests() {
     <section className="mt-8 min-w-0" aria-label={t('Your own quests')}>
       <div className="flex items-baseline justify-between gap-3">
         <h2 className="label">{t('Your own quests')}</h2>
-        <a href={hrefFor('quests')} className="inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink">
+        <a href={hrefFor('quests')} className="tap inline-flex items-center gap-1 text-[12px] text-ink-3 hover:text-ink">
           {t('Fight them in Quests')}
           <ArrowRight size={12} aria-hidden />
         </a>
@@ -56,9 +56,9 @@ export function OwnQuests() {
                 </span>
               </div>
               {steps.length > 0 && (
-                <ul className="mt-1.5 space-y-1 pl-[26px]">
+                <ul className="mt-1 pl-[26px]">
                   {steps.map((a) => (
-                    <li key={a.id} className="flex items-center gap-2.5">
+                    <li key={a.id} className="flex min-h-6 items-center gap-2.5">
                       <Tick done={a.status === 'done'} label={a.title} onClick={() => setActionStatus(a.id, a.status === 'done' ? 'todo' : 'done')} />
                       <span className={cn('min-w-0 flex-1 text-[13px]', a.status === 'done' ? 'text-ink-3 line-through decoration-ink-3/50' : 'text-ink-2')}>
                         {a.title}

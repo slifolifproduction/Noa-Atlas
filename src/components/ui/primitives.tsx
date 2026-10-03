@@ -165,12 +165,14 @@ export function FieldLabel({ children, htmlFor, hint }: { children: ReactNode; h
   );
 }
 
-export function Progress({ value, className, color = 'var(--color-ink-2)' }: { value: number; className?: string; color?: string }) {
+/** A thin progress bar; `label` names what it measures, for a screen reader. */
+export function Progress({ value, label, className, color = 'var(--color-ink-2)' }: { value: number; label: string; className?: string; color?: string }) {
   const pct = Math.max(0, Math.min(1, value)) * 100;
   return (
     <div
       className={cn('h-[2px] w-full overflow-hidden bg-ink/[0.09]', className)}
       role="progressbar"
+      aria-label={label}
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}

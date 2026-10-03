@@ -35,7 +35,7 @@ function Cites({ ids }: { ids: string[] }) {
         <button
           key={r.ref.id}
           type="button"
-          className="rounded-[2px] border border-line px-1.5 py-px text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
+          className="tap rounded-[2px] border border-line px-1.5 py-px text-[11.5px] text-ink-2 hover:border-line-strong hover:text-ink"
           onClick={() => open(r.ref)}
         >
           {r.label}

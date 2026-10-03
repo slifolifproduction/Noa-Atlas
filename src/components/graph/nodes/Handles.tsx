@@ -10,11 +10,12 @@ export function NodeHandles({ side = Position.Right }: { side?: Position }) {
   const connection = useConnection();
   return (
     <>
-      <Handle type="source" position={side} className="source-handle" aria-label={t('Drag to connect')} />
+      <Handle type="source" position={side} className="source-handle" title={t('Drag to connect')} aria-hidden />
       <Handle
         type="target"
         position={Position.Left}
         isConnectableStart={false}
+        aria-hidden
         className={connection.inProgress ? 'target-handle' : 'opacity-0! pointer-events-none'}
       />
     </>

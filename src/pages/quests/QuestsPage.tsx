@@ -336,6 +336,8 @@ export function QuestsPage() {
           style={{ '--in': '2.85s' } as CSSProperties}
           className="quest-console quest-console-in frame-r absolute inset-x-0 top-[66%] bottom-0 overflow-y-auto px-4 pt-8 pb-5 lg:inset-x-auto lg:top-4 lg:bottom-auto lg:max-h-[calc(100%-2rem)] lg:w-[384px] lg:border lg:border-line lg:p-0"
           aria-label={t('What brings it down')}
+          // It scrolls on a phone: a keyboard can scroll it too.
+          tabIndex={0}
         >
           <div ref={consoleMain} className="lg:p-4">
             <div className="lg:hidden">

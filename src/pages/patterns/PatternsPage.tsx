@@ -298,7 +298,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
 
         {/* Everything else, folded away until asked for. */}
         <details className="pattern-more group">
-          <summary className="flex cursor-pointer list-none items-center justify-between">
+          <summary className="tap flex cursor-pointer list-none items-center justify-between">
             <span className="label text-ink-2!">{t('Full details')}</span>
             <ChevronDown size={14} className="text-ink-3 transition-transform group-open:rotate-180" aria-hidden />
           </summary>
@@ -315,7 +315,7 @@ function PatternDetail({ pattern: p }: { pattern: Pattern }) {
                         <div className="mt-1 flex flex-wrap gap-1.5">
                           {im.pathIds.map((pid) =>
                             data.paths[pid] ? (
-                              <a key={pid} href="#/paths" className="rounded-[2px] border border-line px-1.5 py-px text-[12px] text-ink-2 hover:text-ink">
+                              <a key={pid} href="#/paths" className="tap rounded-[2px] border border-line px-1.5 py-px text-[12px] text-ink-2 hover:text-ink">
                                 {pathCode(data.paths[pid].code)} · {data.paths[pid].title}
                               </a>
                             ) : null,
@@ -508,7 +508,7 @@ function StepReasons({ pattern: p }: { pattern: Pattern }) {
             ) : (
               <p className="mt-0.5 text-[12.5px] text-ink-3">
                 {t('No possible reason for this step yet.')}{' '}
-                <button type="button" className="text-accent hover:underline" onClick={() => setAdding(i)}>
+                <button type="button" className="tap text-accent hover:underline" onClick={() => setAdding(i)}>
                   {t('Add one')}
                 </button>
               </p>

@@ -1044,7 +1044,7 @@ export function AheadTree({
       <div
         ref={plateRef}
         className={cn('ahead-plate tree-plate', hover && 'is-pointing')}
-        role="img"
+        role="group"
         aria-label={t('Your options as roots growing from where you are')}
         onPointerDown={(e) => {
           if ((e.target as Element).closest('button, .tree-card')) return;
@@ -1117,7 +1117,7 @@ export function AheadTree({
         </div>
         {/* The axis mark, in the plate's corner. */}
         {wide && (
-          <svg className="tree-gizmo" width={64} height={64} viewBox="-32 -32 64 64">
+          <svg className="tree-gizmo" width={64} height={64} viewBox="-32 -32 64 64" aria-hidden>
             <circle r={27} className="tree-gizmo-ring" />
             <g ref={gizmo}>
               <circle r={1.8} />
@@ -1267,7 +1267,11 @@ export function AheadTree({
               {chosen && (
                 <div className="mt-3 border-t border-line pt-3">
                   <div className="label">{t('What you chose')}</div>
-                  <button type="button" className="mt-1 text-left text-[13px] text-ink hover:underline" onClick={() => pick({ kind: 'path', id: chosen.id })}>
+                  <button
+                    type="button"
+                    className="tap mt-1 text-left text-[13px] text-ink hover:underline"
+                    onClick={() => pick({ kind: 'path', id: chosen.id })}
+                  >
                     {pathCode(chosen.code)} · {chosen.title}
                   </button>
                   {step && (

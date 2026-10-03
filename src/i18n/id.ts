@@ -3054,4 +3054,7 @@ export const ID: Record<string, string> = {
   'Go to the Map': 'Ke Peta',
   'Close the panel': 'Tutup panel',
   'Download a copy of your atlas': 'Unduh salinan atlasmu',
+  'How far along the plan is': 'Sejauh mana rencana sudah berjalan',
+  'How far along the experiment is': 'Sejauh mana eksperimen sudah berjalan',
+  'Getting the sentence model ready': 'Menyiapkan model kalimat',
 };

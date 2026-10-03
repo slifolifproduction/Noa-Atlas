@@ -44,14 +44,14 @@ export function GraphSearch({
         }}
         placeholder={placeholder}
         aria-label={placeholder}
-        className="w-full min-w-0 bg-transparent text-[12.5px] text-ink placeholder:text-ink-3 focus:outline-none sm:w-40"
+        className="w-full min-w-0 self-stretch bg-transparent text-[12.5px] text-ink placeholder:text-ink-3 focus:outline-none sm:w-40"
       />
       {query && (
         <>
           <span className="num shrink-0 text-[11px] text-ink-3" aria-live="polite">
             {matches.length}
           </span>
-          <button type="button" className="rounded-[2px] p-1 text-ink-3 hover:text-ink" aria-label={t('Clear search')} onClick={() => onQuery('')}>
+          <button type="button" className="tap rounded-[2px] p-1 text-ink-3 hover:text-ink" aria-label={t('Clear search')} onClick={() => onQuery('')}>
             <X size={12} aria-hidden />
           </button>
         </>

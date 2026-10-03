@@ -20,6 +20,7 @@ export function StanceMark({ stance }: { stance: Evidence['stance'] }) {
         color: supports ? 'var(--color-support)' : neutral ? 'var(--color-ink-3)' : 'var(--color-counter)',
       }}
       title={supports ? t('Supporting evidence') : neutral ? t('Neither for nor against: another route to the outcome') : t('Counter-evidence')}
+      role="img"
       aria-label={supports ? t('Supports') : neutral ? t('Another route') : t('Counters')}
     >
       <Icon size={11} strokeWidth={2.4} aria-hidden />

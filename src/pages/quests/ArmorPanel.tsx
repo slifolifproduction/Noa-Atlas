@@ -48,7 +48,7 @@ export function ArmorPanel({ boss, className = 'mt-6' }: { boss: Boss; className
                   <button
                     type="button"
                     onClick={() => openEntity(p.open!)}
-                    className="min-w-0 flex-1 text-left text-[13px] leading-snug text-ink hover:underline"
+                    className="tap min-w-0 flex-1 text-left text-[13px] leading-snug text-ink hover:underline"
                   >
                     {p.title}
                   </button>

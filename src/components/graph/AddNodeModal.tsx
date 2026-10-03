@@ -129,7 +129,7 @@ export function AddNodeModal({
             {label.trim()
               ? t('It goes on the map as a {kind}.', { kind: KIND_META[kind].label.toLowerCase() })
               : t('The Atlas guesses what kind of thing it is from the name.')}{' '}
-            <button type="button" className="text-accent hover:underline" onClick={() => setPicking(true)}>
+            <button type="button" className="tap text-accent hover:underline" onClick={() => setPicking(true)}>
               {t('Change')}
             </button>
           </p>
@@ -140,7 +140,7 @@ export function AddNodeModal({
           </FieldLabel>
           <textarea id="add-summary" className="field min-h-[64px]" value={summary} onChange={(e) => setSummary(e.target.value)} />
         </div>
-        <label className="flex items-start gap-2 text-[12.5px] text-ink-2">
+        <label className="tap flex items-start gap-2 text-[12.5px] text-ink-2">
           <input type="checkbox" className="mt-[3px]" checked={concern} onChange={(e) => setConcern(e.target.checked)} />
           <span>{t('Something I want explained or changed')}</span>
         </label>

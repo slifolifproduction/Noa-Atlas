@@ -386,13 +386,13 @@ export function Lately({ items, empty }: { items: HistoryItem[]; empty: string }
   const open = useUI((s) => s.openEntity);
   if (!items.length) return <p className="text-[12.5px] leading-snug text-ink-3">{empty}</p>;
   return (
-    <ul className="space-y-0.5">
+    <ul>
       {items.map((h) => (
         <li key={h.key}>
           <button
             type="button"
             onClick={() => open(h.ref)}
-            className="group flex w-full items-baseline gap-2 rounded-[2px] py-0.5 text-left text-[13px] leading-snug"
+            className="group flex min-h-6 w-full items-baseline gap-2 rounded-[2px] py-[3px] text-left text-[13px] leading-snug"
           >
             <span className="num w-[52px] shrink-0 text-[11px] text-ink-3">{formatDate(h.date)}</span>
             <span className="min-w-0 flex-1 text-ink-2 group-hover:text-ink">{h.label}</span>
