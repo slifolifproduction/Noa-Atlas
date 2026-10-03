@@ -1,22 +1,17 @@
-# Publishes Noa Atlas to GitHub Pages on every push to the repository's default branch (named below).
+# Checks every push and pull request, and publishes Noa Atlas to GitHub Pages from the repository's default branch
+# (named below) once every check has passed: a build or a browser test that fails is never published.
 # One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
 # The site is then at https://<owner>.github.io/<repo>/ (the build uses a relative base, so any path works).
-name: Deploy to GitHub Pages
+name: Check and deploy
 
 on:
   push:
     branches: [claude/cognitive-atlas-app-thvd4g]
+  pull_request:
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-
-# One deployment at a time; a newer push waits for the one in progress instead of cutting it off.
-concurrency:
-  group: pages
-  cancel-in-progress: false
 
 jobs:
   build:
@@ -30,17 +25,51 @@ jobs:
       # --ignore-scripts: onnxruntime-node (pulled in by the transformers library, for Node only) would otherwise
       # download GPU binaries the browser app never uses. The app runs its model in the browser (WebAssembly).
       - run: npm ci --ignore-scripts
-      # A broken build is never published.
+      - run: npm run format:check
       - run: npm test
+      # Type-checks, then builds.
       - run: npm run build
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v4
+      - if: github.event_name != 'pull_request'
+        uses: actions/configure-pages@v5
+      - if: github.event_name != 'pull_request'
+        uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 
-  deploy:
-    needs: build
+  # The built app in Chromium, on a desktop and on a phone (e2e/, playwright.config.ts).
+  e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - run: npm run e2e
+      # What a failing test saw: the report, with a trace of each failure (open with `npx playwright show-report`).
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14
+
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: [build, e2e]
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    # One deployment at a time; a newer push waits for the one in progress instead of cutting it off.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

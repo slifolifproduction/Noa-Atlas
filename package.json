@@ -11,10 +11,11 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "proxy": "node --experimental-strip-types server/claude-proxy.ts",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\"",
+    "format": "prettier --write \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"e2e/**/*.ts\" playwright.config.ts",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\" \"server/**/*.ts\" \"e2e/**/*.ts\" playwright.config.ts",
     "ml:data": "node --experimental-strip-types ml/data/generate.ts",
-    "ml:train": "node --experimental-strip-types ml/train.ts"
+    "ml:train": "node --experimental-strip-types ml/train.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.128.0",
@@ -31,12 +32,14 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/d3-force": "^3.0.10",
     "@types/node": "^24.19.0",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
+    "axe-core": "^4.13.0",
     "prettier": "^3.9.9",
     "tailwindcss": "^4.3.3",
     "typescript": "~6.0.3",

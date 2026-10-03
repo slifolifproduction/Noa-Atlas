@@ -2733,6 +2733,9 @@ html body {
   gap: 8px;
 }
 .almanac-note button {
+  /* 24 px tall to a tap, in the place of its line (the list leaves room between its items). */
+  margin-block: -3px;
+  padding-block: 3px;
   text-align: left;
 }
 .almanac-note button:hover {

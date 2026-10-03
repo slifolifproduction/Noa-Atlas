@@ -447,10 +447,14 @@ function Explanations({ pattern: p }: { pattern: Pattern }) {
         <p className="text-[13px] text-ink-3">{t('No explanation attached yet.')}</p>
       )}
       {adding && (
-        <ul className="mt-2 space-y-1">
+        <ul className="mt-1.5">
           {candidates.map((c) => (
             <li key={c}>
-              <button type="button" className="flex items-start gap-1.5 text-left text-[12.5px] text-ink-2 hover:text-ink" onClick={() => toggle(p.id, c)}>
+              <button
+                type="button"
+                className="flex w-full items-start gap-1.5 py-[3px] text-left text-[12.5px] text-ink-2 hover:text-ink"
+                onClick={() => toggle(p.id, c)}
+              >
                 <Plus size={12} className="mt-[3px] shrink-0" aria-hidden />
                 {claimSentence(data, data.claims[c]!)}
               </button>

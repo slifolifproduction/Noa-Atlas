@@ -23,11 +23,12 @@ record → read → map → notice → ask → explain → predict → test → 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm test           # domain + analysis tests
+npm test           # unit tests: domain, analysis, storage, the examples
+npm run e2e        # browser tests: the built app in Chromium, desktop and phone (see *Tests*)
 npm run build      # type-check and production build (static, works from any path)
 ```
 
-**Published on GitHub Pages** at https://slifolifproduction.github.io/slifolif-lab-03/, rebuilt on every push by `.github/workflows/pages.yml` (install, tests, build; a build whose tests fail is not published). It needs one setting, once: Settings → Pages → Build and deployment → Source: **GitHub Actions**. Free for a public repository. Outside claude.ai the app has no `window.claude`, so it keeps everything in the browser it is opened in and reads notes with its own rules: no sync between devices and no Claude on the viewer's account, everything else the same. Moving an atlas from the claude.ai version: Settings → Your data → **Export JSON** there, then **Import JSON** on the new address (any saved version can also be downloaded from **⋯ → Versions**).
+**Published on GitHub Pages** at https://slifolifproduction.github.io/slifolif-lab-03/, rebuilt on every push by `.github/workflows/pages.yml` (formatting, unit tests, type-check and build, and the browser tests; a build that fails any of them is not published). It needs one setting, once: Settings → Pages → Build and deployment → Source: **GitHub Actions**. Free for a public repository. Outside claude.ai the app has no `window.claude`, so it keeps everything in the browser it is opened in and reads notes with its own rules: no sync between devices and no Claude on the viewer's account, everything else the same. Moving an atlas from the claude.ai version: Settings → Your data → **Export JSON** there, then **Import JSON** on the new address (any saved version can also be downloaded from **⋯ → Versions**).
 
 The app opens on an example atlas (Emma, an invented UI/UX designer) so every screen has something to show. There are eight examples, each an invented person with a globally common name and about five months of records, written in English and in Indonesian: seven kinds of work and one student (see *The examples* below). Settings lets you export, import, open an example, or start empty. Data lives in `localStorage` in your browser.
 
@@ -253,6 +254,12 @@ Then choose **Claude, via your proxy** in Settings. The API key stays on the ser
 ## Responsive behaviour
 
 Desktop is the primary experience. On tablets the inspector becomes a bottom sheet and the Overview opens on demand. On phones the canvas switches to a compact portrait layout showing you and the area markers (an area's elements appear when it is selected), the Overview and the Causes list open in a sheet, the six lenses move to a bottom tab bar, and the panel opens as a sheet above it so the lenses stay reachable. The information architecture stays the same.
+
+## Tests
+
+- **Unit tests** (`npm test`, vitest, `src/**/*.test.ts`): the domain and its rules, the analysis, storage and its safety, migrations, the examples (each built whole in both languages, and fetched only when needed), the Indonesian dictionary (every interface text translated, none left unused), the pacing of heavy drawing.
+- **Browser tests** (`npm run e2e`, Playwright, `e2e/`): the built app, served as it is published, in Chromium on a desktop (1440 × 900) and on a phone (Pixel 7). They check that every lens opens with something on it, no error and nothing wider than the screen, and in Indonesian too; that a note is saved and shows in Time, a target ticked on the plan is saved, the panel opens and closes, and the agent answers on the device; that a first visit fetches only the first example, another is fetched when opened and follows the language, and one saved by an earlier version is brought up to date; that two tabs keep each other's notes, an unreadable atlas is put aside and offered, a full browser is said with a copy, and a page that fails gives way alone; and that axe finds no WCAG A or AA violation on any lens, in the capture form or the panel, and on a phone every control answers a tap over at least 24 × 24 px. The first time, `npx playwright install chromium` fetches the browser (or set `PLAYWRIGHT_CHROMIUM_PATH` to a Chromium already on the machine).
+- **In CI** (`.github/workflows/pages.yml`), on every push and pull request: formatting, unit tests, type-check and build, then the browser tests. Pages is published only when all of them pass; a failing browser test leaves its report and a trace of what it saw as a download on the run.
 
 ## Performance
 
