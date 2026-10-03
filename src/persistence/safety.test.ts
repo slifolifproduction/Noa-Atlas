@@ -102,6 +102,33 @@ describe('two tabs saving the same atlas', () => {
     expect(readBack).toBe(1);
   });
 
+  it('two saves in one go, before the combined atlas is read back, keep what the other tab added', () => {
+    const kept = fakeBrowser();
+    const base = createSeedData();
+    opened(kept, base);
+    const theirs = structuredClone(base);
+    note(theirs, 'e_b', 'NOTE B');
+    kept.set('atlas', JSON.stringify({ state: { data: theirs }, version: DATA_VERSION }));
+    // This tab saves twice from its own atlas, which has not yet taken in NOTE B.
+    const mine = structuredClone(base);
+    note(mine, 'e_a', 'NOTE A');
+    atlasStorage.setItem('atlas', { state: { data: mine }, version: DATA_VERSION });
+    note(mine, 'e_c', 'NOTE C');
+    atlasStorage.setItem('atlas', { state: { data: mine }, version: DATA_VERSION });
+    const after = saved(kept).state.data;
+    for (const [id, text] of [
+      ['e_a', 'NOTE A'],
+      ['e_b', 'NOTE B'],
+      ['e_c', 'NOTE C'],
+    ])
+      expect(after.entries[id]?.content, text).toBe(text);
+    // Read back, it is this tab's own again: the next save is written as it is.
+    const now = (atlasStorage.getItem('atlas') as { state: { data: AtlasData } }).state.data;
+    note(now, 'e_d', 'NOTE D');
+    atlasStorage.setItem('atlas', { state: { data: now }, version: DATA_VERSION });
+    expect(saved(kept).state.data).toEqual(now);
+  });
+
   it('what this tab deleted stays deleted, and what the other tab changed is kept', () => {
     const kept = fakeBrowser();
     const base = createSeedData();

@@ -23,6 +23,39 @@ test('two tabs: neither writes over what the other added, and each shows all of 
   }
 });
 
+test('two tabs whose word of each other’s saves comes late: still neither writes over the other', async ({ context, page }) => {
+  // Each tab hears of the other's save 1.5 s late, as Firefox under load can: by then it has often saved again.
+  await context.addInitScript(() => {
+    const held = new WeakSet<Event>();
+    window.addEventListener(
+      'storage',
+      (e) => {
+        if (held.has(e)) return;
+        e.stopImmediatePropagation();
+        const late = new StorageEvent('storage', { key: e.key, newValue: e.newValue, oldValue: e.oldValue, url: e.url, storageArea: e.storageArea });
+        held.add(late);
+        setTimeout(() => window.dispatchEvent(late), 1500);
+      },
+      true,
+    );
+  });
+  await firstVisit(page);
+  const other = await context.newPage();
+  await other.goto('/#/timeline');
+  await expect(other.locator('#main')).toContainText(/\w{3}/);
+  const notes = ['LATE-A walked in the park', 'LATE-B coffee with Laura', 'LATE-A2 read a book', 'LATE-B2 went running'];
+  await writeNote(page, notes[0]);
+  await writeNote(other, notes[1]);
+  await writeNote(page, notes[2]);
+  await writeNote(other, notes[3]);
+  for (const tab of [page, other]) {
+    await tab.bringToFront();
+    for (const n of notes) await expect(tab.locator('#main')).toContainText(n);
+  }
+  const saved = await stored(page);
+  for (const n of notes) expect(saved, n).toContain(n);
+});
+
 test('an atlas that cannot be read is put aside, offered as a download, and kept after a new save', async ({ page }) => {
   await firstVisit(page);
   await page.evaluate((key) => localStorage.setItem(key, '{"state":{"data":{"entries":{"e1":{"title":"MY PRECIOUS NOTE"'), DATA);

@@ -142,17 +142,19 @@ export const atlasStorage: PersistStorage<{ data: AtlasData }> = {
     return null;
   },
   setItem(name, value) {
-    let out = value;
     const now = safeLocalStorage.getItem(name) as string | null;
     if (seen.has(name) && now !== null && now !== seen.get(name)) {
       const theirs = savedAtlas(now, value.version);
       if (theirs && value.state.data) {
         const data = mergeAtlas(savedAtlas(seen.get(name), value.version), value.state.data, theirs).data;
-        out = { ...value, state: { ...value.state, data } };
+        safeLocalStorage.setItem(name, JSON.stringify({ ...value, state: { ...value.state, data } }));
+        // This tab still holds its own atlas until it reads the combined one back, and a save can come before that (two
+        // in one go): so what it last saw stays the common past, and such a save is put together again, not written over.
         queueMicrotask(() => combined?.());
+        return;
       }
     }
-    const raw = JSON.stringify(out);
+    const raw = JSON.stringify(value);
     safeLocalStorage.setItem(name, raw);
     seen.set(name, raw);
   },
