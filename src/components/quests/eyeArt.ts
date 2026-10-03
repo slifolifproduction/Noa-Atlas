@@ -882,8 +882,11 @@ function soft(ctx: CanvasRenderingContext2D, blur: number, draw: (c: CanvasRende
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(small, 0, 0, off.width, off.height);
     } else ctx.drawImage(off, 0, 0);
+    small.width = small.height = 0;
   }
   ctx.restore();
+  // Let go of the scratch canvas at once: Safari keeps a canvas's pixels until it collects it, and a phone's are few.
+  off.width = off.height = 0;
 }
 
 /**
