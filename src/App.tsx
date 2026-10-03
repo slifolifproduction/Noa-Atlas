@@ -9,6 +9,7 @@ import { Guide } from './components/shell/Guide';
 import { MobileTabBar, SubNav, TopBar } from './components/shell/TopBar';
 import { Toasts } from './components/ui/Toasts';
 import { ErrorBoundary } from './components/shell/ErrorBoundary';
+import { QuietNotices } from './components/shell/QuietNotices';
 import { StorageNotice } from './components/shell/StorageNotice';
 import { VIEWS } from './domain/constants';
 import { useInspectorWidth } from './hooks/useMediaQuery';
@@ -121,6 +122,7 @@ export function App() {
       <ExampleNote />
       <AccountStrip />
       <StorageNotice />
+      <QuietNotices />
       <main id="main" className="relative min-h-0 flex-1">
         <div
           className={cn('h-full transition-[padding] duration-200', isGraph ? 'overflow-hidden' : 'overflow-y-auto')}

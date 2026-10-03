@@ -10,6 +10,7 @@ import { loadLanguage, useLang } from './i18n';
 import { safeLocalStorage, STORAGE_KEYS } from './persistence/storage';
 import { openAtlas, useAtlas } from './state/atlasStore';
 import { startFollowingAtlas } from './state/follow';
+import { registerServiceWorker } from './pwa/register';
 import { connectAccount } from './sync/connect';
 
 /** The whole interface is rebuilt in the new language when it changes; the atlas and UI state live in the stores and stay. */
@@ -35,4 +36,6 @@ void loadLanguage().finally(async () => {
   );
   // Inside claude.ai, a signed-in viewer's atlas can be their account's (see sync/connect).
   void connectAccount();
+  // Installable, and kept on the device for offline use (see pwa/register).
+  registerServiceWorker();
 });

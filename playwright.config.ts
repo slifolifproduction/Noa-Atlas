@@ -19,6 +19,8 @@ export default defineConfig({
   use: {
     baseURL: 'http://localhost:4173/',
     trace: 'retain-on-failure',
+    // Each test meets the app as served; the offline tests (pwa.spec.ts) let its service worker in.
+    serviceWorkers: 'block',
     launchOptions: { executablePath },
   },
   projects: [

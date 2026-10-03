@@ -1,15 +1,19 @@
 import { Download, History, RotateCcw, Upload } from 'lucide-react';
-import { useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { checkProxyHealth } from '../../ai/health';
 import { PAGE_FRAME, PageHeader } from '../../components/shell/PageHeader';
 import { Button } from '../../components/ui/Button';
 import { FieldLabel, Kbd, Segmented } from '../../components/ui/primitives';
 import { modelCounts } from '../../domain/selectors';
 import { FullOnly, MoreDetail } from '../../components/ui/Detail';
-import { todayISO } from '../../lib/dates';
+import { formatDate, todayISO } from '../../lib/dates';
+import { downloadAtlasCopy, useBackup } from '../../persistence/backup';
+import { askToKeepStorage, storageKept } from '../../persistence/protect';
+import { installApp, usePwa } from '../../pwa/register';
+import { insideClaude } from '../../runtime/claude';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
-import { exportPayload, readImport, STORAGE_KEYS } from '../../persistence/storage';
+import { readImport, STORAGE_KEYS } from '../../persistence/storage';
 import { spaceHealth } from '../../graph/space';
 import { toast, useUI, type SpaceMode } from '../../state/uiStore';
 import { importWithBackup, restoreVersion } from '../../state/versionOps';
@@ -30,6 +34,76 @@ function Block({ title, description, children }: { title: string; description?: 
       </div>
       <div className="min-w-0">{children}</div>
     </section>
+  );
+}
+
+/**
+ * Where the atlas lives and how safe it is there: the last copy kept elsewhere, whether the browser keeps it until the
+ * person clears it, and installing the app (it then opens like an app, works offline, and is kept by Safari too).
+ */
+function KeptOnThisDevice() {
+  const lastCopy = useBackup((s) => s.at);
+  const inAccount = useAccount((s) => s.mode === 'account');
+  const installed = usePwa((s) => s.installed);
+  const installable = usePwa((s) => s.installable);
+  const [kept, setKept] = useState<boolean | undefined | null>(null);
+  useEffect(() => void storageKept().then(setKept), []);
+  return (
+    <div className="mt-5 space-y-3 rounded-[2px] border border-line p-3.5 text-[12.5px] leading-snug">
+      <p className="text-ink-2">
+        {inAccount
+          ? t('This atlas is kept in your claude.ai account, and copied to this device.')
+          : lastCopy
+            ? t('The last copy you downloaded is from {date}.', { date: formatDate(todayISO(new Date(lastCopy))) })
+            : t('No copy has been downloaded yet: this atlas lives only in this browser.')}
+      </p>
+      {kept !== null && !inAccount && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="min-w-0 flex-1 text-ink-3">
+            {kept === true
+              ? t('This browser keeps the atlas until you clear it yourself.')
+              : kept === false
+                ? t('This browser may clear the atlas on its own when space runs low (Safari after a week unused, unless the app is installed).')
+                : t('This browser does not say whether it keeps the atlas: download a copy now and then.')}
+          </p>
+          {kept === false && (
+            <Button
+              size="sm"
+              onClick={() =>
+                void askToKeepStorage().then(
+                  (ok) => (
+                    setKept(ok),
+                    toast(ok ? t('This browser will keep the atlas.') : t('This browser did not agree; a copy now and then keeps it safe.'), {
+                      tone: ok ? 'success' : 'neutral',
+                    })
+                  ),
+                )
+              }
+            >
+              {t('Ask the browser to keep it')}
+            </Button>
+          )}
+        </div>
+      )}
+      {!insideClaude() && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="min-w-0 flex-1 text-ink-3">
+            {installed
+              ? t('Installed: the Atlas opens like an app, and works without a connection.')
+              : installable
+                ? t('Install the Atlas to open it like an app, without a connection too.')
+                : t(
+                    'To install it: in the browser menu, Install app, or on a phone Add to Home Screen. It then opens like an app, and works without a connection.',
+                  )}
+          </p>
+          {!installed && installable && (
+            <Button size="sm" onClick={() => void installApp()}>
+              {t('Install')}
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -64,15 +138,8 @@ export function SettingsPage() {
     }
   })();
 
-  const exportData = () => {
-    const blob = new Blob([exportPayload(data)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `noa-atlas-${todayISO()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  // A copy kept somewhere else: noted, so the reminder knows (see persistence/backup).
+  const exportData = () => downloadAtlasCopy(data);
 
   const importData = async (f: File) => {
     const result = await readImport(await f.text());
@@ -155,6 +222,7 @@ export function SettingsPage() {
             <input ref={file} type="file" accept="application/json,.json" hidden onChange={(e) => e.target.files?.[0] && importData(e.target.files[0])} />
           </div>
           <p className="mt-2 text-[12px] text-ink-3">{t('Importing replaces the atlas in this browser; the current one is saved as a version first.')}</p>
+          <KeptOnThisDevice />
           <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-[2px] border border-line p-3.5">
             <div className="min-w-0">
               <div className="text-[13px] text-ink">{t('Versions and starting over')}</div>

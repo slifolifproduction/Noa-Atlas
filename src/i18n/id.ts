@@ -3058,4 +3058,28 @@ export const ID: Record<string, string> = {
   'How far along the plan is': 'Sejauh mana rencana sudah berjalan',
   'How far along the experiment is': 'Sejauh mana eksperimen sudah berjalan',
   'Getting the sentence model ready': 'Menyiapkan model kalimat',
+  'A new version of the Atlas is ready.': 'Versi baru Atlas sudah siap.',
+  'Offline. The Atlas works as usual, and what you write is saved in this browser.':
+    'Sedang offline. Atlas tetap berjalan seperti biasa, dan yang kamu tulis tersimpan di browser ini.',
+  Later: 'Nanti',
+  'Your atlas lives only in this browser, and its last copy is from {date}. Keep a new one somewhere else.':
+    'Atlasmu hanya ada di browser ini, dan salinan terakhirnya dari {date}. Simpan salinan baru di tempat lain.',
+  'Your atlas lives only in this browser, and no copy of it has been kept anywhere else yet.':
+    'Atlasmu hanya ada di browser ini, dan belum ada salinannya yang disimpan di tempat lain.',
+  'The last copy you downloaded is from {date}.': 'Salinan terakhir yang kamu unduh dari {date}.',
+  'No copy has been downloaded yet: this atlas lives only in this browser.': 'Belum ada salinan yang diunduh: atlas ini hanya ada di browser ini.',
+  'This browser keeps the atlas until you clear it yourself.': 'Browser ini menyimpan atlas sampai kamu sendiri yang menghapusnya.',
+  'This browser may clear the atlas on its own when space runs low (Safari after a week unused, unless the app is installed).':
+    'Browser ini bisa menghapus atlas sendiri saat ruang penyimpanan menipis (Safari setelah seminggu tidak dibuka, kecuali aplikasinya dipasang).',
+  'This browser does not say whether it keeps the atlas: download a copy now and then.':
+    'Browser ini tidak memberi tahu apakah atlas akan disimpan: unduh salinan sesekali.',
+  'This browser will keep the atlas.': 'Browser ini akan menyimpan atlas.',
+  'This browser did not agree; a copy now and then keeps it safe.': 'Browser ini tidak menyetujuinya; salinan sesekali tetap menjaganya aman.',
+  'Ask the browser to keep it': 'Minta browser menyimpannya',
+  'Installed: the Atlas opens like an app, and works without a connection.': 'Terpasang: Atlas terbuka seperti aplikasi, dan berjalan tanpa koneksi.',
+  'Install the Atlas to open it like an app, without a connection too.': 'Pasang Atlas agar terbuka seperti aplikasi, juga tanpa koneksi.',
+  'To install it: in the browser menu, Install app, or on a phone Add to Home Screen. It then opens like an app, and works without a connection.':
+    'Cara memasang: di menu browser, Instal aplikasi, atau di ponsel Tambahkan ke Layar Utama. Setelah itu Atlas terbuka seperti aplikasi, dan berjalan tanpa koneksi.',
+  Install: 'Pasang',
+  'This atlas is kept in your claude.ai account, and copied to this device.': 'Atlas ini disimpan di akun claude.ai-mu, dan disalin ke perangkat ini.',
 };

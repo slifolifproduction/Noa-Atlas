@@ -1,9 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { navigate } from '../../app/router';
 import { t } from '../../i18n';
-import { todayISO } from '../../lib/dates';
-import { downloadText } from '../../lib/download';
-import { exportPayload } from '../../persistence/storage';
+import { downloadAtlasCopy } from '../../persistence/backup';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { Button } from '../ui/Button';
@@ -39,7 +37,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode; where: Where
 }
 
 function Fallback({ where, error, retry }: { where: Where; error: Error; retry(): void }) {
-  const download = () => downloadText(`noa-atlas-${todayISO()}.json`, exportPayload(useAtlas.getState().data));
+  const download = () => downloadAtlasCopy(useAtlas.getState().data);
   const title =
     where === 'panel' ? t('This panel could not be drawn.') : where === 'page' ? t('Something went wrong drawing this page.') : t('Something went wrong.');
   return (

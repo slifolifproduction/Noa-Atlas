@@ -1,9 +1,8 @@
 import { TriangleAlert } from 'lucide-react';
 import { t } from '../../i18n';
-import { todayISO } from '../../lib/dates';
 import { downloadText } from '../../lib/download';
+import { downloadAtlasCopy } from '../../persistence/backup';
 import { useStorageHealth } from '../../persistence/health';
-import { exportPayload } from '../../persistence/storage';
 import { useAtlas } from '../../state/atlasStore';
 import { Button } from '../ui/Button';
 
@@ -24,7 +23,7 @@ export function StorageNotice() {
           <p className="min-w-0 flex-1 text-[12.5px] text-ink">
             {t('This browser is not saving your atlas: its storage is full or blocked. What you change now stays only until this tab is closed.')}
           </p>
-          <Button size="sm" variant="primary" onClick={() => downloadText(`noa-atlas-${todayISO()}.json`, exportPayload(useAtlas.getState().data))}>
+          <Button size="sm" variant="primary" onClick={() => downloadAtlasCopy(useAtlas.getState().data)}>
             {t('Download a copy')}
           </Button>
         </div>
