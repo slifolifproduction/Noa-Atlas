@@ -46,7 +46,9 @@ export function registerServiceWorker() {
   // Installed, the browser is asked once to keep what the app stores (see persistence/protect).
   if (standalone()) void navigator.storage?.persist?.().catch(() => false);
 
-  if (!import.meta.env.PROD || insideClaude() || !('serviceWorker' in navigator)) return;
+  // Never inside another page either: claude.ai shows the app in a frame and serves the page itself, around which a
+  // kept copy of the bare page would be wrong.
+  if (!import.meta.env.PROD || insideClaude() || window.top !== window.self || !('serviceWorker' in navigator)) return;
   // The new version took over because the person asked: start again in it.
   navigator.serviceWorker.addEventListener('controllerchange', () => reloadAsked && location.reload());
   void keepOnDevice();
