@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { firstVisit, storedAtlas, watchErrors, writeNote } from './helpers';
+import { firstVisit, restingNode, storedAtlas, watchErrors, writeNote } from './helpers';
 
 test('a note is saved and shows in Time', async ({ page }) => {
   const errors = watchErrors(page);
@@ -30,7 +30,7 @@ test('a target ticked on the plan is saved', async ({ page }) => {
 test('the panel opens on a map element and closes with Escape', async ({ page, isMobile }) => {
   test.skip(isMobile, 'on a phone the map shows the areas only; their panel is opened from the list');
   await firstVisit(page);
-  await page.locator('.react-flow__node').nth(5).click({ force: true });
+  await (await restingNode(page)).click({ force: true });
   const close = page.getByRole('button', { name: /Close panel/ });
   await expect(close).toBeVisible();
   await page.keyboard.press('Escape');

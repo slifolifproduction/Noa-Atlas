@@ -65,3 +65,24 @@ export function watchChunks(page: Page): Set<string> {
   });
   return chunks;
 }
+
+/**
+ * A map element to click, once the Map has finished arriving: for about a second its elements move into place (some
+ * 60 px), and a click aimed where one was a moment before can miss it on a slow machine. After that they only drift.
+ */
+export async function restingNode(page: Page, n = 5) {
+  const node = page.locator('.react-flow__node').nth(n);
+  let last: { x: number; y: number } | null = null;
+  await expect
+    .poll(
+      async () => {
+        const box = await node.boundingBox();
+        const moved = box && last ? Math.hypot(box.x - last.x, box.y - last.y) : Infinity;
+        last = box;
+        return moved;
+      },
+      { intervals: [200] },
+    )
+    .toBeLessThan(2);
+  return node;
+}

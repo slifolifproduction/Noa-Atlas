@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { expect, test, type Page } from '@playwright/test';
-import { firstVisit, ROUTES } from './helpers';
+import { firstVisit, restingNode, ROUTES } from './helpers';
 
 const AXE = readFileSync(createRequire(import.meta.url).resolve('axe-core/axe.min.js'), 'utf8');
 
@@ -39,7 +39,7 @@ test('no WCAG A or AA violations on any lens, in the capture form or in the pane
   await page.keyboard.press('Escape');
   if (!isMobile) {
     await page.goto('/#/orbit');
-    await page.locator('.react-flow__node').nth(5).click({ force: true });
+    await (await restingNode(page)).click({ force: true });
     await expect(page.getByRole('button', { name: /Close panel/ })).toBeVisible();
     expect(await violations(page), 'panel').toEqual([]);
   }
