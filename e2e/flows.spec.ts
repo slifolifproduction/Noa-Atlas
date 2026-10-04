@@ -54,12 +54,13 @@ test('the agent answers on this device', async ({ page }) => {
     .toBeGreaterThan(0);
 });
 
-test('outside claude.ai, the agent says why Claude cannot answer here, and where it can', async ({ page }) => {
+test('outside claude.ai, the agent says how Claude can answer here, and where else it can', async ({ page }) => {
   await firstVisit(page, 'en', 'timeline');
   await page.keyboard.press('a');
   const panel = page.getByRole('complementary', { name: 'Atlas agent' });
   await expect(panel).toBeVisible();
-  await expect(panel.getByText('Claude answers when the Atlas is opened in claude.ai, signed in.')).toBeVisible();
+  await expect(panel.getByText('Claude answers here once you add your own Anthropic API key')).toBeVisible();
+  await expect(panel.getByRole('link', { name: 'Add your key' })).toHaveAttribute('href', '#/settings/claude');
   await expect(panel.getByRole('link', { name: 'Open in claude.ai' })).toHaveAttribute('href', /^https:\/\/claude\.ai\/artifact\//);
   await expect(panel.getByRole('option', { name: 'Claude' })).toBeDisabled();
 });
@@ -73,7 +74,7 @@ test('Claude chosen in claude.ai, then opened elsewhere: said before anything is
   await page.keyboard.press('a');
   const panel = page.getByRole('complementary', { name: 'Atlas agent' });
   await expect(panel).toBeVisible();
-  await expect(panel.getByRole('note')).toContainText('Claude answers when the Atlas is opened in claude.ai');
+  await expect(panel.getByRole('note')).toContainText('Claude answers here once you add your own Anthropic API key');
   await expect(panel.getByText('Claude, not available here')).toBeVisible();
   await panel.getByRole('button', { name: 'Let the agent on this device answer' }).click();
   await expect(panel.getByText('The agent on this device')).toBeVisible();

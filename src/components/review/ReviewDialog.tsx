@@ -72,8 +72,8 @@ export function ReviewDialog() {
       const review = await runReview(data, today, { signal: ctl.signal });
       setPhase({ kind: 'done', review });
     } catch (e) {
-      const code = (e as SampleError)?.code;
-      setPhase(code === 'cancelled' ? { kind: 'idle' } : { kind: 'error', message: sampleErrorText(code) });
+      const { code, message } = (e ?? {}) as Partial<SampleError>;
+      setPhase(code === 'cancelled' ? { kind: 'idle' } : { kind: 'error', message: sampleErrorText(code, message) });
     }
   };
 

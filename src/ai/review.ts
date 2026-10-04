@@ -19,7 +19,8 @@ import { mapElements } from '../domain/selectors';
 import type { AtlasData, ISODate } from '../domain/types';
 import { addDays } from '../lib/dates';
 import { excerpt } from '../lib/text';
-import { capability, type SampleOptions, type SampleTool } from '../runtime/claude';
+import type { SampleOptions, SampleTool } from '../runtime/claude';
+import { claudeHere } from './access';
 import { askJson, jsonPrompt } from './account';
 import { SHARED_RULES } from './schemas';
 
@@ -148,7 +149,7 @@ export function checkReview(data: AtlasData, review: Review): Review {
 
 /** Ask Claude for the review; tools are offered where this view can run them. */
 export async function runReview(data: AtlasData, today: ISODate, options: Pick<SampleOptions, 'signal' | 'onText'> = {}): Promise<Review> {
-  const sample = await capability('sample');
+  const sample = await claudeHere();
   const limits = await sample?.limits().catch(() => null);
   const tools = limits?.tools ? reviewTools(data) : undefined;
   const review = await askJson(ReviewOutput, jsonPrompt(TASK, ReviewOutput, reviewInput(data, today)), {

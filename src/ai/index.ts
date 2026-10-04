@@ -1,6 +1,7 @@
 import { localAIProvider } from './localAIProvider';
 import { localProvider } from './localProvider';
 import type { AnalysisProvider, ProviderId } from './types';
+import { accountLabel } from './access';
 import { t } from '../i18n';
 
 export interface ProviderSettings {
@@ -39,7 +40,7 @@ export function resolveProvider(settings: ProviderSettings, onFallback?: (error:
     }) as AnalysisProvider[K];
   return {
     id: settings.provider,
-    label: account ? t('Claude (your account)') : t('Claude'),
+    label: account ? accountLabel() : t('Claude'),
     analyzeEntry: withFallback('analyzeEntry'),
     detectDecisionPatterns: withFallback('detectDecisionPatterns'),
     proposeExperiments: withFallback('proposeExperiments'),

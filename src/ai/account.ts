@@ -1,21 +1,23 @@
 /**
- * Claude on the viewer's own claude.ai account.
+ * Claude on the viewer's own claude.ai account, or on their own API key.
  *
  * Inside claude.ai the page can ask Claude directly (the `sample`
  * capability): no key, no proxy, and the viewer's own usage. The first call
- * in a visit asks the viewer to allow it. Each call is independent, so the
+ * in a visit asks the viewer to allow it. Elsewhere it asks with the key the
+ * person added in Settings (ai/ownKey.ts). Each call is independent, so the
  * task's instructions, the input and the exact shape of the answer (the same
  * Zod schema the proxy uses, as JSON Schema) go into the prompt, and the
  * answer is checked against that schema again before anything reads it.
  */
 import { z } from 'zod';
-import { capability, type SampleError, type SampleOptions } from '../runtime/claude';
+import type { SampleError, SampleOptions } from '../runtime/claude';
+import { claudeHere } from './access';
 import { AnalysisError } from './errors';
 import { LANGUAGE_RULE, TASKS, type TaskName, type TaskOutput } from './schemas';
 import { getLang, t } from '../i18n';
 
 /** What to tell the person when a call did not go through. */
-export function sampleErrorText(code?: string): string {
+export function sampleErrorText(code?: string, detail?: string): string {
   switch (code) {
     case 'not_granted':
       return t('This page was not allowed to use Claude, so the Atlas’s own rules are used.');
@@ -28,6 +30,16 @@ export function sampleErrorText(code?: string): string {
       return t('Claude is busy, or your usage limit is reached. Try again later.');
     case 'session_expired':
       return t('Sign in to claude.ai again to use Claude.');
+    case 'invalid_key':
+      return t('Your API key was not accepted. Check it in Settings.');
+    case 'model_unavailable':
+      return t('Your API key cannot use this model. Choose another in Settings.');
+    case 'bad_request':
+      return detail ? t('The request was refused: {reason}', { reason: detail }) : t('The request was refused.');
+    case 'unreachable':
+      return t('Claude could not be reached. Check your connection.');
+    case 'cancelled':
+      return t('Stopped.');
     case 'refused':
       return t('Claude declined this request.');
     case 'prompt_too_large':
@@ -53,7 +65,7 @@ export function jsonPrompt(system: string, schema: z.ZodType, input: unknown): s
 
 /** Ask Claude for structured data on the viewer's account; the answer is checked against the schema. */
 export async function askJson<S extends z.ZodType>(schema: S, prompt: string, options: SampleOptions = {}): Promise<z.infer<S>> {
-  const sample = await capability('sample');
+  const sample = await claudeHere();
   if (!sample) throw { code: 'not_declared', message: 'Claude is not available in this view.' } satisfies SampleError;
   const raw = await sample.json(prompt, options);
   const parsed = schema.safeParse(raw);
@@ -67,6 +79,6 @@ export async function accountCall<T extends TaskName>(task: T, input: unknown): 
   try {
     return (await askJson(spec.schema, jsonPrompt(spec.system, spec.schema, input), { cache: false })) as TaskOutput<T>;
   } catch (e) {
-    throw new AnalysisError(sampleErrorText((e as SampleError)?.code), task);
+    throw new AnalysisError(sampleErrorText((e as SampleError)?.code, (e as SampleError)?.message), task);
   }
 }

@@ -1,6 +1,6 @@
 /**
- * The agent with Claude, on the person's own claude.ai account (the `sample` capability: their usage, asked for
- * their consent by claude.ai the first time).
+ * The agent with Claude: on the person's own claude.ai account (the `sample` capability: their usage, asked for
+ * their consent by claude.ai the first time), or on their own Anthropic API key elsewhere (ai/access.ts).
  *
  * Claude gets its instructions (what it is for, what it never does, the Atlas's rules), a compact picture of the
  * atlas in the person's terms (element names, N12 for a note, R4 for a reason; never an internal id), the last turns
@@ -22,7 +22,8 @@ import type { AreaKey, AtlasData, Effect, ElementKind, ISODate, LinkType } from 
 import { getLang } from '../i18n';
 import { addDays } from '../lib/dates';
 import { excerpt } from '../lib/text';
-import { capability, type SampleError, type SampleTool } from '../runtime/claude';
+import { claudeHere } from '../ai/access';
+import type { SampleError, SampleTool } from '../runtime/claude';
 import { check, describe as describeChange } from './changes';
 import { answerFrom, searchKnowledge } from './knowledge';
 import { findElement, fold } from './refs';
@@ -274,7 +275,7 @@ export async function claudeTurn(
   today: ISODate,
   options: { onText?: (text: string) => void; signal?: AbortSignal } = {},
 ): Promise<ClaudeTurn> {
-  const sample = await capability('sample');
+  const sample = await claudeHere();
   if (!sample) throw { code: 'not_declared', message: 'Claude is not available in this view.' } satisfies SampleError;
   const limits = await sample.limits().catch(() => null);
   const drafts: DraftChange[] = [];

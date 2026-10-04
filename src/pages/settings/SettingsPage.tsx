@@ -10,7 +10,7 @@ import { formatDate, todayISO } from '../../lib/dates';
 import { downloadAtlasCopy, useBackup } from '../../persistence/backup';
 import { askToKeepStorage, storageKept } from '../../persistence/protect';
 import { installApp, usePwa } from '../../pwa/register';
-import { insideClaude } from '../../runtime/claude';
+import { insideClaude, whereOpened } from '../../runtime/claude';
 import { cn } from '../../lib/cn';
 import { useAtlas } from '../../state/atlasStore';
 import { readImport, STORAGE_KEYS } from '../../persistence/storage';
@@ -23,12 +23,15 @@ import { AccountPanel } from '../../components/shell/AccountControls';
 import { LearnedPanel } from '../../components/shell/LearnedPanel';
 import { LocalAIPanel } from '../../components/shell/LocalAIPanel';
 import { useAccount } from '../../state/accountStore';
+import { useClaudeVia } from '../../ai/access';
+import { OwnKeyPanel } from '../../components/shell/OwnKeyPanel';
+import { useRoute } from '../../app/router';
 import { ClaudeElsewhere } from '../../components/shell/ClaudeElsewhere';
 import { Trans } from '../../i18n/Trans';
 
-function Block({ title, description, children }: { title: string; description?: ReactNode; children: ReactNode }) {
+function Block({ title, description, children, id }: { title: string; description?: ReactNode; children: ReactNode; id?: string }) {
   return (
-    <section className="grid gap-4 border-t border-line py-6 md:grid-cols-[240px_minmax(0,1fr)]">
+    <section id={id} className="grid scroll-mt-16 gap-4 border-t border-line py-6 md:grid-cols-[240px_minmax(0,1fr)]">
       <div>
         <h2 className="display text-[17px] text-ink">{title}</h2>
         {description && <p className="mt-1 text-[12.5px] leading-relaxed text-ink-3">{description}</p>}
@@ -126,7 +129,16 @@ export function SettingsPage() {
   const file = useRef<HTMLInputElement>(null);
   const lang = useLang();
   const inAccount = useAccount((s) => s.mode === 'account');
-  const claude = useAccount((s) => s.claude);
+  const via = useClaudeVia();
+  const outside = whereOpened() === 'outside';
+  const param = useRoute().param;
+  // Sent here to add a key (from the agent, say): its field, in view and ready to type in.
+  useEffect(() => {
+    if (param !== 'claude') return;
+    const block = document.getElementById('claude');
+    block?.scrollIntoView({ block: 'start' });
+    block?.querySelector<HTMLInputElement>('input')?.focus({ preventScroll: true });
+  }, [param]);
   const counts = modelCounts(data);
   const bytes = (() => {
     try {
@@ -258,6 +270,18 @@ export function SettingsPage() {
           <AccountPanel />
         </Block>
 
+        {outside && (
+          <Block
+            id="claude"
+            title={t('Claude, with your own key')}
+            description={t(
+              'Outside claude.ai, the agent, the analysis and the weekly review can ask Claude with an Anthropic API key of your own, paid from your own Anthropic credit.',
+            )}
+          >
+            <OwnKeyPanel />
+          </Block>
+        )}
+
         <MoreDetail label={t('Advanced settings')} inset={false} className="mt-2">
           <Block
             title={t('What the Atlas has learned')}
@@ -314,13 +338,21 @@ export function SettingsPage() {
                       'The local heuristics, and machine learning models that run in this browser: a built-in one that reads every sentence straight away, and a language model that reads meaning once you download it. Nothing you write leaves the device.',
                     ),
                   },
-                  {
-                    id: 'account',
-                    title: t('Claude, with your claude.ai account'),
-                    body: t(
-                      'Inside claude.ai, while you are signed in: the note being read, with element and repeat names, goes to Claude on your own account and usage. It asks you first, and falls back to local heuristics when it cannot.',
-                    ),
-                  },
+                  outside
+                    ? {
+                        id: 'account' as const,
+                        title: t('Claude, with your own API key'),
+                        body: t(
+                          'With the key you added above: the note being read, with element and repeat names, goes to Claude, paid from your Anthropic credit. Falls back to local heuristics when it cannot.',
+                        ),
+                      }
+                    : {
+                        id: 'account' as const,
+                        title: t('Claude, with your claude.ai account'),
+                        body: t(
+                          'Inside claude.ai, while you are signed in: the note being read, with element and repeat names, goes to Claude on your own account and usage. It asks you first, and falls back to local heuristics when it cannot.',
+                        ),
+                      },
                   {
                     id: 'claude',
                     title: t('Claude, via your proxy'),
@@ -342,15 +374,21 @@ export function SettingsPage() {
                     name="provider"
                     className="mt-1 accent-[var(--color-accent)]"
                     checked={settings.provider === o.id}
-                    disabled={o.id === 'account' && claude !== 'available' && settings.provider !== 'account'}
+                    disabled={o.id === 'account' && via !== 'account' && via !== 'key' && settings.provider !== 'account'}
                     onChange={() => setSettings({ provider: o.id })}
                   />
                   <span>
                     <span className="block text-[13.5px] text-ink">{o.title}</span>
                     <span className="mt-0.5 block text-[12.5px] leading-snug text-ink-2">{o.body}</span>
-                    {o.id === 'account' && claude !== 'available' && (
+                    {o.id === 'account' && via !== 'account' && via !== 'key' && (
                       <span className="mt-1 block text-[12px] text-ink-3">
-                        {claude === 'checking' ? t('Checking whether Claude can be asked from here…') : <ClaudeElsewhere />}
+                        {via === 'checking' ? (
+                          t('Checking whether Claude can be asked from here…')
+                        ) : outside ? (
+                          t('Add your API key under “Claude, with your own key” above first.')
+                        ) : (
+                          <ClaudeElsewhere />
+                        )}
                       </span>
                     )}
                   </span>

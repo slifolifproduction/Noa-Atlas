@@ -13,6 +13,7 @@ import type { AnalysisSuggestion, AtlasData, Decision, EntryAnalysis, Navigation
 import { addDays, todayISO, weekStart } from '../lib/dates';
 import { createId } from '../lib/ids';
 import { evaluateExperimentLocally } from './localAnalysis';
+import { accountLabel } from './access';
 import { accountCall } from './account';
 import { AnalysisError } from './errors';
 import { TASKS, type TaskName, type TaskOutput } from './schemas';
@@ -76,9 +77,9 @@ export function createClaudeProvider(endpoint: string): AnalysisProvider {
   return withCall(call, 'claude', t('Claude'));
 }
 
-/** Claude on the viewer's own claude.ai account (inside claude.ai only; see ai/account). */
+/** Claude on the viewer's own claude.ai account, or on their own API key elsewhere (see ai/account). */
 export function createAccountProvider(): AnalysisProvider {
-  return withCall(accountCall, 'account', t('Claude (your account)'));
+  return withCall(accountCall, 'account', accountLabel());
 }
 
 /** The same reading of every task's output, whichever way Claude was reached. */

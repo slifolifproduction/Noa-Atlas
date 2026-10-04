@@ -4,11 +4,12 @@ import { navigate } from '../../app/router';
 import { applicable, describe, LENS_LABEL, LENS_OF, LENS_ORDER, summary } from '../../agent/changes';
 import { citationLabel, splitCitations } from '../../agent/refs';
 import { useAgentPanel } from '../../agent/panel';
-import { claudeReady, useAgent } from '../../agent/store';
+import { useAgent } from '../../agent/store';
+import { useClaudeVia } from '../../ai/access';
 import type { AgentMessage, AgentMode, ChangeSet, Citation } from '../../agent/types';
 import { t, tn } from '../../i18n';
 import { cn } from '../../lib/cn';
-import { useAccount } from '../../state/accountStore';
+import { whereOpened } from '../../runtime/claude';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { ClaudeElsewhere } from '../shell/ClaudeElsewhere';
@@ -191,7 +192,8 @@ const MODES: { value: AgentMode; label: () => string }[] = [
 export function AgentPanel() {
   const { open, setOpen } = useAgentPanel();
   const { messages, send, busy, stop, mode, setMode, newChat } = useAgent();
-  const claude = useAccount((s) => s.claude);
+  const via = useClaudeVia();
+  const ready = via === 'account' || via === 'key';
   const [draft, setDraft] = useState('');
   const input = useRef<HTMLTextAreaElement>(null);
   const end = useRef<HTMLDivElement>(null);
@@ -232,10 +234,12 @@ export function AgentPanel() {
     }, 0);
   };
   const answering =
-    mode === 'claude' && claude === 'unavailable'
+    mode === 'claude' && via === null
       ? t('Claude, not available here')
-      : mode === 'claude' || (mode === 'auto' && claudeReady())
-        ? t('Claude, on your account')
+      : mode === 'claude' || (mode === 'auto' && ready)
+        ? via === 'key'
+          ? t('Claude, with your API key')
+          : t('Claude, on your account')
         : t('The agent on this device');
 
   return (
@@ -273,7 +277,7 @@ export function AgentPanel() {
                 </li>
               ))}
             </ul>
-            {claude === 'unavailable' && mode === 'auto' && <ClaudeElsewhere className="mt-4 border-t border-line pt-3" />}
+            {via === null && mode === 'auto' && <ClaudeElsewhere className="mt-4 border-t border-line pt-3" />}
           </div>
         ) : (
           <div className="space-y-5">
@@ -286,7 +290,7 @@ export function AgentPanel() {
       </div>
 
       <div className="shrink-0 border-t border-line p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
-        {claude === 'unavailable' && mode === 'claude' && (
+        {via === null && mode === 'claude' && (
           // Chosen where it cannot answer (the choice is kept from a visit in claude.ai): say so before anything is sent.
           <div role="note" className="mb-2.5">
             <ClaudeElsewhere />
@@ -315,10 +319,16 @@ export function AgentPanel() {
               value={mode}
               onChange={(e) => setMode(e.target.value as AgentMode)}
               className="select-bare h-7 rounded-[2px] border border-transparent bg-transparent pl-1.5 text-[12px] text-ink-2 hover:border-line"
-              title={claude === 'available' ? undefined : t('Claude answers when the Atlas is opened in claude.ai, signed in.')}
+              title={
+                ready
+                  ? undefined
+                  : whereOpened() === 'outside'
+                    ? t('Claude answers here with your own Anthropic API key, added in Settings.')
+                    : t('Claude answers when the Atlas is opened in claude.ai, signed in.')
+              }
             >
               {MODES.map((o) => (
-                <option key={o.value} value={o.value} disabled={o.value === 'claude' && claude !== 'available' && mode !== 'claude'}>
+                <option key={o.value} value={o.value} disabled={o.value === 'claude' && !ready && mode !== 'claude'}>
                   {o.label()}
                 </option>
               ))}

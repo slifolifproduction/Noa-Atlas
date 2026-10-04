@@ -2,18 +2,19 @@
  * The conversation with the agent: what was said, which model answers, and the previews waiting to be applied.
  *
  * A message is checked first (scope.ts): what is plainly outside is answered here, and never sent. Then Claude
- * answers if it was chosen (or, on Auto, if it can be asked from here), and the agent on this device otherwise; on
- * Auto, if Claude cannot answer, the device does, and says so. The conversation is kept on this device.
+ * answers if it was chosen (or, on Auto, if it can be asked from here: in claude.ai, or with the person's own API
+ * key), and the agent on this device otherwise; on Auto, if Claude cannot answer, the device does, and says so. The
+ * conversation is kept on this device.
  */
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { claudeReady } from '../ai/access';
 import { sampleErrorText } from '../ai/account';
 import { t } from '../i18n';
 import { todayISO } from '../lib/dates';
 import { createId } from '../lib/ids';
 import { safeLocalStorage } from '../persistence/local';
 import type { SampleError } from '../runtime/claude';
-import { useAccount } from '../state/accountStore';
 import { useAtlas } from '../state/atlasStore';
 import { applyChanges, check, draftChanges, undoChanges } from './changes';
 import { claudeTurn, INSTRUCTIONS } from './claude';
@@ -35,9 +36,6 @@ interface AgentState {
   discard(messageId: string): void;
   undo(messageId: string): void;
 }
-
-/** Whether Claude can be asked from here (inside claude.ai, signed in, allowed). */
-export const claudeReady = () => useAccount.getState().claude === 'available';
 
 const KEEP = 60;
 let controller: AbortController | null = null;
@@ -114,7 +112,7 @@ export const useAgent = create<AgentState>()(
               changes: turn.drafts.length && !shown.withheld ? { id: createId('cs'), state: 'draft', items: check(data, turn.drafts) } : undefined,
             });
           } catch (error) {
-            const code = (error as SampleError)?.code;
+            const { code, message } = (error ?? {}) as Partial<SampleError>;
             const partial = get().messages.find((m) => m.id === id)?.text ?? '';
             if (signal.aborted || code === 'aborted') patch(id, { streaming: false, text: partial || t('Stopped.') });
             else if (mode === 'auto')
@@ -122,10 +120,10 @@ export const useAgent = create<AgentState>()(
                 streaming: false,
                 ...answerHere(
                   text,
-                  t('Claude could not answer just now ({reason}), so this is from the agent on this device.', { reason: sampleErrorText(code) }),
+                  t('Claude could not answer just now ({reason}), so this is from the agent on this device.', { reason: sampleErrorText(code, message) }),
                 ),
               });
-            else patch(id, { streaming: false, error: true, text: sampleErrorText(code) });
+            else patch(id, { streaming: false, error: true, text: sampleErrorText(code, message) });
           } finally {
             controller = null;
             set({ busy: false });

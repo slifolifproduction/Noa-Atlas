@@ -2966,6 +2966,42 @@ export const ID: Record<string, string> = {
     'Atlasmu tidak ikut pindah dengan sendirinya: ekspor di sini (Pengaturan → Datamu), lalu impor di sana.',
   'Let the agent on this device answer': 'Biarkan agen di perangkat ini yang menjawab',
   'Claude, not available here': 'Claude, tidak tersedia di sini',
+  'Claude, with your API key': 'Claude, dengan API key-mu',
+  'Claude (your API key)': 'Claude (API key-mu)',
+  'Claude answers here with your own Anthropic API key, added in Settings.':
+    'Claude menjawab di sini dengan API key Anthropic milikmu sendiri, yang ditambahkan di Pengaturan.',
+  'Claude answers here once you add your own Anthropic API key, paid from your own Anthropic credit.':
+    'Claude menjawab di sini setelah kamu menambahkan API key Anthropic milikmu sendiri, dibayar dari kredit Anthropic-mu sendiri.',
+  'Add your key': 'Tambahkan kuncimu',
+  'Or, signed in to claude.ai, open it there:': 'Atau, dalam keadaan masuk ke claude.ai, buka di sana:',
+  'Your API key was not accepted. Check it in Settings.': 'API key-mu tidak diterima. Periksa di Pengaturan.',
+  'Your API key cannot use this model. Choose another in Settings.': 'API key-mu tidak bisa memakai model ini. Pilih model lain di Pengaturan.',
+  'The request was refused: {reason}': 'Permintaan ditolak: {reason}',
+  'The request was refused.': 'Permintaan ditolak.',
+  'Claude could not be reached. Check your connection.': 'Claude tidak bisa dihubungi. Periksa koneksimu.',
+  'The most capable (the default)': 'Paling cakap (bawaan)',
+  'Faster and cheaper': 'Lebih cepat dan lebih murah',
+  'Fastest and cheapest, for simple questions': 'Paling cepat dan paling murah, untuk pertanyaan sederhana',
+  'Claude, with your own key': 'Claude, dengan kuncimu sendiri',
+  'Outside claude.ai, the agent, the analysis and the weekly review can ask Claude with an Anthropic API key of your own, paid from your own Anthropic credit.':
+    'Di luar claude.ai, agen, analisis, dan ulasan mingguan bisa bertanya ke Claude dengan API key Anthropic milikmu sendiri, dibayar dari kredit Anthropic-mu sendiri.',
+  'Your Anthropic API key': 'API key Anthropic milikmu',
+  'Save and check': 'Simpan dan periksa',
+  'That does not look like an Anthropic API key: one starts with sk-ant-.': 'Itu tidak tampak seperti API key Anthropic: kuncinya diawali sk-ant-.',
+  'The key works. Claude can answer here now.': 'Kuncinya berfungsi. Claude kini bisa menjawab di sini.',
+  'The agent, the analysis and the weekly review can ask Claude with it.': 'Agen, analisis, dan ulasan mingguan bisa bertanya ke Claude dengan kunci ini.',
+  'Remove the key': 'Hapus kunci',
+  Model: 'Model',
+  'Get a key at {console}. What Claude reads is billed to that Anthropic account, not to anyone else: set a monthly spend limit there.':
+    'Dapatkan kunci di {console}. Yang dibaca Claude ditagihkan ke akun Anthropic itu, bukan ke orang lain: atur batas pengeluaran bulanan di sana.',
+  'The key is kept in this browser only, never in your atlas, its exports or its versions, and is sent only to Anthropic. Anyone using this browser can use it: remove it on a shared device.':
+    'Kunci hanya disimpan di browser ini, tidak pernah di atlasmu, ekspornya, atau versinya, dan hanya dikirim ke Anthropic. Siapa pun yang memakai browser ini bisa memakainya: hapus kuncinya di perangkat bersama.',
+  'With a key, the agent on Auto answers with Claude. Choose “On this device” in the agent to keep a conversation free.':
+    'Dengan kunci, agen pada mode Otomatis menjawab dengan Claude. Pilih “Di perangkat ini” di agen agar percakapan tetap gratis.',
+  'Claude, with your own API key': 'Claude, dengan API key-mu sendiri',
+  'With the key you added above: the note being read, with element and repeat names, goes to Claude, paid from your Anthropic credit. Falls back to local heuristics when it cannot.':
+    'Dengan kunci yang kamu tambahkan di atas: catatan yang sedang dibaca, beserta nama elemen dan pengulangan, dikirim ke Claude, dibayar dari kredit Anthropic-mu. Kembali ke heuristik lokal jika tidak bisa.',
+  'Add your API key under “Claude, with your own key” above first.': 'Tambahkan dulu API key-mu di bagian “Claude, dengan kuncimu sendiri” di atas.',
   Send: 'Kirim',
   'About your atlas only. It can be wrong: check what it drafts before you apply it.':
     'Khusus tentang atlasmu. Ia bisa keliru: periksa susunannya sebelum kamu menerapkannya.',

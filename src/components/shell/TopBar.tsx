@@ -20,7 +20,7 @@ import { groupTarget, hrefFor, type RouteKey } from '../../app/router';
 import { isExampleAtlas } from '../../data/exampleAtlas';
 import { GROUPS, groupOf, VIEWS, type GroupKey } from '../../domain/constants';
 import { cn } from '../../lib/cn';
-import { useAccount } from '../../state/accountStore';
+import { useClaudeVia } from '../../ai/access';
 import { useAtlas } from '../../state/atlasStore';
 import { useUI } from '../../state/uiStore';
 import { PLACE_ICONS } from '../icons';
@@ -125,7 +125,8 @@ export function TopBar({ active }: { active: RouteKey }) {
 function MoreMenu() {
   const ui = useUI.getState;
   const example = useAtlas((s) => isExampleAtlas(s.data));
-  const claude = useAccount((s) => s.claude === 'available');
+  const via = useClaudeVia();
+  const claude = via === 'account' || via === 'key';
   const simple = useSimple();
   return (
     <Menu label={t('More: versions, guide, settings')} icon={Ellipsis} iconOnly className="border-transparent bg-transparent" width="w-64">
