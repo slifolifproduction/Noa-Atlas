@@ -16,6 +16,7 @@ import {
   grainTile,
   HOUR,
   lids,
+  lidsClip,
   makeStars,
   MINUTE,
   DEPTHS,
@@ -29,6 +30,7 @@ import {
   SUB,
   TAU,
   TEAR_W,
+  tearReach,
   tearWindow,
   turn,
   YAW,
@@ -90,6 +92,17 @@ const DEPTH = { tear: -0.3, haze: 1 };
  */
 const DIM_DEPTH = [0.95, 0.7, 0.45, 0.15];
 const RUSH = [0.9, 0.84, 0.76, 0.66];
+
+/**
+ * The eye's layers (see BossEye), each a square round the disc's centre, of half this side in units: each as small as
+ * what it holds can reach when turned or scaled as far as it goes, since the browser keeps each one whole.
+ */
+const PART = { disc: R_ARMOR + 9, fibres: RI + 2, focus: RI - 6, dots: 196, inner: 156, spokes: RI + 10, pupil: 152 };
+/**
+ * The light on the white: an ellipse the size of the eye (as the white's own gradient was), on a sheet reaching past
+ * it as far as the light moves with the disc.
+ */
+const LIGHT = { w: 1000 + 2 * 130, h: 580 + 2 * 100 };
 
 /**
  * The boss: the eye of something vast, looking into our space through a tear
@@ -185,7 +198,7 @@ export function BossEye({
   const body = useRef<HTMLDivElement>(null);
   const sky = useRef<HTMLCanvasElement>(null);
   const field = useRef<{ stars: Star[]; q: number }>({ stars: [], q: 1 });
-  const dim = useRef<HTMLDivElement>(null);
+  const dimLight = useRef<HTMLDivElement>(null);
   const emerge = useRef<HTMLDivElement>(null);
   const tearFront = useRef<HTMLDivElement>(null);
   const portal = useRef<HTMLDivElement>(null);
@@ -196,22 +209,26 @@ export function BossEye({
   const tearSplit = useRef<(HTMLCanvasElement | null)[]>([]);
   const burst = useRef<HTMLDivElement>(null);
   const crack = useRef<HTMLDivElement>(null);
-  const eye = useRef<SVGSVGElement>(null);
-  const disc = useRef<SVGGElement>(null);
-  const spin = useRef<SVGGElement>(null);
+  // The eye, in layers the browser moves itself (see the markup): its ball inside the lids, the light on its white, the
+  // disc that turns with it and the iris turning on that, each ring and the fibres and spokes scaled with the pupil.
+  const eye = useRef<HTMLDivElement>(null);
+  const ball = useRef<HTMLDivElement>(null);
+  const light = useRef<HTMLDivElement>(null);
+  const disc = useRef<HTMLDivElement>(null);
+  const spin = useRef<HTMLDivElement>(null);
   // The iris as a lens: its fibres, its rings and its spokes, set out between the pupil's edge and its own.
-  const fibres = useRef<SVGGElement>(null);
-  const ringInner = useRef<SVGCircleElement>(null);
-  const ringDots = useRef<SVGCircleElement>(null);
-  const ringFocus = useRef<SVGCircleElement>(null);
-  const spokeSet = useRef<SVGGElement>(null);
+  const fibres = useRef<HTMLDivElement>(null);
+  const ringInner = useRef<HTMLDivElement>(null);
+  const ringDots = useRef<HTMLDivElement>(null);
+  const ringFocus = useRef<HTMLDivElement>(null);
+  const spokeSet = useRef<HTMLDivElement>(null);
   const flares = useRef<SVGGElement>(null);
-  const pupil = useRef<SVGGElement>(null);
-  const sclera = useRef<SVGRadialGradientElement>(null);
+  const pupil = useRef<HTMLDivElement>(null);
   const hourHand = useRef<SVGGElement>(null);
   const minuteHand = useRef<SVGGElement>(null);
-  const secondHand = useRef<SVGGElement>(null);
-  const lidClip = useRef<SVGPathElement>(null);
+  const secondHand = useRef<HTMLDivElement>(null);
+  // How open the lids are now, so their clip can be drawn again at a new scale of the stage.
+  const lidsOpen = useRef(dormant || empty || state === 'defeated' ? 0.02 : 0.012);
   const lidLine = useRef<SVGPathElement>(null);
   const lidOuter = useRef<SVGPathElement>(null);
   const lidShade = useRef<SVGPathElement>(null);
@@ -262,6 +279,12 @@ export function BossEye({
   // The camera's reach on this stage, and how far past the stage the layers it carries are painted, so no edge shows.
   const pull = Math.min(geo.w, geo.h) * PULL;
   const over = Math.ceil(pull * (DEPTH.haze - DEPTH.tear)) + 12;
+  // The tear's paintings are a band along its line, as tall as it and its cracks reach and the glow round its edge.
+  const reach = useMemo(() => tearReach(seed), [seed]);
+  const band = Math.ceil(reach * geo.k) + 48;
+  // On whole pixels, as the stage-sized paintings were, so they are drawn alike.
+  const bandTop = Math.floor(geo.cy + over - band);
+  const bandStyle = { top: bandTop, height: 2 * band };
 
   useLayoutEffect(() => {
     const el = root.current;
@@ -303,21 +326,25 @@ export function BossEye({
       tearHalo.current,
       {
         w: geo.w + 2 * over,
-        h: geo.h + 2 * over,
+        h: 2 * band,
         cx: geo.cx + over,
-        cy: geo.cy + over,
+        cy: geo.cy + over - bandTop,
         k: geo.k,
         seed,
         urgent: hot,
       },
       tearSplit.current,
     );
-  }, [geo, seed, hot, over]);
+  }, [geo, seed, hot, over, band, bandTop]);
   // The other dimension is painted once per scale and boss, a canvas for each of its depths (they turn and breathe in CSS).
   useEffect(() => {
     if (!geo.w) return;
     dimCanvas.current.forEach((c, i) => c && paintDepth(c, i, { k: geo.k, seed }));
   }, [geo.w, geo.k, seed]);
+  // The lids' clip is in the stage's pixels: drawn again at each new scale, as open as they are now.
+  useLayoutEffect(() => {
+    if (ball.current) ball.current.style.clipPath = lidsClip(lidsOpen.current, geo.k);
+  }, [geo.k]);
   // The window onto the eye's dimension: the tear's own shape, on the stage.
   const windowD = useMemo(() => (geo.w ? tearWindow(seed, geo.cx, geo.cy, geo.k) : ''), [seed, geo.w, geo.cx, geo.cy, geo.k]);
 
@@ -449,16 +476,18 @@ export function BossEye({
     let lastLids = -1;
     const setLids = (o: number) => {
       if (Math.abs(o - lastLids) < 0.0004) return;
-      lastLids = o;
+      lastLids = lidsOpen.current = o;
       const d = lids(o);
-      for (const p of [lidClip, lidLine, lidOuter, lidShade]) p.current?.setAttribute('d', d);
+      for (const p of [lidLine, lidOuter, lidShade]) p.current?.setAttribute('d', d);
+      if (ball.current) ball.current.style.clipPath = lidsClip(o, live.current.k);
     };
-    const last = { h: '', m: '', s: '' };
+    // The hours and minutes are drawn again only once they have moved a quarter of a degree (a minute hand does so
+    // every few seconds), the seconds are turned as a layer: so the clock is not drawn again each second.
+    const last = { h: -1e9, m: -1e9 };
     const setHands = (h: number, m: number, s: number) => {
-      const [hs, ms, ss] = [`rotate(${h.toFixed(2)})`, `rotate(${m.toFixed(2)})`, `rotate(${s.toFixed(2)} 0 ${SUB.y.toFixed(1)})`];
-      if (hs !== last.h) hourHand.current?.setAttribute('transform', (last.h = hs));
-      if (ms !== last.m) minuteHand.current?.setAttribute('transform', (last.m = ms));
-      if (ss !== last.s) secondHand.current?.setAttribute('transform', (last.s = ss));
+      if (Math.abs(h - last.h) >= 0.25) hourHand.current?.setAttribute('transform', `rotate(${(last.h = h).toFixed(2)})`);
+      if (Math.abs(m - last.m) >= 0.25) minuteHand.current?.setAttribute('transform', `rotate(${(last.m = m).toFixed(2)})`);
+      set(secondHand.current, `rotate(${s.toFixed(1)}deg)`);
     };
     const angles = () => {
       const c = clockParts(new Date());
@@ -468,26 +497,43 @@ export function BossEye({
     // The eyeball turns: iris, its rings and the pupil are one disc on it, carried and foreshortened
     // together; the pupil only opens and closes about the same centre, and the light on the white follows.
     // `ap` is the pupil's aperture (a scale of the clock) and `lens` the iris's (a scale of the whole disc).
+    // Each is moved as a layer, not drawn again (the clock only now and then, below), and nothing is set twice.
     let lastIris = -1;
+    let drawn = 1e9;
+    const was = new Map<object, string>();
+    const set = (n: HTMLElement | null, v: string) => {
+      if (!n || was.get(n) === v) return;
+      was.set(n, v);
+      n.style.transform = v;
+    };
     const carry = (yaw: number, pitch: number, ap: number, lens = 1) => {
       const t = turn(yaw, pitch);
-      disc.current?.setAttribute('transform', t.matrix(lens));
-      pupil.current?.setAttribute('transform', `scale(${ap.toFixed(3)})`);
+      set(disc.current, t.css(lens, 2 * PART.disc));
+      // The clock is drawn again at its new size only once that is more than a little off what was drawn (under a
+      // pixel at its rim); till then the browser scales what was drawn.
+      if (Math.abs(ap / drawn - 1) > 0.006) {
+        drawn = ap;
+        const sc = `scale(${ap.toFixed(4)})`;
+        pupil.current?.querySelectorAll('.clk-scale').forEach((g) => g.setAttribute('transform', sc));
+        // The seconds turn about their own small dial, where the clock now has it.
+        if (secondHand.current) secondHand.current.style.transformOrigin = `50% ${(((PART.pupil + SUB.y * ap) / (2 * PART.pupil)) * 100).toFixed(3)}%`;
+      }
+      set(pupil.current, `scale(${(ap / drawn).toFixed(3)})`);
       // The iris gives way to the pupil like the leaves of a lens: what lies near the pupil goes with it,
       // what lies near the rim stays; the focus ring at its rim turns as the aperture changes.
       if (Math.abs(ap - lastIris) > 0.0008) {
         lastIris = ap;
         const P = RC * ap;
         const at = (r: number) => (P + ((RI - P) * (r - RC)) / (RI - RC)) / r;
-        const scale = (n: Element | null, v: number, rest = '') => n?.setAttribute('transform', `${rest}scale(${v.toFixed(4)})`);
+        const scale = (n: HTMLElement | null, v: number, rest = '') => set(n, `${rest}scale(${v.toFixed(4)})`);
         scale(ringInner.current, at(RC + 30));
         scale(ringDots.current, at(RI * 0.74));
-        scale(ringFocus.current, at(RI - 14), `rotate(${((ap - 1) * 80).toFixed(2)}) `);
+        scale(ringFocus.current, at(RI - 14), `rotate(${((ap - 1) * 80).toFixed(2)}deg) `);
         scale(fibres.current, Math.max(0.82, Math.min(1.02, at(160))));
         scale(spokeSet.current, Math.max(0.8, Math.min(1.03, at(150))));
       }
-      sclera.current?.setAttribute('cx', (0.5 + (t.x / 1000) * 0.6).toFixed(4));
-      sclera.current?.setAttribute('cy', (0.5 + (t.y / 580) * 0.6).toFixed(4));
+      // The light on the white: its centre goes 0.6 of the way the disc does.
+      set(light.current, `translate(${((0.6 * t.x * 100) / LIGHT.w).toFixed(2)}%,${((0.6 * t.y * 100) / LIGHT.h).toFixed(2)}%)`);
       live.current.px = t.x * live.current.k;
       live.current.py = t.y * live.current.k;
       return t;
@@ -662,9 +708,12 @@ export function BossEye({
           // And its light splits, once, as through a lens: red and blue swell apart from the tear's edge and
           // close again, smoothly, never a glitch; the stars split too (see drawStars).
           live.current.chromaAt = now;
+          // Shown only for that moment: a layer the page need not put together every frame after.
           tearSplit.current.forEach((el, i) => {
+            if (!el) return;
             const [x, y] = i ? [5, 2] : [-5, -2];
-            el?.animate(
+            el.style.display = 'block';
+            const run = el.animate(
               [
                 { opacity: 0, translate: '0 0', easing: 'cubic-bezier(.2,.8,.3,1)' },
                 { opacity: 0.85, translate: `${x}px ${y}px`, offset: 0.22, easing: 'cubic-bezier(.4,0,.2,1)' },
@@ -672,6 +721,8 @@ export function BossEye({
               ],
               { duration: 560 },
             );
+            const hide = () => (el.style.display = '');
+            run.finished.then(hide, hide);
           });
         }
         if (wake >= TORN) torn = true;
@@ -694,7 +745,7 @@ export function BossEye({
       }
       // The iris turns slowly on itself (once in three minutes), until it is beaten.
       if (!L.dormant && L.state !== 'defeated') turned -= dt * 0.002;
-      spin.current?.setAttribute('transform', `rotate(${turned.toFixed(2)})`);
+      set(spin.current, `rotate(${turned.toFixed(2)}deg)`);
       // Blinks: when hit, and rarely by itself; it has no need to.
       if (L.hitAt !== lastHit) {
         lastHit = L.hitAt;
@@ -714,8 +765,11 @@ export function BossEye({
         open += (goal - open) * 0.6;
         openV = 0;
       } else {
-        openV = openV * 0.78 + (goal - open) * 0.035;
-        open += openV;
+        // A step for each sixtieth of a second gone, so the lids settle as soon on a device that draws less often.
+        for (let n = Math.max(1, Math.round(dt / 16.7)); n > 0; n--) {
+          openV = openV * 0.78 + (goal - open) * 0.035;
+          open += openV;
+        }
       }
       // Where it looks: the part you point to; you (the pointer, the tilt); else straight out at you.
       let [tx, ty] = [0, 0];
@@ -821,7 +875,9 @@ export function BossEye({
       };
       put(tearFront, DEPTH.tear);
       put(portal, DEPTH.tear);
-      put(dim, DEPTH.haze - DEPTH.tear);
+      // The haze's light (its dark behind it is one colour, and stays).
+      if (dimLight.current)
+        dimLight.current.style.translate = `${(ox * (DEPTH.haze - DEPTH.tear)).toFixed(1)}px ${(oy * (DEPTH.haze - DEPTH.tear)).toFixed(1)}px`;
       DIM_DEPTH.forEach((d, i) => put(dimLayers.current[i], d - DEPTH.tear));
       put(emerge, -DEPTH.tear);
       const sc = sky.current?.getContext('2d');
@@ -859,6 +915,14 @@ export function BossEye({
   }, [reduced]);
 
   const box = (hw: number, hh: number) => ({ left: geo.cx - hw * geo.k, top: geo.cy - hh * geo.k, width: 2 * hw * geo.k, height: 2 * hh * geo.k });
+  // A layer of the eye: `hw` by `hh` units each side of the centre of its parent, which reaches `pw` by `ph` units each side.
+  const part = (hw: number, hh = hw, pw = PART.disc, ph = pw) => ({
+    left: (pw - hw) * geo.k,
+    top: (ph - hh) * geo.k,
+    width: 2 * hw * geo.k,
+    height: 2 * hh * geo.k,
+  });
+  const square = (r: number) => `${-r} ${-r} ${2 * r} ${2 * r}`;
   const plate = (i: number, count: number, whole: number): [string | null, string | null] => {
     const span = 360 / count;
     const gap = Math.min(6, span * 0.18);
@@ -870,7 +934,7 @@ export function BossEye({
   const lidsNow = lids(dormant || state === 'defeated' ? 0.02 : 0.012);
   // The light at the end of the tunnel, where the eye is: a pale haze with a faint warm core, burning near its date.
   const [lx, ly, lc] = [Math.round(1000 * geo.k), Math.round(560 * geo.k), Math.round(240 * geo.k)];
-  const dimLight = [
+  const dimLightBg = [
     `radial-gradient(circle ${lc}px at ${geo.cx + over}px ${geo.cy + over}px, ${hot ? 'rgb(255 110 50 / 0.34)' : 'rgb(255 172 124 / 0.16)'}, transparent)`,
     `radial-gradient(ellipse ${lx}px ${ly}px at ${geo.cx + over}px ${geo.cy + over}px, ${
       hot
@@ -896,9 +960,12 @@ export function BossEye({
         {/* The eye's dimension, seen only through the tear. Not space: a haze with light at its end, lines
             drifting in it, and a tunnel of torn membrane round the eye, ring behind ring, turning; then the eye. */}
         <div ref={portal} className="quest-portal" style={{ clipPath: `url(#${id}-window)` }}>
-          <div ref={dim} className="quest-dim" style={{ inset: -over }}>
-            <div className="quest-dim-light" style={{ background: dimLight, transformOrigin: `${geo.cx + over}px ${geo.cy + over}px` }} />
-          </div>
+          <div className="quest-dim" style={{ inset: -over }} />
+          <div
+            ref={dimLight}
+            className="quest-dim-light"
+            style={{ inset: -over, background: dimLightBg, transformOrigin: `${geo.cx + over}px ${geo.cy + over}px` }}
+          />
           {DEPTHS.map(({ reach, turn, wander, breathe }, i) => (
             <div
               key={i}
@@ -926,35 +993,48 @@ export function BossEye({
           <div ref={emerge} className="quest-emerge">
             <div className="quest-glow" style={{ left: geo.cx, top: geo.cy, width: 1200 * geo.k, height: 1200 * geo.k }} />
 
-            {/* The eye, inside its lids; its pupil is a clock. */}
-            <div className="quest-layer" style={box(500, 290)}>
-              <svg ref={eye} viewBox="-500 -290 1000 580" className="boss-eye" data-state={dormant ? 'dormant' : state}>
-                <defs>
-                  <clipPath id={`${id}-lids`}>
-                    <path ref={lidClip} d={lidsNow} />
-                  </clipPath>
-                  <radialGradient ref={sclera} id={`${id}-sclera`}>
-                    <stop offset="0" className="eye-sclera-in" />
-                    <stop offset="0.55" className="eye-sclera-mid" />
-                    <stop offset="1" className="eye-sclera-out" />
-                  </radialGradient>
-                </defs>
-                <g clipPath={`url(#${id}-lids)`}>
-                  {/* The white of it is solid: it is in front of the tear, not a window onto it. */}
-                  <rect x={-500} y={-290} width={1000} height={580} className="eye-sclera-base" />
-                  <rect x={-500} y={-290} width={1000} height={580} fill={`url(#${id}-sclera)`} />
-                  {/* One disc on the eyeball: the iris, the rings round it, and the pupil at its centre. They turn as one. */}
-                  <g ref={disc}>
-                    <g ref={spin}>
+            {/* The eye, inside its lids; its pupil is a clock. Layers the browser moves and turns as they are, so
+                nothing of it is drawn again as it looks about but the clock (see PART). */}
+            <div ref={eye} className="quest-layer boss-eye" style={box(500, 290)} data-state={dormant ? 'dormant' : state}>
+              {/* The ball, inside the lids. The white of it is solid: it is in front of the tear, not a window onto it. */}
+              <div ref={ball} className="eye-ball">
+                <div
+                  ref={light}
+                  className="eye-part eye-light"
+                  style={{
+                    ...part(LIGHT.w / 2, LIGHT.h / 2, 500, 290),
+                    background: `radial-gradient(ellipse ${500 * geo.k}px ${290 * geo.k}px at center, rgb(var(--eye) / 0.1), rgb(var(--eye) / 0.035) 55%, rgb(var(--eye) / 0.01))`,
+                  }}
+                />
+                {/* One disc on the eyeball: the iris, the rings round it, and the pupil at its centre. They turn as one. */}
+                <div ref={disc} className="eye-part" style={part(PART.disc, PART.disc, 500, 290)}>
+                  <div ref={spin} className="eye-part" style={part(PART.disc)}>
+                    <svg viewBox={square(PART.disc)}>
                       <circle r={RI} className="eye-iris-disc" />
-                      <g ref={fibres}>
+                    </svg>
+                    <div ref={fibres} className="eye-part" style={part(PART.fibres)}>
+                      <svg viewBox={square(PART.fibres)}>
                         <path d={FIBRES.faint} className="eye-fibre" />
                         <path d={FIBRES.bright} className="eye-fibre-bright" />
-                      </g>
-                      <circle ref={ringFocus} r={RI - 14} className="eye-ring-dash" />
-                      <circle ref={ringDots} r={RI * 0.74} className="eye-ring-dots" />
-                      <circle ref={ringInner} r={RC + 30} className="eye-ring" />
-                      <g ref={spokeSet}>
+                      </svg>
+                    </div>
+                    <div ref={ringFocus} className="eye-part" style={part(PART.focus)}>
+                      <svg viewBox={square(PART.focus)}>
+                        <circle r={RI - 14} className="eye-ring-dash" />
+                      </svg>
+                    </div>
+                    <div ref={ringDots} className="eye-part" style={part(PART.dots)}>
+                      <svg viewBox={square(PART.dots)}>
+                        <circle r={RI * 0.74} className="eye-ring-dots" />
+                      </svg>
+                    </div>
+                    <div ref={ringInner} className="eye-part" style={part(PART.inner)}>
+                      <svg viewBox={square(PART.inner)}>
+                        <circle r={RC + 30} className="eye-ring" />
+                      </svg>
+                    </div>
+                    <div ref={spokeSet} className="eye-part" style={part(PART.spokes)}>
+                      <svg viewBox={square(PART.spokes)}>
                         {layout.map((s) => {
                           const [c, si] = [Math.cos(s.angle), Math.sin(s.angle)];
                           return (
@@ -973,8 +1053,10 @@ export function BossEye({
                           );
                         })}
                         <g ref={flares} />
-                      </g>
-                    </g>
+                      </svg>
+                    </div>
+                  </div>
+                  <svg viewBox={square(PART.disc)}>
                     <circle r={RI - 5} className="eye-limbus" />
                     {/* Its armor: plates round the edge of the iris, whole, chipped or broken. */}
                     {armor.map((p, i) => {
@@ -986,43 +1068,69 @@ export function BossEye({
                         </g>
                       );
                     })}
+                  </svg>
 
-                    {/* The pupil: an old clock, drawn as an instrument. */}
-                    <g ref={pupil}>
-                      <circle r={RC + 19} className="clk-orbit" />
-                      <circle r={RC + 13} className="clk-rim" />
-                      <path d={DIAL.minutes} className="clk-minutes" />
-                      <path d={DIAL.hours} className="clk-hours" />
-                      <circle r={RC} className="clk-face" />
-                      <circle r={RC - 30} className="clk-dots" />
-                      <circle r={26} className="clk-inner" />
-                      <path d={DIAL.reticle} className="clk-reticle" />
-                      <path d={DIAL.numerals} className="clk-numerals" />
-                      <circle cy={SUB.y} r={SUB.r} className="clk-sub" />
-                      <path d={DIAL.subTicks} transform={`translate(0 ${SUB.y.toFixed(1)})`} className="clk-minutes" />
-                      <g ref={secondHand}>
-                        <line x1={0} y1={SUB.y} x2={0} y2={SUB.y - SUB.r + 3} className="clk-sweep" />
-                        <circle cy={SUB.y - SUB.r} r={2.3} className="clk-sec-moon" />
+                  {/* The pupil: an old clock, drawn as an instrument. In layers too: its orbit turns and its seconds
+                      step as layers; it is drawn again only as its size changes by more than a little (see carry). */}
+                  <div ref={pupil} className="eye-part" style={part(PART.pupil)}>
+                    <div className="eye-part eye-orbit" style={part(PART.pupil, PART.pupil, PART.pupil)}>
+                      <svg viewBox={square(PART.pupil)}>
+                        <g className="clk-scale">
+                          <circle r={RC + 19} className="clk-orbit" />
+                        </g>
+                      </svg>
+                    </div>
+                    <svg viewBox={square(PART.pupil)}>
+                      <g className="clk-scale">
+                        <circle r={RC + 13} className="clk-rim" />
+                        <path d={DIAL.minutes} className="clk-minutes" />
+                        <path d={DIAL.hours} className="clk-hours" />
+                        <circle r={RC} className="clk-face" />
+                        <circle r={RC - 30} className="clk-dots" />
+                        <circle r={26} className="clk-inner" />
+                        <path d={DIAL.reticle} className="clk-reticle" />
+                        <path d={DIAL.numerals} className="clk-numerals" />
+                        <circle cy={SUB.y} r={SUB.r} className="clk-sub" />
+                        <path d={DIAL.subTicks} transform={`translate(0 ${SUB.y.toFixed(1)})`} className="clk-minutes" />
                       </g>
-                      <g ref={hourHand}>
-                        <line x1={0} y1={7} x2={0} y2={-(HOUR.length - HOUR.node)} className="clk-hand" />
-                        <circle cy={-HOUR.length * 0.5} r={1.6} className="clk-bead" />
-                        <circle cy={-HOUR.length} r={HOUR.node} className="clk-hand-node" />
+                    </svg>
+                    <div ref={secondHand} className="eye-part" style={part(PART.pupil, PART.pupil, PART.pupil)}>
+                      <svg viewBox={square(PART.pupil)}>
+                        <g className="clk-scale">
+                          <line x1={0} y1={SUB.y} x2={0} y2={SUB.y - SUB.r + 3} className="clk-sweep" />
+                          <circle cy={SUB.y - SUB.r} r={2.3} className="clk-sec-moon" />
+                        </g>
+                      </svg>
+                    </div>
+                    <svg viewBox={square(PART.pupil)}>
+                      <g className="clk-scale">
+                        <g ref={hourHand}>
+                          <line x1={0} y1={7} x2={0} y2={-(HOUR.length - HOUR.node)} className="clk-hand" />
+                          <circle cy={-HOUR.length * 0.5} r={1.6} className="clk-bead" />
+                          <circle cy={-HOUR.length} r={HOUR.node} className="clk-hand-node" />
+                        </g>
+                        <g ref={minuteHand}>
+                          <line x1={0} y1={10} x2={0} y2={-MINUTE.length} className="clk-hand clk-hand-minute" />
+                          <circle cy={-MINUTE.length * 0.62} r={1.4} className="clk-bead" />
+                          <circle cy={-MINUTE.length} r={MINUTE.node} className="clk-hand-tip" />
+                        </g>
+                        <circle r={5.5} className="clk-core" />
+                        <circle r={1.9} className="clk-pin" />
                       </g>
-                      <g ref={minuteHand}>
-                        <line x1={0} y1={10} x2={0} y2={-MINUTE.length} className="clk-hand clk-hand-minute" />
-                        <circle cy={-MINUTE.length * 0.62} r={1.4} className="clk-bead" />
-                        <circle cy={-MINUTE.length} r={MINUTE.node} className="clk-hand-tip" />
-                      </g>
-                      <circle r={5.5} className="clk-core" />
-                      <circle r={1.9} className="clk-pin" />
-                    </g>
-                  </g>
+                    </svg>
+                  </div>
+                </div>
+                <svg viewBox="-500 -290 1000 580" className="eye-sheet">
                   <path ref={lidShade} d={lidsNow} className="eye-lid-shade" />
-                </g>
+                </svg>
+              </div>
+              <svg viewBox="-500 -290 1000 580" className="eye-sheet">
                 <g transform={`scale(${CONTOUR.x} ${CONTOUR.y})`}>
                   <path ref={lidOuter} d={lidsNow} className="eye-lid-contour" />
                 </g>
+              </svg>
+              {/* Its lid line, a layer of its own: near its date it beats, and nothing else need be drawn again for it. */}
+              <svg viewBox="-500 -290 1000 580" className="eye-sheet eye-lid-layer">
                 <path ref={lidLine} d={lidsNow} className="eye-lid" />
               </svg>
             </div>
@@ -1035,8 +1143,8 @@ export function BossEye({
         {/* In front: the tear's torn edge and the cracks at its ends, and its halo, burning and breathing. */}
         <div ref={tearFront} className="quest-tear-move">
           <div ref={frontShape} className="quest-tear-shape" style={{ inset: -over, transformOrigin: `${geo.cx + over}px ${geo.cy + over}px` }}>
-            <canvas ref={tearHalo} className="quest-tear-canvas quest-tear-glow" />
-            <canvas ref={tearEdge} className="quest-tear-canvas" />
+            <canvas ref={tearHalo} className="quest-tear-canvas quest-tear-glow" style={bandStyle} />
+            <canvas ref={tearEdge} className="quest-tear-canvas" style={bandStyle} />
             {[0, 1].map((i) => (
               <canvas
                 key={i}
@@ -1044,6 +1152,7 @@ export function BossEye({
                   tearSplit.current[i] = el;
                 }}
                 className="quest-tear-canvas quest-tear-split"
+                style={bandStyle}
               />
             ))}
           </div>

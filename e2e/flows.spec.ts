@@ -95,3 +95,22 @@ test('opened on claude.ai as a page of its own: said as that, not as signed out'
   await expect(panel.getByText('Opened as a page of its own, the Atlas cannot ask Claude')).toBeVisible();
   await expect(panel.getByRole('link', { name: 'Open in claude.ai' })).toBeVisible();
 });
+
+test('a strike on Quests sends a beam to its part on the eye, and the eye takes the hit', async ({ page, isMobile }) => {
+  const errors = watchErrors(page);
+  await firstVisit(page, 'en', 'quests');
+  await expect(page.locator('.quest-rig')).toHaveAttribute('data-arrived', '', { timeout: 15_000 });
+  const strike = page.getByRole('button', { name: 'Strike' }).first();
+  await expect(strike).toBeVisible();
+  await strike.click();
+  await expect(page.getByText(/^Hit: /)).toBeVisible();
+  // A beam is fired only from the list over the stage (a wide screen); the spoke it hits flares on the eye.
+  if (!isMobile) {
+    await expect(page.locator('.quest-beams line').first()).toBeAttached();
+    await expect(page.locator('.boss-eye .eye-flare')).toBeAttached();
+    // And both are gone once spent.
+    await expect(page.locator('.quest-beams line')).toHaveCount(0, { timeout: 5_000 });
+    await expect(page.locator('.boss-eye .eye-flare')).toHaveCount(0, { timeout: 5_000 });
+  }
+  expect(errors).toEqual([]);
+});

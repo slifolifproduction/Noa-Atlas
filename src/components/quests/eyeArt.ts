@@ -60,6 +60,14 @@ export function lids(o: number) {
   return `M${-EW} 0${seg(u)}${seg(l)}Z`;
 }
 
+/** The same outline as a CSS clip of the eye's box (1000 by 580 units, scaled by `k`), in its pixels. */
+export function lidsClip(o: number, k: number) {
+  const { upper: u, lower: l } = lidSegs(o);
+  const px = ([x, y]: P) => `${f((x + 500) * k)} ${f((y + 290) * k)}`;
+  const seg = ([a, b, c]: Seg) => `C${px(a)} ${px(b)} ${px(c)}`;
+  return `path('M${px([-EW, 0])}${seg(u)}${seg(l)}Z')`;
+}
+
 /* ---- Where the eye can go -------------------------------------------------- */
 
 const bez = (p0: P, [a, b, c]: Seg, t: number): P => {
@@ -243,6 +251,12 @@ export function tearCracks(seed: number) {
     out.push({ pts: branch, weight: 0.6 });
   }
   return out;
+}
+
+/** How far the tear and its cracks reach either side of its line, in units: its paintings need be no taller. */
+export function tearReach(seed: number) {
+  const pts = [...tearOutline(seed), ...tearCracks(seed).flatMap((c) => c.pts)];
+  return Math.max(...pts.map(([, y]) => Math.abs(y)));
 }
 
 /**
@@ -772,7 +786,7 @@ export const PLANE = Math.sqrt(EYEBALL ** 2 - RI ** 2);
 export const YAW = (21 * Math.PI) / 180;
 export const PITCH = (13 * Math.PI) / 180;
 
-/** Where the disc lands, and the SVG matrix that carries it there (with `scale` for the pupil's size). */
+/** Where the disc lands, and the transform that carries it there (with `scale` for the iris's lens). */
 export function turn(yaw: number, pitch: number) {
   const nx = Math.sin(yaw) * Math.cos(pitch);
   const ny = Math.sin(pitch);
@@ -788,8 +802,13 @@ export function turn(yaw: number, pitch: number) {
   return {
     x,
     y,
-    matrix: (scale = 1) =>
-      `matrix(${(a * scale).toFixed(4)} ${(b * scale).toFixed(4)} ${(b * scale).toFixed(4)} ${(d * scale).toFixed(4)} ${x.toFixed(1)} ${y.toFixed(1)})`,
+    /**
+     * As a CSS transform of a layer `side` units across, centred on the disc: carried by a share of its own size, so
+     * it holds at any scale of the stage.
+     */
+    // Rounded to well under a pixel, so a frame in which it has not visibly moved sets nothing (and the page does no work).
+    css: (scale: number, side: number) =>
+      `translate(${((x / side) * 100).toFixed(2)}%,${((y / side) * 100).toFixed(2)}%) matrix(${(a * scale).toFixed(3)},${(b * scale).toFixed(3)},${(b * scale).toFixed(3)},${(d * scale).toFixed(3)},0,0)`,
   };
 }
 
